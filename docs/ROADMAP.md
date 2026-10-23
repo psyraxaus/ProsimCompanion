@@ -826,6 +826,33 @@ Owner requests and flight-test fixes after the batch. One line each; the full te
       hand-over by phase (legacy distance gate kept); SI stand fallback; event-flood dedupe.
       **Unverified live** — every item.
 
+## Phase 10 — November 2026 airline-ops batch
+
+Ten packages, one GitHub issue and one branch each, written against `feature/remote-mixer-agents`
+at 0.7.0-rc.12. The theme: what a line pilot does that the app did not yet model — the emergency
+half of the takeoff briefing, last-minute changes, wind and runway-condition limits, the fuel
+decision, a diversion, movement messages, turbulence and PAs, RTO/EFATO, the FO's own-side
+duties. New features default **off** and are **Unverified live** until a flight confirms them.
+
+- [x] **Diversion workflow** (#184, `feature/diversion`): Core `DiversionStore` (active, new
+      destination + name, reason, declared-at, the original destination, the FO's offers) whose
+      Declare overlays `OfpStore` — `Current` = the plan with the new destination
+      (`OfpDiversion.WithDiversion`: navlog, planned arrival runway, planned landing fuel and
+      alternate dropped), `Planned` = as fetched; every destination consumer follows through the
+      `Changed` edge it already observes (progress key, weather-card planner, weather watch
+      baseline, briefing OFP tier, arrival-gate chain, fuel-check fallback, monitor strip).
+      `FlightOptions` (`flight.diversionEnabled`), `FlightCommandHandlers` (`flight.divert`
+      {icao, reason} / `flight.cancelDiversion`) over `IDiversionControl`, `IAcarsUplink` Core
+      seam (Prosim), `DebriefFacts.Diverted/PlannedDestination/DiversionReason` from
+      `flight.diverted` / `flight.diversionCancelled`, `LogbookFlight` fields + CSV columns, the
+      `{diversion}` ATC template value + the "request diversion" catalogue entry; Speech
+      `DiversionService` (precedence 145: phonetic / "alternate" / reason parse, the spoken
+      offers, gate cancel, ACARS downlink slot 05 + the company's spoken reply); the
+      `DiversionCard` on the OFP page and Flight Status. Events `flight.diverted`,
+      `flight.diversionCancelled`, `company.diversion`; probe `flight-diversion`. **Unverified
+      live** — the GSX gate chain's behaviour at the new airport and the restart case (the
+      snapshot persists the effective OFP; the card is empty after a restart) in particular.
+
 ## Open items (after the rc.5 batch, 2026-10-11)
 
 Nothing on this roadmap is open as code. What remains:

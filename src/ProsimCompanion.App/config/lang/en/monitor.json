@@ -11,6 +11,7 @@
     "logoTitle": "Upload this airline's logo on Settings → Appearance",
     "logoPlaceholder": "AIRLINE LOGO",
     "noFlightPlan": "No flight plan",
+    "diverted": "DIVERSION — was {0}",
     "fetchOfp": "Fetch an OFP on the INIT page",
     "gateLabel": {
       "gate": "Gate",

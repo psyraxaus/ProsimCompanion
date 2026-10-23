@@ -118,7 +118,7 @@
                         </g>
                     }
                 </svg>
-                <span class="label-caps muted mon-strip-caption">@FlightMonitorPresentation.ProgressCaption(T, _progress)</span>
+                <span class="label-caps muted mon-strip-caption">@FlightMonitorPresentation.ProgressCaption(T, _progress)@(Ofp.IsDiverted && Ofp.Planned is { } plannedOfp ? " · " + T["monitor.diverted", plannedOfp.DestinationIcao].Value : "")</span>
             }
             else
             {

@@ -4,6 +4,7 @@
 @using ProsimCompanion.Core.Flight
 @inject IOptionsMonitor<WebUiOptions> WebUiMonitor
 @inject IOptionsMonitor<FlightDataOptions> FlightDataMonitor
+@inject IOptionsMonitor<FlightOptions> FlightOptionsMonitor
 @inject IOptionsMonitor<ChecklistOptions> ChecklistMonitor
 @inject IOptionsMonitor<FlightStatusOptions> FlightStatusMonitor
 @inject IOptionsMonitor<FlightStateOptions> FlightStateMonitor
@@ -36,6 +37,11 @@
     <OptionField Draft="_flightData" For="o => o.AutoFinalOnBoardingComplete" />
     <OptionField Draft="_flightData" For="o => o.FinalDelayMinSeconds" />
     <OptionField Draft="_flightData" For="o => o.AutoSyncFmsOnFinal" />
+</Section>
+
+@* The diversion workflow (issue #184). *@
+<Section Title="@T["appSettings.diversion.title"]" Hint="@T["appSettings.diversion.hint"]">
+    <OptionField Draft="_flightOptions" For="o => o.DiversionEnabled" />
 </Section>
 
 <Section Title="@T["appSettings.flightStatus.title"]" Hint="@T["appSettings.flightStatus.hint"]">
@@ -76,6 +82,7 @@
 @code {
     private OptionsDraft<WebUiOptions> _webUi = default!;
     private OptionsDraft<FlightDataOptions> _flightData = default!;
+    private OptionsDraft<FlightOptions> _flightOptions = default!;
     private OptionsDraft<ChecklistOptions> _checklists = default!;
     private OptionsDraft<FlightStatusOptions> _flightStatus = default!;
     // The flightState section is also edited on the Flight phases page (thresholds); the
@@ -86,6 +93,7 @@
     {
         _webUi = Draft(WebUiMonitor);
         _flightData = Draft(FlightDataMonitor);
+        _flightOptions = Draft(FlightOptionsMonitor);
         _checklists = Draft(ChecklistMonitor);
         _flightStatus = Draft(FlightStatusMonitor);
         _flightState = Draft(FlightStateMonitor);

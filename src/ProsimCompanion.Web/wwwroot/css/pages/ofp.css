@@ -181,3 +181,14 @@
   .ofp-data { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .ofp-wx-grid { grid-template-columns: 1fr; }
 }
+
+/* ---- diversion card (issue #184) ---- */
+
+.diversion-card .section-body { display: flex; flex-direction: column; gap: 10px; }
+.diversion-active { border-color: color-mix(in srgb, var(--warning) 55%, transparent); }
+.diversion-row { display: flex; align-items: baseline; gap: 12px; }
+.diversion-row .label-caps { min-width: 72px; }
+.diversion-name { color: var(--text-secondary); font-size: 12px; }
+.diversion-offers { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.diversion-controls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.diversion-icao { width: 6ch; text-transform: uppercase; }

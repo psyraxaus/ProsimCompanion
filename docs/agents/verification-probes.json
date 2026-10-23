@@ -3185,6 +3185,37 @@
         "requires-human: the run still sounds like a checklist — the pilot hears every line, the read-through ones as one callout, and 'complete' at the end."
       ],
       "notes": "Owner request 2026-10-18 (UX pass): already-correct switches should not need a reply. SatisfiedLineReadThrough (pure, tested) decides; SpokenChecklistEngine pre-subscribes the checklist's verify datarefs before the title so the values are cached by the first line. The visual Checklists page ticks the line as Done like any voice completion. Unverified live."
+    },
+    {
+      "id": "flight-diversion",
+      "issue": 184,
+      "state": "open",
+      "kind": "assert-present",
+      "machine": {
+        "kind": "signature",
+        "source": "session",
+        "type": "airport-coordinates",
+        "contains": "",
+        "trigger": {
+          "source": "session",
+          "type": "flight.diverted",
+          "contains": "\"to\""
+        }
+      },
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "Only with flight.diversionEnabled = true (off by default). Trigger: a flight.diverted event {from, to, reason, source voice|command|web, phase, airborne} — from 'divert to …' / 'we are diverting', the flight.divert command or the Diversion card.",
+        "assert-present (the one-seam check): within one progress tick after flight.diverted, an airport-coordinates event whose destination.icao equals the event's `to` (the OFP overlay changed the progress key, so the airports re-resolved), and the next fo.destination-weather event (if any) names the new ICAO — the weather watch reset its baseline on the destination change; the hero weather card and the Flight Monitor's destination label read the new ICAO, the strip caption says 'DIVERSION — was {from}'.",
+        "assert-present: the FO's spoken line 'Diverting to {name}. Arrival briefing for {name} when you're ready.' followed, when speech.mcdu.allowActuation is on, by the RAD NAV offer and, when SayIntentions is on, by the ATC offer; ONE company.diversion event {message 'DIVERSION {to} REASON {REASON}', reply 'ROGER DIVERSION, HANDLING ARRANGED {to}, CALL ON BLOCKS', acarsSent} and, about 25 s later, a company.message with the reply words; an 'ACARS uplink dispatched: DIVERSION slot 05' log line when ProSim was connected.",
+        "assert-present (after landing): the logbook flight carries Diverted true, Destination = `to`, PlannedDestination = `from`; the debrief's destination is `to`; a day-mode leg reads 'planned {from}, flew {to}'.",
+        "assert-present (cancel): flight.diversionCancelled {backTo} followed by an airport-coordinates event naming `backTo` again and the FO's 'Diversion cancelled — back to {name}.'.",
+        "assert-absent: a flight.diverted whose `to` equals the OFP destination; a diversion while flight.diversionEnabled was false (the command answers Unavailable); any MCDU write caused by the diversion itself (the RAD NAV retune is only ever the pilot's own 'tune the ILS' with its announce → cancel window → verify gate).",
+        "requires-human: the arrival briefing spoken after the pilot sets the new destination in the MCDU names the new airport and its runway; the GSX arrival gate is asked for at the new airport (the old stand request was cancelled); 'request diversion' goes out on SayIntentions with the new ICAO."
+      ],
+      "notes": "Package 5 of the November 2026 airline-ops batch (branch feature/diversion). Core DiversionStore overlays OfpStore (Planned vs Current, OfpDiversion.WithDiversion drops navlog / planned runway / landing fuel / alternate), FlightOptions (`flight.diversionEnabled`), FlightCommandHandlers + IDiversionControl, IAcarsUplink seam (Prosim AcarsUplink), DebriefFacts.Diverted/PlannedDestination/DiversionReason, LogbookFlight fields + CSV columns; Speech DiversionService (precedence 145) and the {diversion} ATC template value; the DiversionCard on the OFP page and Flight Status. The flight-state snapshot persists the effective (diverted) OFP, so after an in-flight restart the destination is right but the card is empty — accepted. Unverified live."
     }
   ]
 }

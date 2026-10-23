@@ -11,6 +11,7 @@
     "logoTitle": "Upload het logo van deze maatschappij via Instellingen → Uiterlijk",
     "logoPlaceholder": "MAATSCHAPPIJLOGO",
     "noFlightPlan": "Geen vluchtplan",
+    "diverted": "UITWIJKING — was {0}",
     "fetchOfp": "Haal een OFP op via de INIT-pagina",
     "gateLabel": {
       "gate": "Gate",

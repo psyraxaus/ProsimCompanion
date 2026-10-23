@@ -94,6 +94,8 @@ public sealed class DebriefFactExtractor : IDebriefFactExtractor
             var advisories = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             string? origin = null, destination = null, depRunway = null, arrRunway = null;
             string? plannedOrigin = null, plannedDestination = null; // ofp.loaded fallback (#164)
+            var diverted = false; // issue #184
+            string? plannedDestinationBeforeDiversion = null, diversionReason = null;
             double? touchdownRate = null, touchdownIas = null, touchdownPitch = null;
             int? bounces = null;
             bool touchdownSeen = false, touchdownSettled = false;
@@ -282,6 +284,37 @@ public sealed class DebriefFactExtractor : IDebriefFactExtractor
                             break;
                         }
 
+                        case "flight.diverted":
+                        {
+                            // Issue #184: the aircraft follows the new destination; the plan's
+                            // one stays as the planned destination for the logbook and the day.
+                            var to = Str(payload, "to");
+                            var from = Str(payload, "from");
+                            if (!string.IsNullOrWhiteSpace(to))
+                            {
+                                diverted = true;
+                                plannedDestinationBeforeDiversion ??= string.IsNullOrWhiteSpace(from) ? destination ?? plannedDestination : from;
+                                destination = to;
+                                arrRunway = null;
+                                diversionReason = Str(payload, "reason");
+                            }
+
+                            break;
+                        }
+
+                        case "flight.diversionCancelled":
+                        {
+                            if (diverted)
+                            {
+                                diverted = false;
+                                destination = plannedDestinationBeforeDiversion ?? destination;
+                                plannedDestinationBeforeDiversion = null;
+                                diversionReason = null;
+                            }
+
+                            break;
+                        }
+
                         case "flight.route":
                         {
                             var airport = Str(payload, "airport");
@@ -396,7 +429,8 @@ public sealed class DebriefFactExtractor : IDebriefFactExtractor
                 touchdownRate, touchdownIas, touchdownPitch, bounces,
                 stampOff, stampTakeoff, stampLanding, stampOn,
                 // A restored stamp (same session file) outranks the flag: the takeoff IS known.
-                takeoffUnknown && stampTakeoff is null);
+                takeoffUnknown && stampTakeoff is null,
+                diverted, diverted ? plannedDestinationBeforeDiversion : null, diverted ? diversionReason : null);
         }
         catch (Exception ex)
         {

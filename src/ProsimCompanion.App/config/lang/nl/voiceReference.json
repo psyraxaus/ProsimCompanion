@@ -36,6 +36,7 @@
     },
     "off": {
       "speechFo": "{0} staat uit — Instellingen → Spraak-First Officer",
+      "diversion": "{0} staat uit — Instellingen → Display & Flight Data → Uitwijking",
       "mcdu": "{0} staat uit — Instellingen → Spraak-First Officer → MCDU",
       "monitoring": "{0} staat uit — Instellingen → Spraak-First Officer → Callouts & placards → Bewaking tijdens de vlucht",
       "gsxSettings": "{0} staat uit — Instellingen → GSX",
@@ -128,6 +129,11 @@
         "departure": "Vertrekbriefing uit het FMS-plan, navdata en live weer.",
         "arrival": "Aankomstbriefing — de FO vraagt je eerst de minimums te bevestigen.",
         "approaches": "De navdata-approaches voor de aankomstbaan."
+      },
+      "diversion": {
+        "title": "Uitwijking",
+        "divert": "Verklaart de uitwijking: de nieuwe bestemming vervangt die van het plan op elke pagina en de aanbiedingen van de FO volgen.",
+        "cancel": "Terug naar de geplande bestemming."
       },
       "missedApproach": {
         "title": "Missed approach",

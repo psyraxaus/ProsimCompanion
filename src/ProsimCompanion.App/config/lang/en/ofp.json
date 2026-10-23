@@ -70,6 +70,32 @@
       },
       "menuHint": "When GSX shows 'Select pushback direction' with the stand's own named lines, pick one here — no need to open the GSX window."
     },
+    "diversion": {
+      "title": "Diversion",
+      "active": "DIVERTING",
+      "none": "ON PLAN",
+      "to": "To",
+      "from": "Planned",
+      "reason": "Reason",
+      "declared": "Declared",
+      "offers": "The FO offers",
+      "cancel": "Cancel diversion",
+      "divertToAlternate": "Divert to {0}",
+      "divert": "Divert",
+      "icao": "Diversion airport ICAO",
+      "offer": {
+        "briefing": "arrival briefing",
+        "radNav": "RAD NAV retune",
+        "atc": "ATC request"
+      },
+      "reasons": {
+        "weather": "Weather",
+        "technical": "Technical",
+        "medical": "Medical",
+        "fuel": "Fuel",
+        "other": "Other"
+      }
+    },
     "deice": {
       "title": "Deice Holdover (HOT)",
       "oat.aria": "Outside air temperature",

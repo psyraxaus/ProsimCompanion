@@ -124,6 +124,10 @@ through with a note if deliberately dropped. Sources: Prosim2GSX 0.9.0, ProsimIn
 - [x] Briefings (departure/arrival; Navigraph DFD facts; LLM-composed with number
       verification, streamed sentence by sentence since #147; interactive minimums capture
       `MinimaCaptureDialogue` + the /speech card)
+- [x] Diversion workflow (#184, off): "divert to …" / `flight.divert` / the Diversion card
+      overlay the OFP destination so progress, weather, briefing, GSX gate, fuel check, logbook
+      and day follow; FO offers (briefing, RAD NAV via the existing tuner gate, ATC request);
+      ACARS downlink + company reply
 - [x] SayIntentions ATC requests + departure comms gating + radio management
       (standby-then-swap)
 - [x] SayIntentions wrong-frequency report (COM1 vs ATC's last "Contact … on …"; said once,

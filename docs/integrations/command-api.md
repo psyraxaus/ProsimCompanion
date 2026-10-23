@@ -56,6 +56,8 @@ Naming convention: dotted lowercase area + camelCase verb — `gsx.forceNextServ
 | `loadsheet.generateFinal` | — | Needs a prior prelim (failure reports it). |
 | `loadsheet.resetCycle` | — | |
 | `fms.syncInit` | — | Success payload adds `source`, `zfwTonnes`, `zfwCgPercent`, `blockTonnes`. |
+| `flight.divert` | `{ "icao": "LIRN", "reason": "weather" }` | Issue #184. `icao` blank = the OFP alternate; `reason` weather / technical / medical / fuel / other (free words are classified). Unavailable while `flight.diversionEnabled` is off. |
+| `flight.cancelDiversion` | — | Back to the planned destination. |
 | `ofp.fetch` | — | Forced SimBrief re-fetch/re-import. |
 | `efb.resetFlight` | — | The INIT page's **RESET FLIGHT (SOFT)**: restart the leg on the same OFP — INIT overrides cleared (OFP values restored), loadsheet cycle back to edition 1. Nothing else is written. `failed` names what ProSim refused. |
 | `efb.unloadOfp` | — | The INIT page's **UNLOAD OFP (FULL)**: the OFP is unloaded from the ProSim EFB — exactly the SimBrief import's write set cleared (`efb.passengers.booked.string` all-false, `efb.passengerStatistics` zeros, `aircraft.refuel.fuelTarget` / `efb.plannedfuel` / `efb.plannedCargoKg` 0, `efb.simbriefPlanImported` false) plus both loadsheet slots blanked — then the OFP store is emptied and the turnaround path (`FlightCycleReset`) raised, so loadsheets, overrides, pushback choice, gate monitor, flight times and fuel confirmation reset and no GSX service is called until a new OFP arrives (an MCDU plan still loaded keeps the plan gate open, ADR-0006). `failed` names any refused dataref; the app-side part has still run. |

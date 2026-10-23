@@ -70,6 +70,32 @@
       },
       "menuHint": "GSX가 'Select pushback direction'에서 스탠드 고유의 이름이 붙은 라인을 보여주면 여기서 하나를 고르세요 — GSX 창을 열 필요가 없습니다."
     },
+    "diversion": {
+      "title": "회항",
+      "active": "회항 중",
+      "none": "계획대로",
+      "to": "목적지",
+      "from": "계획",
+      "reason": "사유",
+      "declared": "선언",
+      "offers": "FO 제안",
+      "cancel": "회항 취소",
+      "divertToAlternate": "{0}으로 회항",
+      "divert": "회항",
+      "icao": "회항 공항 ICAO",
+      "offer": {
+        "briefing": "도착 브리핑",
+        "radNav": "RAD NAV 재설정",
+        "atc": "ATC 요청"
+      },
+      "reasons": {
+        "weather": "기상",
+        "technical": "기술",
+        "medical": "의료",
+        "fuel": "연료",
+        "other": "기타"
+      }
+    },
     "deice": {
       "title": "제빙 홀드오버 (HOT)",
       "oat.aria": "외기 온도",

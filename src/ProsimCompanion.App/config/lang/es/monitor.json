@@ -11,6 +11,7 @@
     "logoTitle": "Sube el logotipo de esta aerolínea en Ajustes → Apariencia",
     "logoPlaceholder": "LOGO AEROLÍNEA",
     "noFlightPlan": "Sin plan de vuelo",
+    "diverted": "DESVÍO — era {0}",
     "fetchOfp": "Obtén un OFP en la página INIT",
     "gateLabel": {
       "gate": "Puerta",

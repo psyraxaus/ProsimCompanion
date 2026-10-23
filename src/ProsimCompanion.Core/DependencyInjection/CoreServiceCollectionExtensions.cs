@@ -57,6 +57,8 @@ public static class CoreServiceCollectionExtensions
         services.AddOptionSection<LogbookOptions>(configuration);
         services.AddOptionSection<DebriefOptions>(configuration);
         services.AddOptionSection<FlightDataOptions>(configuration);
+        // The diversion workflow switch (issue #184).
+        services.AddOptionSection<FlightOptions>(configuration);
         services.AddOptionSection<LoggingOptions>(configuration);
         services.AddOptionSection<AircraftProfilesOptions>(configuration);
         services.AddOptionSection<UpdateCheckOptions>(configuration);
@@ -198,6 +200,9 @@ public static class CoreServiceCollectionExtensions
         services.AddSingleton<WebListenerStatus>();
         services.AddSingleton<ArrivalMinimaStore>();
         services.AddSingleton<Aircraft.Ofp.OfpStore>();
+        // The diversion for this flight (issue #184): overlays the OFP store's destination so
+        // every consumer follows the aircraft through the one Changed edge.
+        services.AddSingleton<DiversionStore>();
         // ofp.loaded session event (issue #164): the planned route on record whether or not a
         // briefing is ever spoken — the extractor's fallback for logbook/debrief/duty-day legs.
         services.AddHostedService<Aircraft.Ofp.OfpEventRecorder>();

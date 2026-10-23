@@ -37,6 +37,8 @@ public static class CommandsBootstrap
             services.GetService<ILoadsheetControl>(),
             services.GetService<IFmsInitSync>());
         OfpCommandHandlers.Register(registry, services.GetService<ISimbriefImporter>());
+        // The diversion workflow (issue #184): the Speech pillar implements the seam.
+        FlightCommandHandlers.Register(registry, services.GetService<IDiversionControl>());
         EfbCommandHandlers.Register(registry, services.GetService<IEfbResetControl>());
         MinimaCommandHandlers.Register(registry, services.GetService<ArrivalMinimaStore>());
         SpeechCommandHandlers.Register(

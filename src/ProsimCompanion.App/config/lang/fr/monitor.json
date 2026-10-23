@@ -11,6 +11,7 @@
     "logoTitle": "Téléversez le logo de cette compagnie dans Réglages → Apparence",
     "logoPlaceholder": "LOGO COMPAGNIE",
     "noFlightPlan": "Aucun plan de vol",
+    "diverted": "DÉROUTEMENT — était {0}",
     "fetchOfp": "Récupérez un OFP sur la page INIT",
     "gateLabel": {
       "gate": "Porte",

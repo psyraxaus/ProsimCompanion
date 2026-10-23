@@ -1,5 +1,5 @@
 {
-  "//": "SayIntentions ATC requests. Each is spoken on COM1 via sayAs (SayIntentions voices it). Placeholders: {callsign} {gate} {runway} {airport} {origin} from flight.json. commType matches the getWX comms 'type' for auto-tune. Only active when sayIntentions.enabled = true. Add more requests freely.",
+  "//": "SayIntentions ATC requests. Each is spoken on COM1 via sayAs (SayIntentions voices it). Placeholders: {callsign} {gate} {runway} {airport} {origin} from flight.json, {diversion} = the diversion destination while one is declared (issue #184). commType matches the getWX comms 'type' for auto-tune. Only active when sayIntentions.enabled = true. Add more requests freely.",
 
   "requests": [
     {
@@ -41,6 +41,14 @@
       "isDeparture": true,
       "icao": "Tower, {callsign}, holding short runway {runway}, ready for departure",
       "faa": "Tower, {callsign}, holding short runway {runway}, ready for departure"
+    },
+    {
+      "phrases": [ "request diversion", "request diversion to alternate", "request the diversion" ],
+      "station": "Center",
+      "commType": "CENTER",
+      "isDeparture": false,
+      "icao": "{callsign}, request diversion to {diversion}",
+      "faa": "{callsign}, request diversion to {diversion}"
     }
   ]
 }

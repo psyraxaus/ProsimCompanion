@@ -36,6 +36,7 @@
     },
     "off": {
       "speechFo": "{0} ist aus — Einstellungen → Sprach-Erster-Offizier",
+      "diversion": "{0} ist aus — Einstellungen → Display & Flight Data → Diversion",
       "mcdu": "{0} ist aus — Einstellungen → Sprach-Erster-Offizier → MCDU",
       "monitoring": "{0} ist aus — Einstellungen → Sprach-Erster-Offizier → Callouts & Placards → Überwachung im Flug",
       "gsxSettings": "{0} ist aus — Einstellungen → GSX",
@@ -128,6 +129,11 @@
         "departure": "Departure-Briefing aus FMS-Plan, Navdata und Live-Wetter.",
         "arrival": "Arrival-Briefing — der FO bittet dich zuerst, die Minimums zu bestätigen.",
         "approaches": "Die Navdata-Anflüge für die Landebahn."
+      },
+      "diversion": {
+        "title": "Diversion",
+        "divert": "Erklärt die Diversion: das neue Ziel ersetzt das geplante auf jeder Seite, die Angebote des FO folgen.",
+        "cancel": "Zurück zum geplanten Ziel."
       },
       "missedApproach": {
         "title": "Missed Approach",
