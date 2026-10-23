@@ -33,6 +33,8 @@ public sealed partial class VoiceFeatureRosterTests
     private static readonly (Type Feature, int Precedence)[] PinnedOrder =
     [
         (typeof(ProsimCompanion.Speech.Monitoring.FuelCheckMonitor), 10),
+        // Issue #183: "fuel decision" / "extra fuel …" / "how long can we hold", beside the fuel check.
+        (typeof(ProsimCompanion.Speech.Monitoring.FuelDecisionService), 15),
         (typeof(ProsimCompanion.Speech.Monitoring.GrossErrorCheckMonitor), 20),
         (typeof(ProsimCompanion.Speech.Roles.RoleManager), 30),
         (typeof(ProsimCompanion.Speech.Monitoring.StandaloneReadbacks), 40),

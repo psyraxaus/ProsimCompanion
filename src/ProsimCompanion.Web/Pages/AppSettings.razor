@@ -4,6 +4,7 @@
 @using ProsimCompanion.Core.Flight
 @inject IOptionsMonitor<WebUiOptions> WebUiMonitor
 @inject IOptionsMonitor<FlightDataOptions> FlightDataMonitor
+@inject IOptionsMonitor<FuelOptions> FuelMonitor
 @inject IOptionsMonitor<ChecklistOptions> ChecklistMonitor
 @inject IOptionsMonitor<FlightStatusOptions> FlightStatusMonitor
 @inject IOptionsMonitor<FlightStateOptions> FlightStateMonitor
@@ -36,6 +37,17 @@
     <OptionField Draft="_flightData" For="o => o.AutoFinalOnBoardingComplete" />
     <OptionField Draft="_flightData" For="o => o.FinalDelayMinSeconds" />
     <OptionField Draft="_flightData" For="o => o.AutoSyncFmsOnFinal" />
+</Section>
+
+@* The captain's fuel decision and the holding time (issue #183). *@
+<Section Title="@T["appSettings.fuelDecision.title"]" Hint="@T["appSettings.fuelDecision.hint"]">
+    <OptionField Draft="_fuel" For="o => o.DecisionAdvice" />
+    <OptionField Draft="_fuel" For="o => o.HoldingBurnKgPerHour" />
+    <AdvancedFields>
+        <OptionField Draft="_fuel" For="o => o.ThunderstormHoldingMinutes" />
+        <OptionField Draft="_fuel" For="o => o.MarginalHoldingMinutes" />
+        <OptionField Draft="_fuel" For="o => o.BelowMinimaHoldingMinutes" />
+    </AdvancedFields>
 </Section>
 
 <Section Title="@T["appSettings.flightStatus.title"]" Hint="@T["appSettings.flightStatus.hint"]">
@@ -76,6 +88,7 @@
 @code {
     private OptionsDraft<WebUiOptions> _webUi = default!;
     private OptionsDraft<FlightDataOptions> _flightData = default!;
+    private OptionsDraft<FuelOptions> _fuel = default!;
     private OptionsDraft<ChecklistOptions> _checklists = default!;
     private OptionsDraft<FlightStatusOptions> _flightStatus = default!;
     // The flightState section is also edited on the Flight phases page (thresholds); the
@@ -86,6 +99,7 @@
     {
         _webUi = Draft(WebUiMonitor);
         _flightData = Draft(FlightDataMonitor);
+        _fuel = Draft(FuelMonitor);
         _checklists = Draft(ChecklistMonitor);
         _flightStatus = Draft(FlightStatusMonitor);
         _flightState = Draft(FlightStateMonitor);

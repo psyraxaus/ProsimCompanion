@@ -249,18 +249,26 @@ public static class FlightStatusPresentation
     /// <summary>The distance / ETA row (issue #145). Distances are great-circle DIRECT, never
     /// along the route; the tags name where each figure came from (GS = position and ground
     /// speed, PLAN = the time-based fallback, EST = the 3:1 top-of-descent estimate).</summary>
-    public static IReadOnlyList<HeroProgressItem> Progress(FlightProgressSnapshot progress)
+    public static IReadOnlyList<HeroProgressItem> Progress(FlightProgressSnapshot progress, Core.Fuel.HoldingEstimate? holding = null)
     {
         ArgumentNullException.ThrowIfNull(progress);
-        return
-        [
-            new HeroProgressItem("flightStatus.hero.toGo", FlightMonitorPresentation.Distance(progress.DistanceToGoNm), null),
-            new HeroProgressItem("flightStatus.hero.flown", FlightMonitorPresentation.Distance(progress.DistanceFlownNm), null),
-            new HeroProgressItem("flightStatus.hero.eta", FlightMonitorPresentation.Clock(progress.EtaUtc),
+        var items = new List<HeroProgressItem>
+        {
+            new("flightStatus.hero.toGo", FlightMonitorPresentation.Distance(progress.DistanceToGoNm), null),
+            new("flightStatus.hero.flown", FlightMonitorPresentation.Distance(progress.DistanceFlownNm), null),
+            new("flightStatus.hero.eta", FlightMonitorPresentation.Clock(progress.EtaUtc),
                 progress.EtaUtc is null ? null : FlightMonitorPresentation.BasisTag(progress.EtaBasis)),
-            new HeroProgressItem("flightStatus.hero.topOfDescent", FlightMonitorPresentation.MinutesToTod(progress.MinutesToTod),
+            new("flightStatus.hero.topOfDescent", FlightMonitorPresentation.MinutesToTod(progress.MinutesToTod),
                 progress.MinutesToTod is null ? null : "EST"),
-        ];
+        };
+
+        // Holding time (issue #183): only once a fuel check has produced one this flight.
+        if (holding is not null)
+        {
+            items.Add(new HeroProgressItem("flightStatus.hero.holding", Core.Fuel.HoldingTimeCalculator.Figure(holding), holding.DivertNow ? null : "EST"));
+        }
+
+        return items;
     }
 
     // ── Hero widgets (owner sign-off 2026-09-22) ──────────────────────────────────────

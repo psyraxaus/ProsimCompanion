@@ -151,6 +151,12 @@
         "title": "Fuel Check",
         "check": "Kraftstoff an Bord gegen den SimBrief-Plan an deiner Position und der geschätzte Landekraftstoff gegen den Planwert. Im Reiseflug auch automatisch."
       },
+      "fuelDecision": {
+        "title": "Fuel Decision",
+        "decision": "Die Ziel-TAF zur ETA gegen die Minima — Extra-Fuel empfohlen oder nicht.",
+        "extra": "Erhöht den INIT-Block-Fuel um Holding-Minuten oder um Hunderte Kilo.",
+        "holding": "Fuel über dem Ziel minus Alternate und Final Reserve, als Holding-Minuten."
+      },
       "grossErrorCheck": {
         "title": "Gross Error Check",
         "check": "Die Gewichte des Flugzeugs gegen das finale Loadsheet und die FMS-PERF-Einträge gegen die letzte Takeoff-Performance-Berechnung. Auch automatisch, sobald finales Loadsheet und V-Speeds vorliegen."

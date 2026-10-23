@@ -366,6 +366,8 @@
       "lvarsValue": "état {0}, type de fluide {1}"
     },
     "captainsQuestions": {
+      "takeExtraFuel": "Prendre le carburant extra",
+      "planFuel": "Carburant plan maintenu",
       "title": "Questions au commandant",
       "hint": "Questions ouvertes du First Officer — réponds ici, à la voix ou dans le menu GSX",
       "none": "Aucune question ouverte.",

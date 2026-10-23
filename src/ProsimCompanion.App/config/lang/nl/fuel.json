@@ -27,6 +27,23 @@
       "centre": "MIDDEN",
       "rightInner": "RECHTS BINNEN",
       "rightOuter": "RECHTS BUITEN"
+    },
+    "plan": {
+      "title": "Brandstofplan & holding",
+      "hint": "SimBrief-verdeling · in tanks {0} {1}",
+      "taxi": "Taxi",
+      "trip": "Trip",
+      "contingency": "Contingency",
+      "alternate": "Alternate",
+      "finalReserve": "Final reserve",
+      "plannedHolding": "Geplande holding",
+      "extra": "Extra",
+      "discretionary": "Discretionair",
+      "block": "Block",
+      "holding": "Holding beschikbaar",
+      "holdingDetail": "{0} {1} boven alternate en final reserve · {2}",
+      "advice": "Brandstofbeslissing",
+      "applied": "+{0} {1} op het block gezet"
     }
   }
 }

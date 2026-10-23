@@ -23,6 +23,7 @@ public sealed class FoFactSource : ILiveAircraftFacts, IDisposable
     private readonly HeroWeatherStore _weather;
     private readonly ArrivalMinimaStore _minima;
     private readonly ITechLogService? _techLog;
+    private readonly HoldingTimeStore? _holding; // issue #183: the "how long can we hold" line
     private readonly IDataRefSubscription<double> _fuel;
     private readonly IDataRefSubscription<double> _zfw;
     private readonly IDataRefSubscription<double> _gross;
@@ -36,7 +37,8 @@ public sealed class FoFactSource : ILiveAircraftFacts, IDisposable
         HeroWeatherStore weather,
         ArrivalMinimaStore minima,
         IProsimDataRefs dataRefs,
-        ITechLogService? techLog = null)
+        ITechLogService? techLog = null,
+        HoldingTimeStore? holding = null)
     {
         ArgumentNullException.ThrowIfNull(flight);
         ArgumentNullException.ThrowIfNull(progress);
@@ -55,6 +57,7 @@ public sealed class FoFactSource : ILiveAircraftFacts, IDisposable
         _weather = weather;
         _minima = minima;
         _techLog = techLog;
+        _holding = holding;
         _fuel = dataRefs.Subscribe(ProsimDataRefNames.FuelTotal);
         _zfw = dataRefs.Subscribe(ProsimDataRefNames.WeightZfw);
         _gross = dataRefs.Subscribe(ProsimDataRefNames.WeightGross);
@@ -78,7 +81,8 @@ public sealed class FoFactSource : ILiveAircraftFacts, IDisposable
             Safe(() => _weather.Snapshot()),
             Safe(() => _minima.Current),
             _techLog is { IsEnabled: true } log ? Safe(() => log.OpenDefects) : null,
-            nowUtc));
+            nowUtc,
+            _holding is null ? null : Safe(() => _holding.Current)));
 
     /// <summary>Where we are and which way we are going, for "what are we flying over?"
     /// (issue #153): the progress store's rounded position and true track (the sim has no

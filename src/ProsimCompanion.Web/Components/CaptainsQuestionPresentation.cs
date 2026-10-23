@@ -60,6 +60,8 @@ public static class CaptainsQuestionPresentation
         [DeiceRequestStore.QuestionDefinition.Topic] = new("gsxSettings.deiceStatus.request", "gsxSettings.deiceStatus.decline", null, null),
         [TurnaroundStartStore.QuestionDefinition.Topic] = new("gsxSettings.captainsQuestions.commence", "gsxSettings.captainsQuestions.standBy", null, null),
         [GateChoiceStore.QuestionDefinition.Topic] = new(null, null, "gsxSettings.arrivalGate.variantDetail", "gsxSettings.arrivalGate.variantNoDetail"),
+        // Issue #183: take the recommended holding fuel, or keep the plan fuel.
+        [FuelDecisionStore.QuestionDefinition.Topic] = new("gsxSettings.captainsQuestions.takeExtraFuel", "gsxSettings.captainsQuestions.planFuel", null, null),
     };
 
     /// <summary>Every open question of the given stores (optionally only the given topics), in

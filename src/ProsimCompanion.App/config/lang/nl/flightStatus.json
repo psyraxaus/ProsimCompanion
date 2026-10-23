@@ -39,6 +39,7 @@
       "flown": "Gevlogen",
       "eta": "ETA",
       "topOfDescent": "Top of descent",
+      "holding": "Holding",
       "noFlightPlan": "Geen vluchtplan geladen — haal een OFP op via de INIT-pagina"
     },
     "sequence": {

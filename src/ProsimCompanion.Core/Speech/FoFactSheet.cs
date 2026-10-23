@@ -66,7 +66,8 @@ public sealed record FoFactInputs(
     HeroWeatherSnapshot? Weather,
     ArrivalMinima? Minima,
     IReadOnlyList<TechLogDefect>? OpenDefects,
-    DateTimeOffset NowUtc);
+    DateTimeOffset NowUtc,
+    Fuel.HoldingEstimate? Holding = null);
 
 /// <summary>Pure builder: inputs in, fact sheet out. Blank facts are omitted, never guessed.</summary>
 public static class FoFactSheetBuilder
@@ -144,6 +145,26 @@ public static class FoFactSheetBuilder
             {
                 Add("Minimum takeoff fuel", Kilos(ofp.FuelMinTakeoffKg), [.. KiloForms(ofp.FuelMinTakeoffKg)]);
             }
+
+            if (ofp.FuelAlternateKg > 0)
+            {
+                Add("Alternate fuel", Kilos(ofp.FuelAlternateKg), [.. KiloForms(ofp.FuelAlternateKg)]);
+            }
+
+            if (ofp.FuelFinalReserveKg > 0)
+            {
+                Add("Final reserve fuel", Kilos(ofp.FuelFinalReserveKg), [.. KiloForms(ofp.FuelFinalReserveKg)]);
+            }
+        }
+
+        // ---- holding time (issue #183) ----
+        if (inputs.Holding is { } holding)
+        {
+            Add("Holding fuel available",
+                holding.DivertNow
+                    ? "none — divert now"
+                    : $"{holding.AvailableMinutes} minutes ({Kilos(Math.Max(0, holding.HoldingFuelKg))}) before diverting",
+                holding.AvailableMinutes, Math.Round(Math.Max(0, holding.HoldingFuelKg)));
         }
 
         if (inputs.Loadsheet is { } sheet && sheet.Final.Status == LoadsheetSlotStatus.Sent)

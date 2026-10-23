@@ -151,6 +151,12 @@
         "title": "Fuel check",
         "check": "Combustible a bordo frente al plan de SimBrief en tu posición, y el combustible estimado al aterrizaje frente a la cifra planificada. También automático en crucero."
       },
+      "fuelDecision": {
+        "title": "Decisión de combustible",
+        "decision": "El TAF de destino a la ETA contra los mínimos — combustible extra aconsejado, o ninguno.",
+        "extra": "Sube el block del INIT por minutos de espera o por cientos de kilos.",
+        "holding": "Combustible sobre el destino menos alternativo y reserva final, en minutos de espera."
+      },
       "grossErrorCheck": {
         "title": "Gross error check",
         "check": "Los pesos del avión frente al loadsheet final y las entradas PERF del FMS frente al último cálculo de performance de despegue. También automático una vez cargados el loadsheet final y las V-speeds."

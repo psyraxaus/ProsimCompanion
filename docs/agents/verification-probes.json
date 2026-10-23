@@ -3185,6 +3185,39 @@
         "requires-human: the run still sounds like a checklist — the pilot hears every line, the read-through ones as one callout, and 'complete' at the end."
       ],
       "notes": "Owner request 2026-10-18 (UX pass): already-correct switches should not need a reply. SatisfiedLineReadThrough (pure, tested) decides; SpokenChecklistEngine pre-subscribes the checklist's verify datarefs before the title so the values are cached by the first line. The visual Checklists page ticks the line as Done like any voice completion. Unverified live."
+    },
+    {
+      "id": "fuel-holding-time",
+      "issue": 183,
+      "state": "open",
+      "kind": "assert-present",
+      "machine": {
+        "kind": "required-fields",
+        "type": "fuel.holdingAvailableMinutes",
+        "fields": [
+          "trigger",
+          "minutes",
+          "holdingFuelKg",
+          "overDestinationKg",
+          "alternateKg",
+          "finalReserveKg",
+          "burnKgPerHour",
+          "divertNow"
+        ]
+      },
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "Trigger: an in-flight fuel check (fuel.check with method navlog|fallback and spoken true — sop.monitoring.fuelCheck.enabled on) or the pilot's 'how long can we hold' (speech.recognized).",
+        "assert-present: ONE fuel.holdingAvailableMinutes per in-flight fuel check (trigger periodic|voice|fuelLog) and per 'how long can we hold' (trigger voice), with minutes = floor((overDestinationKg − alternateKg − finalReserveKg) / burnKgPerHour × 60) and overDestinationKg = the fuel check's estimatedLandingKg (the voice answer's = FOB − flow × hours to the ETA). alternateKg / finalReserveKg are the OFP's alternate_burn / reserve (0 on a plan without them — then the minutes are optimistic and the report must say so).",
+        "assert-present ('how long can we hold'): the FO's spoken line is 'We can hold for n minutes before we have to divert.' or, with divertNow true, 'No holding fuel — … Divert now.'; the Fuel page's Holding row and the Flight Status hero 'Holding' figure read the same n MIN.",
+        "assert-present (fuel.decisionAdvice on, trigger = an OFP import on the ground before the flight): ONE fuel.decision event per OFP (destination/alternate outlook with FromTaf when a TAF was in the weather chain, the minima used, recommendation None|Holding, holdingMinutes, extraKg, reasons, legality); when recommendation is Holding, ONE fuel-decision-question raised with the prompt '… — recommend n minutes holding, k kilos. Take it?'; outcome accepted → fuel.extraApplied {fromKg, toKg = ceil((from+extra)/100)×100, ok true} and the refuel target / INIT FUEL RAMP shows toKg; declined or timeout → no fuel.extraApplied.",
+        "assert-absent: a fuel-decision-question raised while the aircraft had been airborne this session, or a second one in the same ground-ops cycle; a fuel.holdingAvailableMinutes on a ground fuel check (method ground).",
+        "requires-human: the recommendation matches the real TAF (thunderstorm / marginal / below minima at the ETA), and after 'take it' the GSX fuel truck loads the raised block."
+      ],
+      "notes": "Package 4 of the November 2026 airline-ops batch (branch feature/fuel-decision-holding). Core TafParser (base/FM/BECMG applied, TEMPO/PROB worst case), FuelDecisionAdvisor (cat-1 defaults or a briefed DH; a DA cannot be compared with a TAF ceiling), HoldingTimeCalculator, FuelOptions (`fuel` section), FuelDecisionStore (captain's question, once per cycle) + HoldingTimeStore; Speech FuelDecisionService (precedence 15) + FuelDecisionPhrases; FuelCheckMonitor records the holding estimate on every in-flight check. WxFacts.RawTaf is filled by the SayIntentions cache and the ActiveSky snapshot (the gateway METAR has no TAF). Unverified live."
     }
   ]
 }

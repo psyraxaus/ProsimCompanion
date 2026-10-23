@@ -151,6 +151,12 @@
         "title": "Fuel check",
         "check": "Carburant à bord face au plan SimBrief à ta position, et carburant estimé à l'atterrissage face au chiffre prévu. Aussi automatique en croisière."
       },
+      "fuelDecision": {
+        "title": "Décision carburant",
+        "decision": "La TAF destination à l'ETA contre les minimums — carburant extra conseillé, ou non.",
+        "extra": "Augmente le block INIT en minutes d'attente ou en centaines de kilos.",
+        "holding": "Carburant à destination moins dégagement et réserve finale, en minutes d'attente."
+      },
       "grossErrorCheck": {
         "title": "Gross error check",
         "check": "Les masses de l'avion face au loadsheet final et les entrées PERF du FMS face au dernier calcul de performance décollage. Aussi automatique dès que le loadsheet final et les V-speeds sont saisis."

@@ -246,6 +246,22 @@ The labelled lines of what the app knows right now, built from the stores for on
 every number in it is the set an answer may contain.
 _Avoid_: context, knowledge base
 
+**Fuel decision**:
+The captain's extra-fuel call at dispatch as the FO advises it: the destination outlook at the
+ETA (the TAF when there is one, else the METAR) and the alternate's against the landing minima
+— thunderstorms, marginal or below-minima weather each worth a holding figure in minutes,
+converted to kilos at the holding burn. Advice, then a captain's question; the yes is the
+pilot's own INIT block-fuel entry, raised through the override path. The legality line
+("an alternate is required") never blocks anything.
+_Avoid_: fuel policy, extra fuel calculator, dispatch fuel
+
+**Holding time**:
+How long the aircraft can hold over the destination before it must divert: the fuel expected
+over the destination at the current burn, minus the alternate fuel and the final reserve, at
+the holding burn — in minutes, recomputed on every in-flight fuel check and on request.
+Negative = "divert now".
+_Avoid_: endurance (that includes the reserves), spare fuel
+
 **Fuel check**:
 The FO's periodic (and on-request) comparison of fuel on board with the SimBrief plan at the
 last fix passed, ending in an estimated landing fuel against the planned figure. "Last fix

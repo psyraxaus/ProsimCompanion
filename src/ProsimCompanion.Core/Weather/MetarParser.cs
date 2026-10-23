@@ -63,13 +63,14 @@ public static class MetarParser
 
     /// <summary>Convenience: parse a METAR straight into <see cref="WxFacts"/> (raw text plus
     /// every derived field), optionally carrying source-supplied ATIS/runway alongside.</summary>
-    public static WxFacts ToFacts(string? metar, string? atisLetter = null, string? activeRunway = null)
+    public static WxFacts ToFacts(string? metar, string? atisLetter = null, string? activeRunway = null, string? taf = null)
     {
         var v = Parse(metar);
         return new WxFacts(
             string.IsNullOrWhiteSpace(metar) ? null : metar.Trim(),
             v.WindDirDeg, v.WindSpeedKt, v.VisibilityMeters, v.QnhHpa, v.TemperatureC,
-            atisLetter, activeRunway, v.CeilingFt, v.WindGustKt, v.Precip, v.DewPointC);
+            atisLetter, activeRunway, v.CeilingFt, v.WindGustKt, v.Precip, v.DewPointC,
+            string.IsNullOrWhiteSpace(taf) ? null : taf.Trim());
     }
 
     private static (int? Dir, int? Spd, int? Gust) ParseWind(string body)

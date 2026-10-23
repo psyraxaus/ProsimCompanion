@@ -48,6 +48,9 @@ public static class SpeechServiceCollectionExtensions
         services.AddStartupModule<Monitoring.FuelCheckMonitor>();
         services.AddVoiceFeature<Monitoring.FuelCheckMonitor>();
         services.AddSingleton<Core.Flight.IFuelCheckRequests>(p => p.GetRequiredService<Monitoring.FuelCheckMonitor>());
+        // The captain's fuel decision at dispatch and "how long can we hold" (issue #183).
+        services.AddStartupModule<Monitoring.FuelDecisionService>();
+        services.AddVoiceFeature<Monitoring.FuelDecisionService>();
         services.AddStartupModule<Monitoring.GrossErrorCheckMonitor>();
         services.AddVoiceFeature<Monitoring.GrossErrorCheckMonitor>();
         services.AddStartupModule<Monitoring.DestinationWeatherWatch>();
@@ -172,6 +175,7 @@ public static class SpeechServiceCollectionExtensions
         services.AddSingleton(Gsx.GateChoicePhrases.Table);
         services.AddSingleton(Gsx.DeiceQuestionPhrases.Table);
         services.AddSingleton(Gsx.TurnaroundStartPhrases.Table);
+        services.AddSingleton(Monitoring.FuelDecisionPhrases.Table);
         services.AddStartupModule<Gsx.CaptainsQuestionDialogue>();
         // The FO's packs-off / ditching-on calls and read-only checks around a GSX de-icing
         // (issue #166, opt-in gsx.deice.packsProcedure). Edges from the Core activity seam.

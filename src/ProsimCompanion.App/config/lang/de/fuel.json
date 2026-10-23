@@ -27,6 +27,23 @@
       "centre": "MITTE",
       "rightInner": "RECHTS INNEN",
       "rightOuter": "RECHTS AUSSEN"
+    },
+    "plan": {
+      "title": "Kraftstoffplan & Holding",
+      "hint": "SimBrief-Aufteilung · in den Tanks {0} {1}",
+      "taxi": "Taxi",
+      "trip": "Trip",
+      "contingency": "Contingency",
+      "alternate": "Alternate",
+      "finalReserve": "Final Reserve",
+      "plannedHolding": "Geplantes Holding",
+      "extra": "Extra",
+      "discretionary": "Discretionary",
+      "block": "Block",
+      "holding": "Holding verfügbar",
+      "holdingDetail": "{0} {1} über Alternate und Final Reserve · {2}",
+      "advice": "Fuel Decision",
+      "applied": "+{0} {1} auf den Block gelegt"
     }
   }
 }

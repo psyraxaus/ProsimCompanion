@@ -189,6 +189,18 @@ connected, real flight data).
   position; without them it falls back to burn rate × time to the ETA. On the ground before
   the flight the answer is the plain figure: *"Not airborne yet — fuel on board 6.8 tonnes,
   plan 9.8 tonnes."*
+- **Fuel decision and holding** (Settings → Display & Flight Data → **Fuel decision**). With
+  **Fuel decision at dispatch** on, the FO reads the destination TAF at your ETA right after the
+  OFP import and, when the weather calls for it, asks *"Destination TAF has thunderstorms around
+  our arrival — recommend 20 minutes holding, 800 kilos. Take it?"* Say *"take it"* and the INIT
+  block fuel goes up by that figure (rounded to 100 kg) — the fuel truck follows. Say *"no"* and
+  the plan stands. The legality line *"destination below minima at ETA — an alternate is
+  required"* is spoken as advice only. At any time: *"fuel decision"* for the advice, *"extra
+  fuel 20 minutes"* or *"extra fuel 7 hundred"* to add fuel directly, and in flight *"how long
+  can we hold?"* — *"We can hold for 25 minutes before we have to divert."* (fuel over the
+  destination at the current burn, minus the alternate and the final reserve, at the holding
+  burn). The holding time also sits on the Fuel page and the Flight Status hero after every fuel
+  check.
 - **Gross error check.** Once the final loadsheet has been sent and the FMS PERF TO page has
   V-speeds, the FO compares the aircraft's zero fuel weight and fuel with the loadsheet, and
   the FMS flaps, flex and V1/VR/V2 with the result on the **Takeoff** performance page —

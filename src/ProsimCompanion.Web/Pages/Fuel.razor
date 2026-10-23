@@ -6,8 +6,11 @@
 @inject IProsimDataRefs DataRefs
 @inject OfpStore Ofp
 @inject IEfbInitOverrides Overrides
+@inject HoldingTimeStore Holding
+@inject FuelDecisionStore Decision
 @inject DisplayUnitService Units
 @inject IStringLocalizer T
+@using ProsimCompanion.Core.Fuel
 
 @* Markup and styling ported from Prosim2GSX's web FuelPanel (FuelPanel.tsx /
    FuelPanel.module.css); dataref plumbing is ProsimCompanion's own. *@
@@ -98,9 +101,72 @@
         </div>
     </section>
 
+    @* ── FUEL PLAN BREAKDOWN + HOLDING (issue #183) ─────────────────────── *@
+    @if (Ofp.Current is { } plan && (plan.FuelTripKg > 0 || plan.FuelFinalReserveKg > 0 || plan.FuelPlanRampKg > 0))
+    {
+        <section class="section fuel-card">
+            <div class="section-header">
+                <h3 class="section-title">@T["fuel.plan.title"]</h3>
+                <span class="section-hint">@T["fuel.plan.hint", FmtW(inTanks), UnitU]</span>
+            </div>
+            <div class="section-body fuel-body">
+                <div class="fuel-plan-grid">
+                    @foreach (var row in PlanRows(plan))
+                    {
+                        <div class="fuel-plan-label">@row.Label</div>
+                        <div class="fuel-plan-value">@FmtW(row.Kg) @UnitU</div>
+                    }
+                </div>
+                @if (_holding is { } holding)
+                {
+                    <div class="fuel-delta-row inset @(holding.DivertNow ? "fuel-delta-red" : holding.AvailableMinutes < 15 ? "fuel-delta-amber" : "fuel-delta-green")">
+                        <span class="fuel-delta-label label-caps">@T["fuel.plan.holding"]</span>
+                        <span class="fuel-delta-value">@HoldingTimeCalculator.Figure(holding)</span>
+                        <span class="fuel-delta-tag">@T["fuel.plan.holdingDetail", FmtW(Math.Max(0, holding.HoldingFuelKg)), UnitU, holding.AtUtc.ToLocalTime().ToString("HH:mm")]</span>
+                    </div>
+                }
+                @if (_decision?.Advice is { } advice)
+                {
+                    <div class="fuel-plan-advice">
+                        <span class="label-caps">@T["fuel.plan.advice"]</span>
+                        <span>@FuelDecisionAdvisor.Spoken(advice)</span>
+                        @if (_decision.AppliedExtraKg is { } applied)
+                        {
+                            <span class="fuel-delta-tag">@T["fuel.plan.applied", FmtW(applied), UnitU]</span>
+                        }
+                    </div>
+                }
+            </div>
+        </section>
+    }
+
 </div>
 
 @code {
+    private Core.Fuel.HoldingEstimate? _holding;
+    private FuelDecisionSnapshot? _decision;
+
+    private sealed record PlanRow(string Label, double Kg);
+
+    /// <summary>The SimBrief breakdown, zero rows left out.</summary>
+    private IEnumerable<PlanRow> PlanRows(OfpData plan)
+    {
+        var rows = new (string Id, double Kg)[]
+        {
+            ("fuel.plan.taxi", plan.FuelTaxiKg), ("fuel.plan.trip", plan.FuelTripKg), ("fuel.plan.contingency", plan.FuelContingencyKg),
+            ("fuel.plan.alternate", plan.FuelAlternateKg), ("fuel.plan.finalReserve", plan.FuelFinalReserveKg),
+            ("fuel.plan.plannedHolding", plan.FuelHoldingKg), ("fuel.plan.extra", plan.FuelExtraKg),
+            ("fuel.plan.discretionary", plan.FuelDiscretionaryKg), ("fuel.plan.block", plan.FuelPlanRampKg),
+        };
+        foreach (var (id, kg) in rows)
+        {
+            if (kg > 0)
+            {
+                yield return new PlanRow(T[id].Value, kg);
+            }
+        }
+    }
+
     // Prosim2GSX's Fuel tab convention: litres derived at SG 0.80.
     private const double SpecificGravity = 0.80;
 
@@ -152,6 +218,9 @@
 
         WatchChanged(h => Units.Changed += h, h => Units.Changed -= h, () => { });
         WatchChanged(h => Overrides.Changed += h, h => Overrides.Changed -= h, () => { });
+        WatchChanged(h => Ofp.Changed += h, h => Ofp.Changed -= h, () => { });
+        Watch(Holding, estimate => _holding = estimate);
+        Watch(Decision, snapshot => _decision = snapshot);
 
         // Live instrument view — a 1 s repaint matches the datarefs' Normal cadence.
         _refresh = new Timer(_ => _ = InvokeAsync(StateHasChanged), null,

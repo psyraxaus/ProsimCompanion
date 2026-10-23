@@ -53,7 +53,7 @@ running version.
 | **OFP** | Flight-plan hero, arrival-gate assignment, weather (METAR/TAF/ATIS), pushback-direction Korry buttons, de-ice holdover card |
 | **Loadsheet** | Prelim/final loadsheets with per-weight MAC envelope brackets, manual STD, resend/reset |
 | **W&B** | Aircraft silhouette with doors and pax/cargo totals, weight summary bars, the CG envelope chart with valid MAC ranges, loading breakdown, passenger manifest, SIMULATE |
-| **Fuel** | Fuel summary with capacity bar and delta, tank breakdown |
+| **Fuel** | Fuel summary with capacity bar and delta, tank breakdown; the **Fuel Plan & Holding** card: the SimBrief breakdown (taxi, trip, contingency, alternate, final reserve, holding, extra, discretionary, block), the **holding available** after the last fuel check, and the FO's fuel decision with what was added to the block |
 | **Fuel Log** | The paper OFP's fuel column: plan vs actual at your point on the navlog, estimated landing fuel, a burn chart, the waypoint table that fills in as you pass each fix, and the First Officer's spoken fuel checks — see below |
 | **Performance** | Takeoff and Landing switch — airport/runway card with runway chips, runway diagram and wind components, weather, aircraft config, FMGC figures, FMS PERF uplink |
 | **Checklists** | ECAM-style interactive checklists with a completion bar and the checklist sequence rail (visual runner; the voice FO runs beside it) |

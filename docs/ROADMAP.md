@@ -826,6 +826,31 @@ Owner requests and flight-test fixes after the batch. One line each; the full te
       hand-over by phase (legacy distance gate kept); SI stand fallback; event-flood dedupe.
       **Unverified live** — every item.
 
+## Phase 10 — November 2026 airline-ops batch
+
+Ten packages, one GitHub issue and one branch each, written against `feature/remote-mixer-agents`
+at 0.7.0-rc.12. The theme: what a line pilot does that the app did not yet model — the emergency
+half of the takeoff briefing, last-minute changes, wind and runway-condition limits, the fuel
+decision, a diversion, movement messages, turbulence and PAs, RTO/EFATO, the FO's own-side
+duties. New features default **off** and are **Unverified live** until a flight confirms them.
+
+- [x] **Fuel decision and holding-time advice** (#183, `feature/fuel-decision-holding`):
+      `OfpData` fuel breakdown (`FuelTripKg` … `FuelDiscretionaryKg` from the SimBrief `fuel`
+      node), `WxFacts.RawTaf` (SayIntentions cache + ActiveSky snapshot), Core `TafParser`
+      (base / FM / BECMG applied, TEMPO / PROB worst case, SM and CAVOK), `FuelDecisionAdvisor`
+      (`ArrivalOutlook` TAF-at-ETA else METAR; `LandingMinima` = briefed DH else cat 1; TS /
+      marginal / below-minima minutes from `FuelOptions`; legality line), `HoldingTimeCalculator`
+      + `HoldingEstimate`, `FuelOptions` (`fuel`: `decisionAdvice` off, `holdingBurnKgPerHour`
+      2200, the three minutes), `FuelDecisionStore` (captain's question, once per cycle,
+      `MarkApplied`) + `HoldingTimeStore`, Speech `FuelDecisionService` (precedence 15: the
+      dispatch question after the OFP import on the ground, "fuel decision", "extra fuel {n}
+      minutes | hundred | tonnes", "how long can we hold"; the yes raises the INIT override via
+      `IEfbInitOverrides`, rounded up to 100) + `FuelDecisionPhrases`; `FuelCheckMonitor` records
+      the holding estimate on each in-flight check; the Fuel page breakdown + holding + advice,
+      the hero `Holding` item, the fact sheet lines. Events `fuel.decision`, `fuel.extraApplied`,
+      `fuel.holdingAvailableMinutes`; probe `fuel-holding-time`. **Unverified live** — the TAF
+      text the SI cache / ActiveSky snapshot really carry, and the override → refuel-target chain.
+
 ## Open items (after the rc.5 batch, 2026-10-11)
 
 Nothing on this roadmap is open as code. What remains:

@@ -39,6 +39,7 @@
       "flown": "Flown",
       "eta": "ETA",
       "topOfDescent": "Top of descent",
+      "holding": "Holding",
       "noFlightPlan": "No flight plan loaded — fetch an OFP on the INIT page"
     },
     "sequence": {

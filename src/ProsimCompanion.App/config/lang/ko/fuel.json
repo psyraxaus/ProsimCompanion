@@ -27,6 +27,23 @@
       "centre": "중앙",
       "rightInner": "우측 내부",
       "rightOuter": "우측 외부"
+    },
+    "plan": {
+      "title": "연료 계획 및 홀딩",
+      "hint": "SimBrief 내역 · 탱크 내 {0} {1}",
+      "taxi": "택시",
+      "trip": "트립",
+      "contingency": "컨틴전시",
+      "alternate": "교체공항",
+      "finalReserve": "최종 예비",
+      "plannedHolding": "계획 홀딩",
+      "extra": "엑스트라",
+      "discretionary": "기장 재량",
+      "block": "블록",
+      "holding": "홀딩 가능",
+      "holdingDetail": "교체공항·최종 예비 초과 {0} {1} · {2}",
+      "advice": "연료 결정",
+      "applied": "+{0} {1} 블록에 적용"
     }
   }
 }
