@@ -23,6 +23,9 @@ public interface IDaySummaryComposer
 /// <inheritdoc cref="IDaySummaryComposer"/>
 public sealed class DaySummaryComposer : IDaySummaryComposer
 {
+    /// <summary>The industry on-time threshold, minutes past the schedule (issue #185).</summary>
+    public const int OnTimeToleranceMinutes = 15;
+
     public string Compose(DayState day, DateTimeOffset nowUtc)
     {
         ArgumentNullException.ThrowIfNull(day);
@@ -47,6 +50,16 @@ public sealed class DaySummaryComposer : IDaySummaryComposer
             sb.Append(dm > 0
                 ? $" We finished {dm} minute{DayMath.Plural(dm)} behind schedule."
                 : $" We finished {-dm} minute{DayMath.Plural(-dm)} ahead of schedule.");
+        }
+
+        // Punctuality (issue #185): the sectors that had a schedule, off blocks within the
+        // industry 15 minutes.
+        var scheduled = legs.Count(l => DayMath.ParseUtc(l.ScheduledOffUtc) is not null && DayMath.ParseUtc(l.ActualOffUtc) is not null);
+        if (scheduled > 0)
+        {
+            var onTime = legs.Count(l => DayMath.ParseUtc(l.ScheduledOffUtc) is { } std && DayMath.ParseUtc(l.ActualOffUtc) is { } actual
+                && (actual - std).TotalMinutes <= OnTimeToleranceMinutes);
+            sb.Append(CultureInfo.InvariantCulture, $" {onTime} of {scheduled} sector{DayMath.Plural(scheduled)} off blocks on time.");
         }
 
         if (judged > 0)

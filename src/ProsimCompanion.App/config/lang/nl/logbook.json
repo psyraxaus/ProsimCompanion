@@ -22,7 +22,9 @@
       "stableApproaches": "Stabiele naderingen",
       "stableTitle": "{0} stabiel van {1} naderingen die de gates beoordeelden",
       "avgTouchdown": "Gem. touchdown",
-      "avgTouchdownTitle": "Gemiddelde over de {0} landing(en) die de touchdownrecorder mat"
+      "avgTouchdownTitle": "Gemiddelde over de {0} landing(en) die de touchdownrecorder mat",
+      "otp": "Op tijd",
+      "otpTitle": "{0} van {1} geplande vertrekken binnen de tolerantie off blocks"
     },
     "trend": {
       "title": "Touchdownsnelheid · laatste {0} landing(en)",
@@ -38,6 +40,8 @@
       "block": "Blok",
       "flight": "Vlucht",
       "touchdownRate": "T/D-snelheid",
+      "delay": "Vertraging",
+      "delayCodeTitle": "IATA-vertragingscode {0}",
       "touchdownSpeed": "T/D-speed",
       "approach": "Nadering",
       "bounceTitle": "Grondcontact binnen 5 seconden verloren en hersteld",

@@ -151,12 +151,19 @@ you shut down at the gate.
 ![Logbook](../img/logbook.png)
 
 - **Totals** — flights, block hours, landings, how many approaches the gates judged stable,
+  **On time** (the share of scheduled departures that left the gate within the on-time
+  tolerance — 15 minutes unless you changed it under Company & Debrief; a dash until a flight
+  with a SimBrief schedule is in the book),
   and your average touchdown rate.
 - **Touchdown rate trend** — the small chart shows your last landings, oldest on the left.
   Higher is softer. The bright dot is your latest landing; the faint dashed line is the
   average. Hover a dot to read the flight and the figure.
 - **The table** — click a column heading to sort by it; click again to turn the order round.
   Flights with no value in that column stay at the bottom.
+- **The Delay column** — minutes against the scheduled departure and the delay code you gave
+  the FO: *+22 · 15* is twenty-two minutes late, code 15 Boarding; *+7 on time* is late but
+  inside the tolerance; *−4* left early; a dash means the flight had no schedule. Hover the
+  cell for the code's name.
 - **The detail** — click a row. The panel on the right shows the off-blocks, takeoff, landing
   and on-blocks times (sim time, UTC), runways, lift-off speed, and the landing: touchdown
   rate, IAS, ground speed, pitch and bounces. Click the row again, or the ✕, to close it.
@@ -164,7 +171,8 @@ you shut down at the gate.
   again within three seconds to delete. A deleted flight does not come back.
 - **Export CSV** — downloads every flight as a spreadsheet file. Times are UTC
   (`2026-10-03T08:11:05Z`), numbers use a decimal point whatever your Windows region is, and
-  an unknown value is an empty cell.
+  an unknown value is an empty cell. The last five columns are the schedule and the delay
+  (`scheduledOutUtc`, `scheduledInUtc`, `delayCode`, `delayMinutes`, `onTime`).
 - **Read saved sessions** — adds any flight that is still in the app's session files but not
   in the logbook (for example flights flown while the logbook was switched off).
 

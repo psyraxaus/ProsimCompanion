@@ -22,7 +22,9 @@
       "stableApproaches": "Aprox. estables",
       "stableTitle": "{0} estables de {1} aproximaciones juzgadas por los gates",
       "avgTouchdown": "Toma media",
-      "avgTouchdownTitle": "Media de los {0} aterrizaje(s) medidos por el registrador de toma"
+      "avgTouchdownTitle": "Media de los {0} aterrizaje(s) medidos por el registrador de toma",
+      "otp": "Puntual",
+      "otpTitle": "{0} de {1} salidas programadas fuera de calzos dentro de la tolerancia"
     },
     "trend": {
       "title": "Tasa de toma · últimos {0} aterrizaje(s)",
@@ -38,6 +40,8 @@
       "block": "Calzos",
       "flight": "Vuelo",
       "touchdownRate": "Tasa T/D",
+      "delay": "Retraso",
+      "delayCodeTitle": "Código de retraso IATA {0}",
       "touchdownSpeed": "Vel. T/D",
       "approach": "Aprox.",
       "bounceTitle": "Contacto con el suelo perdido y recuperado en menos de 5 segundos",

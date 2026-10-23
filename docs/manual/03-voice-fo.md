@@ -346,3 +346,25 @@ The VOICE drawer's Cabin tab shows the replies it understands.
 To pick the First Officer and crew voices from every provider, follow [chapter 10](10-voices.md).
 To set up ElevenLabs — key, plan, cost — follow the
 [ElevenLabs setup guide](06-elevenlabs.md).
+
+### Movement messages and delay codes
+
+**Movement messages** (Settings → Voice First Officer → Company & Debrief, off by default)
+has the company receive the airline's MVT telex twice a flight: at take-off, with your
+off-blocks and airborne times and the estimated arrival (*AD 1022/1035 EA 1240 LIRF*), and on
+blocks, with the landing and on-blocks times (*AA 1203/1210*). The messages arrive in the
+MCDU RCVD MSGS list like the loadsheets do, in their own slots, with no ACCEPT prompt. The
+flight number, registration and airports come from your OFP; the times are the sim clock's.
+Tick **Read the movement message aloud** and the FO confirms each one in a line
+(*"Company copies, movement message sent — airborne."*).
+
+**Delay codes** (same card, off by default) adds the airline's question. When you leave the
+gate later than the schedule plus the **On-time tolerance** (15 minutes unless you change
+it), the FO asks *"We're 22 minutes late off blocks — delay code?"*. Answer with the number
+(*"delay code one five"*, *"fifteen"*) or the reason (*"delay boarding"*, *"late
+passengers"*, *"de-icing"*); the FO reads it back and notes it. *"Your call"* leaves the
+question standing; no answer in five minutes files **99, other**. The Captain's Questions
+card on the Ground Services page offers the same list as buttons. The code is added to the
+movement message as *DL 15/0022*, to the debrief and to the Logbook's Delay column. The list
+is `%LOCALAPPDATA%\ProsimCompanion\config\delay-codes.json` — add your airline's codes
+and the words you say for them; your edits survive updates.

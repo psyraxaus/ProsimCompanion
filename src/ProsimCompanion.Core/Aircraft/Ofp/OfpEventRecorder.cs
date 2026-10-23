@@ -88,6 +88,9 @@ public sealed class OfpEventRecorder : IHostedService, IDisposable
             alternate = ofp.AlternateIcao.Length > 0 ? ofp.AlternateIcao : null,
             flightNumber = ofp.FlightNumber.Length > 0 ? ofp.FlightNumber : null,
             callsign = ofp.Callsign.Length > 0 ? ofp.Callsign : null,
+            // Issue #185: the schedule, so the logbook's punctuality survives in the session file.
+            scheduledOutUtc = ofp.ScheduledOutUtc,
+            scheduledInUtc = ofp.ScheduledInUtc,
         });
     }
 }

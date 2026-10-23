@@ -477,6 +477,25 @@
         "label": "Cruise message probability",
         "hint": "0.15 is about one flight in seven, drawn once per flight."
       },
+      "movementMessages": {
+        "label": "Movement messages",
+        "hint": "An ACARS MVT message to the cockpit at take-off (AD with the ETA) and on blocks (AA).",
+        "more": "Sent to the RCVD MSGS list in slots 06 and 07, beside the loadsheets. Needs ProSim and a loaded OFP. Off by default."
+      },
+      "movementMessagesSpoken": {
+        "label": "Read the movement message aloud",
+        "hint": "The FO says \"movement message sent\" after each uplink."
+      },
+      "delayCodes": {
+        "label": "Delay codes",
+        "hint": "When you leave the gate later than the schedule plus the tolerance, the FO asks for the IATA delay code.",
+        "more": "Answer with the number (\"delay code one five\") or the reason (\"delay boarding\"). No answer in five minutes files 99, other. The code goes into the movement message, the debrief and the logbook."
+      },
+      "delayTolerance": {
+        "label": "On-time tolerance",
+        "hint": "Minutes after the scheduled departure that still count as on time. Airlines use 15."
+      },
+      "delayCodesFile": "The code list is delay-codes.json in %LOCALAPPDATA%\\ProsimCompanion\\config — add your airline's codes and the words you say for them.",
       "persist": {
         "label": "Save the spoken loadsheet",
         "hint": "Written beside the session log as *.loadsheet.txt, with the raw EFB loadsheet."

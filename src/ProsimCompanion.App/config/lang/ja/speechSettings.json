@@ -477,6 +477,25 @@
         "label": "巡航中メッセージの確率",
         "hint": "0.15 は約 7 フライトに 1 回、フライトごとに一度決まります。"
       },
+      "movementMessages": {
+        "label": "ムーブメントメッセージ",
+        "hint": "離陸時（ETA付きのAD）とブロックイン時（AA）に、ACARSのMVTメッセージをコックピットへ送ります。",
+        "more": "ロードシートの隣、RCVD MSGSリストのスロット06と07に入ります。ProSimと読み込み済みのOFPが必要です。既定ではオフ。"
+      },
+      "movementMessagesSpoken": {
+        "label": "ムーブメントメッセージを読み上げる",
+        "hint": "各送信後にFOが「movement message sent」と言います。"
+      },
+      "delayCodes": {
+        "label": "遅延コード",
+        "hint": "予定時刻に許容を加えた時刻より遅くゲートを離れると、FOがIATA遅延コードを尋ねます。",
+        "more": "番号（「delay code one five」）か理由（「delay boarding」）で答えます。5分間答えがないと99（その他）を記録します。コードはムーブメントメッセージ、デブリーフ、ログブックに入ります。"
+      },
+      "delayTolerance": {
+        "label": "定時許容",
+        "hint": "予定出発時刻の何分後までを定時とみなすか。航空会社は15を使います。"
+      },
+      "delayCodesFile": "コード一覧は %LOCALAPPDATA%\\ProsimCompanion\\config の delay-codes.json です。自社のコードと、それを言うときの言葉を追加してください。",
       "persist": {
         "label": "読み上げたロードシートを保存",
         "hint": "セッションログの隣に *.loadsheet.txt として、生の EFB ロードシートと一緒に書かれます。"

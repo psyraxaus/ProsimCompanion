@@ -115,7 +115,10 @@ Introspection (`__schema`, `__type`) is refused with 400.
 (`notstarted`/`inProg`/`completed`), `efb.{prelim|final}Loadsheet`.
 
 **ACARS**: `efb.aoc.message.uplink` (+`.copy`, `.result` — "Message processed" on success). Envelope
-keys are **lowercase**: `{type, header, id, accept, content}`.
+keys are **lowercase**: `{type, header, id, accept, content}`. Slot ids in use: `01` prelim
+loadsheet, `02` final loadsheet (both `accept: true`), `03` LMC, `05` diversion, `06` MVT OFF,
+`07` MVT IN (the last four `accept: false`) — a new sender takes the next free slot, never
+01/02 (see `docs/integrations/acars.md`).
 
 **Doors/ground**: `doors.entry.*`, `doors.cargo.*`, `groundservice.groundpower`, `efb.chocks`,
 `groundservice.preconditionedAir`, `efb.fwdStairs|aftStairs`, `groundservice.pushback`.

@@ -99,6 +99,10 @@ public sealed class DebriefFactExtractor : IDebriefFactExtractor
             bool touchdownSeen = false, touchdownSettled = false;
             DateTimeOffset? stampOff = null, stampTakeoff = null, stampLanding = null, stampOn = null;
             var takeoffUnknown = false; // the app started in flight (issue #167): no takeoff edge, no takeoff fuel
+            DateTimeOffset? scheduledOut = null, scheduledIn = null; // issue #185
+            string? delayCode = null;
+            int? delayMinutes = null;
+            bool? onTime = null;
 
             // failure id → (title, cleared); insertion-ordered so the debrief reads them in
             // the order they happened.
@@ -282,6 +286,24 @@ public sealed class DebriefFactExtractor : IDebriefFactExtractor
                             break;
                         }
 
+                        case "flight.punctuality":
+                        {
+                            // Issue #185: the movement service's verdict at the OUT edge.
+                            delayMinutes = Num(payload, "delayMinutes") is { } judged ? (int)Math.Round(judged) : delayMinutes;
+                            onTime = payload.TryGetProperty("onTime", out var onTimeValue)
+                                && onTimeValue.ValueKind is JsonValueKind.True or JsonValueKind.False
+                                ? onTimeValue.GetBoolean()
+                                : onTime;
+                            break;
+                        }
+
+                        case "flight.delayCode":
+                        {
+                            delayCode = Str(payload, "code") ?? delayCode;
+                            delayMinutes = Num(payload, "delayMinutes") is { } coded ? (int)Math.Round(coded) : delayMinutes;
+                            break;
+                        }
+
                         case "flight.route":
                         {
                             var airport = Str(payload, "airport");
@@ -327,6 +349,9 @@ public sealed class DebriefFactExtractor : IDebriefFactExtractor
 
                             var plannedFrom = Str(payload, "origin") ?? Nested(payload, "origin", "icao");
                             var plannedTo = Str(payload, "destination") ?? Nested(payload, "destination", "icao");
+                            // Issue #185: the schedule for the punctuality figures.
+                            scheduledOut = Time(payload, "scheduledOutUtc") ?? scheduledOut;
+                            scheduledIn = Time(payload, "scheduledInUtc") ?? scheduledIn;
                             if (!string.IsNullOrWhiteSpace(plannedFrom))
                             {
                                 plannedOrigin = plannedFrom;
@@ -396,7 +421,11 @@ public sealed class DebriefFactExtractor : IDebriefFactExtractor
                 touchdownRate, touchdownIas, touchdownPitch, bounces,
                 stampOff, stampTakeoff, stampLanding, stampOn,
                 // A restored stamp (same session file) outranks the flag: the takeoff IS known.
-                takeoffUnknown && stampTakeoff is null);
+                takeoffUnknown && stampTakeoff is null,
+                scheduledOut, scheduledIn, delayCode,
+                // The delay from the stamps when the movement service did not judge it.
+                delayMinutes ?? Aircraft.Acars.MovementMessageComposer.DelayMinutes(scheduledOut, stampOff),
+                onTime);
         }
         catch (Exception ex)
         {

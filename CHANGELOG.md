@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+November 2026 airline-ops batch, one package per branch; every package is off by default and **Unverified live**.
+
+- New: **ACARS movement messages, delay codes and on-time performance** ([#185](https://github.com/psyraxaus/ProsimCompanion/issues/185), package 6, branch `feature/acars-movement-messages`). With **Movement messages** on (Settings → Voice First Officer → Company & Debrief, off by default) the company receives the airline MVT telex at take-off (`AD {out}/{off} EA {eta} {dest}`) and on blocks (`AA {on}/{in}`) in the MCDU RCVD MSGS list, slots 06 and 07 beside the loadsheets; the flight number, registration and station come from the OFP, the times are the flight-times tracker's sim-clock stamps, the ETA is the progress ETA else take-off plus the OFP's enroute time. **Read the movement message aloud** adds the FO's one-line confirmation. Off blocks is judged against the OFP's scheduled departure: a new `flight.punctuality` event, on time within the **On-time tolerance** (15 min, the industry rule). With **Delay codes** on and the departure late, the FO asks *"We're 22 minutes late off blocks — delay code?"* as a captain's question (the #166 rules: 5-minute TTL, one re-ask, the Captain's Questions card offers one button per code); answer with the number (*"delay code one five"*) or the words (*"delay boarding"*) from `%LOCALAPPDATA%\ProsimCompanion\config\delay-codes.json` (seeded with eleven IATA codes, keep-user-edits); silence files 99 *other* with a note. The code goes on the MVT as `DL 15/0022`, into the debrief facts and the **Logbook**: an **On time** total (percentage of scheduled departures within the tolerance), a **Delay** column (*+22 · 15*), five new CSV columns (`scheduledOutUtc`, `scheduledInUtc`, `delayCode`, `delayMinutes`, `onTime`; old logbook files load unchanged), and the day summary's *N of M sectors off blocks on time*. SimBrief's `sched_in` is now imported beside `sched_out`. Read-and-speak only: the ACARS uplink is the only write, through the same gateway call the loadsheets use. New Core seam `IAcarsUplink`. Probes `acars-movement-message`, `delay-code-prompt`. Seven language packs. Integration note `docs/integrations/acars.md`.
+
+
 ## 0.7.0-rc.12
 
 Remote mixer for two-pilot rigs, 2026-10-22. A local release-candidate build on top of rc.11 for the owner's sim test; **not yet verified live** (neither are rc.11's refactors, which this build carries).

@@ -477,6 +477,25 @@
         "label": "Wahrscheinlichkeit Reiseflug-Nachricht",
         "hint": "0.15 ist etwa jeder siebte Flug, einmal pro Flug gezogen."
       },
+      "movementMessages": {
+        "label": "Movement-Messages",
+        "hint": "Eine ACARS-MVT-Nachricht ins Cockpit beim Start (AD mit ETA) und On Blocks (AA).",
+        "more": "Geht in die RCVD-MSGS-Liste in die Slots 06 und 07, neben den Loadsheets. Braucht ProSim und ein geladenes OFP. Standardmäßig aus."
+      },
+      "movementMessagesSpoken": {
+        "label": "Movement-Message vorlesen",
+        "hint": "Der FO sagt nach jedem Uplink „movement message sent“."
+      },
+      "delayCodes": {
+        "label": "Verspätungscodes",
+        "hint": "Verlässt du das Gate später als Plan plus Toleranz, fragt der FO nach dem IATA-Verspätungscode.",
+        "more": "Antworte mit der Nummer („delay code one five“) oder dem Grund („delay boarding“). Keine Antwort in fünf Minuten trägt 99, Sonstiges, ein. Der Code geht in die Movement-Message, das Debriefing und das Logbuch."
+      },
+      "delayTolerance": {
+        "label": "Pünktlichkeitstoleranz",
+        "hint": "Minuten nach der planmäßigen Abflugzeit, die noch als pünktlich gelten. Airlines nutzen 15."
+      },
+      "delayCodesFile": "Die Codeliste ist delay-codes.json in %LOCALAPPDATA%\\ProsimCompanion\\config — trage die Codes deiner Airline und die Wörter dafür ein.",
       "persist": {
         "label": "Gesprochenes Loadsheet speichern",
         "hint": "Neben dem Sitzungsprotokoll als *.loadsheet.txt geschrieben, mit dem rohen EFB-Loadsheet."

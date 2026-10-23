@@ -145,6 +145,10 @@ through with a note if deliberately dropped. Sources: Prosim2GSX 0.9.0, ProsimIn
       cruise-query ambient deferred)
 - [x] Company/ACARS channel (loadsheet readout with session persistence, opt-in deterministic
       cruise messages, ACARS chime, distinct company voice, push seam for day mode)
+- [x] ACARS movement messages (MVT AD/AA in RCVD MSGS slots 06/07), the delay-code
+      captain's question over `delay-codes.json`, on-time performance in the Logbook and the
+      day summary — #185, November 2026 batch package 6, Unverified live (new to this
+      codebase; no predecessor had it)
 - [x] Tech log & MEL (persistent defects, A–D due dates, wear pool, web raise/rectify,
       voice brief + guided raise/rectify dialogues + post-abnormal offer; procedural hooks
       deferred)

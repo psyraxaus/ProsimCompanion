@@ -22,7 +22,9 @@
       "stableApproaches": "안정 접근",
       "stableTitle": "게이트가 판정한 접근 {1}회 중 {0}회 안정",
       "avgTouchdown": "평균 접지",
-      "avgTouchdownTitle": "접지 기록기가 측정한 착륙 {0}회의 평균"
+      "avgTouchdownTitle": "접지 기록기가 측정한 착륙 {0}회의 평균",
+      "otp": "정시",
+      "otpTitle": "예정 출발 {1}회 중 {0}회가 허용치 내 블록 아웃"
     },
     "trend": {
       "title": "접지율 · 최근 착륙 {0}회",
@@ -38,6 +40,8 @@
       "block": "블록",
       "flight": "비행",
       "touchdownRate": "T/D 율",
+      "delay": "지연",
+      "delayCodeTitle": "IATA 지연 코드 {0}",
       "touchdownSpeed": "T/D 속도",
       "approach": "접근",
       "bounceTitle": "5초 이내에 지면 접촉이 끊겼다가 다시 접촉",

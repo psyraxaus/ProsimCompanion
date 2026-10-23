@@ -477,6 +477,25 @@
         "label": "Kans op cruisebericht",
         "hint": "0.15 is ongeveer één vlucht op zeven, eenmaal per vlucht getrokken."
       },
+      "movementMessages": {
+        "label": "Movement-berichten",
+        "hint": "Een ACARS MVT-bericht naar de cockpit bij de start (AD met ETA) en on blocks (AA).",
+        "more": "Gaat naar de RCVD MSGS-lijst in slots 06 en 07, naast de loadsheets. Vereist ProSim en een geladen OFP. Standaard uit."
+      },
+      "movementMessagesSpoken": {
+        "label": "Movement-bericht voorlezen",
+        "hint": "De FO zegt na elke uplink \"movement message sent\"."
+      },
+      "delayCodes": {
+        "label": "Vertragingscodes",
+        "hint": "Verlaat je de gate later dan schema plus tolerantie, dan vraagt de FO de IATA-vertragingscode.",
+        "more": "Antwoord met het nummer (\"delay code one five\") of de reden (\"delay boarding\"). Geen antwoord binnen vijf minuten noteert 99, overig. De code gaat in het movement-bericht, de debrief en het logboek."
+      },
+      "delayTolerance": {
+        "label": "Punctualiteitstolerantie",
+        "hint": "Minuten na het geplande vertrek die nog als op tijd tellen. Luchtvaartmaatschappijen gebruiken 15."
+      },
+      "delayCodesFile": "De codelijst is delay-codes.json in %LOCALAPPDATA%\\ProsimCompanion\\config — voeg de codes van je maatschappij toe en de woorden die je ervoor zegt.",
       "persist": {
         "label": "Gesproken loadsheet opslaan",
         "hint": "Naast het sessielogboek geschreven als *.loadsheet.txt, met de ruwe EFB-loadsheet."

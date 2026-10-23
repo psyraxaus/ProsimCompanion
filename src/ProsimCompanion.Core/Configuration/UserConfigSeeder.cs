@@ -42,6 +42,7 @@ public static class UserConfigSeeder
         "themes", // nothing shipped (built-ins are embedded) — entry migrates old drop-ins
         "lang", // UI language packs (ADR-0014): user edits and user-added languages are kept
         "atc-requests.json",
+        "delay-codes.json", // IATA delay codes the FO offers at a late off-blocks (issue #185)
         "commands.json",
         "phrases.json",
         "region-facts.json",

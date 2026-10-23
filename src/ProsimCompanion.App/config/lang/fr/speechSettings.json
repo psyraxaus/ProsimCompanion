@@ -477,6 +477,25 @@
         "label": "Probabilité de message en croisière",
         "hint": "0.15 est environ un vol sur sept, tiré une fois par vol."
       },
+      "movementMessages": {
+        "label": "Messages de mouvement",
+        "hint": "Un message ACARS MVT au cockpit au décollage (AD avec l'ETA) et aux cales (AA).",
+        "more": "Envoyé dans la liste RCVD MSGS aux emplacements 06 et 07, à côté des devis de masse. Nécessite ProSim et un OFP chargé. Désactivé par défaut."
+      },
+      "movementMessagesSpoken": {
+        "label": "Lire le message de mouvement",
+        "hint": "Le FO dit « movement message sent » après chaque envoi."
+      },
+      "delayCodes": {
+        "label": "Codes de retard",
+        "hint": "Si tu quittes la porte après l'horaire plus la tolérance, le FO demande le code de retard IATA.",
+        "more": "Réponds par le numéro (« delay code one five ») ou le motif (« delay boarding »). Sans réponse en cinq minutes, 99, autre, est inscrit. Le code va dans le message de mouvement, le débriefing et le carnet."
+      },
+      "delayTolerance": {
+        "label": "Tolérance de ponctualité",
+        "hint": "Minutes après le départ prévu qui comptent encore comme à l'heure. Les compagnies utilisent 15."
+      },
+      "delayCodesFile": "La liste des codes est delay-codes.json dans %LOCALAPPDATA%\\ProsimCompanion\\config — ajoute les codes de ta compagnie et les mots que tu dis pour chacun.",
       "persist": {
         "label": "Enregistrer le loadsheet parlé",
         "hint": "Écrit à côté du journal de session en *.loadsheet.txt, avec le loadsheet EFB brut."

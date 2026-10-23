@@ -70,6 +70,23 @@ public sealed class LogbookFlight
 
     /// <summary>Open tech-log (MEL) defects carried on the flight.</summary>
     public int DefectsCarried { get; set; }
+
+    // ---- Schedule and punctuality (issue #185). Additive; absent on older files. ----
+
+    /// <summary>The OFP's scheduled off-blocks (STD), when the plan carried one.</summary>
+    public DateTimeOffset? ScheduledOutUtc { get; set; }
+
+    /// <summary>The OFP's scheduled on-blocks (STA), when the plan carried one.</summary>
+    public DateTimeOffset? ScheduledInUtc { get; set; }
+
+    /// <summary>The IATA delay code on record ("15"), when one was given.</summary>
+    public string? DelayCode { get; set; }
+
+    /// <summary>Off-blocks minus STD, minutes (positive = late); null without a schedule.</summary>
+    public int? DelayMinutes { get; set; }
+
+    /// <summary>Off blocks within the tolerance of the schedule; null without a schedule.</summary>
+    public bool? OnTime { get; set; }
 }
 
 /// <summary>One duty day's record, folded by company day mode at end of day (idempotent by
@@ -140,12 +157,19 @@ public sealed record LogbookAggregates(
     int JudgedApproaches,
     IReadOnlyList<AirportStat> Airports,
     double? AverageTouchdownVerticalSpeedFpm = null,
-    int MeasuredTouchdowns = 0)
+    int MeasuredTouchdowns = 0,
+    int OnTimeFlights = 0,
+    int ScheduledFlights = 0)
 {
     /// <summary>Stabilized rate (percent) over gate-judged approaches only; null when none
     /// were judged (a rate over unjudged approaches would be an invented number).</summary>
     public double? StabilizedRatePct
         => JudgedApproaches > 0 ? Math.Round(100.0 * StabilizedApproaches / JudgedApproaches) : null;
+
+    /// <summary>On-time performance (percent) over the flights that had a schedule (issue
+    /// #185); null when none did.</summary>
+    public double? OnTimePct
+        => ScheduledFlights > 0 ? Math.Round(100.0 * OnTimeFlights / ScheduledFlights) : null;
 
     public static LogbookAggregates Empty { get; } = new(0, 0, 0, 0, 0, 0, []);
 }

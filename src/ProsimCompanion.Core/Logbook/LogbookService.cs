@@ -354,6 +354,12 @@ public sealed class LogbookService : ILogbookService, ISessionFinalizationStep
             Date = DateFromSessionId(sessionId),
             Origin = facts.Origin,
             Destination = facts.Destination,
+            ScheduledOutUtc = facts.ScheduledOutUtc,
+            ScheduledInUtc = facts.ScheduledInUtc,
+            DelayCode = facts.DelayCode,
+            DelayMinutes = facts.DelayMinutes,
+            // The movement service's verdict when it ran; else the industry 15-minute rule.
+            OnTime = facts.OnTime ?? Aircraft.Acars.MovementMessageComposer.OnTime(facts.DelayMinutes, OtpToleranceMinutes),
             DepartureRunway = facts.DepartureRunway,
             ArrivalRunway = facts.ArrivalRunway,
             BlockMinutes = facts.BlockMinutes,
@@ -400,6 +406,10 @@ public sealed class LogbookService : ILogbookService, ISessionFinalizationStep
 
     // ---- aggregates + comparison ----
 
+    /// <summary>The industry on-time threshold the fold uses when the movement service did not
+    /// judge the departure itself (issue #185).</summary>
+    public const int OtpToleranceMinutes = 15;
+
     public LogbookAggregates GetAggregates()
     {
         lock (_gate)
@@ -443,6 +453,10 @@ public sealed class LogbookService : ILogbookService, ISessionFinalizationStep
                 .Select(f => f.TouchdownVerticalSpeedFpm!.Value)
                 .ToList();
 
+            // On-time performance (issue #185): over the flights that had a schedule.
+            var scheduled = flights.Count(f => f.OnTime is not null);
+            var onTime = flights.Count(f => f.OnTime == true);
+
             return new LogbookAggregates(
                 flights.Count,
                 Math.Round(blockHours, 1),
@@ -452,7 +466,9 @@ public sealed class LogbookService : ILogbookService, ISessionFinalizationStep
                 judged,
                 airports,
                 rates.Count > 0 ? Math.Round(rates.Average()) : null,
-                rates.Count);
+                rates.Count,
+                onTime,
+                scheduled);
         }
     }
 

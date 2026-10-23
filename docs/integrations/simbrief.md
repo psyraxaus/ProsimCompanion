@@ -20,3 +20,12 @@
   position is skipped. The destination row closes the plan at `fuel.plan_landing`. TOC / TOD
   are ordinary fixes with those idents. `OfpData.Navlog` is empty for an OFP without one —
   the fuel check then falls back to burn × time-to-ETA.
+
+## Schedule times (issue #185)
+
+`times.sched_out` and `times.sched_in` are Unix seconds; both are imported as
+`OfpData.ScheduledOutUtc` / `ScheduledInUtc` (null when 0 or absent) and recorded on the
+`ofp.loaded` session event. `sched_out` drives the gate monitor's STD and, since package 6,
+the off-blocks punctuality verdict (`flight.punctuality`) and the delay-code question;
+`sched_in` is carried for the logbook only. A SimBrief plan filed without a schedule has both
+null and the flight is "unscheduled": no verdict, no question, a dash in the Logbook.

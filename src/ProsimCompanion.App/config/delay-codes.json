@@ -1,0 +1,17 @@
+{
+  "//": "IATA delay codes the First Officer offers at off-blocks when the flight is late (issue #185). Edit freely: code, title, and the words you may say instead of the number ('delay code 15', 'delay boarding'). 99 is the code an unanswered question falls to.",
+
+  "codes": [
+    { "code": "11", "title": "Late passengers", "spoken": [ "late passengers", "passengers", "late pax", "pax" ] },
+    { "code": "15", "title": "Boarding", "spoken": [ "boarding", "slow boarding", "late boarding" ] },
+    { "code": "31", "title": "Ground handling", "spoken": [ "ground handling", "handling", "loading", "baggage" ] },
+    { "code": "33", "title": "Refuelling", "spoken": [ "refuelling", "refueling", "fuel", "fuelling" ] },
+    { "code": "41", "title": "Technical defect", "spoken": [ "technical", "tech", "defect", "technical defect", "maintenance" ] },
+    { "code": "71", "title": "Weather at departure", "spoken": [ "weather", "departure weather", "wx" ] },
+    { "code": "75", "title": "De-icing", "spoken": [ "de-icing", "deicing", "de ice", "deice" ] },
+    { "code": "81", "title": "ATC flow", "spoken": [ "atc flow", "flow", "flow control", "slot" ] },
+    { "code": "89", "title": "ATC restriction", "spoken": [ "atc restriction", "atc", "restriction", "air traffic control" ] },
+    { "code": "93", "title": "Late inbound aircraft", "spoken": [ "late inbound", "inbound", "late aircraft", "aircraft late" ] },
+    { "code": "99", "title": "Other", "spoken": [ "other", "miscellaneous" ] }
+  ]
+}

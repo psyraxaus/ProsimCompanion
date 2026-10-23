@@ -124,6 +124,25 @@ public static class LogbookPresentation
         return origin is null && destination is null ? "—" : $"{origin ?? "?"} → {destination ?? "?"}";
     }
 
+    /// <summary>The Delay cell (issue #185): "+22 · 15" (minutes late and the delay code), "on time",
+    /// "−4" for an early departure, "—" without a schedule.</summary>
+    public static string Delay(LogbookFlight flight)
+    {
+        ArgumentNullException.ThrowIfNull(flight);
+        if (flight.DelayMinutes is not { } minutes)
+        {
+            return flight.DelayCode is { Length: > 0 } codeOnly ? $"DL {codeOnly}" : "—";
+        }
+
+        var figure = minutes > 0 ? $"+{minutes}" : minutes < 0 ? $"−{-minutes}" : "0";
+        if (flight.OnTime == true && flight.DelayCode is null)
+        {
+            return minutes <= 0 ? figure : $"{figure} on time";
+        }
+
+        return flight.DelayCode is { Length: > 0 } code ? $"{figure} · {code}" : figure;
+    }
+
     /// <summary>"-180" / "—": whole feet per minute, sign kept (a touchdown rate is negative).</summary>
     public static string Rate(double? verticalSpeedFpm)
         => verticalSpeedFpm is { } rate && double.IsFinite(rate)

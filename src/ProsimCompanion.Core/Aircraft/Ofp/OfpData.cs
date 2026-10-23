@@ -103,6 +103,10 @@ public sealed record OfpData
     /// <summary>Scheduled off-block time (SimBrief <c>times.sched_out</c>), null if absent.</summary>
     public DateTimeOffset? ScheduledOutUtc { get; init; }
 
+    /// <summary>Scheduled on-block time (SimBrief <c>times.sched_in</c>, the STA), null if
+    /// absent (issue #185: the movement message's schedule and the logbook's punctuality).</summary>
+    public DateTimeOffset? ScheduledInUtc { get; init; }
+
     public DateTimeOffset FetchedAtUtc { get; init; }
 
     /// <summary>Average flight time (SimBrief <c>times.est_time_enroute</c> seconds), null if
