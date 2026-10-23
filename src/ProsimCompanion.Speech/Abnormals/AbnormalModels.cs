@@ -39,7 +39,32 @@ public sealed class AbnormalDefinition
 
     public VerifyCondition? ClearedWhen { get; set; }
 
+    /// <summary>A drill whose memory items are paced by a service on the flight data instead
+    /// of read straight through (issue #187: <c>"efato"</c> — rotate at VR, V2, gear up on
+    /// positive climb, ECAM hand-over at 400 ft). The monitor announces and raises
+    /// <c>FailureDetected</c>; the named sequencer does the rest. A voice rehearsal still reads
+    /// the <c>actions</c> straight through. Documented in docs/integrations/abnormals.md.</summary>
+    public string? Sequencer { get; set; }
+
     public bool IsDrill => string.Equals(Class, "memoryDrill", StringComparison.OrdinalIgnoreCase);
+
+    public bool IsSequenced => !string.IsNullOrWhiteSpace(Sequencer);
+}
+
+/// <summary>
+/// The takeoff window a trigger must fall in (issue #187) — what the dataref condition
+/// language cannot say: "after the V1 callout" is a comparison of two live figures (IAS
+/// against the FMS V1) or being airborne already, and "below 400 ft AAL" is the AGL figure.
+/// Evaluated from the engine's flight snapshot by the monitor; a window with no field set
+/// is always open. Documented in docs/integrations/abnormals.md.
+/// </summary>
+public sealed class TriggerWindow
+{
+    /// <summary>IAS at or above the FMS V1 (V1 entered), or already off the ground.</summary>
+    public bool AfterV1 { get; set; }
+
+    /// <summary>Height above ground must be below this many feet (on the ground counts).</summary>
+    public double? MaxAglFt { get; set; }
 }
 
 public sealed class AbnormalTrigger
@@ -64,6 +89,9 @@ public sealed class AbnormalTrigger
     /// #123 reopened, EFHK 2026-10-10): the crew switches the packs OFF for the treatment, and
     /// the FO read the resulting PACK FAULT lines as an abnormal.</summary>
     public bool HoldDuringDeice { get; set; }
+
+    /// <summary>The takeoff window the trigger must fall in; null = no window (issue #187).</summary>
+    public TriggerWindow? Window { get; set; }
 }
 
 public sealed class AbnormalAction

@@ -302,6 +302,12 @@ public sealed class FailureMonitor : IEcamDialogueIo, Core.State.IAbnormalDialog
 
                 state.HeldDeiceLogged = false;
 
+                if (!SequencerEnabled(definition))
+                {
+                    state.RisingSinceUtc = null;
+                    continue;
+                }
+
                 var signal = EvaluateTrigger(definition, ewdText, out var corroborateSuppressed);
                 if (corroborateSuppressed && !state.SuppressionLogged)
                 {
@@ -406,6 +412,16 @@ public sealed class FailureMonitor : IEcamDialogueIo, Core.State.IAbnormalDialog
         }
         if (definition.IsDrill)
         {
+            if (definition.IsSequenced)
+            {
+                // The named sequencer paces the items on the flight data (issue #187); the
+                // monitor only announces. A voice rehearsal still reads the file straight.
+                _eventLog.Record("drill.started", new { id = definition.Id, sequencer = definition.Sequencer });
+                _ = _arbiter.EnqueueAsync(new SpeechRequest(
+                    definition.Announce, SpeechPriority.Critical, Tag: $"drill:{definition.Id}"));
+                return;
+            }
+
             _ = SpeakDrillAsync(definition, selfAnnounced: true);
             return;
         }
@@ -671,6 +687,13 @@ public sealed class FailureMonitor : IEcamDialogueIo, Core.State.IAbnormalDialog
             signal = textHit ?? condHit ?? false;
         }
 
+        // The takeoff window (issue #187): "after V1, below 400 ft AAL" is two live figures the
+        // dataref language cannot compare — judged from the engine's snapshot.
+        if (signal && trigger.Window is { } window && !WindowOpen(window, _flight.Snapshot().Data))
+        {
+            signal = false;
+        }
+
         // Corroborate lights must be signals that actually illuminate on the fault (master
         // lights, engine fault lights). ECAM page-button lights do NOT — they light on
         // manual page selection only, which blinded the monitor to a live GEN fault on
@@ -682,6 +705,74 @@ public sealed class FailureMonitor : IEcamDialogueIo, Core.State.IAbnormalDialog
         }
 
         return signal;
+    }
+
+    /// <summary>The trigger window (issue #187), pure: after V1 = IAS at or above the FMS V1
+    /// (entered) or already airborne; below the AGL ceiling (the ground counts). No snapshot =
+    /// closed (fail-closed, like an unreadable condition).</summary>
+    public static bool WindowOpen(TriggerWindow window, FlightDataSnapshot? data)
+    {
+        ArgumentNullException.ThrowIfNull(window);
+        if (data is not { IsValid: true })
+        {
+            return false;
+        }
+
+        if (window.AfterV1 && data.OnGround && (data.V1Kt <= 0 || data.IndicatedAirspeedKt < data.V1Kt))
+        {
+            return false;
+        }
+
+        if (window.MaxAglFt is { } ceiling && !data.OnGround && data.AltitudeAglFt >= ceiling)
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    /// <summary>A sequenced drill arms only while its feature switch is on (issue #187).</summary>
+    private bool SequencerEnabled(AbnormalDefinition definition)
+        => !definition.IsSequenced
+            || (definition.Sequencer!.Equals("efato", StringComparison.OrdinalIgnoreCase) ? Options.EfatoEnabled : true);
+
+    /// <summary>Titles of the ECAM procedures (not drills) currently latched as detected — the
+    /// rejected-takeoff offer reads them (issue #187).</summary>
+    public IReadOnlyList<string> ActiveAbnormalTitles
+    {
+        get
+        {
+            lock (_lock)
+            {
+                return [.. _definitions.Where(d => !d.IsDrill && _states.TryGetValue(d.Id, out var s) && s.Fired).Select(d => d.Title)];
+            }
+        }
+    }
+
+    /// <summary>Runs an ECAM procedure by id outside its own trigger (issue #187: the EFATO
+    /// drill hands over to ENG 1/2 FAIL at 400 ft, whose own phases exclude the takeoff). The
+    /// definition is latched as detected so its clearedWhen rule ends it as usual; false when
+    /// the id is unknown, a drill, or already running.</summary>
+    public bool TryRunProcedure(string id, string origin)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(id);
+        AbnormalDefinition? definition;
+        lock (_lock)
+        {
+            definition = _definitions.FirstOrDefault(d => !d.IsDrill && d.Enabled && d.Id.Equals(id, StringComparison.OrdinalIgnoreCase));
+            if (definition is null || !_states.TryGetValue(definition.Id, out var state) || state.Fired)
+            {
+                return false;
+            }
+
+            state.Fired = true;
+            state.RisingSinceUtc = null;
+        }
+
+        _eventLog.Record("abnormal.handoff", new { id = definition.Id, origin });
+        _logger.LogInformation("ECAM procedure {Id} started by {Origin}", definition.Id, origin);
+        Fire(definition);
+        return true;
     }
 
     /// <summary>An empty phase list means "every phase of a flight" — never Unknown, which is

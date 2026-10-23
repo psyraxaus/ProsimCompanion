@@ -76,6 +76,8 @@
       "none": "none",
       "defects": "Defects",
       "defectsLine": "{0} raised · {1} rectified · {2} carried",
+      "rto": "Rejected takeoffs",
+      "rtoLine": "{0} rejected takeoff(s) before the flight",
       "session": "Session",
       "confirmDelete": "CONFIRM DELETE",
       "deleteFlight": "Delete flight",

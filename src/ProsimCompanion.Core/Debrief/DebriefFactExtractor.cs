@@ -89,6 +89,7 @@ public sealed class DebriefFactExtractor : IDebriefFactExtractor
             int callouts = 0, suppressed = 0, degradations = 0, cabinReports = 0;
             int defectsRaised = 0, defectsRectified = 0, defectsCarried = 0;
             int radioTunes = 0, memoryDrills = 0;
+            int rejectedTakeoffs = 0; // takeoff.rejected (issue #187)
             var checklists = new List<string>();
             double? takeoffFob = null, landingFob = null, onBlocksFob = null;
             var advisories = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -314,6 +315,12 @@ public sealed class DebriefFactExtractor : IDebriefFactExtractor
                             break;
                         }
 
+                        case "takeoff.rejected":
+                        {
+                            rejectedTakeoffs++;
+                            break;
+                        }
+
                         case "ofp.loaded":
                         case "airport-coordinates":
                         {
@@ -396,7 +403,8 @@ public sealed class DebriefFactExtractor : IDebriefFactExtractor
                 touchdownRate, touchdownIas, touchdownPitch, bounces,
                 stampOff, stampTakeoff, stampLanding, stampOn,
                 // A restored stamp (same session file) outranks the flag: the takeoff IS known.
-                takeoffUnknown && stampTakeoff is null);
+                takeoffUnknown && stampTakeoff is null,
+                rejectedTakeoffs);
         }
         catch (Exception ex)
         {

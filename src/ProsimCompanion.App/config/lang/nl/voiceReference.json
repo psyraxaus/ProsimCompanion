@@ -47,7 +47,8 @@
       "cabinCrew": "{0} staat uit — Instellingen → Spraak-First Officer → Cabinecrew",
       "notInBuild": "niet beschikbaar in deze build",
       "foQuestions": "{0} staat uit — Instellingen → Spraak-First Officer → Briefings & LLM → Vraag het de First Officer",
-      "cruiseQuery": "{0} staat uit — Instellingen → Spraak-First Officer → Cabinecrew → Purser-vraag in de cruise"
+      "cruiseQuery": "{0} staat uit — Instellingen → Spraak-First Officer → Cabinecrew → Purser-vraag in de cruise",
+      "abnormals": "{0} staat uit — Instellingen → Voice First Officer → ECAM Abnormals"
     },
     "always": {
       "skip": "Het huidige checklistpunt overslaan.",
@@ -190,6 +191,10 @@
       "disregard": {
         "title": "Disregard",
         "disregard": "Onderbreekt de melding die de FO uitspreekt (vliegtuigstatus, parkeerplek, gemiste oproep) en bevestigt — speelt er niets, dan alleen de bevestiging."
+      },
+      "rto": {
+        "title": "Afgebroken start",
+        "stop": "Alleen tijdens de startaanloop: breekt de start af en start de PM-calls. Na het loskomen antwoordt de FO \"we're flying, captain\"."
       },
       "aircraftState": {
         "title": "Vliegtuigstatus",

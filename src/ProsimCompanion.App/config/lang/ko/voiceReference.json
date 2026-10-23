@@ -47,7 +47,8 @@
       "cabinCrew": "{0}이(가) 꺼져 있습니다 — 설정 → 음성 부기장 → 객실 승무원",
       "notInBuild": "이 빌드에서는 사용할 수 없습니다",
       "foQuestions": "{0}이(가) 꺼져 있습니다 — 설정 → 음성 부기장 → 브리핑 및 LLM → 부기장에게 질문",
-      "cruiseQuery": "{0}이(가) 꺼져 있습니다 — 설정 → 음성 부기장 → 객실 승무원 → 순항 중 사무장 문의"
+      "cruiseQuery": "{0}이(가) 꺼져 있습니다 — 설정 → 음성 부기장 → 객실 승무원 → 순항 중 사무장 문의",
+      "abnormals": "{0}이(가) 꺼져 있습니다 — 설정 → Voice First Officer → ECAM Abnormals"
     },
     "always": {
       "skip": "현재 체크리스트 항목을 건너뜁니다.",
@@ -190,6 +191,10 @@
       "disregard": {
         "title": "Disregard",
         "disregard": "FO가 말하고 있는 안내(항공기 상태, 주기, 누락된 호출)를 멈추고 응답합니다 — 재생 중인 것이 없으면 응답만 합니다."
+      },
+      "rto": {
+        "title": "이륙 중단",
+        "stop": "이륙 활주 중에만: 이륙을 중단하고 PM 콜을 시작합니다. 이륙 후에는 FO가 \"we're flying, captain\"이라고 답합니다."
       },
       "aircraftState": {
         "title": "항공기 상태",

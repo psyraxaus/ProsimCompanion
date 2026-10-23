@@ -346,3 +346,28 @@ The VOICE drawer's Cabin tab shows the replies it understands.
 To pick the First Officer and crew voices from every provider, follow [chapter 10](10-voices.md).
 To set up ElevenLabs — key, plan, cost — follow the
 [ElevenLabs setup guide](06-elevenlabs.md).
+
+### Rejected takeoff and engine failure after V1
+
+**Rejected takeoff** (Settings → Voice First Officer → ECAM Abnormals, off by default) gives
+the FO the two most-trained takeoff events. On the roll, say *"stop"* or *"reject"* — the FO
+hears that word before anything else — or pull both thrust levers to idle above 40 knots. Below
+100 knots the FO goes straight to the calls; above it the FO first reads *"Stop!"* back. Then the
+calls a pilot monitoring makes: *"reverse green"* when the reversers are out, *"decel"* once the
+speed is coming down, *"seventy knots"*, and *"aircraft stopped — park brake"* when you stop. A
+moment later, or as soon as the park brake is set, the FO offers the reason: *"ECAM — ENG 1 FIRE.
+Your call, captain."* if a failure is open, or *"no ECAM — your assessment, captain"*. The
+*"attention, crew at stations"* PA is yours, not the FO's. Say *"stop"* after lift-off and the FO
+answers *"we're flying, captain"*. Nothing is reset: GSX and the departure carry on, you can taxi
+back and go again on the same turnaround, and the Logbook counts the rejected takeoffs on that
+flight.
+
+**Engine failure after V1** (same card, off by default; needs failure detection on) adds the
+memory drill. When one engine's N2 collapses while the other stays at takeoff thrust, after V1 and
+below 400 feet, the FO calls *"engine failure"*, then *"rudder"*, *"rotate"* at VR, *"V2"*,
+*"positive climb — gear up"*, and at 400 feet *"ECAM actions"* — which starts the ENG 1 or ENG 2
+FAIL procedure line by line, as any cruise engine failure would. Each item waits for its cue in
+the flight data and moves on after 25 seconds if the cue never comes. Rehearse the items on the
+ground with *"engine failure after V1"*. The drill is a JSON file like the others
+(`drill-engine-failure-after-v1.json`); the two new fields it uses, the trigger *window* and the
+*sequencer*, are explained in the developer note `docs/integrations/abnormals.md`.

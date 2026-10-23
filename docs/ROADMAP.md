@@ -826,6 +826,19 @@ Owner requests and flight-test fixes after the batch. One line each; the full te
       hand-over by phase (legacy distance gate kept); SI stand fallback; event-flood dedupe.
       **Unverified live** — every item.
 
+## Phase 10 — November 2026 airline-ops batch
+
+Ten packages, one branch and one GitHub issue each, branched from `feature/remote-mixer-agents`
+(0.7.0-rc.12) because that branch was not yet on `main`. Every item is off by default and
+**Unverified live** until flown; details in `CHANGELOG.md` under *Unreleased*.
+
+- [x] **Rejected takeoff and engine failure after V1** (#187, package 8, `feature/rto-efato`) —
+      pure `RejectedTakeoffCore` (word or levers, the PM calls, the ECAM offer, "we're flying"
+      refusal, logbook count), the `drill-engine-failure-after-v1` drill with the new trigger
+      `window` and drill `sequencer` (`EfatoCore`: rudder / rotate / V2 / gear up / ECAM actions
+      at 400 ft → ENG FAIL hand-over). Probes `takeoff-rto`, `takeoff-efato`. Unverified live.
+
+
 ## Open items (after the rc.5 batch, 2026-10-11)
 
 Nothing on this roadmap is open as code. What remains:

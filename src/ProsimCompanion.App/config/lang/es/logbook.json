@@ -76,6 +76,8 @@
       "none": "ninguno",
       "defects": "Defectos",
       "defectsLine": "{0} abiertos · {1} rectificados · {2} arrastrados",
+      "rto": "Despegues abortados",
+      "rtoLine": "{0} despegue(s) abortado(s) antes del vuelo",
       "session": "Sesión",
       "confirmDelete": "CONFIRMAR BORRADO",
       "deleteFlight": "Eliminar vuelo",

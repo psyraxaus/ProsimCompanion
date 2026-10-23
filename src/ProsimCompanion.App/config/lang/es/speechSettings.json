@@ -1204,6 +1204,16 @@
         "label": "Discrepancias de verificación toleradas",
         "hint": "Discrepancias en una línea comprobada antes de que el FO ofrezca continuar o standby."
       },
+      "rto": {
+        "label": "Despegue abortado",
+        "hint": "Di \"stop\" o \"reject\" en la carrera, o lleva ambas palancas a idle por encima de 40 kt: el FO canta reverse green, decel, seventy knots y \"aircraft stopped, park brake\", y ofrece el ECAM abierto.",
+        "more": "Por encima de 100 kt el FO repite \"stop\" primero. Tras el despegue se niega: \"we're flying, captain\". GSX y la salida no se tocan: un segundo intento en la misma escala funciona y se registra."
+      },
+      "efato": {
+        "label": "Fallo de motor tras V1",
+        "hint": "El N2 de un motor cae entre V1 y 400 ft mientras el otro sigue a empuje de despegue: \"engine failure\", luego rudder, rotate, V2, positive climb — gear up y ECAM actions a 400 ft.",
+        "more": "El procedimiento ENG 1 / ENG 2 FAIL toma el relevo a 400 ft. Ensáyalo en tierra con \"engine failure after V1\". Necesita la detección de fallos activa."
+      },
       "filesBefore": "Los propios procedimientos son archivos JSON bajo",
       "filesAfter": "; un archivo que no carga se nombra en un aviso. Un diálogo en curso puede cancelarse desde la sección Estado."
     },

@@ -20,7 +20,7 @@ public static class LogbookCsv
         "blockMinutes", "flightMinutes", "landed",
         "liftoffIasKt", "touchdownGroundSpeedKt", "touchdownVerticalSpeedFpm", "touchdownIasKt",
         "touchdownPitchDeg", "bounces", "approachResult",
-        "abnormals", "defectsRaised", "defectsRectified", "defectsCarried",
+        "abnormals", "defectsRaised", "defectsRectified", "defectsCarried", "rejectedTakeoffs",
     ];
 
     public static string Build(IEnumerable<LogbookFlight> flights)
@@ -41,7 +41,7 @@ public static class LogbookCsv
                 Number(f.TouchdownVerticalSpeedFpm, "0"), Number(f.TouchdownIasKt, "0.#"),
                 Number(f.TouchdownPitchDeg, "0.#"), Number(f.Bounces), Text(f.ApproachResult),
                 Text(string.Join("; ", f.Abnormals ?? [])),
-                Number(f.DefectsRaised), Number(f.DefectsRectified), Number(f.DefectsCarried),
+                Number(f.DefectsRaised), Number(f.DefectsRectified), Number(f.DefectsCarried), Number(f.RejectedTakeoffs),
             ];
             csv.Append(string.Join(',', cells)).Append("\r\n");
         }

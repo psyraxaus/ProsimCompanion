@@ -193,6 +193,7 @@
                 <span class="label-caps lb-detail-head">@T["logbook.detail.techLogHead"]</span>
                 @Detail(T["logbook.detail.abnormals"], detail.Abnormals.Count == 0 ? T["logbook.detail.none"].Value : string.Join(", ", detail.Abnormals))
                 @Detail(T["logbook.detail.defects"], T["logbook.detail.defectsLine", detail.DefectsRaised, detail.DefectsRectified, detail.DefectsCarried])
+                @Detail(T["logbook.detail.rto"], detail.RejectedTakeoffs == 0 ? T["logbook.detail.none"].Value : T["logbook.detail.rtoLine", detail.RejectedTakeoffs].Value)
                 @Detail(T["logbook.detail.session"], detail.SessionId)
 
                 <div class="lb-delete">

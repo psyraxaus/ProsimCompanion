@@ -47,7 +47,8 @@
       "cabinCrew": "{0} est désactivé — Réglages → Copilote vocal → Équipage de cabine",
       "notInBuild": "indisponible dans cette version",
       "foQuestions": "{0} est désactivé — Réglages → Copilote vocal → Briefings et LLM → Demander au copilote",
-      "cruiseQuery": "{0} est désactivé — Réglages → Copilote vocal → Équipage de cabine → Question du chef de cabine en croisière"
+      "cruiseQuery": "{0} est désactivé — Réglages → Copilote vocal → Équipage de cabine → Question du chef de cabine en croisière",
+      "abnormals": "{0} est désactivé — Réglages → Voice First Officer → ECAM Abnormals"
     },
     "always": {
       "skip": "Sauter l'item de checklist en cours.",
@@ -190,6 +191,10 @@
       "disregard": {
         "title": "Disregard",
         "disregard": "Coupe l'avis que l'OPL est en train de dire (état de l'avion, parking, appel perdu) et acquitte — si rien ne joue, juste l'acquittement."
+      },
+      "rto": {
+        "title": "Décollage interrompu",
+        "stop": "Au roulage de décollage seulement : interrompt le décollage et lance les annonces PM. Après le décollage le FO répond « we're flying, captain »."
       },
       "aircraftState": {
         "title": "État de l'avion",

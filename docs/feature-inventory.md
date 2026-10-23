@@ -117,6 +117,10 @@ through with a note if deliberately dropped. Sources: Prosim2GSX 0.9.0, ProsimIn
 - [x] ECAM abnormals (30 procedures, EWD cross-check, interactive per-line dialogue
       `EcamDialogueCore` — confirm / verify / branch / standby / skip; status review not
       ported); memory drills (stall, TCAS RA, windshear, EGPWS)
+- [x] Rejected takeoff (word or levers, PM rollout calls, ECAM offer, airborne refusal, logbook
+      count) and engine failure after V1 (sequenced memory drill with the trigger window and the
+      ENG FAIL hand-over) — #187, November 2026 batch package 8, Unverified live (new to this
+      codebase; the predecessor's drills were stall / TCAS / windshear / EGPWS only)
 - [x] Speech: LAN whisper → System.Speech offline chain (WinRT engine deferred); PTT
       keyboard/joystick; phonetic snapping; utterance interpreter
 - [x] TTS: Kokoro → ElevenLabs → Google Chirp 3 HD (both cloud voices cached, usage-tracked,

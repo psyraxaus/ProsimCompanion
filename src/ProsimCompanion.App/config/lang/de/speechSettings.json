@@ -1204,6 +1204,16 @@
         "label": "Tolerierte Prüfabweichungen",
         "hint": "Abweichungen an einer geprüften Zeile, bevor der FO Weiter oder Standby anbietet."
       },
+      "rto": {
+        "label": "Startabbruch",
+        "hint": "Sag „stop“ oder „reject“ beim Startlauf oder zieh beide Schubhebel über 40 kt auf Leerlauf: der FO ruft reverse green, decel, seventy knots und „aircraft stopped, park brake“ und bietet das offene ECAM an.",
+        "more": "Über 100 kt liest der FO zuerst „stop“ zurück. Nach dem Abheben lehnt er ab: „we're flying, captain“. GSX und der Abflug bleiben unberührt — ein zweiter Versuch im selben Turnaround geht und wird protokolliert."
+      },
+      "efato": {
+        "label": "Triebwerksausfall nach V1",
+        "hint": "Das N2 eines Triebwerks bricht zwischen V1 und 400 ft ein, während das andere auf Startschub bleibt: „engine failure“, dann rudder, rotate, V2, positive climb — gear up und ECAM actions bei 400 ft.",
+        "more": "Die ENG 1 / ENG 2 FAIL-Prozedur übernimmt bei 400 ft. Am Boden mit „engine failure after V1“ üben. Braucht eingeschaltete Fehlererkennung."
+      },
       "filesBefore": "Die Verfahren selbst sind JSON-Dateien unter",
       "filesAfter": "; eine Datei, die nicht lädt, wird in einem Banner genannt. Ein laufender Dialog lässt sich im Abschnitt Status abbrechen."
     },

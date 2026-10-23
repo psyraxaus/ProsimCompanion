@@ -47,7 +47,8 @@
       "cabinCrew": "{0} is off — Settings → Voice First Officer → Cabin Crew",
       "notInBuild": "not available in this build",
       "foQuestions": "{0} is off — Settings → Voice First Officer → Briefings & LLM → Ask the First Officer",
-      "cruiseQuery": "{0} is off — Settings → Voice First Officer → Cabin Crew → Purser cruise query"
+      "cruiseQuery": "{0} is off — Settings → Voice First Officer → Cabin Crew → Purser cruise query",
+      "abnormals": "{0} is off — Settings → Voice First Officer → ECAM Abnormals"
     },
     "always": {
       "skip": "Skip the current checklist item.",
@@ -190,6 +191,10 @@
       "disregard": {
         "title": "Disregard",
         "disregard": "Silences the advisory the FO is speaking (aircraft state, parking, dropped call) and acknowledges — with nothing playing, just the acknowledgement."
+      },
+      "rto": {
+        "title": "Rejected takeoff",
+        "stop": "On the takeoff roll only: rejects the takeoff and starts the PM calls. After lift-off the FO answers \"we're flying, captain\"."
       },
       "aircraftState": {
         "title": "Aircraft state",

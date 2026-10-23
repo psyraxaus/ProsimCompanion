@@ -1204,6 +1204,16 @@
         "label": "Getolereerde verificatieafwijkingen",
         "hint": "Afwijkingen op een gecontroleerde regel voordat de FO doorgaan of standby aanbiedt."
       },
+      "rto": {
+        "label": "Afgebroken start",
+        "hint": "Zeg \"stop\" of \"reject\" tijdens de aanloop, of trek beide gashendels boven 40 kt naar idle: de FO roept reverse green, decel, seventy knots en \"aircraft stopped, park brake\" en biedt de open ECAM aan.",
+        "more": "Boven 100 kt leest de FO eerst \"stop\" terug. Na het loskomen weigert hij: \"we're flying, captain\". GSX en het vertrek blijven onaangeroerd — een tweede poging in dezelfde turnaround werkt en wordt gelogd."
+      },
+      "efato": {
+        "label": "Motorstoring na V1",
+        "hint": "De N2 van één motor zakt in tussen V1 en 400 ft terwijl de andere op startvermogen blijft: \"engine failure\", dan rudder, rotate, V2, positive climb — gear up en ECAM actions op 400 ft.",
+        "more": "De ENG 1 / ENG 2 FAIL-procedure neemt over op 400 ft. Oefen hem op de grond met \"engine failure after V1\". Vereist ingeschakelde storingsdetectie."
+      },
       "filesBefore": "De procedures zelf zijn JSON-bestanden onder",
       "filesAfter": "; een bestand dat niet laadt wordt in een banner genoemd. Een lopende dialoog kan vanuit de sectie Status worden geannuleerd."
     },

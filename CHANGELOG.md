@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+November 2026 airline-ops batch, one package per branch; every package is off by default and **Unverified live**.
+
+- New: **rejected takeoff and engine failure after V1** ([#187](https://github.com/psyraxaus/ProsimCompanion/issues/187), package 8, branch `feature/rto-efato`). **Rejected takeoff** (Settings → Voice First Officer → ECAM Abnormals, off by default): on the takeoff roll the captain's *"stop"* or *"reject"* — dispatched before every other reading of the word — or both thrust levers brought to idle above 40 kt rejects the takeoff; the FO calls *reverse green*, *decel*, *seventy knots* and *"aircraft stopped — park brake"*, then offers the open ECAM (*"ECAM — ENG 1 FIRE. Your call, captain."*) or *"no ECAM — your assessment, captain"*. Above 100 kt the FO reads *"Stop!"* back first; after lift-off the FO refuses: *"we're flying, captain"*. GSX and the departure are left alone, a second roll on the same turnaround re-arms, and the logbook flight counts its rejected takeoffs (new CSV column, detail line). **Engine failure after V1** (off): a new memory drill fires when one engine's N2 collapses while the other stays at takeoff thrust, between V1 and 400 ft — *"engine failure"*, then *rudder*, *rotate* at VR, *V2*, *positive climb — gear up*, and *ECAM actions* at 400 ft, which hands over to the ENG 1 / ENG 2 FAIL procedure's line-by-line dialogue. Two extensions to the abnormal definition language make it possible and are documented in the new `docs/integrations/abnormals.md`: a trigger **window** (`afterV1`, `maxAglFt`) and a drill **sequencer** that paces the items on the flight data. *"Engine failure after V1"* rehearses the items on the ground. Read-and-speak only. Probes `takeoff-rto`, `takeoff-efato`. Seven language packs. Not in this package: the package-1 EOSID fact after gear up (wired at the merge).
+
+
 ## 0.7.0-rc.12
 
 Remote mixer for two-pilot rigs, 2026-10-22. A local release-candidate build on top of rc.11 for the owner's sim test; **not yet verified live** (neither are rc.11's refactors, which this build carries).

@@ -1204,6 +1204,16 @@
         "label": "Verify mismatches tolerated",
         "hint": "Discrepancies on a checked line before the FO offers continue or standby."
       },
+      "rto": {
+        "label": "Rejected takeoff",
+        "hint": "Say \"stop\" or \"reject\" on the roll, or pull both thrust levers to idle above 40 kt: the FO calls reverse green, decel, seventy knots and \"aircraft stopped, park brake\", then offers the open ECAM.",
+        "more": "Above 100 kt the FO reads \"stop\" back first. After lift-off the FO refuses: \"we're flying, captain\". GSX and the departure are left alone — a second attempt on the same turnaround works and is logged."
+      },
+      "efato": {
+        "label": "Engine failure after V1",
+        "hint": "One engine's N2 collapses between V1 and 400 ft while the other stays at takeoff thrust: \"engine failure\", then rudder, rotate, V2, positive climb — gear up, and ECAM actions at 400 ft.",
+        "more": "The ENG 1 / ENG 2 FAIL procedure takes over at 400 ft. Rehearse it on the ground with \"engine failure after V1\". Needs failure detection on."
+      },
       "filesBefore": "The procedures themselves are JSON files under",
       "filesAfter": "; a file that fails to load is named in a banner. A running dialogue can be cancelled from the Status section."
     },

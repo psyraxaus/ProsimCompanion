@@ -44,6 +44,12 @@ public static class SpeechServiceCollectionExtensions
         services.AddStartupModule<CalloutsEngine>();
         services.AddStartupModule<StabilizedApproachMonitor>();
         services.AddStartupModule<FlowMonitor>();
+        // Rejected takeoff (issue #187): the captain's "stop" must beat every other reading of
+        // the word, so it dispatches first; the EFATO sequencer paces the drill's items. Both
+        // register after the failure monitor they depend on (declared further up).
+        services.AddVoiceFeature<Abnormals.RejectedTakeoffService>();
+        services.AddStartupModule<Abnormals.RejectedTakeoffService>();
+        services.AddStartupModule<Abnormals.EfatoService>();
         // In-flight FO monitoring (issue #148), each behind its own sop.monitoring switch.
         services.AddStartupModule<Monitoring.FuelCheckMonitor>();
         services.AddVoiceFeature<Monitoring.FuelCheckMonitor>();

@@ -70,6 +70,10 @@ public sealed class LogbookFlight
 
     /// <summary>Open tech-log (MEL) defects carried on the flight.</summary>
     public int DefectsCarried { get; set; }
+
+    /// <summary>Rejected takeoffs in the flight (issue #187) — a stop on the roll, then a
+    /// second attempt on the same cycle, is one flight with one RTO.</summary>
+    public int RejectedTakeoffs { get; set; }
 }
 
 /// <summary>One duty day's record, folded by company day mode at end of day (idempotent by
