@@ -148,6 +148,10 @@ through with a note if deliberately dropped. Sources: Prosim2GSX 0.9.0, ProsimIn
 - [x] Tech log & MEL (persistent defects, A–D due dates, wear pool, web raise/rectify,
       voice brief + guided raise/rectify dialogues + post-abnormal offer; procedural hooks
       deferred)
+- [x] Last-minute changes on the loadsheet (#181, off): boarded load vs the final at
+      boarding-complete, LMC block under the final + FO reading + ACARS slot 03 within
+      tolerance, revised final (EDNO +1) or "flown on captain's authority" beyond it, on-demand
+      `loadsheet.lmc` / CHECK LMC / "last minute change"
 - [x] Pilot logbook (shutdown fold, aggregates, backfill, debrief comparison line, duty-day
       records; voice queries — `LogbookVoiceService`; the **Logbook page** with totals, a
       sortable table, flight detail, touchdown-rate trend, delete and CSV export, and the

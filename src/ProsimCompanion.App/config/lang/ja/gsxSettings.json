@@ -366,6 +366,8 @@
       "lvarsValue": "状態 {0}、液剤タイプ {1}"
     },
     "captainsQuestions": {
+      "issueRevisedFinal": "改訂ファイナルを発行",
+      "captainsAuthority": "機長判断で運航",
       "title": "キャプテンへの質問",
       "hint": "FO からの未回答の質問 — ここで、音声で、または GSX のメニューで回答",
       "none": "未回答の質問はありません。",

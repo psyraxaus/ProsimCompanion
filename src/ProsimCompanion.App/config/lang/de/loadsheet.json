@@ -36,6 +36,26 @@
       "ident": "Kennung",
       "received": "Empfangen",
       "rangeAria": "MACTOW {0} Prozent auf einer Skala von {1} bis {2} Prozent"
+    },
+    "lmc": {
+      "check": "LMC PRÜFEN",
+      "checking": "PRÜFT…",
+      "title": "LAST MINUTE CHANGE",
+      "against": "Gegen Final EDNO {0} · geprüft {1}",
+      "noChange": "Boarding stimmt mit dem Final-Loadsheet überein. Keine Last-Minute-Änderung.",
+      "badge": {
+        "noChange": "KEINE ÄNDERUNG",
+        "withinLimits": "IN LIMITS",
+        "awaiting": "ENTSCHEIDUNG",
+        "revised": "REVIDIERTES FINAL",
+        "captainsAuthority": "KAPITÄNSENTSCHEIDUNG"
+      },
+      "hint": {
+        "applied": "Von Hand übernommen — kein neues Loadsheet. SYNC TO FMS auf der INIT-Seite nimmt diese Werte.",
+        "awaiting": "Über dem LMC-Limit. Der FO fragt nach einem revidierten Final — antworte auf der Karte Captain's Questions oder per Stimme.",
+        "revised": "Ein revidiertes Final (EDNO +1) wurde ausgegeben — siehe Final-Karte.",
+        "captainsAuthority": "Revidiertes Loadsheet erforderlich — geflogen auf Entscheidung des Kapitäns."
+      }
     }
   }
 }

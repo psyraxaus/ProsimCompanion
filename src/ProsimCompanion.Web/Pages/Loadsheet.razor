@@ -30,6 +30,10 @@
             <button type="button" class="btn secondary" disabled="@(_busy is not null)" @onclick="ResendAsync">
                 @(_busy == Busy.Resend ? T["loadsheet.actions.resending"].Value : T["loadsheet.actions.resend"].Value)
             </button>
+            @* Last-minute change check on demand (issue #181) — needs a final. *@
+            <button type="button" class="btn secondary" disabled="@(_busy is not null || _loadsheets.Final.Status != LoadsheetSlotStatus.Sent)" @onclick="CheckLmcAsync">
+                @(_busy == Busy.Lmc ? T["loadsheet.lmc.checking"].Value : T["loadsheet.lmc.check"].Value)
+            </button>
             <button type="button" class="btn danger" disabled="@(_busy is not null)" @onclick="Reset">
                 @(_busy == Busy.Reset ? T["loadsheet.actions.resetting"].Value : _armReset ? T["loadsheet.actions.confirmReset"].Value : T["loadsheet.actions.reset"].Value)
             </button>
@@ -125,10 +129,40 @@
             </section>
         }
     </div>
+
+    @* Last-minute change (issue #181): the airline LMC block under the final, with what became
+       of it. The block text is the ACARS text the cockpit received (LoadsheetFormatter), not a
+       display string — only the chrome is localised. *@
+    @if (_loadsheets.Lmc is { } lmc)
+    {
+        var caption = lmc.Disposition == LmcDisposition.FlownOnCaptainsAuthority ? LoadsheetFormatter.FlownOnCaptainsAuthorityCaption : null;
+        <section class="section ls-card ls-lmc @(lmc.Disposition is LmcDisposition.FlownOnCaptainsAuthority or LmcDisposition.AwaitingDecision ? "ls-card-error" : "")">
+            <div class="section-header">
+                <h3 class="section-title">@T["loadsheet.lmc.title"]</h3>
+                <span class="pill @LmcBadgeClass(lmc.Disposition)">@LmcBadgeText(lmc.Disposition)</span>
+            </div>
+            <div class="section-body ls-card-body">
+                <div class="ls-lmc-meta">@T["loadsheet.lmc.against", lmc.AgainstEdition, lmc.EvaluatedAtUtc.ToLocalTime().ToString("HH:mm:ss")]</div>
+                @if (lmc.Disposition == LmcDisposition.NoChange)
+                {
+                    <div class="ls-empty">@T["loadsheet.lmc.noChange"]</div>
+                }
+                else
+                {
+                    <pre class="ls-lmc-text">@LoadsheetFormatter.FormatLmc(lmc.Result, caption)</pre>
+                    @if (lmc.Result.Reasons.Count > 0)
+                    {
+                        <div class="ls-lmc-reasons">@string.Join(" · ", lmc.Result.Reasons)</div>
+                    }
+                    <div class="ls-lmc-hint">@LmcHint(lmc.Disposition)</div>
+                }
+            </div>
+        </section>
+    }
 </div>
 
 @code {
-    private enum Busy { Resend, Reset }
+    private enum Busy { Resend, Reset, Lmc }
 
     private LoadsheetSnapshot _loadsheets = LoadsheetSnapshot.Empty;
     private Busy? _busy;
@@ -177,6 +211,45 @@
         LoadsheetSlotStatus.Waiting => T["loadsheet.badge.waiting"].Value,
         _ => T["loadsheet.badge.pending"].Value,
     };
+
+    private static string LmcBadgeClass(LmcDisposition disposition) => disposition switch
+    {
+        LmcDisposition.Applied or LmcDisposition.RevisionIssued or LmcDisposition.NoChange => "tone-ok",
+        LmcDisposition.FlownOnCaptainsAuthority => "tone-bad",
+        _ => "tone-warn",
+    };
+
+    private string LmcBadgeText(LmcDisposition disposition) => disposition switch
+    {
+        LmcDisposition.NoChange => T["loadsheet.lmc.badge.noChange"].Value,
+        LmcDisposition.Applied => T["loadsheet.lmc.badge.withinLimits"].Value,
+        LmcDisposition.AwaitingDecision => T["loadsheet.lmc.badge.awaiting"].Value,
+        LmcDisposition.RevisionIssued => T["loadsheet.lmc.badge.revised"].Value,
+        _ => T["loadsheet.lmc.badge.captainsAuthority"].Value,
+    };
+
+    private string LmcHint(LmcDisposition disposition) => disposition switch
+    {
+        LmcDisposition.Applied => T["loadsheet.lmc.hint.applied"].Value,
+        LmcDisposition.AwaitingDecision => T["loadsheet.lmc.hint.awaiting"].Value,
+        LmcDisposition.RevisionIssued => T["loadsheet.lmc.hint.revised"].Value,
+        LmcDisposition.FlownOnCaptainsAuthority => T["loadsheet.lmc.hint.captainsAuthority"].Value,
+        _ => "",
+    };
+
+    private async Task CheckLmcAsync()
+    {
+        _armReset = false;
+        _busy = Busy.Lmc;
+        try
+        {
+            await LoadsheetControl.EvaluateLastMinuteChangeAsync();
+        }
+        finally
+        {
+            _busy = null;
+        }
+    }
 
     /// <summary>Marker position on the card's MAC window, clamped to the bar edges.</summary>
     private static string MacPercentCss(double mac, double macMin, double macMax)

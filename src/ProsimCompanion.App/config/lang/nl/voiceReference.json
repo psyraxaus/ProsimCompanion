@@ -140,7 +140,8 @@
       "company": {
         "title": "Company",
         "loadsheet": "Gesproken loadsheet uit de live gewichten, pax en CG (ACARS-chime).",
-        "lastMessage": "Herhaalt het laatste companybericht."
+        "lastMessage": "Herhaalt het laatste companybericht.",
+        "lmc": "Vergelijkt de geboarde lading met het final loadsheet en leest de last-minute change voor."
       },
       "day": {
         "title": "Dienstdag",

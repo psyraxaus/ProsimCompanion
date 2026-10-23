@@ -140,7 +140,8 @@
       "company": {
         "title": "Company",
         "loadsheet": "Spoken loadsheet from the live weights, pax and CG (ACARS chime).",
-        "lastMessage": "Repeats the last company message."
+        "lastMessage": "Repeats the last company message.",
+        "lmc": "Checks the boarded load against the final loadsheet and reads the last-minute change."
       },
       "day": {
         "title": "Duty day",

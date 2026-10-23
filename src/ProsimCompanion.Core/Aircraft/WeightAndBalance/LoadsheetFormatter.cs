@@ -104,11 +104,55 @@ public static class LoadsheetFormatter
         sb.AppendLine(CultureInfo.InvariantCulture, $"LIZFW   {final.LizfwIndex.ToString("F1", CultureInfo.InvariantCulture)}  {diffs.MacZfwFlag}");
         sb.AppendLine(CultureInfo.InvariantCulture, $"LITOW   {final.LitowIndex.ToString("F1", CultureInfo.InvariantCulture)}  {diffs.MacTowFlag}");
         sb.AppendLine(CultureInfo.InvariantCulture, $"FUEL IN TANKS  {finalFuelWhole}  {diffs.FuelFlag}");
+        if (!string.IsNullOrWhiteSpace(ctx.Revision))
+        {
+            // A revised final issued after a last-minute change (issue #181) says why.
+            sb.AppendLine(CultureInfo.InvariantCulture, $"REVISION  {ctx.Revision.ToUpperInvariant()}");
+        }
+
         sb.AppendLine("........................");
         sb.AppendLine(CultureInfo.InvariantCulture, $"{ctx.Time:HH:mm}Z");
         sb.Append("END");
         return sb.ToString();
     }
+
+    /// <summary>The caption printed under an LMC block the captain decided to fly on without
+    /// the revised loadsheet the rule asked for (issue #181). ACARS text: capitals, no apostrophe.</summary>
+    public const string FlownOnCaptainsAuthorityCaption = "REVISED LOADSHEET REQUIRED - FLOWN ON CAPTAINS AUTHORITY";
+
+    /// <summary>The airline LMC block printed under the final (issue #181):
+    /// <c>LMC  PAX -2  ZFW 58.9  TOW 66.4  LAW 62.1  MACZFW 26.8  MACTOW 27.3</c>, tonnes to 1 dp,
+    /// with <c>CGO</c> / <c>FUEL</c> deltas only when they moved, and an optional caption line.
+    /// Fixed-format like the loadsheets above — pilots read it verbatim.</summary>
+    public static string FormatLmc(LmcResult result, string? caption = null)
+    {
+        ArgumentNullException.ThrowIfNull(result);
+        var sb = new StringBuilder();
+        sb.Append(CultureInfo.InvariantCulture, $"LMC  PAX {Signed(result.DeltaPax)}");
+        if (Math.Abs(result.DeltaCargoKg) >= LmcEvaluator.NoChangeWeightKg)
+        {
+            sb.Append(CultureInfo.InvariantCulture, $"  CGO {Signed((int)Math.Round(result.DeltaCargoKg))}");
+        }
+
+        if (Math.Abs(result.DeltaFuelKg) >= LmcEvaluator.NoChangeFuelKg)
+        {
+            sb.Append(CultureInfo.InvariantCulture, $"  FUEL {Signed((int)Math.Round(result.DeltaFuelKg))}");
+        }
+
+        sb.Append(CultureInfo.InvariantCulture, $"  ZFW {Tonnes(result.NewZfwKg)}  TOW {Tonnes(result.NewTowKg)}  LAW {Tonnes(result.NewLawKg)}");
+        sb.Append(CultureInfo.InvariantCulture, $"  MACZFW {result.NewMacZfw.ToString("F1", CultureInfo.InvariantCulture)}  MACTOW {result.NewMacTow.ToString("F1", CultureInfo.InvariantCulture)}");
+        if (!string.IsNullOrWhiteSpace(caption))
+        {
+            sb.AppendLine();
+            sb.Append(caption);
+        }
+
+        return sb.ToString();
+    }
+
+    private static string Signed(int value) => value >= 0 ? $"+{value}" : value.ToString(CultureInfo.InvariantCulture);
+
+    private static string Tonnes(double kg) => (kg / 1000.0).ToString("F1", CultureInfo.InvariantCulture);
 
     /// <summary>PRELIM "L" markers next to weights at or within 1000 kg of their max — bare
     /// "L" here; the JSON envelope's variants carry a leading space (" L").</summary>

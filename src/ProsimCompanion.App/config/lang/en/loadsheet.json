@@ -36,6 +36,26 @@
       "ident": "Ident",
       "received": "Received",
       "rangeAria": "MACTOW {0} percent on a {1} to {2} percent scale"
+    },
+    "lmc": {
+      "check": "CHECK LMC",
+      "checking": "CHECKING…",
+      "title": "LAST MINUTE CHANGE",
+      "against": "Against final EDNO {0} · evaluated {1}",
+      "noChange": "Boarding matches the final loadsheet. No last-minute change.",
+      "badge": {
+        "noChange": "NO CHANGE",
+        "withinLimits": "WITHIN LIMITS",
+        "awaiting": "DECISION",
+        "revised": "REVISED FINAL",
+        "captainsAuthority": "CAPTAIN'S AUTHORITY"
+      },
+      "hint": {
+        "applied": "Applied by hand — no new loadsheet. SYNC TO FMS on the INIT page picks up these figures.",
+        "awaiting": "Beyond the LMC limit. The First Officer is asking for a revised final — answer on the Captain's Questions card or by voice.",
+        "revised": "A revised final (EDNO +1) was issued — see the Final card.",
+        "captainsAuthority": "Revised loadsheet required — flown on the captain's authority."
+      }
     }
   }
 }

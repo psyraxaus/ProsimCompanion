@@ -60,6 +60,8 @@ public static class CaptainsQuestionPresentation
         [DeiceRequestStore.QuestionDefinition.Topic] = new("gsxSettings.deiceStatus.request", "gsxSettings.deiceStatus.decline", null, null),
         [TurnaroundStartStore.QuestionDefinition.Topic] = new("gsxSettings.captainsQuestions.commence", "gsxSettings.captainsQuestions.standBy", null, null),
         [GateChoiceStore.QuestionDefinition.Topic] = new(null, null, "gsxSettings.arrivalGate.variantDetail", "gsxSettings.arrivalGate.variantNoDetail"),
+        // Issue #181: issue the revised final, or fly the LMC on the captain's authority.
+        [LmcRevisionStore.QuestionDefinition.Topic] = new("gsxSettings.captainsQuestions.issueRevisedFinal", "gsxSettings.captainsQuestions.captainsAuthority", null, null),
     };
 
     /// <summary>Every open question of the given stores (optionally only the given topics), in

@@ -35,6 +35,10 @@ public sealed class LoadsheetContext
     public int Infants { get; set; }
     public string InfantsOutput { get; set; } = "";
 
+    /// <summary>Why a revised final was issued ("LMC PAX -7"), printed as a REVISION line
+    /// (issue #181); null on an ordinary final.</summary>
+    public string? Revision { get; set; }
+
     /// <summary>REVISIONS/CHK thresholds. ProSim's own generator uses 1000 kg / 2.0 %MAC; the
     /// in-house pipeline keeps the predecessor's tighter 0.5 %MAC (pilot-conservative).</summary>
     public double WeightChangeToleranceKg { get; set; } = 1000.0;

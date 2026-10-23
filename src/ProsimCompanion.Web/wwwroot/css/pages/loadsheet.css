@@ -138,3 +138,20 @@
   .ls-hero-body .ls-actions { position: static; }
   .ls-std-value { font-size: 22px; }
 }
+
+/* ---- last-minute change (issue #181) ---- */
+
+.ls-lmc-meta { font-size: 11px; color: var(--text-secondary); letter-spacing: 0.04em; }
+.ls-lmc-text {
+  margin: 0;
+  padding: 10px 12px;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 13px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  color: var(--text-primary);
+  background: var(--surface-inset, rgba(0, 0, 0, 0.18));
+  border-radius: var(--radius-lg);
+}
+.ls-lmc-reasons { font-size: 12px; color: var(--danger); }
+.ls-lmc-hint { font-size: 12px; color: var(--text-secondary); }

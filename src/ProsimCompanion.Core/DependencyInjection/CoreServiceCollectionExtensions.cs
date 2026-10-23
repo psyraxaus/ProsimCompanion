@@ -156,6 +156,10 @@ public static class CoreServiceCollectionExtensions
         // asks, the FO voice dialogue answers.
         services.AddSingleton<TurnaroundStartStore>();
         services.AddSingleton<ICaptainsQuestionStore>(p => p.GetRequiredService<TurnaroundStartStore>());
+        // "Issue a revised final?" after a last-minute change beyond tolerance (issue #181):
+        // the loadsheet pipeline asks, the FO dialogue or the card answers.
+        services.AddSingleton<LmcRevisionStore>();
+        services.AddSingleton<ICaptainsQuestionStore>(p => p.GetRequiredService<LmcRevisionStore>());
         // The four captain's questions above share one store module (architecture review C2);
         // the ICaptainsQuestionStore registrations feed the FO dialogue, the web card and this
         // one TTL clock — the only thing that settles a question on silence (issue #166).

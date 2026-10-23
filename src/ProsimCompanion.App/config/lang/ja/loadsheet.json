@@ -36,6 +36,26 @@
       "ident": "識別",
       "received": "受信",
       "rangeAria": "MACTOW {0} パーセント（{1} から {2} パーセントのスケール）"
+    },
+    "lmc": {
+      "check": "LMC確認",
+      "checking": "確認中…",
+      "title": "LAST MINUTE CHANGE",
+      "against": "ファイナル EDNO {0} に対して · 評価 {1}",
+      "noChange": "搭乗はファイナルロードシートと一致しています。ラストミニットチェンジはありません。",
+      "badge": {
+        "noChange": "変更なし",
+        "withinLimits": "制限内",
+        "awaiting": "判断待ち",
+        "revised": "改訂ファイナル",
+        "captainsAuthority": "機長判断"
+      },
+      "hint": {
+        "applied": "手動で適用 — 新しいロードシートはありません。INITページのSYNC TO FMSがこの数値を取り込みます。",
+        "awaiting": "LMC制限を超えています。FOが改訂ファイナルを尋ねています — Captain's Questionsカードか音声で答えてください。",
+        "revised": "改訂ファイナル（EDNO +1）を発行しました — Finalカードを参照。",
+        "captainsAuthority": "改訂ロードシートが必要 — 機長判断で運航。"
+      }
     }
   }
 }

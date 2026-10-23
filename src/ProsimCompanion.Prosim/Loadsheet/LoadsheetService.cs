@@ -7,6 +7,7 @@ using ProsimCompanion.Core.Aircraft.Gateway;
 using ProsimCompanion.Core.Aircraft.Ofp;
 using ProsimCompanion.Core.Aircraft.WeightAndBalance;
 using ProsimCompanion.Core.Configuration;
+using ProsimCompanion.Core.EventLog;
 using ProsimCompanion.Core.State;
 using ProsimCompanion.Prosim.Acars;
 
@@ -21,7 +22,7 @@ namespace ProsimCompanion.Prosim.Loadsheet;
 /// Edition numbers: each prelim (resends included) increments; the final inherits the prelim's.
 /// A cycle reset (GSX turnaround) clears the caches and returns the counter to 1.
 /// </summary>
-public sealed class LoadsheetService : ILoadsheetControl, IDisposable
+public sealed partial class LoadsheetService : ILoadsheetControl, IDisposable
 {
     // A322 operational constants with no dataref (per-variant config is future work).
     private const double DefaultMaxLawKg = 64500.0;
@@ -69,6 +70,13 @@ public sealed class LoadsheetService : ILoadsheetControl, IDisposable
     private readonly Timer _stdTimer;
     private LoadsheetData? _cachedPrelim;
     private LoadsheetContext? _cachedPrelimContext;
+    // The last final as computed (issue #181): what a last-minute change is measured against.
+    private LoadsheetData? _cachedFinal;
+    private LoadsheetContext? _cachedFinalContext;
+    private string? _pendingRevision;
+    private bool _lmcEvaluated;
+    private readonly LmcRevisionStore _lmcQuestion;
+    private readonly JsonlEventLog _eventLog;
     private bool _finalSent;
     private int _nextEditionNumber = 1;
     private CancellationTokenSource? _pendingFinal;
@@ -91,10 +99,16 @@ public sealed class LoadsheetService : ILoadsheetControl, IDisposable
         ISimVars simVars,
         ISimClock simClock,
         IEfbInitOverrides initOverrides,
-        ILogger<LoadsheetService> logger)
+        ILogger<LoadsheetService> logger,
+        LmcRevisionStore lmcQuestion,
+        JsonlEventLog eventLog)
     {
         ArgumentNullException.ThrowIfNull(initOverrides);
+        ArgumentNullException.ThrowIfNull(lmcQuestion);
+        ArgumentNullException.ThrowIfNull(eventLog);
         _initOverrides = initOverrides;
+        _lmcQuestion = lmcQuestion;
+        _eventLog = eventLog;
         ArgumentNullException.ThrowIfNull(prosim);
         ArgumentNullException.ThrowIfNull(gateway);
         ArgumentNullException.ThrowIfNull(acars);
@@ -158,6 +172,7 @@ public sealed class LoadsheetService : ILoadsheetControl, IDisposable
         _signals.FlightCycleReset += ResetCycle;
         _connections.Changed += OnConnectionChanged;
         _resyncState.Assessed += OnResyncAssessed;
+        _lmcQuestion.Answered += OnLmcRevisionAnswered;
 
         // STD-offset trigger (Prosim2GSX's timing model, opt-in): a slow poll rather than a
         // scheduled one-shot because the STD source can change at any time (new OFP import,
@@ -173,6 +188,7 @@ public sealed class LoadsheetService : ILoadsheetControl, IDisposable
         _signals.FlightCycleReset -= ResetCycle;
         _connections.Changed -= OnConnectionChanged;
         _resyncState.Assessed -= OnResyncAssessed;
+        _lmcQuestion.Answered -= OnLmcRevisionAnswered;
         _pendingFinal?.Cancel();
         _pendingFinal?.Dispose();
         _autoPrelim?.Cancel();
@@ -373,6 +389,13 @@ public sealed class LoadsheetService : ILoadsheetControl, IDisposable
     private void OnBoardingCompleted()
     {
         var options = _options.CurrentValue;
+        // Last-minute change (issue #181): only when a final already exists at this edge — a
+        // final still to come is computed from the boarded load anyway.
+        if (options.LmcEnabled)
+        {
+            _ = EvaluateLmcAtBoardingCompleteAsync();
+        }
+
         if (!options.AutoFinalOnBoardingComplete)
         {
             return;
@@ -689,6 +712,13 @@ public sealed class LoadsheetService : ILoadsheetControl, IDisposable
             ctx.WaterWasteKg = prelimContext.WaterWasteKg;
         }
 
+        lock (_stateLock)
+        {
+            // A revised final after a last-minute change (issue #181) says why, once.
+            ctx.Revision = _pendingRevision;
+            _pendingRevision = null;
+        }
+
         LoadsheetData data;
         try
         {
@@ -744,6 +774,8 @@ public sealed class LoadsheetService : ILoadsheetControl, IDisposable
         lock (_stateLock)
         {
             _finalSent = true;
+            _cachedFinal = data;
+            _cachedFinalContext = ctx;
         }
 
         _ = WriteTrackingLvarAsync(CompanionLvarNames.LoadsheetFinalSent.Name, 1);
@@ -780,6 +812,10 @@ public sealed class LoadsheetService : ILoadsheetControl, IDisposable
         {
             _cachedPrelim = null;
             _cachedPrelimContext = null;
+            _cachedFinal = null;
+            _cachedFinalContext = null;
+            _pendingRevision = null;
+            _lmcEvaluated = false;
             _finalSent = false;
             _nextEditionNumber = 1;
         }

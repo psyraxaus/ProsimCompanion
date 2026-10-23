@@ -36,6 +36,26 @@
       "ident": "식별",
       "received": "수신",
       "rangeAria": "MACTOW {0}퍼센트 ({1}~{2}퍼센트 범위)"
+    },
+    "lmc": {
+      "check": "LMC 확인",
+      "checking": "확인 중…",
+      "title": "LAST MINUTE CHANGE",
+      "against": "파이널 EDNO {0} 기준 · 평가 {1}",
+      "noChange": "탑승이 파이널 로드시트와 일치합니다. 막판 변경 없음.",
+      "badge": {
+        "noChange": "변경 없음",
+        "withinLimits": "한도 내",
+        "awaiting": "결정 대기",
+        "revised": "개정 파이널",
+        "captainsAuthority": "기장 권한"
+      },
+      "hint": {
+        "applied": "수동 적용 — 새 로드시트 없음. INIT 페이지의 SYNC TO FMS가 이 수치를 가져갑니다.",
+        "awaiting": "LMC 한도 초과. FO가 개정 파이널을 묻고 있습니다 — Captain's Questions 카드나 음성으로 답하세요.",
+        "revised": "개정 파이널(EDNO +1)이 발행되었습니다 — Final 카드를 보세요.",
+        "captainsAuthority": "개정 로드시트 필요 — 기장 권한으로 운항."
+      }
     }
   }
 }

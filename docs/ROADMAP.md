@@ -826,6 +826,30 @@ Owner requests and flight-test fixes after the batch. One line each; the full te
       hand-over by phase (legacy distance gate kept); SI stand fallback; event-flood dedupe.
       **Unverified live** — every item.
 
+## Phase 10 — November 2026 airline-ops batch
+
+Ten packages, one GitHub issue and one branch each, written against `feature/remote-mixer-agents`
+at 0.7.0-rc.12. The theme: what a line pilot does that the app did not yet model — the emergency
+half of the takeoff briefing, last-minute changes, wind and runway-condition limits, the fuel
+decision, a diversion, movement messages, turbulence and PAs, RTO/EFATO, the FO's own-side
+duties. New features default **off** and are **Unverified live** until a flight confirms them.
+
+- [x] **Last-minute changes on the loadsheet** (#181, `feature/loadsheet-lmc`): pure
+      `LmcEvaluator` (final `LoadsheetData` vs the live W&B's `CalculateFinal` at the check —
+      no second model; verdicts `NoChange` / `WithinTolerance` / `RevisedLoadsheetRequired`
+      against `flightData.lmcMaxPax` / `lmcMaxWeightKg` (ZFW and TOW) / `lmcMaxMacShift`; LAW
+      from the final's trip fuel), `LoadsheetFormatter.FormatLmc` (the airline block, optional
+      CGO/FUEL deltas and the captain's-authority caption) and a `REVISION` line on a revised
+      final, `LoadsheetLmc` + `LmcDisposition` on the loadsheet snapshot, `LoadsheetService.Lmc`
+      (once per cycle at boarding-complete when a final exists, on demand via `loadsheet.lmc` /
+      the CHECK LMC button / "last minute change"; ACARS slot 03, never 01/02; revised final =
+      EDNO +1 through the existing final path), `LmcRevisionStore` (`loadsheetRevision`, #166
+      rules) + `LmcRevisionPhrases`, `LmcAnnouncer` (Speech; the within-tolerance reading under
+      the number verifier; the beyond-tolerance figures ride in the question prompt so nothing
+      talks over the question). Not modelled: adults vs children, a TRIM figure. Events
+      `loadsheet.lmc`, `loadsheet.lmc.spoken`; probe `loadsheet-lmc`. **Unverified live** — a
+      real no-show count against a manually issued early final in particular.
+
 ## Open items (after the rc.5 batch, 2026-10-11)
 
 Nothing on this roadmap is open as code. What remains:
