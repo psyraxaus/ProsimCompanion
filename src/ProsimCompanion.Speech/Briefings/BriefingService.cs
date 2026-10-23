@@ -70,6 +70,13 @@ public sealed class BriefingService : IVoiceFeature, IDisposable
     private readonly Core.TechLog.ITechLogService? _techLog;
     private readonly IOptionsMonitor<TechLogOptions>? _techLogOptions;
 
+    // Emergency brief (issue #180). Optional: the takeoff performance result fills FLEX/TOGA
+    // and the V-speeds when the FMS PERF page is still empty; the threats store carries the
+    // "any other threats?" question. Without either (tests) the briefing degrades to the facts
+    // it has and asks nothing.
+    private readonly TakeoffPerfStore? _takeoffPerf;
+    private readonly ThreatsQuestionStore? _threats;
+
     // Spoken text (campaign #81): names when the DFD is present, NATO-spelled ICAO otherwise
     // — the fallback policy lives in the module, not here (issue #70).
     private readonly Core.Speech.ISpokenText _spokenText;
@@ -91,12 +98,16 @@ public sealed class BriefingService : IVoiceFeature, IDisposable
         Persona.PersonaService? persona = null,
         StreamingNarrator? narrator = null,
         Core.TechLog.ITechLogService? techLog = null,
-        IOptionsMonitor<TechLogOptions>? techLogOptions = null)
+        IOptionsMonitor<TechLogOptions>? techLogOptions = null,
+        TakeoffPerfStore? takeoffPerf = null,
+        ThreatsQuestionStore? threats = null)
     {
         _persona = persona;
         _narrator = narrator;
         _techLog = techLog;
         _techLogOptions = techLogOptions;
+        _takeoffPerf = takeoffPerf;
+        _threats = threats;
         ArgumentNullException.ThrowIfNull(spokenText);
         _spokenText = spokenText;
         ArgumentNullException.ThrowIfNull(options);
@@ -133,9 +144,11 @@ public sealed class BriefingService : IVoiceFeature, IDisposable
         Gate = VoiceFeatureGate.AlwaysOn,
         Description = new DescribedVoiceReference("briefings", "voiceReference.group.briefings.title", VoiceReferenceTab.FirstOfficer, VoiceSpeaker.FirstOfficer,
         [
+            // Issue #180: with the emergency brief on, the departure briefing ends in the FO's
+            // "any other threats, captain?" — answered in free text or with "nothing else".
             new(["brief departure", "departure briefing", "brief the departure", "departure brief", "run departure brief",
                  "run the departure brief", "run the departure briefing", "do the departure briefing"],
-                "voiceReference.group.briefings.departure"),
+                "voiceReference.group.briefings.departure", "Any other threats, captain?", [VoiceBadges.Dialogue]),
             new(["brief arrival", "arrival briefing", "brief the arrival", "arrival brief", "run arrival brief",
                  "run the arrival brief", "run the arrival briefing", "do the arrival briefing", "approach briefing"],
                 "voiceReference.group.briefings.arrival", "Confirm the approach minimums.", [VoiceBadges.Dialogue]),
@@ -194,6 +207,7 @@ public sealed class BriefingService : IVoiceFeature, IDisposable
 
             // Streamed path (issue #147): the model's sentences are verified and spoken as
             // they arrive, the template finishing whatever the model does not deliver.
+            RecordEmergency(facts);
             if (_narrator is not null && _llm.IsConfigured && _options.CurrentValue.StreamLlm)
             {
                 RecordRoute(facts, departure);
@@ -208,6 +222,7 @@ public sealed class BriefingService : IVoiceFeature, IDisposable
                         departure ? "Departure briefing" : "Arrival briefing", SpeechPriority.Normal, Tag: tag),
                     Epilogue: [])).ConfigureAwait(false);
                 _eventLog.Record("briefing.spoken", new { departure, narrative = result.Text, streamed = true });
+                AskForThreats(facts);
                 return;
             }
 
@@ -215,13 +230,65 @@ public sealed class BriefingService : IVoiceFeature, IDisposable
             RecordRoute(facts, departure);
 
             _eventLog.Record("briefing.spoken", new { departure, narrative });
+            // The outcome resolves when the utterance has played (or was dropped), so the
+            // threats question below never talks over the briefing.
             await _arbiter.EnqueueAsync(new SpeechRequest(narrative, SpeechPriority.Normal, Tag: tag))
                 .ConfigureAwait(false);
+            AskForThreats(facts);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Briefing failed");
             _ = _arbiter.SpeakAsync("Unable to compose the briefing.", SpeechPriority.Normal);
+        }
+    }
+
+    /// <summary>The <c>briefing.emergency</c> session event (issue #180): the facts the
+    /// emergency section was built from and the threat items it spoke — what the probe
+    /// <c>briefing-takeoff-emergency</c> reads. Nothing recorded while the switch is off.</summary>
+    private void RecordEmergency(BriefingFacts facts)
+    {
+        if (facts.Emergency is not { } e)
+        {
+            return;
+        }
+
+        _eventLog.Record("briefing.emergency", new
+        {
+            airport = facts.Airport,
+            runway = facts.Runway,
+            surface = e.Surface.ToString().ToLowerInvariant(),
+            thunderstorms = e.Thunderstorms,
+            msaFt = e.MsaFt,
+            accelerationAltitudeFt = e.AccelerationAltitudeFt,
+            thrustReductionAltitudeFt = e.ThrustReductionAltitudeFt,
+            altitudesAboveAirport = e.AltitudesAboveAirport,
+            engineOut = e.EngineOutProcedure,
+            engineOutPublished = e.EngineOutIsPublished,
+            returnRunway = e.ReturnRunway,
+            thrust = e.ThrustMode,
+            ceilingFt = e.CeilingFt,
+            icingLikely = e.IcingLikely,
+            v1 = facts.V1,
+            vr = facts.Vr,
+            v2 = facts.V2,
+            threats = ThreatListBuilder.Build(facts, e),
+        });
+    }
+
+    /// <summary>Raises "any other threats, captain?" after a departure briefing that spoke the
+    /// emergency section (issue #180, <c>briefing.askForThreats</c>). The shared dialogue voices
+    /// it and takes the answer; the store's TTL settles silence.</summary>
+    private void AskForThreats(BriefingFacts facts)
+    {
+        if (_threats is null || facts.Emergency is null || !facts.IsDeparture || !_options.CurrentValue.AskForThreats)
+        {
+            return;
+        }
+
+        if (!_threats.Ask())
+        {
+            _logger.LogDebug("Threats question not raised — one already stands");
         }
     }
 
@@ -309,11 +376,23 @@ public sealed class BriefingService : IVoiceFeature, IDisposable
             flexTemp = PositiveOrNull(Read(ProsimDataRefNames.FmsPerfTakeoffFlexTemp));
         }
 
+        // Issue #180: the takeoff performance result stands in for an FMS PERF page that is
+        // still empty (the gross-error check compares the two later; the briefing just needs
+        // figures to speak).
+        var perf = departure ? _takeoffPerf?.Snapshot() : null;
+        if (departure && perf is not null && v1 is null && vr is null && v2 is null)
+        {
+            v1 = perf.V1;
+            vr = perf.Vr;
+            v2 = perf.V2;
+        }
+
         int? windDir = null, windSpeed = null, qnh = null, visibility = null, temperature = null;
         string? atisLetter = null, activeRunway = null;
+        var wx = WxFacts.None;
         if (ids.Airport is not null)
         {
-            var wx = await FetchWeatherAsync(ids.Airport).ConfigureAwait(false);
+            wx = await FetchWeatherAsync(ids.Airport).ConfigureAwait(false);
             windDir = wx.WindDirDeg;
             windSpeed = wx.WindSpeedKt;
             qnh = wx.QnhHpa is { } hpa ? (int)Math.Round(hpa) : null;
@@ -323,12 +402,62 @@ public sealed class BriefingService : IVoiceFeature, IDisposable
             activeRunway = wx.ActiveRunway;
         }
 
+        var options = _options.CurrentValue;
         return new BriefingFacts(
             departure, ids.Airport, ids.Runway, ids.Sid, ids.Star, ids.Approach, nav, v1, vr, v2,
             windDir, windSpeed, qnh, departure ? null : _minima.Current,
-            atisLetter, activeRunway, flexTemp, visibility, temperature,
+            atisLetter, activeRunway, flexTemp ?? perf?.FlexTempC, visibility, temperature,
             AirportName: _spokenText.Airport(ids.Airport),
-            TechLogItems: ConsultTechLog(departure));
+            TechLogItems: ConsultTechLog(departure),
+            Emergency: departure && options.TakeoffEmergencyBrief ? BuildEmergencyFacts(ids, nav, wx, flexTemp, perf, options) : null,
+            GoAround: !departure && options.ArrivalGoAroundBrief ? BuildGoAroundFacts(ids) : null);
+    }
+
+    /// <summary>The emergency half's facts (issue #180). Every source is optional: no DFD = no
+    /// MSA and the straight-ahead engine-out default, no elevation = AAL altitudes spoken as
+    /// "above the airport", no weather = unknown surface and no weather threats. Pure apart
+    /// from the two DFD reads, so the figures can be reasoned about from the event payload.</summary>
+    private EmergencyBriefFacts BuildEmergencyFacts(
+        ProcedureIdentifiers ids, NavDataFacts nav, WxFacts wx, int? fmsFlex, TakeoffPerfSnapshot? perf, BriefingOptions options)
+    {
+        var elevation = nav.RunwayElevationFt;
+        var eosid = _navData.EngineOutProcedure(ids.Airport, ids.Runway);
+        var thrust = fmsFlex is { } flex ? $"FLEX {flex}"
+            : perf is null ? null
+            : perf.FlexTempC is { } perfFlex ? $"FLEX {perfFlex}" : "TOGA";
+        return new EmergencyBriefFacts(
+            Surface: MetarConditions.Surface(wx),
+            Thunderstorms: wx.Precip == PrecipKind.Thunderstorm,
+            MsaFt: _navData.AirportMsaFt(ids.Airport),
+            AccelerationAltitudeFt: BriefedAltitude(options.AccelerationAltitudeFt, elevation),
+            ThrustReductionAltitudeFt: BriefedAltitude(options.ThrustReductionAltitudeFt, elevation),
+            AltitudesAboveAirport: elevation is null,
+            EngineOutProcedure: eosid.Count == 0 ? EmergencyBriefFacts.DefaultEngineOutProcedure : BriefingComposer.MissedApproachLegsText(eosid),
+            EngineOutIsPublished: eosid.Count > 0,
+            // No landing-runway fact exists for the departure airport yet: a return is briefed
+            // on the departure runway, which is what most crews say when nothing else is known.
+            ReturnRunway: ids.Runway,
+            ThrustMode: thrust,
+            CeilingFt: wx.CeilingFt,
+            IcingLikely: MetarConditions.GroundIcingLikely(wx),
+            AirportElevationFt: elevation);
+    }
+
+    /// <summary>An AAL figure made MSL when the elevation is known, rounded to the nearest 100
+    /// ft the way crews brief it (21 ft + 1500 → 1500, 1340 ft + 1500 → 2800); the AAL figure
+    /// itself when it is not.</summary>
+    public static int BriefedAltitude(int aboveAirportFt, double? airportElevationFt)
+        => airportElevationFt is { } elevation
+            ? (int)(Math.Round((elevation + aboveAirportFt) / 100.0) * 100)
+            : aboveAirportFt;
+
+    /// <summary>The go-around additions' facts (issue #180): the published missed approach's
+    /// highest altitude and legs, and the destination MSA.</summary>
+    private GoAroundBriefFacts BuildGoAroundFacts(ProcedureIdentifiers ids)
+    {
+        var missed = _navData.MissedApproach(ids.Airport, ids.Approach);
+        var altitude = missed.Legs.Select(l => l.AltitudeFt).Where(a => a is > 0).Max();
+        return new GoAroundBriefFacts(altitude, _navData.AirportMsaFt(ids.Airport), [.. missed.Legs.Select(l => l.Phrase)]);
     }
 
     /// <summary>The open tech-log items this briefing names (2026-10-09): all of them for the

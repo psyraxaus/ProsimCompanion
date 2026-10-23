@@ -225,6 +225,25 @@ connected, real flight data).
   bear on the landing — MEL category A or B, or anything about brakes, gear, spoilers,
   reversers, autobrake or anti-skid (Settings → Voice First Officer → Tech Log & MEL →
   **Open items in the briefings**).
+- **Emergency brief and threats** (Settings → Voice First Officer → Briefings & LLM →
+  **Emergency Briefing & Threats**, off by default). With **Takeoff emergency brief** on, the
+  departure briefing ends the way a line crew briefs it: the rejected-takeoff split (*below one
+  hundred knots we stop for any ECAM caution or master warning, engine failure, fire, or if the
+  aircraft is unsafe to fly; above one hundred knots only for engine failure, fire, or if the
+  aircraft will not fly*), engine failure after V1 with the engine-out routing (the published
+  engine-out SID from the Navigraph DFD when there is one, else *straight ahead, runway heading,
+  to the acceleration altitude*), the acceleration and thrust-reduction altitudes (your two
+  settings, 1500 ft above the airport by default, spoken as MSL when the DFD knows the
+  elevation), the MSA, *in case of return, … runway …*, and **the threats of the day**: wet or
+  contaminated runway and thunderstorms from the METAR, low visibility or ceiling, icing
+  conditions, open tech-log items, terrain — or *No specific threats.* FLEX/TOGA and the
+  V-speeds come from the FMS, else from your last Takeoff calculation. Then the FO asks *"Any
+  other threats, captain?"* (**Ask for other threats**): say them in your own words and the FO
+  answers *"Noted, …"* and records them with the briefing; say *"nothing else"* / *"no further
+  threats"* to close; stay silent and the FO says *"No further threats noted."* and leaves the
+  question on the Captain's Questions card for five minutes. Free text needs the transcription
+  server. **Arrival go-around brief** adds the missed-approach altitude, the MSA and *go around,
+  flaps, positive climb gear up, navigation, …* with the published legs after the minimums.
 - Radio management: *"set one two one decimal nine"*, box selection, standby-then-swap only.
 - SayIntentions comms hand-over (Settings → Voice First Officer → SayIntentions → **Comms
   hand-over**, off by default): the SayIntentions copilot works the radios at the gate, on

@@ -366,6 +366,8 @@
       "lvarsValue": "상태 {0}, 액체 유형 {1}"
     },
     "captainsQuestions": {
+      "threatsBriefed": "위협 브리핑 완료",
+      "noFurtherThreats": "추가 위협 없음",
       "title": "기장 질문",
       "hint": "FO의 미답변 질문 — 여기서, 음성으로, 또는 GSX 메뉴에서 답하세요",
       "none": "열린 질문이 없습니다.",

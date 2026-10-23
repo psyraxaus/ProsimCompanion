@@ -60,6 +60,9 @@ public static class CaptainsQuestionPresentation
         [DeiceRequestStore.QuestionDefinition.Topic] = new("gsxSettings.deiceStatus.request", "gsxSettings.deiceStatus.decline", null, null),
         [TurnaroundStartStore.QuestionDefinition.Topic] = new("gsxSettings.captainsQuestions.commence", "gsxSettings.captainsQuestions.standBy", null, null),
         [GateChoiceStore.QuestionDefinition.Topic] = new(null, null, "gsxSettings.arrivalGate.variantDetail", "gsxSettings.arrivalGate.variantNoDetail"),
+        // Issue #180: a free-text question on the web has two honest buttons — the captain
+        // briefed the extra threats themselves, or there are none.
+        [ThreatsQuestionStore.QuestionDefinition.Topic] = new("gsxSettings.captainsQuestions.threatsBriefed", "gsxSettings.captainsQuestions.noFurtherThreats", null, null),
     };
 
     /// <summary>Every open question of the given stores (optionally only the given topics), in

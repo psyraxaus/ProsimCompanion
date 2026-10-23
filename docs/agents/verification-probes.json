@@ -3185,6 +3185,37 @@
         "requires-human: the run still sounds like a checklist — the pilot hears every line, the read-through ones as one callout, and 'complete' at the end."
       ],
       "notes": "Owner request 2026-10-18 (UX pass): already-correct switches should not need a reply. SatisfiedLineReadThrough (pure, tested) decides; SpokenChecklistEngine pre-subscribes the checklist's verify datarefs before the title so the values are cached by the first line. The visual Checklists page ticks the line as Done like any voice completion. Unverified live."
+    },
+    {
+      "id": "briefing-takeoff-emergency",
+      "issue": 180,
+      "state": "open",
+      "kind": "assert-present",
+      "machine": {
+        "kind": "signature",
+        "source": "session",
+        "type": "briefing.emergency",
+        "contains": "accelerationAltitudeFt",
+        "trigger": {
+          "source": "session",
+          "type": "briefing.spoken",
+          "contains": "\"departure\":true"
+        }
+      },
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "Only with briefing.takeoffEmergencyBrief = true (off by default). Trigger: a departure briefing was spoken (briefing.spoken with departure true).",
+        "assert-present: ONE briefing.emergency event per departure briefing, recorded before briefing.spoken, carrying airport, runway, surface (dry|wet|contaminated|unknown), msaFt (null without a DFD MSA row), accelerationAltitudeFt, thrustReductionAltitudeFt, altitudesAboveAirport, engineOut (the EOSID legs or the straight-ahead default), engineOutPublished, returnRunway, thrust (FLEX nn | TOGA | null), ceilingFt, icingLikely, v1/vr/v2 and the threats array.",
+        "assert-present: the spoken narrative (briefing.spoken.narrative) ends with the emergency section — the 'Below one hundred knots' RTO split, 'Engine failure after V1', the acceleration altitude, the MSA when known, 'In case of return', then 'Threats today: …' or 'No specific threats.' — in that order; with the LLM path on, every number in the narrative is in the allowed set (no llm.stream takeoverReason verify-failed caused by 100 / 400 / the accel altitude).",
+        "assert-present (briefing.askForThreats on): after briefing.spoken ONE briefing.threats event with prompt 'Any other threats, captain?' (attempt 1), followed by one of outcome noted (captainSaid = the pilot's words, FO read back 'Noted, …'), outcome none (heard = the 'nothing else' words) or outcome unanswered (two silent listens; the question stays open and the TTL sweeper declines it within 5 minutes — reason '… — no further threats').",
+        "assert-absent: briefing.emergency on an arrival briefing; a departure briefing whose narrative lacks the emergency section while the event was recorded (template takeover lost a clause); a briefing.threats prompt spoken BEFORE briefing.spoken (the question talked over the briefing).",
+        "assert-present (briefing.arrivalGoAroundBrief on): the arrival briefing.spoken narrative carries 'Missed approach altitude', 'Minimum safe altitude' (each when the DFD has it) and 'Go around: go around, flaps, positive climb gear up, navigation, …' after the minimums; a later goaround.rebrief speaks the same leg run after 'Missed approach.'.",
+        "requires-human: the FLEX / V-speed figures in the event match the FMS PERF page (or the Takeoff page when PERF was empty), the surface matches the real METAR, and the published EOSID (when any) matches the chart."
+      ],
+      "notes": "Package 1 of the November 2026 airline-ops batch (branch feature/takeoff-threat-briefing). BriefingComposer.EmergencySections / GoAroundSections, ThreatListBuilder, MetarConditions (Core), DfdNavDataProvider.AirportMsaFt (highest published sector) + EngineOutProcedure (SID route_type '0'), ThreatsQuestionStore + ThreatsQuestionPhrases over the shared captain's-question dialogue. Unverified live."
     }
   ]
 }

@@ -366,6 +366,8 @@
       "lvarsValue": "estado {0}, tipo de fluido {1}"
     },
     "captainsQuestions": {
+      "threatsBriefed": "Amenazas brifeadas",
+      "noFurtherThreats": "Sin más amenazas",
       "title": "Preguntas al comandante",
       "hint": "Preguntas abiertas del First Officer — responde aquí, por voz o en el propio menú de GSX",
       "none": "Ninguna pregunta abierta.",

@@ -162,9 +162,11 @@ public sealed class MissedApproachRebrief : Core.Hosting.IStartupModule, IDispos
             var ids = _procedures.Resolve(departure: false);
             var procedure = _navData.MissedApproach(ids.Airport, ids.Approach);
             var degraded = procedure.Legs.Count == 0;
+            // The legs run is the composer's (issue #180): the arrival briefing's go-around
+            // clause and this re-brief speak the same words from the same helper.
             var text = degraded
                 ? DegradePrompt
-                : Prefix + " " + Capitalize(string.Join("; ", procedure.Legs.Select(l => l.Phrase))) + ".";
+                : Prefix + " " + Capitalize(BriefingComposer.MissedApproachLegsText([.. procedure.Legs.Select(l => l.Phrase)])) + ".";
 
             _eventLog.Record("goaround.rebrief", new
             {

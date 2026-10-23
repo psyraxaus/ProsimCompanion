@@ -922,6 +922,33 @@
           "hint": "Spreekt uiterlijk op dit moment, ook als het landingsgestel nooit omhoog komt."
         }
       },
+      "emergency": {
+        "title": "Emergency-briefing & threats",
+        "hint": "De emergency-helft van de takeoff-briefing en de go-around-helft van de arrival-briefing",
+        "takeoff": {
+          "label": "Takeoff-emergency-briefing",
+          "hint": "Na de standaardpunten brieft de FO de rejected-takeoff-split, motoruitval na V1, de acceleration altitude, de MSA, de terugkeer en de threats van de dag.",
+          "more": "Uit laat de departure-briefing precies zoals voorheen. Heeft de Navigraph-DFD nodig voor de MSA en een gepubliceerde EOSID; zonder brieft de FO rechtdoor op runway heading."
+        },
+        "askForThreats": {
+          "label": "Naar andere threats vragen",
+          "hint": "De FO sluit af met \"any other threats, captain?\" en noteert je antwoord.",
+          "more": "Vrije tekst heeft de transcriptieserver nodig. Met de offline-engine loopt de vraag af op \"no further threats\"."
+        },
+        "arrival": {
+          "label": "Arrival-go-around-briefing",
+          "hint": "Voegt de missed-approach-altitude, de MSA en de go-around-split toe aan de arrival-briefing."
+        },
+        "accelAlt": {
+          "label": "Acceleration altitude",
+          "hint": "Boven het veld. De FO telt de veldhoogte erbij als de DFD die kent."
+        },
+        "thrustReductionAlt": {
+          "label": "Thrust reduction altitude",
+          "hint": "Boven het veld, dezelfde regel."
+        },
+        "sources": "Baantoestand en ijsvormings-threat komen uit de METAR, MSA en engine-out-routing uit de Navigraph-DFD, FLEX/TOGA uit de FMS of de laatste Takeoff-berekening."
+      },
       "llm": {
         "title": "LLM-stilering",
         "hint": "Eén taalmodel voor de proza van briefing en debriefing",

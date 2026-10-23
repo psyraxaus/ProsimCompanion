@@ -34,7 +34,58 @@ public sealed record BriefingFacts(
     int? VisibilityM = null,
     int? TemperatureC = null,
     string? AirportName = null,
-    IReadOnlyList<Core.TechLog.TechLogDefect>? TechLogItems = null);
+    IReadOnlyList<Core.TechLog.TechLogDefect>? TechLogItems = null,
+    EmergencyBriefFacts? Emergency = null,
+    GoAroundBriefFacts? GoAround = null);
+
+/// <summary>The facts of the emergency half of a takeoff briefing (issue #180). Present only
+/// while <c>briefing.takeoffEmergencyBrief</c> is on — null keeps the departure template
+/// exactly as it was. Each field is omitted from the clauses when unknown.</summary>
+/// <param name="Surface">The runway surface the METAR precipitation implies.</param>
+/// <param name="Thunderstorms">Thunderstorms reported at the airport.</param>
+/// <param name="MsaFt">The airport's highest published MSA sector altitude (DFD).</param>
+/// <param name="AccelerationAltitudeFt">The acceleration altitude as spoken: MSL when the
+/// elevation is known, else above the aerodrome (see <paramref name="AltitudesAboveAirport"/>).</param>
+/// <param name="ThrustReductionAltitudeFt">The thrust reduction altitude, same rule.</param>
+/// <param name="AltitudesAboveAirport">True when the two altitudes are AAL figures because no
+/// elevation was known; the clause then says "above the airport".</param>
+/// <param name="EngineOutProcedure">The engine-out routing as spoken: the DFD EOSID legs when
+/// one is published for the runway, else the straight-ahead default.</param>
+/// <param name="EngineOutIsPublished">True when the routing came from a published EOSID.</param>
+/// <param name="ReturnRunway">The runway a return would land on (the departure runway when no
+/// landing-runway fact exists).</param>
+/// <param name="ThrustMode">"FLEX 52" / "TOGA" from the FMS or the takeoff performance result; null when neither has it.</param>
+/// <param name="CeilingFt">METAR ceiling, when reported.</param>
+/// <param name="IcingLikely">The METAR ground-icing predicate (<see cref="Core.Weather.MetarConditions.GroundIcingLikely"/>).</param>
+/// <param name="AirportElevationFt">The elevation the MSA is compared with for the terrain threat.</param>
+public sealed record EmergencyBriefFacts(
+    Core.Weather.RunwaySurfaceState Surface,
+    bool Thunderstorms,
+    double? MsaFt,
+    int AccelerationAltitudeFt,
+    int ThrustReductionAltitudeFt,
+    bool AltitudesAboveAirport,
+    string EngineOutProcedure,
+    bool EngineOutIsPublished,
+    string? ReturnRunway,
+    string? ThrustMode,
+    int? CeilingFt,
+    bool IcingLikely,
+    double? AirportElevationFt)
+{
+    /// <summary>The engine-out routing when the DFD publishes none for the runway.</summary>
+    public const string DefaultEngineOutProcedure = "straight ahead, runway heading, to the acceleration altitude";
+}
+
+/// <summary>The go-around additions of an arrival briefing (issue #180). Present only while
+/// <c>briefing.arrivalGoAroundBrief</c> is on.</summary>
+/// <param name="MissedApproachAltitudeFt">The highest altitude in the published missed-approach legs.</param>
+/// <param name="MsaFt">The airport's highest published MSA sector altitude (DFD).</param>
+/// <param name="MissedApproachLegs">The published legs' spoken phrases, in order; empty = not published.</param>
+public sealed record GoAroundBriefFacts(
+    int? MissedApproachAltitudeFt,
+    double? MsaFt,
+    IReadOnlyList<string> MissedApproachLegs);
 
 /// <summary>
 /// The deterministic briefing template (Prosim2FO's exact clause structure) plus the number
@@ -161,6 +212,13 @@ public static class BriefingComposer
                     AnyOf = ["minimum", "decision", "descent altitude"],
                 }
                 : new("minimums", "Minimums not briefed.") { AnyOf = ["minimum"] });
+
+            // Go-around additions (issue #180): after the minimums, before the tech log, so the
+            // pre-#180 arrival clauses keep their order and the minimums stay last when off.
+            if (f.GoAround is { } g)
+            {
+                s.AddRange(GoAroundSections(g));
+            }
         }
 
         // Tech-log consultation (2026-10-09): after every existing clause so the byte-stable
@@ -176,8 +234,123 @@ public static class BriefingComposer
             });
         }
 
+        // The emergency half of the takeoff briefing (issue #180) is the tail: the standard
+        // clauses, the tech log, then the briefing the crew actually trains — RTO split, EFATO,
+        // altitudes, MSA, return — and the threats of the day as the closing summary.
+        if (f.IsDeparture && f.Emergency is { } e)
+        {
+            s.AddRange(EmergencySections(f, e));
+        }
+
         return s;
     }
+
+    /// <summary>The departure's emergency section, clause by clause: <c>rto-split</c>,
+    /// <c>efato</c>, <c>accel-alt</c>, <c>msa</c>, <c>return</c>, <c>threats</c>. The RTO and
+    /// EFATO wording is fixed airline phraseology (the one hundred knot split, the four hundred
+    /// foot ECAM gate) — those two figures are part of the allowed set.</summary>
+    public static IReadOnlyList<Core.Speech.NarrationSection> EmergencySections(BriefingFacts f, EmergencyBriefFacts e)
+    {
+        ArgumentNullException.ThrowIfNull(f);
+        ArgumentNullException.ThrowIfNull(e);
+        var s = new List<Core.Speech.NarrationSection>
+        {
+            new("rto-split",
+                "Below one hundred knots, we stop for any ECAM caution or master warning, engine failure, fire, "
+                + "or if the aircraft is unsafe to fly. Above one hundred knots, we stop only for engine failure, "
+                + "fire, or if the aircraft will not fly.")
+            {
+                Numbers = [RtoSplitKt],
+                AnyOf = ["stop", "reject"],
+            },
+            new("efato",
+                "Engine failure after V1: continue the takeoff, rotate at V R, climb at V2, positive climb gear up, "
+                + $"at four hundred feet ECAM actions. Engine-out routing: {e.EngineOutProcedure}.")
+            {
+                Numbers = [EcamActionsAglFt],
+                AnyOf = ["engine failure", "engine-out", "engine out"],
+            },
+            new("accel-alt",
+                e.AltitudesAboveAirport
+                    ? $"Acceleration altitude {e.AccelerationAltitudeFt} feet above the airport, thrust reduction {e.ThrustReductionAltitudeFt} feet above the airport."
+                    : $"Acceleration altitude {e.AccelerationAltitudeFt} feet, thrust reduction {e.ThrustReductionAltitudeFt} feet.")
+            {
+                Numbers = [e.AccelerationAltitudeFt, e.ThrustReductionAltitudeFt],
+                AnyOf = ["acceleration"],
+            },
+        };
+
+        if (e.MsaFt is { } msa)
+        {
+            s.Add(new("msa", $"Minimum safe altitude {msa:0} feet.") { Numbers = [Math.Round(msa)], AnyOf = ["safe altitude", "MSA"] });
+        }
+
+        if (e.ReturnRunway is { } returnRunway)
+        {
+            var where = f.AirportName ?? f.Airport;
+            s.Add(new("return", where is null
+                ? $"In case of return, runway {returnRunway}."
+                : $"In case of return, {where} runway {returnRunway}.")
+            {
+                Runway = returnRunway,
+                AnyOf = ["return"],
+            });
+        }
+
+        var threats = ThreatListBuilder.Build(f, e);
+        s.Add(new("threats", threats.Count == 0 ? "No specific threats." : $"Threats today: {JoinList(threats)}.")
+        {
+            Numbers = [.. ThreatListBuilder.Numbers(f, e)],
+            AnyOf = ["threat"],
+        });
+        return s;
+    }
+
+    /// <summary>The arrival's go-around additions: <c>missed-approach-altitude</c>, <c>msa</c>
+    /// and the <c>go-around</c> split, the latter ending in the published legs in the same
+    /// wording the missed-approach re-brief uses.</summary>
+    public static IReadOnlyList<Core.Speech.NarrationSection> GoAroundSections(GoAroundBriefFacts g)
+    {
+        ArgumentNullException.ThrowIfNull(g);
+        var s = new List<Core.Speech.NarrationSection>();
+        if (g.MissedApproachAltitudeFt is { } maAlt)
+        {
+            s.Add(new("missed-approach-altitude", $"Missed approach altitude {maAlt} feet.") { Numbers = [maAlt], AnyOf = ["missed approach altitude"] });
+        }
+
+        if (g.MsaFt is { } msa)
+        {
+            s.Add(new("msa", $"Minimum safe altitude {msa:0} feet.") { Numbers = [Math.Round(msa)], AnyOf = ["safe altitude", "MSA"] });
+        }
+
+        var legs = g.MissedApproachLegs.Count == 0 ? "missed approach as published" : MissedApproachLegsText(g.MissedApproachLegs);
+        s.Add(new("go-around", $"Go around: go around, flaps, positive climb gear up, navigation, {legs}.") { AnyOf = ["go around", "go-around"] });
+        return s;
+    }
+
+    /// <summary>The published missed-approach legs as one spoken run ("climb to 600 feet;
+    /// left turn, direct SOSIJ, climb to 3000 feet") — shared by the arrival briefing's
+    /// go-around clause and the <see cref="MissedApproachRebrief"/>, so the two never drift.</summary>
+    public static string MissedApproachLegsText(IReadOnlyList<string> legPhrases)
+    {
+        ArgumentNullException.ThrowIfNull(legPhrases);
+        return string.Join("; ", legPhrases);
+    }
+
+    /// <summary>The rejected-takeoff decision speed of the briefing's fixed wording.</summary>
+    public const int RtoSplitKt = 100;
+
+    /// <summary>The height at which ECAM actions start after an engine failure, feet AGL.</summary>
+    public const int EcamActionsAglFt = 400;
+
+    /// <summary>"a", "a and b", "a, b, and c" — a list the pilot absorbs by ear.</summary>
+    private static string JoinList(IReadOnlyList<string> items) => items.Count switch
+    {
+        0 => "",
+        1 => items[0],
+        2 => $"{items[0]}, and {items[1]}",
+        _ => $"{string.Join(", ", items.Take(items.Count - 1))}, and {items[^1]}",
+    };
 
     /// <summary>The names an airport may have been spoken by: its friendly name and its ident.</summary>
     private static string[] Names(string? name, string icao)
@@ -300,6 +473,37 @@ public static class BriefingComposer
             AddValue(Math.Max(0, items.Count - Core.TechLog.TechLogConsultation.MaxBriefedTitles));
         }
 
+        // Issue #180: every figure the emergency section and the go-around additions speak —
+        // the fixed 100 kt / 400 ft of the RTO and EFATO wording included, since the model
+        // may well repeat them, and the EOSID legs' courses and altitudes.
+        if (f.Emergency is { } e)
+        {
+            AddValue(RtoSplitKt);
+            AddValue(EcamActionsAglFt);
+            AddValue(e.AccelerationAltitudeFt);
+            AddValue(e.ThrustReductionAltitudeFt);
+            AddValue(e.MsaFt);
+            AddValue(e.CeilingFt);
+            AddValue(e.AirportElevationFt);
+            AddDigits(e.EngineOutProcedure);
+            AddDigits(e.ReturnRunway);
+            AddDigits(e.ThrustMode);
+            foreach (var number in ThreatListBuilder.Numbers(f, e))
+            {
+                AddValue(number);
+            }
+        }
+
+        if (f.GoAround is { } g)
+        {
+            AddValue(g.MissedApproachAltitudeFt);
+            AddValue(g.MsaFt);
+            foreach (var leg in g.MissedApproachLegs)
+            {
+                AddDigits(leg);
+            }
+        }
+
         return allowed;
     }
 
@@ -383,6 +587,32 @@ public static class BriefingComposer
             var more = items.Count - Math.Min(items.Count, Core.TechLog.TechLogConsultation.MaxBriefedTitles);
             Line(f.IsDeparture ? "Open tech log items (deferred defects)" : "Open tech log items affecting landing",
                 string.Join("; ", titles) + (more > 0 ? $"; and {more} more" : ""));
+        }
+
+        // Issue #180: the emergency facts as data. The RTO / EFATO phraseology itself is
+        // handed over as fixed text — the model may restyle around it, never alter it.
+        if (f.IsDeparture && f.Emergency is { } e)
+        {
+            Line("Rejected takeoff split", "below 100 knots stop for any ECAM caution or master warning, engine failure, fire or unsafe to fly; above 100 knots stop only for engine failure, fire or the aircraft will not fly");
+            Line("Engine failure after V1", "continue, rotate at VR, climb at V2, positive climb gear up, ECAM actions at 400 feet");
+            Line(e.EngineOutIsPublished ? "Engine-out routing (published EOSID)" : "Engine-out routing (no EOSID published)", e.EngineOutProcedure);
+            Line(e.AltitudesAboveAirport ? "Acceleration altitude (ft above airport)" : "Acceleration altitude (ft)", e.AccelerationAltitudeFt);
+            Line(e.AltitudesAboveAirport ? "Thrust reduction altitude (ft above airport)" : "Thrust reduction altitude (ft)", e.ThrustReductionAltitudeFt);
+            Line("MSA (ft)", e.MsaFt?.ToString("0", CultureInfo.InvariantCulture));
+            Line("Return runway", e.ReturnRunway);
+            Line("Thrust", e.ThrustMode);
+            Line("Runway surface (from METAR)", e.Surface == Core.Weather.RunwaySurfaceState.Unknown ? null : e.Surface.ToString().ToUpperInvariant());
+            Line("Ceiling (ft)", e.CeilingFt);
+            var threats = ThreatListBuilder.Build(f, e);
+            Line("Threats today", threats.Count == 0 ? "none specific" : string.Join("; ", threats));
+        }
+
+        if (!f.IsDeparture && f.GoAround is { } g)
+        {
+            Line("Missed approach altitude (ft)", g.MissedApproachAltitudeFt);
+            Line("MSA (ft)", g.MsaFt?.ToString("0", CultureInfo.InvariantCulture));
+            Line("Go-around", "go around, flaps, positive climb gear up, navigation");
+            Line("Missed approach legs", g.MissedApproachLegs.Count == 0 ? "as published" : MissedApproachLegsText(g.MissedApproachLegs));
         }
 
         return sb.ToString();

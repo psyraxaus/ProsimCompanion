@@ -124,7 +124,27 @@ chains — "local only" hard mode must exist.
 - **Navigraph DFD**: user-supplied SQLite db (`navData.dfdPath`), read via Microsoft.Data.Sqlite for
   SID/STAR/approach/ILS/missed-approach legs. Pin SQLitePCLRaw.lib.e_sqlite3 ≥ 3.53.3 in every
   project (security pin GHSA-2m69-gcr7-jv3q); pin `RuntimeIdentifier win-x64` to avoid multi-RID
-  native bloat.
+  native bloat. Both schema generations are probed (`tbl_p*_` with header `cycle`, legacy
+  `tbl_*` with `current_airac`). Tables the briefings read, and what they carry (issue #180,
+  2026-10-24 — from the DFD schema documentation; **unverified against a live database**):
+  - `tbl_pa_airports` / `tbl_airports`: `transition_altitude` (may be a "FL110" string),
+    `transition_level`, `elevation`, `airport_ref_latitude/longitude`, `airport_name`.
+  - `tbl_pg_runways` / `tbl_runways`: `runway_true_bearing`, `runway_length` (ft),
+    `landing_threshold_elevation`, `runway_latitude/longitude` — the DFD has no TORA/intersection
+    data; the briefing's "runway length" is this length.
+  - `tbl_pi_localizers_glideslopes`: `llz_identifier`, `llz_frequency`, `gs_angle`.
+  - `tbl_pd_sids` / `tbl_sids`: ARINC 424 `route_type` — **`0` = engine-out SID (EOSID)**, 1/4 =
+    runway transition, 2/5 = common route, 3/6 = enroute transition. `EngineOutProcedure` takes
+    the rows with `route_type='0'` whose `transition_identifier` is `RW<rwy>`, `ALL` or blank,
+    first `procedure_identifier` found, `seqno` order, and speaks them with the missed-approach
+    leg wording (`course` new / `magnetic_course` legacy, `altitude1`). No EOSID = the
+    straight-ahead default sentence.
+  - `tbl_pf_iaps` / `tbl_iaps`: final-approach legs; the MAP is the leg with `M` at index 3 of
+    `waypoint_description_code`; the missed approach is everything after it.
+  - `tbl_ps_airport_msa` / `tbl_airport_msa`: one row per MSA centre (`msa_center`,
+    `multiple_code`, `radius_limit`) with up to five `sector_bearing_N` / `sector_altitude_N`
+    pairs. `AirportMsaFt` speaks the **highest** non-zero sector altitude across the airport's
+    rows — conservative; picking the sector by departure bearing is a follow-up.
 - **ActiveSky**: `http://{host}:19285/ActiveSky/API/GetMetarInfoAt?ICAO=` with file-snapshot
   fallback; composed with SayIntentions getWX behind a `IWxProvider` abstraction.
 

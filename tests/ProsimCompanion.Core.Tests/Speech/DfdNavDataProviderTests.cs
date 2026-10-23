@@ -36,8 +36,17 @@ public sealed class DfdNavDataProviderTests : IDisposable
             CREATE TABLE tbl_pi_localizers_glideslopes (airport_identifier TEXT,
                 runway_identifier TEXT, llz_identifier TEXT, llz_frequency REAL, gs_angle REAL);
             INSERT INTO tbl_pi_localizers_glideslopes VALUES ('YSSY', 'RW16R', 'IMEA', 110.3, 3.0);
-            CREATE TABLE tbl_pd_sids (airport_identifier TEXT, procedure_identifier TEXT);
-            INSERT INTO tbl_pd_sids VALUES ('YSSY', 'FISHA1');
+            CREATE TABLE tbl_pd_sids (airport_identifier TEXT, procedure_identifier TEXT, route_type TEXT,
+                transition_identifier TEXT, seqno INTEGER, waypoint_identifier TEXT, path_termination TEXT,
+                turn_direction TEXT, course REAL, altitude1 REAL);
+            INSERT INTO tbl_pd_sids VALUES ('YSSY', 'FISHA1', '4', 'RW16R', 10, 'FISHA', 'TF', NULL, NULL, NULL);
+            INSERT INTO tbl_pd_sids VALUES
+                ('YSSY', 'EO16R', '0', 'RW16R', 10, NULL,  'CA', NULL, 163, 1500),
+                ('YSSY', 'EO16R', '0', 'RW16R', 20, 'SYD', 'DF', 'L',  NULL, 3000),
+                ('YSSY', 'EO34L', '0', 'RW34L', 10, NULL,  'CA', NULL, 343, 1500);
+            CREATE TABLE tbl_ps_airport_msa (airport_identifier TEXT, msa_center TEXT, sector_altitude_1 REAL,
+                sector_altitude_2 REAL, sector_altitude_3 REAL, sector_altitude_4 REAL, sector_altitude_5 REAL);
+            INSERT INTO tbl_ps_airport_msa VALUES ('YSSY', 'SY', 2700, 3500, NULL, 0, NULL);
             CREATE TABLE tbl_pe_stars (airport_identifier TEXT, procedure_identifier TEXT);
             CREATE TABLE tbl_pf_iaps (airport_identifier TEXT, procedure_identifier TEXT,
                 transition_identifier TEXT, seqno INTEGER, waypoint_identifier TEXT,
@@ -82,6 +91,31 @@ public sealed class DfdNavDataProviderTests : IDisposable
         Assert.True(facts.SidFound);
         Assert.False(facts.StarFound);                      // MARLN4 not in the DB
         Assert.True(facts.ApproachFound);
+    }
+
+    [Fact]
+    public void AirportMsa_IsTheHighestPublishedSector_AndNullWhenAbsent()
+    {
+        // Issue #180: 0 and NULL sectors are "not published"; the highest of the rest is spoken.
+        Assert.Equal(3500, Provider().AirportMsaFt("yssy"));
+        Assert.Null(Provider().AirportMsaFt("ZZZZ"));
+        Assert.Null(Provider().AirportMsaFt(null));
+    }
+
+    [Fact]
+    public void EngineOutProcedure_ReadsTheRunwaysEosidLegs_InOrder_AndIsEmptyWhenNonePublished()
+    {
+        // Issue #180: route_type '0' is the engine-out SID; only the legs of this runway's
+        // procedure, never the 34L one or the ordinary FISHA1.
+        var legs = Provider().EngineOutProcedure("yssy", "16R");
+
+        Assert.Equal(2, legs.Count);
+        Assert.Contains("heading one six three", legs[0], StringComparison.Ordinal);
+        Assert.Contains("1500", legs[0], StringComparison.Ordinal);
+        Assert.StartsWith("left turn", legs[1], StringComparison.Ordinal);
+        Assert.Contains("3000", legs[1], StringComparison.Ordinal);
+        Assert.Empty(Provider().EngineOutProcedure("yssy", "07"));
+        Assert.Empty(Provider().EngineOutProcedure("ZZZZ", "16R"));
     }
 
     [Fact]

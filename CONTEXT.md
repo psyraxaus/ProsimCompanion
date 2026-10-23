@@ -264,6 +264,22 @@ ceiling), a new ATIS letter, a tailwind on the planned runway — as an edge, ra
 trigger, never a repeat of a steady state.
 _Avoid_: weather alerts, METAR monitor
 
+**Emergency brief**:
+The tail of the departure briefing a line crew actually trains — the rejected-takeoff split
+at one hundred knots, engine failure after V1 with the engine-out routing (the published EOSID
+or the straight-ahead default), the acceleration and thrust-reduction altitudes, the MSA, the
+return intention — followed by the threat list. Present only while its switch is on; the
+standard template is byte-identical without it.
+_Avoid_: emergency briefing (ambiguous with the abnormal dialogues), safety brief
+
+**Threat list**:
+The composed "threats of the day" the emergency brief closes with: what the facts the briefing
+already holds imply — runway surface and thunderstorms from the METAR precipitation, low
+visibility or ceiling, ground icing, the count of open tech-log items, terrain when the MSA
+sits well above the airport — in a fixed order, or "No specific threats." Followed by the
+threats question ("any other threats, captain?"), whose free-text answer is noted, not parsed.
+_Avoid_: hazards, risk list, TEM items
+
 **Read-back**:
 A captain's statement of a figure ("altimeter one zero one three") that the FO checks against
 the aircraft and answers "checked" or corrects. A lead-in with no figure ("minimums check") is

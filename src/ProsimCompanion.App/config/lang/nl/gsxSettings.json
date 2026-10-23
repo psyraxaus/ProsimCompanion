@@ -366,6 +366,8 @@
       "lvarsValue": "toestand {0}, vloeistoftype {1}"
     },
     "captainsQuestions": {
+      "threatsBriefed": "Threats gebrieft",
+      "noFurtherThreats": "Geen verdere threats",
       "title": "Vragen aan de captain",
       "hint": "Open vragen van de First Officer — beantwoord ze hier, met je stem of in het GSX-menu",
       "none": "Geen open vraag.",

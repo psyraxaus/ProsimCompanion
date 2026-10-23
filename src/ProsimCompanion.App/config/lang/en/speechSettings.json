@@ -922,6 +922,33 @@
           "hint": "Speaks by this time even if the gear never comes up."
         }
       },
+      "emergency": {
+        "title": "Emergency Briefing & Threats",
+        "hint": "The emergency half of the takeoff briefing and the go-around half of the arrival briefing",
+        "takeoff": {
+          "label": "Takeoff emergency brief",
+          "hint": "After the standard clauses the FO briefs the rejected-takeoff split, engine failure after V1, the acceleration altitude, the MSA, the return and the threats of the day.",
+          "more": "Off keeps the departure briefing exactly as before. Needs the Navigraph DFD for the MSA and a published engine-out SID; without it the FO briefs straight ahead on runway heading."
+        },
+        "askForThreats": {
+          "label": "Ask for other threats",
+          "hint": "The FO ends with \"any other threats, captain?\" and notes your answer.",
+          "more": "Free text needs the transcription server. With the offline engine the question times out to \"no further threats\"."
+        },
+        "arrival": {
+          "label": "Arrival go-around brief",
+          "hint": "Adds the missed-approach altitude, the MSA and the go-around split to the arrival briefing."
+        },
+        "accelAlt": {
+          "label": "Acceleration altitude",
+          "hint": "Above the airport. The FO adds the airport elevation when the DFD knows it."
+        },
+        "thrustReductionAlt": {
+          "label": "Thrust reduction altitude",
+          "hint": "Above the airport, same rule."
+        },
+        "sources": "The runway surface and the icing threat come from the METAR, the MSA and the engine-out routing from the Navigraph DFD, FLEX/TOGA from the FMS or the last Takeoff calculation."
+      },
       "llm": {
         "title": "LLM Styling",
         "hint": "One language model for the briefing and debrief prose",
