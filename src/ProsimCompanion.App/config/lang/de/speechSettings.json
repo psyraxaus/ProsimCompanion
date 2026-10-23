@@ -428,6 +428,55 @@
         "label": "Antwortfenster der Reiseflug-Anfrage",
         "hint": "Wie lange der Purser auf deine Antwort hört."
       },
+      "turbulence": {
+        "title": "Turbulenz",
+        "hint": "Die Flugbewegung aus der Vertikalbeschleunigung, und was die Kabine daraus macht",
+        "detect": {
+          "label": "Turbulenz erkennen",
+          "hint": "Bewertet den Flug (keine / leicht / mäßig / schwer) aus der Vertikalbeschleunigung des Flugzeugs.",
+          "more": "Die Einheit des Rohwerts wird beim Parken gelernt: etwa 1 heißt G, 9,8 heißt m/s², 32 heißt ft/s². Ein Chip im Flight-Status-Kopf zeigt die Stufe. Standardmäßig aus."
+        },
+        "unit": {
+          "label": "Beschleunigungseinheit",
+          "hint": "Auto lernt sie aus dem Ruhewert. Nur erzwingen, wenn der Chip klar falsch liegt."
+        },
+        "light": {
+          "label": "Leicht ab",
+          "hint": "Abweichung von der Basislinie über zwei Sekunden, in g. Platzhalter bis zur Bestätigung im Sim."
+        },
+        "moderate": {
+          "label": "Mäßig ab"
+        },
+        "severe": {
+          "label": "Schwer ab"
+        },
+        "seatbeltAdvice": {
+          "label": "Anschnallzeichen-Hinweis",
+          "hint": "Ab leichter Turbulenz bei ausgeschaltetem Zeichen fragt der FO einmal pro Episode „seat belt signs, captain?“."
+        },
+        "purserCall": {
+          "label": "Purser-Anruf bei Turbulenz",
+          "hint": "Bei mäßig ruft der Purser an und fragt, ob die Kabine gesichert werden soll; bei schwer setzt sich die Crew selbst und meldet es.",
+          "more": "Sag ja und die Crew setzt sich; die Kabine meldet 30–90 Sekunden später „gesichert“. Zwei Minuten nach Beruhigung meldet der Purser die Kabine zurück im Normalbetrieb."
+        }
+      },
+      "pa": {
+        "title": "Captain's PA",
+        "hint": "Hinweise für deine eigenen Durchsagen und die PAs des Pursers",
+        "prompts": {
+          "label": "„Captain, your PA“-Hinweise",
+          "hint": "Der FO erinnert an deine PA nach dem Start, beim Top-of-Descent-Hinweis und wenn das Anschnallzeichen bei Turbulenz im Reiseflug angeht.",
+          "more": "Eine PA-Skriptkarte erscheint im Flight Status mit den Live-Fakten. Du liest sie über die Kabinen-PA — nichts spricht sie für dich."
+        },
+        "afterTakeoff": {
+          "label": "Erste PA nach dem Start",
+          "hint": "Minuten nach dem Abheben."
+        },
+        "purserAudible": {
+          "label": "Purser-PAs hörbar",
+          "hint": "Die Kabinendurchsagen des Pursers über den Kabinenfilter hören: Türen scharf bei Beacon an, Türen auf manuell bei Triebwerken aus, Kabine vorbereiten bei 10.000 ft."
+        }
+      },
       "wording": {
         "title": "Wortlaut der Kabine",
         "hint": "Wörtlich gesprochen",
@@ -454,6 +503,31 @@
         "noReply": {
           "label": "Reiseflug-Anfrage — keine Antwort",
           "hint": "Wenn das Fenster schweigend schließt."
+        },
+        "turbulenceCall": {
+          "label": "Turbulenz — Purser-Anruf",
+          "hint": "Die Frage, die der Kapitän beantwortet."
+        },
+        "turbulenceSeated": {
+          "label": "Turbulenz — Crew sitzt (nach ja)"
+        },
+        "turbulenceSecured": {
+          "label": "Turbulenz — Kabine gesichert"
+        },
+        "turbulenceSevere": {
+          "label": "Turbulenz — schwer, Crew sitzt"
+        },
+        "turbulenceNormal": {
+          "label": "Turbulenz — wieder normal"
+        },
+        "paArmDoors": {
+          "label": "Purser-PA — Türen scharf"
+        },
+        "paDoorsManual": {
+          "label": "Purser-PA — Türen auf manuell"
+        },
+        "paPrepareLanding": {
+          "label": "Purser-PA — Landung vorbereiten"
         }
       }
     },
@@ -1241,6 +1315,13 @@
       "apiKeySource": {
         "auto": "Auto (aus flight.json)",
         "manual": "Manuell (unten eingegeben)"
+      },
+      "turbulenceUnit": {
+        "auto": "Auto (beim Parken gelernt)",
+        "g": "G (etwa 1 in Ruhe)",
+        "gNoGravity": "G ohne Schwerkraft (etwa 0 in Ruhe)",
+        "mps2": "m/s² (etwa 9,8 in Ruhe)",
+        "ftps2": "ft/s² (etwa 32 in Ruhe)"
       },
       "elevenLabsModel": {
         "flash": "eleven_flash_v2_5 (schnell, halber Preis)",

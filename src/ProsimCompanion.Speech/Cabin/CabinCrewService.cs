@@ -338,6 +338,24 @@ public sealed class CabinCrewService : Core.Hosting.IStartupModule, IDisposable,
         }
     }
 
+    /// <summary>A purser line from another module (the turbulence reactions, issue #186) through
+    /// this module's call flow — chime, CAB latch or grace, purser voice, optional FO
+    /// acknowledgement. False when a call is already in progress (the caller retries later);
+    /// the cabin never talks over itself.</summary>
+    public async Task<bool> AnnounceAsync(string tag, string purserText, string? foAckText = null, TimeSpan? ttl = null)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(tag);
+        ArgumentException.ThrowIfNullOrWhiteSpace(purserText);
+        if (_busy || _reads.Length == 0)
+        {
+            return false;
+        }
+
+        _busy = true;
+        await RunReportAsync(tag, purserText, foAckText, ttl).ConfigureAwait(false);
+        return true;
+    }
+
     private async Task RunReportAsync(string tag, string purserText, string? foAckText, TimeSpan? ttl = null)
     {
         var options = _options.CurrentValue;

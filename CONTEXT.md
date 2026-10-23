@@ -270,6 +270,27 @@ the aircraft and answers "checked" or corrects. A lead-in with no figure ("minim
 not a read-back; it belongs to the checklist or callout feature.
 _Avoid_: confirmation, challenge
 
+**Turbulence episode**:
+The stretch from the first Light-or-worse ride level until two minutes below Light. The
+cabin's reactions (the FO's seat-belt advice, the purser's call and question, the Severe
+report, the back-to-normal report) each happen once per episode, never once per bump; the
+level itself changes at most once a minute and leaves a band only under 70 % of its threshold.
+_Avoid_: turbulence event, bump, chop (the level names are None / Light / Moderate / Severe)
+
+**Acceleration baseline**:
+The at-rest reading of `aircraft.acceleration.Y` learned while parked and not moving; its size
+names the raw unit (about 1 = G, 9.8 = m/s², 32 = ft/s², 0 = G without gravity) and every
+deviation is measured from it in G. In flight without one, a slow average stands in.
+_Avoid_: calibration constant, zero offset
+
+**PA prompt**:
+The FO's "captain, your PA" at one of three moments (after take-off, top of descent, seat-belt
+sign on in cruise turbulence), paired with the Flight Status script card that fills an
+airline-style announcement with live facts for the captain to read. Nothing speaks the
+captain's PA. Distinct from the purser's own PAs, which are heard from the cabin.
+_Avoid_: announcement reminder, PA callout
+
+
 ### Web host
 
 **Secure context**:

@@ -143,6 +143,11 @@ through with a note if deliberately dropped. Sources: Prosim2GSX 0.9.0, ProsimIn
 - [x] Cabin crew simulation (purser reports gated on any ACP CAB latch, cabin secure/ready,
       opt-in boarding-delay ambient, distinct purser voice + interphone filter;
       cruise-query ambient deferred)
+- [x] Turbulence detection with at-rest unit calibration, seat-belt advice, the purser's
+      "secure the cabin?" question + secured / severe / back-to-normal reports, "captain,
+      your PA" prompts with the Flight Status script card, purser PAs (arm doors / doors to
+      manual / prepare for landing) — #186, November 2026 batch package 7, Unverified live
+      (new to this codebase)
 - [x] Company/ACARS channel (loadsheet readout with session persistence, opt-in deterministic
       cruise messages, ACARS chime, distinct company voice, push seam for day mode)
 - [x] Tech log & MEL (persistent defects, A–D due dates, wear pool, web raise/rectify,

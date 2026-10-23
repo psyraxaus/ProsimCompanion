@@ -169,6 +169,14 @@ public static class CoreServiceCollectionExtensions
         // Landing analysis (issue #146): one `touchdown` session event per landing, read
         // back by the debrief and the logbook fold. Passive — it never writes to the aircraft.
         services.AddStartupModule<Flight.TouchdownRecorder>();
+        // Turbulence, cabin management and the captain's PA (issue #186): the ride level from
+        // the same acceleration dataref, the purser's "secure the cabin?" question and the PA
+        // prompt card state. The detector runs only with cabin.turbulenceDetection on.
+        services.AddSingleton<Flight.TurbulenceStore>();
+        services.AddStartupModule<Flight.TurbulenceMonitor>();
+        services.AddSingleton<CabinSecureQuestionStore>();
+        services.AddSingleton<ICaptainsQuestionStore>(p => p.GetRequiredService<CabinSecureQuestionStore>());
+        services.AddSingleton<PaPromptStore>();
         // Outbound event notifications (issue #151): one bounded queue + one background
         // sender; the signal source only ever writes to the queue, so no raiser waits.
         services.AddSingleton<Notifications.NotificationDispatcher>();

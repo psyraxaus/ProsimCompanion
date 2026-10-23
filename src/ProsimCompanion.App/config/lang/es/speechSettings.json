@@ -428,6 +428,55 @@
         "label": "Ventana de respuesta de la consulta",
         "hint": "Cuánto escucha el sobrecargo tu respuesta."
       },
+      "turbulence": {
+        "title": "Turbulencia",
+        "hint": "El vuelo según la aceleración vertical, y lo que hace la cabina",
+        "detect": {
+          "label": "Detectar turbulencia",
+          "hint": "Valora el vuelo (ninguna / ligera / moderada / severa) con la aceleración vertical del avión.",
+          "more": "La unidad del valor bruto se aprende aparcados: cerca de 1 es G, 9,8 es m/s², 32 es ft/s². Un chip en la cabecera de Flight Status muestra el nivel. Apagado por defecto."
+        },
+        "unit": {
+          "label": "Unidad de aceleración",
+          "hint": "Auto la aprende de la lectura en reposo. Fuerza una unidad solo si el chip está claramente mal."
+        },
+        "light": {
+          "label": "Ligera desde",
+          "hint": "Desviación de la base en dos segundos, en g. Provisional hasta confirmarlo en el sim."
+        },
+        "moderate": {
+          "label": "Moderada desde"
+        },
+        "severe": {
+          "label": "Severa desde"
+        },
+        "seatbeltAdvice": {
+          "label": "Aviso de cinturones",
+          "hint": "Con turbulencia ligera o peor y la señal apagada, el FO pregunta \"seat belt signs, captain?\" una vez por episodio."
+        },
+        "purserCall": {
+          "label": "Llamada del sobrecargo en turbulencia",
+          "hint": "En moderada el sobrecargo llama y pregunta si asegurar la cabina; en severa la tripulación se sienta sola y lo dice.",
+          "more": "Di sí y la tripulación se sienta; la cabina informa asegurada 30–90 segundos después. Dos minutos tras calmarse, el sobrecargo informa que la cabina vuelve a la normalidad."
+        }
+      },
+      "pa": {
+        "title": "PA del comandante",
+        "hint": "Avisos para tus anuncios y los PA del sobrecargo",
+        "prompts": {
+          "label": "Avisos \"Captain, your PA\"",
+          "hint": "El FO te recuerda el PA tras el despegue, en el aviso de inicio de descenso y cuando la señal de cinturones se enciende en turbulencia de crucero.",
+          "more": "Aparece una tarjeta con el guion del PA en Flight Status con los datos en vivo. Lo lees por el PA de cabina — nada lo dice por ti."
+        },
+        "afterTakeoff": {
+          "label": "Primer PA tras el despegue",
+          "hint": "Minutos después de despegar."
+        },
+        "purserAudible": {
+          "label": "PA del sobrecargo audibles",
+          "hint": "Oír los PA del sobrecargo por el filtro de cabina: armar puertas con el beacon, puertas en manual con motores parados, preparar la cabina a 10.000 ft."
+        }
+      },
       "wording": {
         "title": "Frases de cabina",
         "hint": "Dichas palabra por palabra",
@@ -454,6 +503,31 @@
         "noReply": {
           "label": "Consulta en crucero — sin respuesta",
           "hint": "Cuando la ventana se cierra en silencio."
+        },
+        "turbulenceCall": {
+          "label": "Turbulencia — llamada del sobrecargo",
+          "hint": "La pregunta que responde el comandante."
+        },
+        "turbulenceSeated": {
+          "label": "Turbulencia — tripulación sentada (tras sí)"
+        },
+        "turbulenceSecured": {
+          "label": "Turbulencia — cabina asegurada"
+        },
+        "turbulenceSevere": {
+          "label": "Turbulencia — severa, tripulación sentada"
+        },
+        "turbulenceNormal": {
+          "label": "Turbulencia — vuelta a la normalidad"
+        },
+        "paArmDoors": {
+          "label": "PA sobrecargo — armar puertas"
+        },
+        "paDoorsManual": {
+          "label": "PA sobrecargo — puertas en manual"
+        },
+        "paPrepareLanding": {
+          "label": "PA sobrecargo — preparar aterrizaje"
         }
       }
     },
@@ -1241,6 +1315,13 @@
       "apiKeySource": {
         "auto": "Auto (desde flight.json)",
         "manual": "Manual (introducida abajo)"
+      },
+      "turbulenceUnit": {
+        "auto": "Auto (aprendida aparcados)",
+        "g": "G (cerca de 1 en reposo)",
+        "gNoGravity": "G sin gravedad (cerca de 0 en reposo)",
+        "mps2": "m/s² (cerca de 9,8 en reposo)",
+        "ftps2": "ft/s² (cerca de 32 en reposo)"
       },
       "elevenLabsModel": {
         "flash": "eleven_flash_v2_5 (rápido, mitad de coste)",

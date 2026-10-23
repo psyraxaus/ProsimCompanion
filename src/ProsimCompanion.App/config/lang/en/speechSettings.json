@@ -428,6 +428,55 @@
         "label": "Cruise query reply window",
         "hint": "How long the purser listens for your answer."
       },
+      "turbulence": {
+        "title": "Turbulence",
+        "hint": "The ride from the vertical acceleration, and what the cabin does about it",
+        "detect": {
+          "label": "Detect turbulence",
+          "hint": "Judge the ride (none / light / moderate / severe) from the aircraft's vertical acceleration.",
+          "more": "The unit of the raw value is learned while parked: about 1 means G, 9.8 means m/s², 32 means ft/s². A chip in the Flight Status hero shows the level. Off by default."
+        },
+        "unit": {
+          "label": "Acceleration unit",
+          "hint": "Auto learns it from the at-rest reading. Force a unit only if the chip is clearly wrong."
+        },
+        "light": {
+          "label": "Light from",
+          "hint": "Deviation from the baseline over two seconds, in g. Placeholders until confirmed in the sim."
+        },
+        "moderate": {
+          "label": "Moderate from"
+        },
+        "severe": {
+          "label": "Severe from"
+        },
+        "seatbeltAdvice": {
+          "label": "Seat-belt advice",
+          "hint": "At light turbulence or worse with the sign off, the FO asks \"seat belt signs, captain?\" once per episode."
+        },
+        "purserCall": {
+          "label": "Purser call in turbulence",
+          "hint": "At moderate the purser calls and asks whether to secure the cabin; at severe the crew seats itself and says so.",
+          "more": "Say yes and the crew is seated; the cabin reports secured 30–90 seconds later. Two minutes after the ride settles the purser reports the cabin back to normal."
+        }
+      },
+      "pa": {
+        "title": "Captain's PA",
+        "hint": "Prompts for your own announcements, and the purser's PAs",
+        "prompts": {
+          "label": "\"Captain, your PA\" prompts",
+          "hint": "The FO prompts your PA after take-off, at the top-of-descent notice, and when the seat-belt sign goes on in cruise turbulence.",
+          "more": "A PA script card appears on Flight Status with the live facts filled in. You read it over the cabin PA — nothing speaks it for you."
+        },
+        "afterTakeoff": {
+          "label": "First PA after take-off",
+          "hint": "Minutes after wheels-up."
+        },
+        "purserAudible": {
+          "label": "Purser PAs audible",
+          "hint": "Hear the purser's cabin PAs over the cabin filter: arm doors on beacon on, doors to manual with the engines off, prepare the cabin at 10,000 ft."
+        }
+      },
       "wording": {
         "title": "Cabin Wording",
         "hint": "Spoken word for word",
@@ -454,6 +503,31 @@
         "noReply": {
           "label": "Cruise query — no reply",
           "hint": "When the window closes in silence."
+        },
+        "turbulenceCall": {
+          "label": "Turbulence — purser call",
+          "hint": "The question the captain answers."
+        },
+        "turbulenceSeated": {
+          "label": "Turbulence — crew seated (after yes)"
+        },
+        "turbulenceSecured": {
+          "label": "Turbulence — cabin secured"
+        },
+        "turbulenceSevere": {
+          "label": "Turbulence — severe, crew seated"
+        },
+        "turbulenceNormal": {
+          "label": "Turbulence — back to normal"
+        },
+        "paArmDoors": {
+          "label": "Purser PA — arm doors"
+        },
+        "paDoorsManual": {
+          "label": "Purser PA — doors to manual"
+        },
+        "paPrepareLanding": {
+          "label": "Purser PA — prepare for landing"
         }
       }
     },
@@ -1241,6 +1315,13 @@
       "apiKeySource": {
         "auto": "Auto (from flight.json)",
         "manual": "Manual (entered below)"
+      },
+      "turbulenceUnit": {
+        "auto": "Auto (learned while parked)",
+        "g": "G (about 1 at rest)",
+        "gNoGravity": "G without gravity (about 0 at rest)",
+        "mps2": "m/s² (about 9.8 at rest)",
+        "ftps2": "ft/s² (about 32 at rest)"
       },
       "elevenLabsModel": {
         "flash": "eleven_flash_v2_5 (fast, half cost)",

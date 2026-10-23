@@ -39,7 +39,13 @@
       "flown": "Volado",
       "eta": "ETA",
       "topOfDescent": "Inicio del descenso",
-      "noFlightPlan": "Ningún plan de vuelo cargado — obtén un OFP en la página INIT"
+      "noFlightPlan": "Ningún plan de vuelo cargado — obtén un OFP en la página INIT",
+      "turbulenceTitle": "Turbulencia: pico {0} g en los últimos dos segundos (unidad {1})",
+      "turbulence": {
+        "light": "TURBULENCIA LIGERA",
+        "moderate": "TURBULENCIA MODERADA",
+        "severe": "TURBULENCIA SEVERA"
+      }
     },
     "sequence": {
       "title": "Secuencia del vuelo",
@@ -83,6 +89,38 @@
       "label": "Puerta",
       "popoutTitle": "Abrir el panel Flight Monitor en su propia ventana (segundo monitor / tableta)",
       "popout": "Desacoplar"
+    },
+    "pa": {
+      "title": "PA del comandante",
+      "dismiss": "Cerrar",
+      "dismissTitle": "Ocultar el guion; \"Guion PA\" lo recupera",
+      "reopen": "Guion PA",
+      "reopenTitle": "Mostrar de nuevo el último guion",
+      "note": "Léelo por el PA de cabina. El FO no lo dice.",
+      "kind": {
+        "afterTakeoff": "Tras el despegue",
+        "topOfDescent": "Antes del descenso",
+        "seatbeltsOn": "Cinturones encendidos"
+      },
+      "script": {
+        "welcome": "Buenos días, señoras y señores, les habla el comandante. Bienvenidos a bordo del vuelo {0} con destino {1}.",
+        "welcomeNoFlight": "Buenos días, señoras y señores, les habla el comandante. Bienvenidos a bordo de este vuelo a {0}.",
+        "welcomePlain": "Buenos días, señoras y señores, les habla el comandante. Bienvenidos a bordo.",
+        "flightTime": "Nuestro tiempo de vuelo hoy es de unos {0}.",
+        "cruise": "Volaremos a {0} pies.",
+        "weather": "El tiempo en {0}: {1}.",
+        "temperature": "{0} grados",
+        "wind": "viento {0} a {1} nudos",
+        "eta": "Esperamos llegar a las {0}.",
+        "sitBack": "Relájense y disfruten del vuelo.",
+        "descent": "Señoras y señores, hemos iniciado el descenso hacia {0}.",
+        "descentPlain": "Señoras y señores, hemos iniciado el descenso.",
+        "seatbeltsForLanding": "La señal de cinturones se encenderá en breve; vuelvan a sus asientos y abróchense los cinturones.",
+        "thanks": "Gracias por volar con nosotros hoy.",
+        "turbulence": "Señoras y señores, estamos atravesando turbulencias.",
+        "returnToSeats": "Vuelvan a sus asientos y abróchense los cinturones.",
+        "crewSuspend": "Tripulación de cabina, suspendan el servicio y tomen asiento."
+      }
     },
     "sim": {
       "title": "Sim",

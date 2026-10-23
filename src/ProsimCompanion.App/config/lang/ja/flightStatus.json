@@ -39,7 +39,13 @@
       "flown": "飛行済み",
       "eta": "ETA",
       "topOfDescent": "降下開始点",
-      "noFlightPlan": "フライトプランが読み込まれていません — INIT ページで OFP を取得してください"
+      "noFlightPlan": "フライトプランが読み込まれていません — INIT ページで OFP を取得してください",
+      "turbulenceTitle": "タービュランス：直近2秒のピーク {0} g（単位 {1}）",
+      "turbulence": {
+        "light": "弱い揺れ",
+        "moderate": "中程度の揺れ",
+        "severe": "強い揺れ"
+      }
     },
     "sequence": {
       "title": "フライトの流れ",
@@ -83,6 +89,38 @@
       "label": "ゲート",
       "popoutTitle": "Flight Monitor ボードを別ウィンドウで開きます（2 台目のモニター / タブレット）",
       "popout": "別窓で開く"
+    },
+    "pa": {
+      "title": "キャプテンPA",
+      "dismiss": "閉じる",
+      "dismissTitle": "原稿を隠します。「PA原稿」で戻せます",
+      "reopen": "PA原稿",
+      "reopenTitle": "最後のPA原稿をもう一度表示",
+      "note": "客室PAで読み上げてください。FOは読みません。",
+      "kind": {
+        "afterTakeoff": "離陸後",
+        "topOfDescent": "降下前",
+        "seatbeltsOn": "シートベルトサイン点灯"
+      },
+      "script": {
+        "welcome": "皆さま、こんにちは。機長です。{1}行き{0}便へようこそ。",
+        "welcomeNoFlight": "皆さま、こんにちは。機長です。{0}行きの本便へようこそ。",
+        "welcomePlain": "皆さま、こんにちは。機長です。ご搭乗ありがとうございます。",
+        "flightTime": "本日の飛行時間は約{0}です。",
+        "cruise": "高度{0}フィートで巡航します。",
+        "weather": "{0}の天気は{1}です。",
+        "temperature": "気温{0}度",
+        "wind": "風 {0}度 {1}ノット",
+        "eta": "到着は{0}の予定です。",
+        "sitBack": "どうぞおくつろぎください。",
+        "descent": "皆さま、当機は{0}への降下を開始しました。",
+        "descentPlain": "皆さま、当機は降下を開始しました。",
+        "seatbeltsForLanding": "まもなくシートベルトサインが点灯します。お席にお戻りになり、シートベルトをお締めください。",
+        "thanks": "本日はご搭乗ありがとうございました。",
+        "turbulence": "皆さま、当機は現在揺れの中を通過しています。",
+        "returnToSeats": "お席にお戻りになり、シートベルトをお締めください。",
+        "crewSuspend": "客室乗務員はサービスを中断し、着席してください。"
+      }
     },
     "sim": {
       "title": "シム",

@@ -39,7 +39,13 @@
       "flown": "Gevlogen",
       "eta": "ETA",
       "topOfDescent": "Top of descent",
-      "noFlightPlan": "Geen vluchtplan geladen — haal een OFP op via de INIT-pagina"
+      "noFlightPlan": "Geen vluchtplan geladen — haal een OFP op via de INIT-pagina",
+      "turbulenceTitle": "Turbulentie: piek {0} g in de laatste twee seconden (eenheid {1})",
+      "turbulence": {
+        "light": "LICHTE TURBULENTIE",
+        "moderate": "MATIGE TURBULENTIE",
+        "severe": "ZWARE TURBULENTIE"
+      }
     },
     "sequence": {
       "title": "Vluchtverloop",
@@ -83,6 +89,38 @@
       "label": "Gate",
       "popoutTitle": "Open het Flight Monitor-bord in een eigen venster (tweede scherm / tablet)",
       "popout": "Losmaken"
+    },
+    "pa": {
+      "title": "Captain's PA",
+      "dismiss": "Sluiten",
+      "dismissTitle": "Script verbergen; \"PA-script\" haalt het terug",
+      "reopen": "PA-script",
+      "reopenTitle": "Het laatste PA-script opnieuw tonen",
+      "note": "Lees dit om via de cabine-PA. De FO spreekt het niet uit.",
+      "kind": {
+        "afterTakeoff": "Na de start",
+        "topOfDescent": "Voor de daling",
+        "seatbeltsOn": "Gordelteken aan"
+      },
+      "script": {
+        "welcome": "Goedendag dames en heren, dit is uw gezagvoerder. Welkom aan boord van vlucht {0} naar {1}.",
+        "welcomeNoFlight": "Goedendag dames en heren, dit is uw gezagvoerder. Welkom aan boord van deze vlucht naar {0}.",
+        "welcomePlain": "Goedendag dames en heren, dit is uw gezagvoerder. Welkom aan boord.",
+        "flightTime": "Onze vliegtijd vandaag is ongeveer {0}.",
+        "cruise": "We vliegen op {0} voet.",
+        "weather": "Het weer in {0}: {1}.",
+        "temperature": "{0} graden",
+        "wind": "wind {0} met {1} knopen",
+        "eta": "We verwachten om {0} aan te komen.",
+        "sitBack": "Ga lekker achterover zitten en geniet van de vlucht.",
+        "descent": "Dames en heren, we zijn begonnen met de daling naar {0}.",
+        "descentPlain": "Dames en heren, we zijn begonnen met de daling.",
+        "seatbeltsForLanding": "Het gordelteken gaat zo aan; gaat u terug naar uw stoel en maak uw gordel vast.",
+        "thanks": "Dank u dat u vandaag met ons vliegt.",
+        "turbulence": "Dames en heren, we vliegen door een zone met turbulentie.",
+        "returnToSeats": "Gaat u terug naar uw stoel en maak uw gordel vast.",
+        "crewSuspend": "Cabinepersoneel, onderbreek de service en neem plaats."
+      }
     },
     "sim": {
       "title": "Sim",

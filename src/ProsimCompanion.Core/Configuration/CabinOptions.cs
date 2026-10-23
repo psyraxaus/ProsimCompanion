@@ -127,6 +127,59 @@ public sealed class CabinOptions : IOptionSection
     [OptionField(FieldKind.Number, "speechSettings.cabin.cruiseQueryWindow", Suffix = "s", Min = "3", Max = "60", DependsOn = "Enabled; CruiseQuery")]
     public int CruiseQueryWindowSeconds { get; set; } = 20;
 
+    // ---- Turbulence, cabin management and the captain's PA (issue #186, November 2026 batch) ----
+
+    /// <summary>Runs the turbulence detector over <c>aircraft.acceleration.Y</c> (100 ms tier):
+    /// the ride level, the <c>turbulence.level</c> events and the Flight Status chip. The raw
+    /// unit is learned from the at-rest baseline (owner decision 2026-10-24). Off by default;
+    /// every reaction below needs it.</summary>
+    [OptionField(FieldKind.Bool, "speechSettings.cabin.turbulence.detect", DependsOn = "Enabled")]
+    public bool TurbulenceDetection { get; set; }
+
+    /// <summary>The unit of <c>aircraft.acceleration.Y</c>: auto (guessed from the baseline — about
+    /// 1 = G, 9.8 = m/s², 32 = ft/s²), or forced when the guess is wrong.</summary>
+    [OptionField(FieldKind.Select, "speechSettings.cabin.turbulence.unit", Choices = "turbulenceUnit", DependsOn = "Enabled; TurbulenceDetection", Normalize = FieldNormalization.TrimLower)]
+    public string TurbulenceUnit { get; set; } = "auto";
+
+    /// <summary>Deviation from the baseline (G, over a 2 s window) that counts as light
+    /// turbulence. The three bands are placeholders until the unit is confirmed live.</summary>
+    [OptionField(FieldKind.Number, "speechSettings.cabin.turbulence.light", Suffix = "g", Step = "0.05", Min = "0.05", Max = "3", DependsOn = "Enabled; TurbulenceDetection", Advanced = true)]
+    public double TurbulenceLightG { get; set; } = 0.2;
+
+    [OptionField(FieldKind.Number, "speechSettings.cabin.turbulence.moderate", Suffix = "g", Step = "0.05", Min = "0.05", Max = "3", DependsOn = "Enabled; TurbulenceDetection", Advanced = true)]
+    public double TurbulenceModerateG { get; set; } = 0.5;
+
+    [OptionField(FieldKind.Number, "speechSettings.cabin.turbulence.severe", Suffix = "g", Step = "0.05", Min = "0.05", Max = "3", DependsOn = "Enabled; TurbulenceDetection", Advanced = true)]
+    public double TurbulenceSevereG { get; set; } = 1.0;
+
+    /// <summary>The FO's "seat belt signs, captain?" once per episode at Light or worse while
+    /// the sign is not ON. Advice only — the switch is the captain's.</summary>
+    [OptionField(FieldKind.Bool, "speechSettings.cabin.turbulence.seatbeltAdvice", DependsOn = "Enabled; TurbulenceDetection")]
+    public bool TurbulenceSeatbeltAdvice { get; set; }
+
+    /// <summary>At Moderate the purser calls (chime, CAB latch as for every report) and asks
+    /// whether to secure the cabin — a captain's question; yes seats the crew and the cabin
+    /// reports secured 30–90 s later. At Severe the crew seats itself and says so. After the
+    /// episode the purser reports the cabin back to normal.</summary>
+    [OptionField(FieldKind.Bool, "speechSettings.cabin.turbulence.purserCall", DependsOn = "Enabled; TurbulenceDetection")]
+    public bool TurbulencePurserCall { get; set; }
+
+    /// <summary>The FO's "captain, your PA" at the usual moments, with a script card on Flight
+    /// Status: after take-off, at the top-of-descent notice, and when the seat-belt sign goes on
+    /// in cruise turbulence. The captain is a human — nothing reads the PA aloud.</summary>
+    [OptionField(FieldKind.Bool, "speechSettings.cabin.pa.prompts", DependsOn = "Enabled")]
+    public bool PaPrompts { get; set; }
+
+    /// <summary>Minutes after the OFF edge for the first PA prompt.</summary>
+    [OptionField(FieldKind.Number, "speechSettings.cabin.pa.afterTakeoff", Suffix = "min", Min = "1", Max = "60", DependsOn = "Enabled; PaPrompts")]
+    public int PaAfterTakeoffMinutes { get; set; } = 10;
+
+    /// <summary>The purser's own cabin PAs, heard over the cabin filter in the purser voice:
+    /// arm doors on the beacon-on edge, doors to manual with the engines off on stand, prepare
+    /// the cabin for landing at 10,000 ft in the descent. Once each per flight.</summary>
+    [OptionField(FieldKind.Bool, "speechSettings.cabin.pa.purserAudible", DependsOn = "Enabled")]
+    public bool PurserPaAudible { get; set; }
+
     // ---- Report wording (predecessor defaults, spoken verbatim in the purser role) ----
 
     [OptionField(FieldKind.Text, "speechSettings.cabin.wording.secure")]
@@ -180,4 +233,46 @@ public sealed class CabinOptions : IOptionSection
     [OptionField(FieldKind.Text, "speechSettings.cabin.wording.noReply")]
     public string CruiseQueryNoReplyText { get; set; } =
         "No worries, we'll check back later.";
+
+    // ---- Turbulence and PA wording (issue #186) ----
+
+    /// <summary>The purser's call at Moderate — the question the captain answers.</summary>
+    [OptionField(FieldKind.Text, "speechSettings.cabin.wording.turbulenceCall")]
+    public string TurbulenceCallText { get; set; } =
+        "Flight deck, cabin. It's getting bumpy back here — should we secure the cabin?";
+
+    /// <summary>The purser's answer to yes.</summary>
+    [OptionField(FieldKind.Text, "speechSettings.cabin.wording.turbulenceSeated")]
+    public string TurbulenceSeatedAckText { get; set; } =
+        "Copied — cabin crew, be seated.";
+
+    /// <summary>The report 30–90 s after yes.</summary>
+    [OptionField(FieldKind.Text, "speechSettings.cabin.wording.turbulenceSecured")]
+    public string TurbulenceSecuredText { get; set; } =
+        "Flight deck, cabin. The cabin is secured.";
+
+    /// <summary>The unprompted report at Severe.</summary>
+    [OptionField(FieldKind.Text, "speechSettings.cabin.wording.turbulenceSevere")]
+    public string TurbulenceSevereText { get; set; } =
+        "Flight deck, cabin. Cabin crew are seated.";
+
+    /// <summary>The report two minutes after the ride settled.</summary>
+    [OptionField(FieldKind.Text, "speechSettings.cabin.wording.turbulenceNormal")]
+    public string TurbulenceNormalText { get; set; } =
+        "Flight deck, cabin. The cabin's back to normal.";
+
+    /// <summary>Purser PA on the beacon-on edge.</summary>
+    [OptionField(FieldKind.Text, "speechSettings.cabin.wording.paArmDoors")]
+    public string PaArmDoorsText { get; set; } =
+        "Cabin crew, arm doors and cross-check.";
+
+    /// <summary>Purser PA with the engines off on stand.</summary>
+    [OptionField(FieldKind.Text, "speechSettings.cabin.wording.paDoorsManual")]
+    public string PaDoorsManualText { get; set; } =
+        "Cabin crew, doors to manual and cross-check.";
+
+    /// <summary>Purser PA at 10,000 ft in the descent.</summary>
+    [OptionField(FieldKind.Text, "speechSettings.cabin.wording.paPrepareLanding")]
+    public string PaPrepareLandingText { get; set; } =
+        "Cabin crew, prepare the cabin for landing.";
 }

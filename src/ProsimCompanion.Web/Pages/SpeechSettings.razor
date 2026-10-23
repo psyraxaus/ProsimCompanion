@@ -295,6 +295,24 @@ else if (CurrentSection == "cabin")
         <OptionField Draft="_cabin" For="o => o.CruiseQueryWindowSeconds" />
     </Section>
 
+    <Section Title="@T["speechSettings.cabin.turbulence.title"]" Hint="@T["speechSettings.cabin.turbulence.hint"]">
+        <OptionField Draft="_cabin" For="o => o.TurbulenceDetection" />
+        <OptionField Draft="_cabin" For="o => o.TurbulenceUnit" />
+        <OptionField Draft="_cabin" For="o => o.TurbulenceSeatbeltAdvice" />
+        <OptionField Draft="_cabin" For="o => o.TurbulencePurserCall" />
+        <AdvancedFields>
+            <OptionField Draft="_cabin" For="o => o.TurbulenceLightG" />
+            <OptionField Draft="_cabin" For="o => o.TurbulenceModerateG" />
+            <OptionField Draft="_cabin" For="o => o.TurbulenceSevereG" />
+        </AdvancedFields>
+    </Section>
+
+    <Section Title="@T["speechSettings.cabin.pa.title"]" Hint="@T["speechSettings.cabin.pa.hint"]">
+        <OptionField Draft="_cabin" For="o => o.PaPrompts" />
+        <OptionField Draft="_cabin" For="o => o.PaAfterTakeoffMinutes" />
+        <OptionField Draft="_cabin" For="o => o.PurserPaAudible" />
+    </Section>
+
     <Section Title="@T["speechSettings.cabin.wording.title"]" Hint="@T["speechSettings.cabin.wording.hint"]">
         <OptionField Draft="_cabin" For="o => o.HailReplyText" />
         <OptionField Draft="_cabin" For="o => o.CabinSecuringReplyText" />
@@ -308,6 +326,14 @@ else if (CurrentSection == "cabin")
         <OptionField Draft="_cabin" For="o => o.CruiseQueryRideAckText" />
         <OptionField Draft="_cabin" For="o => o.CruiseQueryGenericAckText" />
         <OptionField Draft="_cabin" For="o => o.CruiseQueryNoReplyText" />
+        <OptionField Draft="_cabin" For="o => o.TurbulenceCallText" />
+        <OptionField Draft="_cabin" For="o => o.TurbulenceSeatedAckText" />
+        <OptionField Draft="_cabin" For="o => o.TurbulenceSecuredText" />
+        <OptionField Draft="_cabin" For="o => o.TurbulenceSevereText" />
+        <OptionField Draft="_cabin" For="o => o.TurbulenceNormalText" />
+        <OptionField Draft="_cabin" For="o => o.PaArmDoorsText" />
+        <OptionField Draft="_cabin" For="o => o.PaDoorsManualText" />
+        <OptionField Draft="_cabin" For="o => o.PaPrepareLandingText" />
     </Section>
 }
 else if (CurrentSection == "company")

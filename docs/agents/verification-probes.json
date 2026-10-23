@@ -3185,6 +3185,66 @@
         "requires-human: the run still sounds like a checklist — the pilot hears every line, the read-through ones as one callout, and 'complete' at the end."
       ],
       "notes": "Owner request 2026-10-18 (UX pass): already-correct switches should not need a reply. SatisfiedLineReadThrough (pure, tested) decides; SpokenChecklistEngine pre-subscribes the checklist's verify datarefs before the title so the values are cached by the first line. The visual Checklists page ticks the line as Done like any voice completion. Unverified live."
+    },
+    {
+      "id": "turbulence-seatbelt-advice",
+      "issue": 186,
+      "state": "open",
+      "kind": "assert-present",
+      "machine": {
+        "kind": "signature",
+        "source": "session",
+        "type": "cabin.turbulence",
+        "contains": "\"action\":\"SeatbeltAdvice\"",
+        "trigger": {
+          "source": "session",
+          "type": "turbulence.level",
+          "contains": "\"level\":\"Light\""
+        }
+      },
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "Only with cabin.enabled AND cabin.turbulenceDetection = true (off by default). FIRST (calibration, every flight): a turbulence.calibrated event {baselineRaw, unit} while parked before pushback and the log line 'Turbulence baseline learned at rest: acceleration.Y N raw → unit U' — baselineRaw about 1 → G, about 9.8 → MetresPerSecondSquared, about 32 → FeetPerSecondSquared, about 0 → GWithoutGravity (Unknown means the value fits no unit: report baselineRaw to the owner, that is the number this whole feature was waiting for). With cabin.turbulenceUnit forced, the unit in the events is the forced one.",
+        "assert-present: turbulence.level events {level, previous, peakG, unit, baselineRaw, calibrated, episodeStartedUtc} only while airborne (never during taxi or the landing roll), at most one per 60 s (MinimumGap), the Flight Status hero chip LIGHT/MODERATE/SEVERE TURBULENCE while the level is not None; a turbulence.episode-ended event exactly 2 min after the level fell to None. peakG in a smooth cruise reads under 0.1 — a resting peak over the light threshold means the unit guess is wrong (force it).",
+        "assert-present (cabin.turbulenceSeatbeltAdvice): at the first Light-or-worse of an episode with S_OH_SIGNS not 1 (ON), one cabin.turbulence {action SeatbeltAdvice, level} and the FO's 'Seat belt signs, captain?' (tag cabin.turbulence.seatbelts); none when the sign was already ON; never twice in one episode.",
+        "assert-present (cabin.turbulencePurserCall): at Moderate ONE cabin.turbulence {action PurserCall} with the cabin call flow (cabin.calling {report cabin.turbulence-call}, chime, CAB latch or grace, the purser's wording), then a cabin-secure-question event {prompt, attempt 1} and the FO's relay 'Cabin asks — secure the cabin, captain?'; 'yes' → the FO's 'Copied — cabin, secure the cabin, crew be seated.', cabin.turbulence {action secureAccepted, securedInSeconds 30..90}, the purser's 'Copied — cabin crew, be seated.' and, that many seconds later, cabin.turbulence {action SecuredReport} with the purser's 'the cabin is secured' call; 'no' → {action secureDeclined}; silence 5 min → the question counts as no (timeout) and nothing follows. At Severe: ONE {action SevereReport} and the purser's 'cabin crew are seated' call, no question. After the episode: ONE {action BackToNormal} and the purser's 'cabin's back to normal' call — only when the purser reacted in that episode.",
+        "assert-absent: any turbulence.level while cabin.turbulenceDetection was false; any level change less than 60 s after the previous; a second SeatbeltAdvice / PurserCall / SevereReport in the same episode; a cabin-secure-question while cabin.turbulencePurserCall was false; any write to the aircraft (the sign switch is the captain's — the FO only asks).",
+        "requires-human: the levels match what the cockpit feels (light = ripples, moderate = drinks move, severe = hard to walk); the purser call does not land on top of the cabin-secure or cabin-ready report (the cabin never talks over itself — a busy cabin retries the call a second later)."
+      ],
+      "notes": "Package 7 of the November 2026 airline-ops batch (branch feature/turbulence-cabin-pa). Core TurbulenceDetector (pure: 2 s window, thresholds in G, hysteresis 0.7, 60 s gap, 2 min episode tail) + TurbulenceMonitor (100 ms, the touchdown recorder's acceleration.Y subscription) + TurbulenceStore; the unit is AUTO-CALIBRATED from the at-rest baseline (owner decision 2026-10-24, option 1) with cabin.turbulenceUnit as the override. Speech TurbulenceCabinCore/Service over CabinCrewService.AnnounceAsync (the shared call flow) and the CabinSecureQuestionStore (yes/no captain's question, CountsAsNo, not final for the cycle — the next episode asks again) voiced by CabinSecureQuestionPhrases. Thresholds light 0.2 / moderate 0.5 / severe 1.0 g are placeholders until the first flight confirms the unit. Unverified live."
+    },
+    {
+      "id": "captain-pa-prompt",
+      "issue": 186,
+      "state": "open",
+      "kind": "assert-present",
+      "machine": {
+        "kind": "signature",
+        "source": "session",
+        "type": "pa.prompt",
+        "contains": "\"kind\":\"AfterTakeoff\"",
+        "trigger": {
+          "source": "session",
+          "type": "flight-times",
+          "contains": "\"takeoffUtc\":\"2"
+        }
+      },
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "Only with cabin.enabled AND cabin.paPrompts = true (off by default). Trigger: the flight-times event whose takeoffUtc first turns non-null.",
+        "assert-present: cabin.paAfterTakeoffMinutes (10) after that stamp, in Climb or Cruise, ONE pa.prompt {kind AfterTakeoff, flightNumber, destination, flightMinutes, cruiseFl, etaUtc, weather, temperatureC} and the FO's 'Captain, your PA.' (tag cabin.pa-prompt); the Flight Status hero shows the CAPTAIN'S PA card (kind 'After take-off', the stamp, the script lines with those facts filled in — a missing fact drops its sentence, never prints a dash) with Dismiss; Dismiss leaves a 'PA script · After take-off' button that brings the card back.",
+        "assert-present: ONE pa.prompt {kind TopOfDescent} right after the tod-approaching event (the card's lines: descent into {destination}, ETA, weather, seat-belts, thanks); ONE pa.prompt {kind SeatbeltsOn} when S_OH_SIGNS goes from not-ON to ON in Cruise while turbulence.level is Light or worse (the 'return to your seats' script). Each kind once per flight cycle; a new leg (flight-times cleared at the stand) starts over.",
+        "assert-present (cabin.purserPaAudible): cabin.pa events {kind, text, phase} ONCE each per cycle — ArmDoors on the beacon's OFF→ON edge at the gate before the flight, PrepareLanding on the altitude crossing 10,000 ft downwards in Descent/Approach, DoorsManual on the engines' running→off edge while parked after the flight — each spoken in the purser voice through the cabin filter (SpeechRole Purser, Low priority, tag cabin.pa.*). The first tick after start only primes the edges: a beacon already on at app start never fires ArmDoors.",
+        "assert-absent: a pa.prompt while cabin.paPrompts was false; a second prompt of one kind in one cycle; a SeatbeltsOn prompt in smooth air or outside Cruise; any TTS of the captain's PA text (nothing speaks the script); a cabin.pa while cabin.purserPaAudible was false; any aircraft write.",
+        "requires-human: the script reads like an airline PA with the right numbers (flight time, cruise level, destination weather, ETA in Z); the purser's PAs sound like they come from the cabin, not the flight deck."
+      ],
+      "notes": "Package 7 of the November 2026 airline-ops batch. PaPromptCore (pure, clock in) + PaPromptService over FlightTimesStore / GroundOpsSignals.TodApproaching / TurbulenceStore; PaPromptStore (Core) holds the once-per-cycle latch and the card state; PaScriptFacts.From gathers OFP + progress ETA + destination hero weather card; the Web PaScriptPresentation renders pack sentences per fact (seven languages). PurserPaCore/Service for the purser's own PAs. No destination local time: no time-zone source exists in the app — the ETA is given in Z. Unverified live."
     }
   ]
 }

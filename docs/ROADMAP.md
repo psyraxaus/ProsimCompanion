@@ -826,6 +826,21 @@ Owner requests and flight-test fixes after the batch. One line each; the full te
       hand-over by phase (legacy distance gate kept); SI stand fallback; event-flood dedupe.
       **Unverified live** — every item.
 
+## Phase 10 — November 2026 airline-ops batch
+
+Ten packages, one branch and one GitHub issue each, branched from `feature/remote-mixer-agents`
+(0.7.0-rc.12) because that branch was not yet on `main`. Every item is off by default and
+**Unverified live** until flown; details in `CHANGELOG.md` under *Unreleased*.
+
+- [x] **Turbulence, cabin management and captain's PA prompts** (#186, package 7,
+      `feature/turbulence-cabin-pa`) — pure `TurbulenceDetector` over acceleration.Y with the
+      unit auto-calibrated at rest, Flight Status chip, seat-belt advice, purser "secure the
+      cabin?" captain's question + secured/severe/back-to-normal reports, "captain, your PA"
+      prompts with the script card, purser PAs (arm doors / doors to manual / prepare for
+      landing). Probes `turbulence-seatbelt-advice`, `captain-pa-prompt`. Unverified live;
+      the first flight's `turbulence.calibrated` event confirms the unit.
+
+
 ## Open items (after the rc.5 batch, 2026-10-11)
 
 Nothing on this roadmap is open as code. What remains:

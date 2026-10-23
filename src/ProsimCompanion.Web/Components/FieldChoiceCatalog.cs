@@ -26,6 +26,15 @@ public static class FieldChoiceCatalog
             ["procedureSource"] = T => [("auto", T["speechSettings.options.procedureSource.auto"].Value), ("manual", T["speechSettings.options.procedureSource.manual"].Value), ("flightJson", T["speechSettings.options.procedureSource.flightJson"].Value)],
             ["sterileNormalPolicy"] = T => [("allow", T["speechSettings.options.normalPolicy.allow"].Value), ("defer", T["speechSettings.options.normalPolicy.defer"].Value), ("suppress", T["speechSettings.options.normalPolicy.suppress"].Value)],
             ["apiKeySource"] = T => [("auto", T["speechSettings.options.apiKeySource.auto"].Value), ("manual", T["speechSettings.options.apiKeySource.manual"].Value)],
+            // The raw unit of aircraft.acceleration.Y (issue #186). Values match TurbulenceMonitor.ParseUnit.
+            ["turbulenceUnit"] = T =>
+            [
+                ("auto", T["speechSettings.options.turbulenceUnit.auto"].Value),
+                ("g", T["speechSettings.options.turbulenceUnit.g"].Value),
+                ("gnogravity", T["speechSettings.options.turbulenceUnit.gNoGravity"].Value),
+                ("mps2", T["speechSettings.options.turbulenceUnit.mps2"].Value),
+                ("ftps2", T["speechSettings.options.turbulenceUnit.ftps2"].Value),
+            ],
             // Phraseology names are the standards' own acronyms — the same in every language.
             ["phraseology"] = _ => [("icao", "ICAO"), ("faa", "FAA")],
             ["personaExperience"] = T => [("junior", T["speechSettings.options.experience.junior"].Value), ("standard", T["speechSettings.options.experience.standard"].Value), ("senior", T["speechSettings.options.experience.senior"].Value)],
