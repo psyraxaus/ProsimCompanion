@@ -843,6 +843,25 @@
         "hint": "El FO anuncia el cambio y espera este tiempo para que puedas cancelar."
       }
     },
+    "foSide": {
+      "title": "Lado del FO",
+      "hint": "El FO ajusta su propio altímetro y ND y comprueba ADIRS y FMGC — nada en tu lado",
+      "baroFollow": {
+        "label": "Seguir el baro",
+        "hint": "El FO sigue tu altímetro: STD cuando el tuyo pasa a STD, tu QNH cuando vuelve o cambia. También \"QNH one zero one three\" y \"your side standard\" por voz.",
+        "more": "Cada cambio se anuncia, espera tres segundos a \"negative\", se escribe solo en el lado del FO y se relee. Si el lado del FO está en pulgadas, el FO lo dice y no toca nada."
+      },
+      "efisCommands": {
+        "label": "Órdenes EFIS",
+        "hint": "\"Your range forty\", \"ND to arc\": alcance y modo del ND del FO. Di \"your\" o \"ND\" para que nunca se tomen tus propias palabras."
+      },
+      "adirsCheck": {
+        "label": "Cross-check ADIRS / FMGC",
+        "hint": "\"Cross-check\": alineación ADIRS, página INIT contra el plan, velocidades PERF contra las calculadas. Se ejecuta una vez solo cuando la inicialización del FMGC se asienta en la puerta.",
+        "more": "Solo lectura — no se pulsa ninguna tecla del MCDU. El cost index no tiene dataref y se lee del plan."
+      },
+      "fileCommandsHint": "Los \"set standard\" y \"set QNH\" simples son órdenes de archivo (commands.json) y siguen allí."
+    },
     "briefing": {
       "title": "Briefings",
       "hint": "Briefings de salida y llegada a partir de datos de navegación y meteorología",

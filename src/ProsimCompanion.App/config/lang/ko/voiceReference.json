@@ -47,7 +47,8 @@
       "cabinCrew": "{0}이(가) 꺼져 있습니다 — 설정 → 음성 부기장 → 객실 승무원",
       "notInBuild": "이 빌드에서는 사용할 수 없습니다",
       "foQuestions": "{0}이(가) 꺼져 있습니다 — 설정 → 음성 부기장 → 브리핑 및 LLM → 부기장에게 질문",
-      "cruiseQuery": "{0}이(가) 꺼져 있습니다 — 설정 → 음성 부기장 → 객실 승무원 → 순항 중 사무장 문의"
+      "cruiseQuery": "{0}이(가) 꺼져 있습니다 — 설정 → 음성 부기장 → 객실 승무원 → 순항 중 사무장 문의",
+      "foSide": "{0}이(가) 꺼져 있습니다 — 설정 → Voice First Officer → MCDU → FO 측 임무"
     },
     "always": {
       "skip": "현재 체크리스트 항목을 건너뜁니다.",
@@ -78,6 +79,17 @@
         "arm": "APPR 또는 LOC.",
         "ownNav": "기수 방향을 managed로 되돌립니다.",
         "negative": "대기 중인 FCU 또는 무선 동작을 3초 창 안에서 취소합니다."
+      },
+      "foSide": {
+        "title": "FO 측 고도계와 ND",
+        "qnh": "FO의 QNH를 그 값(900~1100 hPa)으로 맞춥니다. 읽어주고, 3초 취소 대기, 다시 읽기.",
+        "standard": "FO 쪽에서 STD를 누릅니다. 단독 \"set standard\"는 파일 명령입니다.",
+        "range": "FO 쪽 ND 범위: 10, 20, 40, 80, 160, 320.",
+        "mode": "FO 쪽 ND 모드: rose ILS, rose VOR, rose NAV, arc, plan."
+      },
+      "crossCheck": {
+        "title": "ADIRS / FMGC 교차 확인",
+        "check": "ADIRS 정렬, INIT 페이지와 계획, PERF 속도와 계산값을 읽어 대조합니다. 게이트에서 FMGC 입력이 안정되면 한 번 자동으로도 실행됩니다."
       },
       "radios": {
         "title": "무선",

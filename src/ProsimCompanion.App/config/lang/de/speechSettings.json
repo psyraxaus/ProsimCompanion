@@ -843,6 +843,25 @@
         "hint": "Der FO kündigt die Änderung an und wartet dann so lange, damit du abbrechen kannst."
       }
     },
+    "foSide": {
+      "title": "FO-Seite",
+      "hint": "Der FO stellt eigenen Höhenmesser und ND und prüft ADIRS und FMGC — nichts auf deiner Seite",
+      "baroFollow": {
+        "label": "Baro folgen",
+        "hint": "Der FO folgt deinem Höhenmesser: STD wenn deiner auf STD geht, dein QNH wenn er zurückkommt oder sich ändert. Auch „QNH one zero one three“ und „your side standard“ per Sprache.",
+        "more": "Jede Änderung wird angesagt, wartet drei Sekunden auf „negative“, wird nur auf der FO-Seite geschrieben und zurückgelesen. Steht die FO-Seite auf Zoll, sagt der FO das und lässt sie."
+      },
+      "efisCommands": {
+        "label": "EFIS-Befehle",
+        "hint": "„Your range forty“, „ND to arc“: Reichweite und Modus des FO-ND. Sag „your“ oder „ND“, damit deine eigenen Worte nie genommen werden."
+      },
+      "adirsCheck": {
+        "label": "ADIRS/FMGC-Cross-Check",
+        "hint": "„Cross-check“: ADIRS-Ausrichtung, INIT-Seite gegen den Plan, PERF-Geschwindigkeiten gegen die berechneten Werte. Läuft einmal von selbst, wenn die FMGC-Eingabe am Gate steht.",
+        "more": "Nur lesend — keine MCDU-Taste wird gedrückt. Der Cost Index hat keinen Dataref und kommt aus dem Plan."
+      },
+      "fileCommandsHint": "Die nackten „set standard“ und „set QNH“ sind Dateibefehle (commands.json) und bleiben dort."
+    },
     "briefing": {
       "title": "Briefings",
       "hint": "Abflug- und Anflug-Briefings aus Navdaten und Wetter",

@@ -843,6 +843,25 @@
         "hint": "FO가 변경을 알린 뒤 당신이 취소할 수 있도록 이만큼 기다립니다."
       }
     },
+    "foSide": {
+      "title": "FO 측 임무",
+      "hint": "FO가 자기 쪽 고도계와 ND를 맞추고 ADIRS와 FMGC를 교차 확인합니다. 당신 쪽은 건드리지 않습니다",
+      "baroFollow": {
+        "label": "기압 설정 따라가기",
+        "hint": "FO가 당신의 고도계를 따릅니다: 당신이 STD로 가면 STD, 돌아오거나 바뀌면 당신의 QNH로. 음성으로 \"QNH one zero one three\", \"your side standard\"도 됩니다.",
+        "more": "변경마다 읽어주고 3초간 \"negative\"를 기다린 뒤 FO 쪽에만 쓰고 다시 읽습니다. FO 쪽이 인치 표시면 FO가 그렇게 말하고 건드리지 않습니다."
+      },
+      "efisCommands": {
+        "label": "EFIS 명령",
+        "hint": "\"your range forty\", \"ND to arc\": FO 쪽 ND의 범위와 모드. 당신 말을 잘못 받지 않도록 \"your\"나 \"ND\"를 붙이세요."
+      },
+      "adirsCheck": {
+        "label": "ADIRS / FMGC 교차 확인",
+        "hint": "\"cross-check\": ADIRS 정렬, INIT 페이지와 계획 대조, PERF 속도와 계산값 대조. 게이트에서 FMGC 입력이 안정되면 한 번 자동 실행됩니다.",
+        "more": "읽기 전용 — MCDU 키를 누르지 않습니다. 코스트 인덱스는 데이터레프가 없어 계획에서 읽습니다."
+      },
+      "fileCommandsHint": "단독 \"set standard\"와 \"set QNH\"는 파일 명령(commands.json)이며 그대로 둡니다."
+    },
     "briefing": {
       "title": "브리핑",
       "hint": "항법 데이터와 기상으로 만드는 출발 및 도착 브리핑",

@@ -346,3 +346,35 @@ The VOICE drawer's Cabin tab shows the replies it understands.
 To pick the First Officer and crew voices from every provider, follow [chapter 10](10-voices.md).
 To set up ElevenLabs — key, plan, cost — follow the
 [ElevenLabs setup guide](06-elevenlabs.md).
+
+### The FO's own side: altimeter, ND and the cross-check
+
+Three switches under Settings → Voice First Officer → MCDU → **FO-side duties**, all off by
+default. They let the FO do what a pilot monitoring does on their own side — and nothing on
+yours.
+
+- **Baro follow** — the FO follows your altimeter. Set STD on your side in the climb and a
+  moment later the FO says *"Standard."*, waits three seconds for a *"negative"*, pushes STD on
+  its own side and confirms *"Standard set."*. Pull QNH in the descent and the FO says your QNH,
+  waits, sets it on its side and confirms. Change your QNH after an ATIS update and the FO copies
+  it the same way. The FO never goes first: if the two sides already differed before you touched
+  anything, it leaves them. You can also say *"QNH one zero one three"* or *"your side
+  standard"*; the bare *"set standard"* and *"set QNH"* keep working as before. If the FO's
+  altimeter is set to inches the FO says so and touches nothing. *"Unable — your altimeter"*
+  means the value did not read back twice; the FO then leaves the altimeter alone for the rest
+  of the flight.
+- **EFIS commands** — *"your range forty"*, *"range eighty on your side"*, *"ND to arc"*,
+  *"your ND rose nav"*, *"plan on your side"*. Say *"your"*, *"your side"* or *"ND"* in the
+  phrase; a bare *"range forty"* is yours, not the FO's. The FO sets its own ND and reads the
+  knob back; *"Unable — your ND"* if it did not take.
+- **ADIRS / FMGC cross-check** — say *"cross-check"* (or *"FMGC cross-check"*, *"ADIRS
+  check"*), and the FO also does it once by itself when the FMGC init is in at the gate. It
+  reads: *"ADIRS one, two and three aligned. INIT page: Echo Golf Lima Lima to Lima India Romeo
+  Foxtrot. Cost index per the plan three five. Cruise flight level three seven zero. PERF: V one
+  one four two, V R one four five, V two one four niner, flex five five. Cross-check complete."*
+  A difference is named: *"The plan says … "*, *"The plan has flight level …"*, *"V one one four
+  two — the computed figure is one four five."* Cost index has no dataref, so it is read from the
+  plan, not checked. Nothing is pressed on the MCDU.
+
+With the pilot seat set to right (Settings → Voice First Officer → General), the FO's side is the
+left one and all of this applies there.

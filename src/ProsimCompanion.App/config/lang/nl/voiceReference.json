@@ -47,7 +47,8 @@
       "cabinCrew": "{0} staat uit — Instellingen → Spraak-First Officer → Cabinecrew",
       "notInBuild": "niet beschikbaar in deze build",
       "foQuestions": "{0} staat uit — Instellingen → Spraak-First Officer → Briefings & LLM → Vraag het de First Officer",
-      "cruiseQuery": "{0} staat uit — Instellingen → Spraak-First Officer → Cabinecrew → Purser-vraag in de cruise"
+      "cruiseQuery": "{0} staat uit — Instellingen → Spraak-First Officer → Cabinecrew → Purser-vraag in de cruise",
+      "foSide": "{0} staat uit — Instellingen → Voice First Officer → MCDU → FO-kant"
     },
     "always": {
       "skip": "Het huidige checklistpunt overslaan.",
@@ -78,6 +79,17 @@
         "arm": "APPR of LOC.",
         "ownNav": "Heading terug naar managed.",
         "negative": "Een openstaande FCU- of radio-actie binnen het venster van 3 s annuleren."
+      },
+      "foSide": {
+        "title": "Hoogtemeter en ND aan FO-kant",
+        "qnh": "Zet de QNH van de FO op de waarde (900–1100 hPa). Aangekondigd, 3 s om te annuleren, teruggelezen.",
+        "standard": "Drukt STD aan de FO-kant. De kale \"set standard\" is de bestandsopdracht.",
+        "range": "Bereik van de FO-ND: 10, 20, 40, 80, 160 of 320.",
+        "mode": "Modus van de FO-ND: rose ILS, rose VOR, rose NAV, arc of plan."
+      },
+      "crossCheck": {
+        "title": "ADIRS/FMGC-cross-check",
+        "check": "Leest de ADIRS-uitlijning, de INIT-pagina tegen het plan en de PERF-snelheden tegen de berekende waarden. Draait ook éénmaal vanzelf als de FMGC-invoer aan de gate staat."
       },
       "radios": {
         "title": "Radio's",

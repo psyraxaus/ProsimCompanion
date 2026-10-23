@@ -47,7 +47,8 @@
       "cabinCrew": "{0} ist aus — Einstellungen → Sprach-Erster-Offizier → Kabinencrew",
       "notInBuild": "in diesem Build nicht verfügbar",
       "foQuestions": "{0} ist aus — Einstellungen → Sprach-Erster-Offizier → Briefings & LLM → Den Ersten Offizier fragen",
-      "cruiseQuery": "{0} ist aus — Einstellungen → Sprach-Erster-Offizier → Kabinencrew → Purser-Rückfrage im Reiseflug"
+      "cruiseQuery": "{0} ist aus — Einstellungen → Sprach-Erster-Offizier → Kabinencrew → Purser-Rückfrage im Reiseflug",
+      "foSide": "{0} ist aus — Einstellungen → Voice First Officer → MCDU → FO-Seite"
     },
     "always": {
       "skip": "Den aktuellen Checklistenpunkt überspringen.",
@@ -78,6 +79,17 @@
         "arm": "APPR oder LOC.",
         "ownNav": "Heading zurück auf managed.",
         "negative": "Eine anstehende FCU- oder Funk-Aktion innerhalb ihres 3-s-Fensters abbrechen."
+      },
+      "foSide": {
+        "title": "Höhenmesser und ND der FO-Seite",
+        "qnh": "Stellt das QNH des FO auf den Wert (900–1100 hPa). Angesagt, 3 s zum Abbrechen, zurückgelesen.",
+        "standard": "Drückt STD auf der FO-Seite. Das nackte „set standard“ ist der Dateibefehl.",
+        "range": "Reichweite des FO-ND: 10, 20, 40, 80, 160 oder 320.",
+        "mode": "Modus des FO-ND: rose ILS, rose VOR, rose NAV, arc oder plan."
+      },
+      "crossCheck": {
+        "title": "ADIRS/FMGC-Cross-Check",
+        "check": "Liest ADIRS-Ausrichtung, INIT-Seite gegen den Plan und PERF-Geschwindigkeiten gegen die berechneten Werte. Läuft auch einmal von selbst, wenn die FMGC-Eingabe am Gate steht."
       },
       "radios": {
         "title": "Funkgeräte",

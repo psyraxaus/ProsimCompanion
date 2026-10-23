@@ -843,6 +843,25 @@
         "hint": "FO は変更を告げた後、あなたが取り消せるようこの時間待ちます。"
       }
     },
+    "foSide": {
+      "title": "FO側の作業",
+      "hint": "FOは自分側の高度計とNDを設定し、ADIRSとFMGCを照合します。あなた側には触れません",
+      "baroFollow": {
+        "label": "気圧設定の追従",
+        "hint": "FOはあなたの高度計に従います：あなたがSTDにしたらSTD、戻したり変えたらあなたのQNHに。音声の「QNH one zero one three」「your side standard」も可。",
+        "more": "変更は毎回読み上げ、3秒間「negative」を待ち、FO側だけに書き込んで読み返します。FO側がインチ表示なら、FOはそう言って触りません。"
+      },
+      "efisCommands": {
+        "label": "EFISコマンド",
+        "hint": "「your range forty」「ND to arc」：FO側NDのレンジとモード。あなた自身の言葉を拾わないよう「your」か「ND」を付けてください。"
+      },
+      "adirsCheck": {
+        "label": "ADIRS/FMGC照合",
+        "hint": "「cross-check」：ADIRSのアライン状態、INITページとプランの照合、PERF速度と計算値の照合。ゲートでFMGC入力が落ち着くと1回自動で行います。",
+        "more": "読み取りのみで、MCDUのキーは押しません。コストインデックスにはデータレフがなく、プランから読みます。"
+      },
+      "fileCommandsHint": "単独の「set standard」「set QNH」はファイルコマンド（commands.json）のままです。"
+    },
     "briefing": {
       "title": "ブリーフィング",
       "hint": "ナビデータと気象からの出発・到着ブリーフィング",

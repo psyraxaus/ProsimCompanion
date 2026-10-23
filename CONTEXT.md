@@ -270,6 +270,21 @@ the aircraft and answers "checked" or corrects. A lead-in with no figure ("minim
 not a read-back; it belongs to the checklist or callout feature.
 _Avoid_: confirmation, challenge
 
+**FO-side duty**:
+Something a pilot monitoring does to their own side only — their altimeter, their ND, the
+cross-check they read out — never a write to the captain's side or to a shared control. In
+this app it is the four names of the FO-side gate (baro knob, baro value, ND mode, ND range),
+seat-mapped, each through the FCU flow: announce, cancel window, write, verify.
+_Avoid_: FO action (too wide — the FCU and the MCDU are PF actions), right-seat write
+
+**Baro follow**:
+The FO copying the captain's altimeter AFTER the captain changed it — STD when the captain's
+side goes to STD, the captain's QNH when it comes back or moves — a change having stood two
+seconds with the FO side still different. A mismatch that was there before the captain acted
+is left alone: the FO follows, it never leads, and no transition altitude is read.
+_Avoid_: baro sync, altimeter mirror (those would copy at once and lead)
+
+
 ### Web host
 
 **Secure context**:

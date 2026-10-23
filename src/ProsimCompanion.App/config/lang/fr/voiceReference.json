@@ -47,7 +47,8 @@
       "cabinCrew": "{0} est désactivé — Réglages → Copilote vocal → Équipage de cabine",
       "notInBuild": "indisponible dans cette version",
       "foQuestions": "{0} est désactivé — Réglages → Copilote vocal → Briefings et LLM → Demander au copilote",
-      "cruiseQuery": "{0} est désactivé — Réglages → Copilote vocal → Équipage de cabine → Question du chef de cabine en croisière"
+      "cruiseQuery": "{0} est désactivé — Réglages → Copilote vocal → Équipage de cabine → Question du chef de cabine en croisière",
+      "foSide": "{0} est désactivé — Réglages → Voice First Officer → MCDU → Côté FO"
     },
     "always": {
       "skip": "Sauter l'item de checklist en cours.",
@@ -78,6 +79,17 @@
         "arm": "APPR ou LOC.",
         "ownNav": "Cap de retour en managed.",
         "negative": "Annuler une action FCU ou radio en attente dans sa fenêtre de 3 s."
+      },
+      "foSide": {
+        "title": "Altimètre et ND côté FO",
+        "qnh": "Règle le QNH du FO à la valeur (900–1100 hPa). Annoncé, 3 s pour annuler, relu.",
+        "standard": "Pousse STD côté FO. Le « set standard » nu est la commande fichier.",
+        "range": "Échelle du ND du FO : 10, 20, 40, 80, 160 ou 320.",
+        "mode": "Mode du ND du FO : rose ILS, rose VOR, rose NAV, arc ou plan."
+      },
+      "crossCheck": {
+        "title": "Cross-check ADIRS / FMGC",
+        "check": "Lit l'alignement ADIRS, la page INIT contre le plan et les vitesses PERF contre les valeurs calculées. S'exécute aussi une fois tout seul quand l'init FMGC se stabilise au parking."
       },
       "radios": {
         "title": "Radios",

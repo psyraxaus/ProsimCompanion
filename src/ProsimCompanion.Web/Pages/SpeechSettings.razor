@@ -555,6 +555,13 @@ else if (CurrentSection == "mcdu")
         <OptionField Draft="_mcdu" For="o => o.AllowActuation" />
         <OptionField Draft="_mcdu" For="o => o.VerifyPauseSeconds" />
     </Section>
+
+    <Section Title="@T["speechSettings.foSide.title"]" Hint="@T["speechSettings.foSide.hint"]">
+        <OptionField Draft="_speech" For="o => o.FoSide.BaroFollow" />
+        <OptionField Draft="_speech" For="o => o.FoSide.EfisCommands" />
+        <OptionField Draft="_speech" For="o => o.FoSide.AdirsCheck" />
+        <div class="field-hint" style="max-width:640px;">@T["speechSettings.foSide.fileCommandsHint"]</div>
+    </Section>
 }
 else if (CurrentSection == "briefing")
 {

@@ -83,6 +83,13 @@ public static class SpeechServiceCollectionExtensions
         services.AddVoiceFeature<Monitoring.StandaloneReadbacks>();
         services.AddVoiceFeature<Radios.RadioExecutor>();
         services.AddVoiceFeature<Fcu.FcuExecutor>();
+        // The FO's own-side duties (issue #188): baro follow + EFIS2 commands through the four-name
+        // FO-side gate, and the read-only ADIRS/FMGC cross-check. Right after the FCU (same flow),
+        // before the file commands (the bare "set standard" / "set QNH" stay there).
+        services.AddVoiceFeature<FoSide.FoSideDutiesService>();
+        services.AddStartupModule<FoSide.FoSideDutiesService>();
+        services.AddVoiceFeature<FoSide.FmgcCrossCheckService>();
+        services.AddStartupModule<FoSide.FmgcCrossCheckService>();
         services.AddSingleton<Commands.SpokenTokenSource>();
         services.AddVoiceFeature<Commands.ConfiguredVoiceCommands>();
         services.AddVoiceFeature<Callouts.EngineFlapCallFeature>();

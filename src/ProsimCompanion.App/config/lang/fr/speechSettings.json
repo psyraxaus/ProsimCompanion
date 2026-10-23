@@ -843,6 +843,25 @@
         "hint": "Le copilote annonce le changement, puis attend ce temps pour que tu puisses annuler."
       }
     },
+    "foSide": {
+      "title": "Côté FO",
+      "hint": "Le FO règle son propre altimètre et son ND et vérifie ADIRS et FMGC — rien de ton côté",
+      "baroFollow": {
+        "label": "Suivi baro",
+        "hint": "Le FO suit ton altimètre : STD quand le tien passe en STD, ton QNH quand il revient ou change. Aussi « QNH one zero one three » et « your side standard » à la voix.",
+        "more": "Chaque changement est annoncé, attend trois secondes un « negative », est écrit côté FO seulement et relu. Si le côté FO est en pouces, le FO le dit et n'y touche pas."
+      },
+      "efisCommands": {
+        "label": "Commandes EFIS",
+        "hint": "« Your range forty », « ND to arc » : échelle et mode du ND du FO. Dis « your » ou « ND » pour que tes propres mots ne soient jamais pris."
+      },
+      "adirsCheck": {
+        "label": "Cross-check ADIRS / FMGC",
+        "hint": "« Cross-check » : alignement ADIRS, page INIT contre le plan, vitesses PERF contre les valeurs calculées. S'exécute une fois tout seul quand l'init FMGC se stabilise au parking.",
+        "more": "Lecture seule — aucune touche MCDU n'est pressée. Le cost index n'a pas de dataref et est lu dans le plan."
+      },
+      "fileCommandsHint": "Les « set standard » et « set QNH » nus sont des commandes fichier (commands.json) et y restent."
+    },
     "briefing": {
       "title": "Briefings",
       "hint": "Briefings départ et arrivée à partir des données de navigation et de la météo",

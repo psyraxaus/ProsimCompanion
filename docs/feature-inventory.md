@@ -117,6 +117,10 @@ through with a note if deliberately dropped. Sources: Prosim2GSX 0.9.0, ProsimIn
 - [x] ECAM abnormals (30 procedures, EWD cross-check, interactive per-line dialogue
       `EcamDialogueCore` — confirm / verify / branch / standby / skip; status review not
       ported); memory drills (stall, TCAS RA, windshear, EGPWS)
+- [x] FO-side duties: baro follow (the FO follows the captain's STD / QNH through the FCU flow),
+      "QNH …" / "your side standard" / ND range and mode by voice, the read-only ADIRS / FMGC
+      cross-check — all behind the four-name FO-side gate — #188, November 2026 batch package 9,
+      Unverified live (new to this codebase; design approved before the code)
 - [x] Speech: LAN whisper → System.Speech offline chain (WinRT engine deferred); PTT
       keyboard/joystick; phonetic snapping; utterance interpreter
 - [x] TTS: Kokoro → ElevenLabs → Google Chirp 3 HD (both cloud voices cached, usage-tracked,

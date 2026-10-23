@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+November 2026 airline-ops batch, one package per branch; every package is off by default and **Unverified live**.
+
+- New: **FO-side cockpit duties** ([#188](https://github.com/psyraxaus/ProsimCompanion/issues/188), package 9, branch `feature/fo-side-duties`, design approved by the owner before the code). A real pilot monitoring sets their own altimeter and ND and cross-checks the ADIRS and the FMGC; the FO now does the same — and nothing more. Three switches on Settings → Voice First Officer → MCDU → **FO-side duties**, all off. **Baro follow**: the FO *follows* the captain's altimeter — *"Standard."* and STD on its side when the captain's goes to STD, *"QNH one zero one three."* and the captain's value when it comes back or changes — every change announced, three seconds to say *"negative"*, written to the FO side only, read back, *"set"* or *"unable — your altimeter"*; also *"QNH one zero one three"* and *"your side standard"* by voice. The bare *"set standard"* / *"set QNH"* stay the file commands. If the FO side is in inches the FO says so and leaves it. **EFIS commands**: *"your range forty"*, *"ND to arc"* — the FO's own ND range and mode; a "your" / "ND" marker is required so the captain's own words are never taken. **ADIRS / FMGC cross-check**: *"cross-check"* (and once by itself when the FMGC init settles at the gate) reads the ADIRS alignment, the INIT page against the plan (cost index "per the plan" — it has no dataref) and the PERF speeds against the Takeoff page's result, naming every difference. Every write goes through a new four-name FO-side gate (baro knob, baro value, ND mode, ND range, seat-mapped); a test proves every captain-side EFIS name is refused. Whether ProSim takes the baro value input as whole hPa is unverified — the first flight's `fo.baroSet` read-back settles it. Probes `fo-baro-follow`, `fo-efis-command`, `fo-cross-check`. Seven language packs.
+
+
 ## 0.7.0-rc.12
 
 Remote mixer for two-pilot rigs, 2026-10-22. A local release-candidate build on top of rc.11 for the owner's sim test; **not yet verified live** (neither are rc.11's refactors, which this build carries).

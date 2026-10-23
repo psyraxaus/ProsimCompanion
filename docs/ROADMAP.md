@@ -826,6 +826,19 @@ Owner requests and flight-test fixes after the batch. One line each; the full te
       hand-over by phase (legacy distance gate kept); SI stand fallback; event-flood dedupe.
       **Unverified live** — every item.
 
+## Phase 10 — November 2026 airline-ops batch
+
+Ten packages, one branch and one GitHub issue each, branched from `feature/remote-mixer-agents`
+(0.7.0-rc.12) because that branch was not yet on `main`. Every item is off by default and
+**Unverified live** until flown; details in `CHANGELOG.md` under *Unreleased*.
+
+- [x] **FO-side cockpit duties** (#188, package 9, `feature/fo-side-duties`, design-first) — baro
+      follow (the FO follows the captain's STD / QNH, FCU flow), "QNH …" / "your side standard" /
+      "your range forty" / "ND to arc" by voice, the read-only ADIRS / FMGC cross-check, all behind
+      the four-name `FoSideDutiesGate`. Probes `fo-baro-follow`, `fo-efis-command`,
+      `fo-cross-check`. Unverified live; the first flight proves the baro value input.
+
+
 ## Open items (after the rc.5 batch, 2026-10-11)
 
 Nothing on this roadmap is open as code. What remains:

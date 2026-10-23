@@ -843,6 +843,25 @@
         "hint": "De FO kondigt de wijziging aan en wacht dan zo lang zodat je kunt annuleren."
       }
     },
+    "foSide": {
+      "title": "FO-kant",
+      "hint": "De FO zet zijn eigen hoogtemeter en ND en controleert ADIRS en FMGC — niets aan jouw kant",
+      "baroFollow": {
+        "label": "Baro volgen",
+        "hint": "De FO volgt jouw hoogtemeter: STD als die van jou naar STD gaat, jouw QNH als hij terugkomt of verandert. Ook \"QNH one zero one three\" en \"your side standard\" per stem.",
+        "more": "Elke wijziging wordt aangekondigd, wacht drie seconden op \"negative\", wordt alleen aan de FO-kant geschreven en teruggelezen. Staat de FO-kant op inches, dan zegt de FO dat en laat hem staan."
+      },
+      "efisCommands": {
+        "label": "EFIS-opdrachten",
+        "hint": "\"Your range forty\", \"ND to arc\": bereik en modus van de FO-ND. Zeg \"your\" of \"ND\" zodat je eigen woorden nooit worden opgepikt."
+      },
+      "adirsCheck": {
+        "label": "ADIRS/FMGC-cross-check",
+        "hint": "\"Cross-check\": ADIRS-uitlijning, INIT-pagina tegen het plan, PERF-snelheden tegen de berekende waarden. Draait éénmaal vanzelf als de FMGC-invoer aan de gate staat.",
+        "more": "Alleen lezen — geen MCDU-toets wordt ingedrukt. De cost index heeft geen dataref en komt uit het plan."
+      },
+      "fileCommandsHint": "De kale \"set standard\" en \"set QNH\" zijn bestandsopdrachten (commands.json) en blijven daar."
+    },
     "briefing": {
       "title": "Briefings",
       "hint": "Vertrek- en aankomstbriefings uit navdata en weer",
