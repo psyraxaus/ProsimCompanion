@@ -19,7 +19,7 @@ streamDeck.actions.registerAction(new ChecklistAction());
 streamDeck.actions.registerAction(new FlightPhaseAction());
 streamDeck.actions.registerAction(new ConnectionHealthAction());
 streamDeck.actions.registerAction(new VoicePauseAction());
-// Cockpit switches + camera views (2026-10-24): the keys that replaced PilotsDeck for the owner.
+// Cockpit switches + camera views (2026-10-24): ProSim switches and ChasePlane views from any PC.
 streamDeck.actions.registerAction(new CockpitSwitchAction());
 streamDeck.actions.registerAction(new CameraViewAction());
 

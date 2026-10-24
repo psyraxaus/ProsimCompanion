@@ -9,9 +9,9 @@ Amends: the write-safety rule in docs/ARCHITECTURE.md (a runtime-widened, bounde
 
 The owner's Stream Deck moved to a second PC. Until then three Korry push buttons he has no
 hardware for — the leak measurement valves B / G / Y — were pressed through a chain of
-Fragtality's PilotsDeck → FSUIPC on the sim PC → a Lua script flipping bits in FSUIPC offsets
-`0x04E0`–`0x04E2` → ProSim reading those offsets as hardware inputs. From a second PC
-PilotsDeck cannot reach FSUIPC, so the chain broke. He also wants more such switches over
+a third-party Stream Deck plugin → FSUIPC on the sim PC → a Lua script flipping bits in FSUIPC
+offsets `0x04E0`–`0x04E2` → ProSim reading those offsets as hardware inputs. From a second PC
+that plugin cannot reach FSUIPC, so the chain broke. He also wants more such switches over
 time, drawn like the real Airbus Korry buttons.
 
 The app already talks to ProSim directly over the SDK and already ships ProSim's switch
