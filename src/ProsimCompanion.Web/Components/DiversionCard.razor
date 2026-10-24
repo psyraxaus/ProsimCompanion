@@ -1,0 +1,128 @@
+@* The Diversion card (issue #184) on the OFP page and Flight Status: with a diversion active —
+   destination, reason, when, the FO's standing offers and Cancel; otherwise (feature on, a plan
+   loaded) a "Divert to {alternate}" button plus an ICAO field and a reason pick. Every press
+   goes through the command registry (flight.divert / flight.cancelDiversion), the same seam
+   the voice and the API use. Hidden while flight.diversionEnabled is off. *@
+@using System.Globalization
+@using ProsimCompanion.Core.Aircraft.Ofp
+@using ProsimCompanion.Core.Commands
+@using ProsimCompanion.Core.Commands.Handlers
+@inherits StoreObserverComponent
+@inject DiversionStore Diversion
+@inject OfpStore Ofp
+@inject IOptionsMonitor<FlightOptions> Options
+@inject CommandRegistry Commands
+@inject IStringLocalizer T
+
+@if (Options.CurrentValue.DiversionEnabled && (_diversion.Active || Ofp.Planned is not null))
+{
+    <section class="section diversion-card @(_diversion.Active ? "diversion-active" : "")">
+        <div class="section-header">
+            <h3 class="section-title">@T["ofp.diversion.title"]</h3>
+            <span class="pill @(_diversion.Active ? "tone-warn" : "tone-neutral")">@(_diversion.Active ? T["ofp.diversion.active"].Value : T["ofp.diversion.none"].Value)</span>
+        </div>
+        <div class="section-body">
+            @if (_diversion.Active)
+            {
+                <div class="diversion-row"><span class="label-caps">@T["ofp.diversion.to"]</span><span class="figure">@_diversion.NewDestinationIcao</span><span class="diversion-name">@_diversion.NewDestinationName</span></div>
+                <div class="diversion-row"><span class="label-caps">@T["ofp.diversion.from"]</span><span>@(_diversion.OriginalDestinationIcao ?? "—")</span></div>
+                <div class="diversion-row"><span class="label-caps">@T["ofp.diversion.reason"]</span><span>@T[$"ofp.diversion.reasons.{(_diversion.Reason ?? DiversionReason.Other).ToString().ToLowerInvariant()}"]</span></div>
+                <div class="diversion-row"><span class="label-caps">@T["ofp.diversion.declared"]</span><span>@(_diversion.DeclaredAtUtc?.ToString("HH:mm", CultureInfo.InvariantCulture))Z</span></div>
+                @if (_diversion.Offers.Count > 0)
+                {
+                    <div class="diversion-offers">
+                        <span class="label-caps">@T["ofp.diversion.offers"]</span>
+                        @foreach (var offer in _diversion.Offers)
+                        {
+                            <span class="pill tone-neutral">@T[$"ofp.diversion.offer.{OfferId(offer)}"]</span>
+                        }
+                    </div>
+                }
+                <button type="button" class="btn secondary" disabled="@_busy" @onclick="CancelAsync">@T["ofp.diversion.cancel"]</button>
+            }
+            else
+            {
+                var alternate = Ofp.Planned?.AlternateIcao;
+                <div class="diversion-controls">
+                    @if (!string.IsNullOrWhiteSpace(alternate))
+                    {
+                        <button type="button" class="btn primary" disabled="@_busy" @onclick="() => DivertAsync(alternate)">@T["ofp.diversion.divertToAlternate", alternate]</button>
+                    }
+                    <input type="text" class="diversion-icao figure" maxlength="4" placeholder="ICAO" aria-label="@T["ofp.diversion.icao"]" @bind="_icao" />
+                    <select class="select" aria-label="@T["ofp.diversion.reason"]" @bind="_reason">
+                        @foreach (var reason in Enum.GetValues<DiversionReason>())
+                        {
+                            <option value="@reason">@T[$"ofp.diversion.reasons.{reason.ToString().ToLowerInvariant()}"]</option>
+                        }
+                    </select>
+                    <button type="button" class="btn secondary" disabled="@(_busy || (_icao ?? "").Trim().Length != 4)" @onclick="() => DivertAsync(_icao)">@T["ofp.diversion.divert"]</button>
+                </div>
+            }
+            @if (_message is not null)
+            {
+                <div class="field-hint">@_message</div>
+            }
+        </div>
+    </section>
+}
+
+@code {
+    private DiversionSnapshot _diversion = DiversionSnapshot.None;
+    private string? _icao;
+    private DiversionReason _reason = DiversionReason.Weather;
+    private bool _busy;
+    private string? _message;
+
+    protected override void OnInitialized()
+    {
+        Watch(Diversion, snapshot => _diversion = snapshot);
+        WatchChanged(h => Ofp.Changed += h, h => Ofp.Changed -= h, () => { });
+    }
+
+    private static string OfferId(string offer) => offer switch
+    {
+        "arrival briefing" => "briefing",
+        "rad nav" => "radNav",
+        "atc request" => "atc",
+        _ => "briefing",
+    };
+
+    private async Task DivertAsync(string? icao)
+    {
+        _busy = true;
+        _message = null;
+        try
+        {
+            var result = await Commands.ExecuteAsync<FlightDivertRequest, CommandResult>(
+                "flight.divert", new FlightDivertRequest { Icao = icao, Reason = _reason.ToString() }, source: "web");
+            _message = result.Outcome == CommandOutcome.Success ? null : result.Reason;
+        }
+        catch (Exception ex)
+        {
+            _message = ex.Message;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task CancelAsync()
+    {
+        _busy = true;
+        _message = null;
+        try
+        {
+            var result = await Commands.ExecuteAsync<EmptyCommandRequest, CommandResult>("flight.cancelDiversion", new EmptyCommandRequest(), source: "web");
+            _message = result.Outcome == CommandOutcome.Success ? null : result.Reason;
+        }
+        catch (Exception ex)
+        {
+            _message = ex.Message;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

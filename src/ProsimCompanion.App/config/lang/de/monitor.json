@@ -11,6 +11,7 @@
     "logoTitle": "Lade das Logo dieser Airline unter Einstellungen → Darstellung hoch",
     "logoPlaceholder": "AIRLINE-LOGO",
     "noFlightPlan": "Kein Flugplan",
+    "diverted": "DIVERSION — war {0}",
     "fetchOfp": "Hole einen OFP auf der INIT-Seite",
     "gateLabel": {
       "gate": "Gate",

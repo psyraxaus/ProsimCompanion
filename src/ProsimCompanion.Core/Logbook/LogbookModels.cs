@@ -70,6 +70,17 @@ public sealed class LogbookFlight
 
     /// <summary>Open tech-log (MEL) defects carried on the flight.</summary>
     public int DefectsCarried { get; set; }
+
+    // ---- Diversion (issue #184). Additive; absent on older files. ----
+
+    /// <summary>The flight diverted: <see cref="Destination"/> is where it actually went.</summary>
+    public bool Diverted { get; set; }
+
+    /// <summary>The OFP's destination when the flight diverted; null otherwise.</summary>
+    public string? PlannedDestination { get; set; }
+
+    /// <summary>weather | technical | medical | fuel | other, when diverted.</summary>
+    public string? DiversionReason { get; set; }
 }
 
 /// <summary>One duty day's record, folded by company day mode at end of day (idempotent by

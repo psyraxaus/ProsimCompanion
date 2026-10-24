@@ -70,6 +70,32 @@
       },
       "menuHint": "GSX が 'Select pushback direction' でスタンド固有の名前付きラインを示したら、ここで選べます — GSX ウィンドウを開く必要はありません。"
     },
+    "diversion": {
+      "title": "ダイバート",
+      "active": "ダイバート中",
+      "none": "計画どおり",
+      "to": "行先",
+      "from": "計画",
+      "reason": "理由",
+      "declared": "宣言",
+      "offers": "FOの提案",
+      "cancel": "ダイバートを取り消す",
+      "divertToAlternate": "{0} へダイバート",
+      "divert": "ダイバート",
+      "icao": "ダイバート先のICAO",
+      "offer": {
+        "briefing": "到着ブリーフィング",
+        "radNav": "RAD NAV再設定",
+        "atc": "ATCリクエスト"
+      },
+      "reasons": {
+        "weather": "気象",
+        "technical": "技術的",
+        "medical": "医療",
+        "fuel": "燃料",
+        "other": "その他"
+      }
+    },
     "deice": {
       "title": "防除氷ホールドオーバー (HOT)",
       "oat.aria": "外気温",

@@ -36,6 +36,7 @@
     },
     "off": {
       "speechFo": "{0} est désactivé — Réglages → Copilote vocal",
+      "diversion": "{0} est désactivé — Réglages → Display & Flight Data → Déroutement",
       "mcdu": "{0} est désactivé — Réglages → Copilote vocal → MCDU",
       "monitoring": "{0} est désactivé — Réglages → Copilote vocal → Annonces et placards → Surveillance en vol",
       "gsxSettings": "{0} est désactivé — Réglages → GSX",
@@ -128,6 +129,11 @@
         "departure": "Briefing départ à partir du plan FMS, de la navdata et de la météo en direct.",
         "arrival": "Briefing arrivée — l'OPL te demande d'abord de confirmer les minima.",
         "approaches": "Les approches de la navdata pour la piste d'arrivée."
+      },
+      "diversion": {
+        "title": "Déroutement",
+        "divert": "Déclare le déroutement : la nouvelle destination remplace celle du plan sur toutes les pages et les offres du FO suivent.",
+        "cancel": "Retour à la destination prévue."
       },
       "missedApproach": {
         "title": "Remise de gaz",

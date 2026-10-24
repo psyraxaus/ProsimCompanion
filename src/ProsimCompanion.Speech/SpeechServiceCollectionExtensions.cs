@@ -121,6 +121,11 @@ public static class SpeechServiceCollectionExtensions
         services.AddSingleton<Briefings.ProcedureSource>();
         services.AddSingleton<Core.Airports.IDepartureRunwaySource, Briefings.FmsDepartureRunway>();
         services.AddSingleton<Briefings.MinimaCaptureDialogue>();
+        // The diversion workflow (issue #184): declares on the Core store (which overlays the
+        // OFP destination), speaks the offers, tells the company; implements the command seam.
+        services.AddStartupModule<Flight.DiversionService>();
+        services.AddVoiceFeature<Flight.DiversionService>();
+        services.AddSingleton<Core.Commands.Handlers.IDiversionControl>(p => p.GetRequiredService<Flight.DiversionService>());
         services.AddStartupModule<Briefings.MissedApproachRebrief>();
         services.AddVoiceFeature<Briefings.BriefingService>();
         services.AddVoiceFeature<Briefings.MissedApproachVoiceFeature>();

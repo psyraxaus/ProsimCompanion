@@ -36,6 +36,7 @@
     },
     "off": {
       "speechFo": "{0} is off — Settings → Voice First Officer",
+      "diversion": "{0} is off — Settings → Display & Flight Data → Diversion",
       "mcdu": "{0} is off — Settings → Voice First Officer → MCDU",
       "monitoring": "{0} is off — Settings → Voice First Officer → Callouts & Placards → In-flight monitoring",
       "gsxSettings": "{0} is off — Settings → GSX",
@@ -128,6 +129,11 @@
         "departure": "Departure briefing from the FMS plan, navdata and live weather.",
         "arrival": "Arrival briefing — the FO asks you to confirm the minimums first.",
         "approaches": "The navdata approaches for the arrival runway."
+      },
+      "diversion": {
+        "title": "Diversion",
+        "divert": "Declares the diversion: the new destination replaces the plan's for every page and the FO's offers follow.",
+        "cancel": "Back to the planned destination."
       },
       "missedApproach": {
         "title": "Missed approach",

@@ -35,6 +35,15 @@ progress, with the distance to go and the ETA beside it. It shows position-based
 while there are any and the time-based fallback otherwise, and says which.
 _Avoid_: second screen, FIDS, dashboard
 
+**Diversion**:
+The crew's decision to land somewhere other than the plan's destination, held per flight with
+its reason and the original destination, and applied as an overlay on the OFP: the one store
+every destination consumer reads shows the new airport, with the navlog, the planned arrival
+runway, the planned landing fuel and the alternate dropped because they belonged to the old
+one. Cancelling restores the plan as fetched; a new OFP ends it. The FO's part is words and
+offers — the only aircraft write in the flow is the pilot's own ILS tune.
+_Avoid_: re-route, alternate (that is the plan's alternate, which a diversion may or may not go to), destination change
+
 **Flight progress**:
 How far along the leg the aircraft is: distance flown, distance to go, the fraction done, the
 ETA and the time to top of descent. Position-based when the flight is live, the aircraft has a

@@ -48,6 +48,8 @@ public sealed partial class VoiceFeatureRosterTests
         (typeof(ProsimCompanion.Speech.Mcdu.McduReader), 120),
         (typeof(ProsimCompanion.Speech.Mcdu.McduRadNavTuner), 130),
         (typeof(ProsimCompanion.Speech.Mcdu.McduArrivalChanger), 140),
+        // Issue #184: "divert to …" / "cancel the diversion", ahead of the briefings it offers.
+        (typeof(ProsimCompanion.Speech.Flight.DiversionService), 145),
         (typeof(ProsimCompanion.Speech.Briefings.BriefingService), 150),
         (typeof(ProsimCompanion.Speech.Briefings.MissedApproachVoiceFeature), 160),
         (typeof(ProsimCompanion.Speech.Briefings.MinimaQueryVoiceFeature), 170),

@@ -375,11 +375,12 @@ public sealed class LogbookLandingAnalysisTests : IDisposable
         Assert.Equal(
             "sessionId,date,origin,destination,departureRunway,arrivalRunway,offBlocksUtc,takeoffUtc,landingUtc,onBlocksUtc,"
             + "blockMinutes,flightMinutes,landed,liftoffIasKt,touchdownGroundSpeedKt,touchdownVerticalSpeedFpm,touchdownIasKt,"
-            + "touchdownPitchDeg,bounces,approachResult,abnormals,defectsRaised,defectsRectified,defectsCarried",
+            + "touchdownPitchDeg,bounces,approachResult,abnormals,defectsRaised,defectsRectified,defectsCarried,"
+            + "diverted,plannedDestination,diversionReason",
             lines[0]);
         Assert.Equal(
             "session-20261003-080000,2026-10-03,EGLL,LIRF,27R,16L,2026-10-03T08:00:05Z,2026-10-03T08:11:05Z,2026-10-03T10:03:01Z,2026-10-03T10:10:00Z,"
-            + "130,112,true,151.3,131,-183,137.4,4.6,1,stable,,1,0,0",
+            + "130,112,true,151.3,131,-183,137.4,4.6,1,stable,,1,0,0,false,,",
             lines[1]);
         Assert.Equal("", lines[2]);     // the file ends with a line break
         Assert.Equal(3, lines.Length);
@@ -391,7 +392,7 @@ public sealed class LogbookLandingAnalysisTests : IDisposable
         var csv = LogbookCsv.Build([new LogbookFlight { SessionId = "session-20260701-080000" }]);
 
         var row = csv.Split("\r\n")[1];
-        Assert.Equal("session-20260701-080000,,,,,,,,,,,,false,,,,,,,,,0,0,0", row);
+        Assert.Equal("session-20260701-080000,,,,,,,,,,,,false,,,,,,,,,0,0,0,false,,", row);
         Assert.Equal(LogbookCsv.Columns.Count, row.Split(',').Length);
     }
 

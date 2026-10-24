@@ -230,6 +230,22 @@ connected, real flight data).
   briefings. **Approach wind advisory** (its own switch) makes the FO say once, on the approach,
   when the destination wind puts the landing runway beyond a limit.
 
+## Diversion
+
+Settings → Display & Flight Data → **Diversion → Diversion workflow** (off by default). Say
+*"divert to the alternate"*, *"divert to echo golf lima lima"* (the ICAO in phonetics) or
+*"we are diverting for weather"* — or press **Divert to …** on the OFP page's Diversion card.
+The new destination replaces the plan's everywhere: the distance and ETA on Flight Status and
+the Flight Monitor, the weather cards and the destination weather watch, the arrival briefing
+(set the new destination in the MCDU, then *"brief the arrival"*), the GSX arrival gate, the fuel
+check (back to burn × time to the new ETA) and, after landing, the logbook (*EGLL → LIRN · DIV*),
+the debrief and the day's leg (*planned LIRF, flew LIRN*). The FO says *"Diverting to Naples.
+Arrival briefing for Naples when you're ready."* and offers the RAD NAV retune (*"tune the
+ILS"*, the normal gate with its cancel window) when MCDU actuation is on and *"request
+diversion"* when SayIntentions is on. The company receives *DIVERSION LIRN REASON WEATHER* in
+the MCDU RCVD MSGS and answers *ROGER DIVERSION, HANDLING ARRANGED LIRN, CALL ON BLOCKS*. Say
+*"cancel the diversion"* to go back to the plan. A new OFP ends the diversion by itself.
+
 ## Briefings, radios, FCU
 
 - *"Brief the departure"* / *"brief the arrival"* — composed from the FMS plan, Navigraph

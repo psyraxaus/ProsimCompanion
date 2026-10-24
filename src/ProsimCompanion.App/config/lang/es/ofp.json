@@ -70,6 +70,32 @@
       },
       "menuHint": "Cuando GSX muestre 'Select pushback direction' con las líneas propias del stand, elige una aquí — sin abrir la ventana de GSX."
     },
+    "diversion": {
+      "title": "Desvío",
+      "active": "DESVIANDO",
+      "none": "SEGÚN PLAN",
+      "to": "A",
+      "from": "Planeado",
+      "reason": "Motivo",
+      "declared": "Declarado",
+      "offers": "El FO ofrece",
+      "cancel": "Cancelar desvío",
+      "divertToAlternate": "Desviar a {0}",
+      "divert": "Desviar",
+      "icao": "ICAO del aeropuerto de desvío",
+      "offer": {
+        "briefing": "briefing de llegada",
+        "radNav": "resintonizar RAD NAV",
+        "atc": "petición ATC"
+      },
+      "reasons": {
+        "weather": "Meteorología",
+        "technical": "Técnico",
+        "medical": "Médico",
+        "fuel": "Combustible",
+        "other": "Otro"
+      }
+    },
     "deice": {
       "title": "Holdover de deshielo (HOT)",
       "oat.aria": "Temperatura exterior",

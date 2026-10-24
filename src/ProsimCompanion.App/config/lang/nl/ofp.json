@@ -70,6 +70,32 @@
       },
       "menuHint": "Toont GSX 'Select pushback direction' met de eigen benoemde lijnen van de stand, kies er dan hier een — het GSX-venster hoeft niet open."
     },
+    "diversion": {
+      "title": "Uitwijking",
+      "active": "UITWIJKEN",
+      "none": "VOLGENS PLAN",
+      "to": "Naar",
+      "from": "Gepland",
+      "reason": "Reden",
+      "declared": "Verklaard",
+      "offers": "De FO biedt aan",
+      "cancel": "Uitwijking annuleren",
+      "divertToAlternate": "Uitwijken naar {0}",
+      "divert": "Uitwijken",
+      "icao": "ICAO van de uitwijkhaven",
+      "offer": {
+        "briefing": "arrival-briefing",
+        "radNav": "RAD NAV opnieuw instellen",
+        "atc": "ATC-verzoek"
+      },
+      "reasons": {
+        "weather": "Weer",
+        "technical": "Technisch",
+        "medical": "Medisch",
+        "fuel": "Brandstof",
+        "other": "Anders"
+      }
+    },
     "deice": {
       "title": "De-icing holdover (HOT)",
       "oat.aria": "Buitentemperatuur",

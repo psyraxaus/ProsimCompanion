@@ -62,6 +62,8 @@ public static class CoreServiceCollectionExtensions
         services.AddOptionSection<AircraftLimitsOptions>(configuration);
         // The captain's fuel decision and the holding-time advice (issue #183).
         services.AddOptionSection<FuelOptions>(configuration);
+        // The diversion workflow switch (issue #184).
+        services.AddOptionSection<FlightOptions>(configuration);
         services.AddOptionSection<LoggingOptions>(configuration);
         services.AddOptionSection<AircraftProfilesOptions>(configuration);
         services.AddOptionSection<UpdateCheckOptions>(configuration);
@@ -219,6 +221,9 @@ public static class CoreServiceCollectionExtensions
         services.AddSingleton<WebListenerStatus>();
         services.AddSingleton<ArrivalMinimaStore>();
         services.AddSingleton<Aircraft.Ofp.OfpStore>();
+        // The diversion for this flight (issue #184): overlays the OFP store's destination so
+        // every consumer follows the aircraft through the one Changed edge.
+        services.AddSingleton<DiversionStore>();
         // ofp.loaded session event (issue #164): the planned route on record whether or not a
         // briefing is ever spoken — the extractor's fallback for logbook/debrief/duty-day legs.
         services.AddHostedService<Aircraft.Ofp.OfpEventRecorder>();

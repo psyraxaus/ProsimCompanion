@@ -11,6 +11,7 @@
     "logoTitle": "設定 → 外観 でこの航空会社のロゴをアップロードしてください",
     "logoPlaceholder": "航空会社ロゴ",
     "noFlightPlan": "フライトプランなし",
+    "diverted": "ダイバート — 元は {0}",
     "fetchOfp": "INIT ページで OFP を取得してください",
     "gateLabel": {
       "gate": "ゲート",

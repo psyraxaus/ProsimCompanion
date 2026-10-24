@@ -11,6 +11,7 @@
     "logoTitle": "설정 → 모양에서 이 항공사의 로고를 올리세요",
     "logoPlaceholder": "항공사 로고",
     "noFlightPlan": "비행 계획 없음",
+    "diverted": "회항 — 원래 {0}",
     "fetchOfp": "INIT 페이지에서 OFP를 가져오세요",
     "gateLabel": {
       "gate": "게이트",

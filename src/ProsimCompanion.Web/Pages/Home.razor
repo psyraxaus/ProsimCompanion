@@ -184,6 +184,9 @@
                 <span class="fs-progress-note">@FlightMonitorPresentation.ProgressCaption(T, _progress)</span>
             </div>
         </section>
+        @* The diversion for this flight (issue #184), under the hero while one is declared or
+           the feature is on. *@
+        <DiversionCard />
         break;
 
         case FlightStatusTiles.Sequence:

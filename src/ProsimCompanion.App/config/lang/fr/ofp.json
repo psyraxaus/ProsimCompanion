@@ -70,6 +70,32 @@
       },
       "menuHint": "Quand GSX affiche 'Select pushback direction' avec les lignes nommées propres au poste, choisis-en une ici — inutile d'ouvrir la fenêtre GSX."
     },
+    "diversion": {
+      "title": "Déroutement",
+      "active": "DÉROUTEMENT",
+      "none": "SELON PLAN",
+      "to": "Vers",
+      "from": "Prévu",
+      "reason": "Motif",
+      "declared": "Déclaré",
+      "offers": "Le FO propose",
+      "cancel": "Annuler le déroutement",
+      "divertToAlternate": "Dérouter vers {0}",
+      "divert": "Dérouter",
+      "icao": "OACI de l'aéroport de déroutement",
+      "offer": {
+        "briefing": "briefing arrivée",
+        "radNav": "réglage RAD NAV",
+        "atc": "demande ATC"
+      },
+      "reasons": {
+        "weather": "Météo",
+        "technical": "Technique",
+        "medical": "Médical",
+        "fuel": "Carburant",
+        "other": "Autre"
+      }
+    },
     "deice": {
       "title": "Holdover dégivrage (HOT)",
       "oat.aria": "Température extérieure",

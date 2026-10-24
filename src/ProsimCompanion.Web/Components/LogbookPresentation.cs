@@ -121,7 +121,9 @@ public static class LogbookPresentation
         ArgumentNullException.ThrowIfNull(flight);
         var origin = string.IsNullOrWhiteSpace(flight.Origin) ? null : flight.Origin;
         var destination = string.IsNullOrWhiteSpace(flight.Destination) ? null : flight.Destination;
-        return origin is null && destination is null ? "—" : $"{origin ?? "?"} → {destination ?? "?"}";
+        // Issue #184: a diverted flight names where it went, and that it was not the plan.
+        var diverted = flight.Diverted ? " · DIV" : "";
+        return origin is null && destination is null ? "—" : $"{origin ?? "?"} → {destination ?? "?"}{diverted}";
     }
 
     /// <summary>"-180" / "—": whole feet per minute, sign kept (a touchdown rate is negative).</summary>

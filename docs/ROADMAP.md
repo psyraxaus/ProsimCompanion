@@ -898,6 +898,24 @@ duties. New features default **off** and are **Unverified live** until a flight 
       the hero `Holding` item, the fact sheet lines. Events `fuel.decision`, `fuel.extraApplied`,
       `fuel.holdingAvailableMinutes`; probe `fuel-holding-time`. **Unverified live** — the TAF
       text the SI cache / ActiveSky snapshot really carry, and the override → refuel-target chain.
+- [x] **Diversion workflow** (#184, `feature/diversion`): Core `DiversionStore` (active, new
+      destination + name, reason, declared-at, the original destination, the FO's offers) whose
+      Declare overlays `OfpStore` — `Current` = the plan with the new destination
+      (`OfpDiversion.WithDiversion`: navlog, planned arrival runway, planned landing fuel and
+      alternate dropped), `Planned` = as fetched; every destination consumer follows through the
+      `Changed` edge it already observes (progress key, weather-card planner, weather watch
+      baseline, briefing OFP tier, arrival-gate chain, fuel-check fallback, monitor strip).
+      `FlightOptions` (`flight.diversionEnabled`), `FlightCommandHandlers` (`flight.divert`
+      {icao, reason} / `flight.cancelDiversion`) over `IDiversionControl`, `IAcarsUplink` Core
+      seam (Prosim), `DebriefFacts.Diverted/PlannedDestination/DiversionReason` from
+      `flight.diverted` / `flight.diversionCancelled`, `LogbookFlight` fields + CSV columns, the
+      `{diversion}` ATC template value + the "request diversion" catalogue entry; Speech
+      `DiversionService` (precedence 145: phonetic / "alternate" / reason parse, the spoken
+      offers, gate cancel, ACARS downlink slot 05 + the company's spoken reply); the
+      `DiversionCard` on the OFP page and Flight Status. Events `flight.diverted`,
+      `flight.diversionCancelled`, `company.diversion`; probe `flight-diversion`. **Unverified
+      live** — the GSX gate chain's behaviour at the new airport and the restart case (the
+      snapshot persists the effective OFP; the card is empty after a restart) in particular.
 
 ## Open items (after the rc.5 batch, 2026-10-11)
 

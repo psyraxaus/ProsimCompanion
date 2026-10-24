@@ -36,6 +36,7 @@
     },
     "off": {
       "speechFo": "{0} está desactivado — Ajustes → Primer oficial por voz",
+      "diversion": "{0} está apagado — Ajustes → Display & Flight Data → Desvío",
       "mcdu": "{0} está desactivado — Ajustes → Primer oficial por voz → MCDU",
       "monitoring": "{0} está desactivado — Ajustes → Primer oficial por voz → Callouts y placards → Vigilancia en vuelo",
       "gsxSettings": "{0} está desactivado — Ajustes → GSX",
@@ -128,6 +129,11 @@
         "departure": "Briefing de salida a partir del plan del FMS, la navdata y el tiempo en vivo.",
         "arrival": "Briefing de llegada — el FO te pide confirmar primero los mínimos.",
         "approaches": "Las aproximaciones de la navdata para la pista de llegada."
+      },
+      "diversion": {
+        "title": "Desvío",
+        "divert": "Declara el desvío: el nuevo destino sustituye al del plan en todas las páginas y las ofertas del FO siguen.",
+        "cancel": "Vuelta al destino planeado."
       },
       "missedApproach": {
         "title": "Aproximación frustrada",

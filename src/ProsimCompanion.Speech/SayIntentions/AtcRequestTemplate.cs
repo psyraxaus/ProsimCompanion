@@ -9,10 +9,12 @@ namespace ProsimCompanion.Speech.SayIntentions;
 /// <param name="Runway">flight.json <c>flight_plan_departing_runway</c>.</param>
 /// <param name="Airport">flight.json <c>current_airport</c>.</param>
 /// <param name="Origin">flight.json <c>flight_origin</c>.</param>
-internal sealed record AtcRequestValues(string? Callsign, string? Gate, string? Runway, string? Airport, string? Origin);
+/// <param name="Diversion">The diversion destination ICAO while one is declared (issue #184); blank otherwise, so a
+/// "request diversion to {diversion}" clause is dropped whole when there is none.</param>
+internal sealed record AtcRequestValues(string? Callsign, string? Gate, string? Runway, string? Airport, string? Origin, string? Diversion = null);
 
 /// <summary>
-/// Fills an atc-requests.json template (<c>{callsign} {gate} {runway} {airport} {origin}</c>).
+/// Fills an atc-requests.json template (<c>{callsign} {gate} {runway} {airport} {origin} {diversion}</c>).
 /// Issue #140: every request of the 2026-10-10 flight went out as "Ground, Finnair-one-three-
 /// six-one, stand , request push and start" because SayIntentions had no stand text yet and
 /// the old fill left the label and its comma behind. The rule now: a template is a list of
@@ -86,6 +88,7 @@ internal static partial class AtcRequestTemplate
         "runway" => values.Runway?.Trim() ?? "",
         "airport" => values.Airport?.Trim() ?? "",
         "origin" => values.Origin?.Trim() ?? "",
+        "diversion" => values.Diversion?.Trim() ?? "",
         _ => null,
     };
 

@@ -11,7 +11,7 @@ namespace ProsimCompanion.Prosim.Acars;
 /// result dataref (<c>efb.aoc.message.uplink.result</c>, "Message processed" on success) is
 /// diagnostics-only — the predecessor never gated on it and neither do we.
 /// </summary>
-public sealed class AcarsUplink
+public sealed class AcarsUplink : IAcarsUplink
 {
     private readonly IProsimGateway _gateway;
     private readonly ILogger<AcarsUplink> _logger;

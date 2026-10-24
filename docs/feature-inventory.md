@@ -134,6 +134,10 @@ through with a note if deliberately dropped. Sources: Prosim2GSX 0.9.0, ProsimIn
       `MinimaCaptureDialogue` + the /speech card; emergency brief — RTO split, EFATO with the
       DFD EOSID, acceleration/thrust-reduction altitudes, MSA, return, threat list — and the
       "any other threats?" question, plus the arrival go-around clauses, #180, off by default)
+- [x] Diversion workflow (#184, off): "divert to …" / `flight.divert` / the Diversion card
+      overlay the OFP destination so progress, weather, briefing, GSX gate, fuel check, logbook
+      and day follow; FO offers (briefing, RAD NAV via the existing tuner gate, ATC request);
+      ACARS downlink + company reply
 - [x] SayIntentions ATC requests + departure comms gating + radio management
       (standby-then-swap)
 - [x] SayIntentions wrong-frequency report (COM1 vs ATC's last "Contact … on …"; said once,

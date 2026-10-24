@@ -170,3 +170,13 @@ they come from `SayIntentionsFrequencyMonitor`'s history poll (20 s), which now 
 either feature is on, and only while the copilot owns the radios. Unverified live: whether
 the SI copilot really goes quiet on `SIAI_COPILOT=0` mid-taxi and resumes on 1, and whether
 the FO's own "I have the radios." line survives the self-echo guard. Probe `si-comms-handover`.
+
+## Diversion request (issue #184, 2026-10-24)
+
+`{diversion}` is a sixth template value: the diversion destination ICAO while one overlays the
+OFP (`OfpStore.IsDiverted`), blank otherwise — so the shipped "request diversion" entry
+(`{callsign}, request diversion to {diversion}`, station Center, commType `CENTER`) drops its
+clause whole when no diversion is declared, like every other missing token. The FO offers the
+phrase after a diversion when `sayIntentions.enabled` is on. **Unverified live**: whether
+SayIntentions' getWX comms list carries a `CENTER` type for the auto-tune — the request is
+spoken on the tuned COM1 either way.

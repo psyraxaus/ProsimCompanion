@@ -163,27 +163,58 @@ public sealed record OfpFix(
 public sealed class OfpStore
 {
     private readonly object _lock = new();
-    private OfpData? _current;
+    private OfpData? _planned;
+    private (string Icao, string? Name)? _diversion;
 
     public event EventHandler? Changed;
 
+    /// <summary>The OFP as every consumer should read it: the plan, or — with a diversion
+    /// declared (issue #184) — the plan overlaid with the new destination.</summary>
     public OfpData? Current
     {
         get
         {
             lock (_lock)
             {
-                return _current;
+                return _planned is { } planned && _diversion is { } diversion
+                    ? planned.WithDiversion(diversion.Icao, diversion.Name)
+                    : _planned;
             }
         }
     }
 
+    /// <summary>The OFP as fetched, diversion or not.</summary>
+    public OfpData? Planned
+    {
+        get
+        {
+            lock (_lock)
+            {
+                return _planned;
+            }
+        }
+    }
+
+    /// <summary>True while a diversion overlays the plan.</summary>
+    public bool IsDiverted
+    {
+        get
+        {
+            lock (_lock)
+            {
+                return _diversion is not null;
+            }
+        }
+    }
+
+    /// <summary>A new plan. A standing diversion is dropped: a fresh OFP is a new leg.</summary>
     public void Set(OfpData ofp)
     {
         ArgumentNullException.ThrowIfNull(ofp);
         lock (_lock)
         {
-            _current = ofp;
+            _planned = ofp;
+            _diversion = null;
         }
         Changed?.Invoke(this, EventArgs.Empty);
     }
@@ -192,8 +223,62 @@ public sealed class OfpStore
     {
         lock (_lock)
         {
-            _current = null;
+            _planned = null;
+            _diversion = null;
         }
         Changed?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>Overlays the plan with a diversion destination (issue #184); every consumer
+    /// sees it through <see cref="Current"/> and the <see cref="Changed"/> edge.</summary>
+    public void ApplyDiversion(string icao, string? name)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(icao);
+        lock (_lock)
+        {
+            _diversion = (icao.Trim().ToUpperInvariant(), name);
+        }
+        Changed?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>Back to the plan as fetched.</summary>
+    public void ClearDiversion()
+    {
+        lock (_lock)
+        {
+            if (_diversion is null)
+            {
+                return;
+            }
+
+            _diversion = null;
+        }
+        Changed?.Invoke(this, EventArgs.Empty);
+    }
+}
+
+/// <summary>Diversion overlay rules (issue #184), pure so the table test owns them.</summary>
+public static class OfpDiversion
+{
+    /// <summary>The plan with the destination replaced. The navlog, the planned arrival runway,
+    /// the planned landing fuel and the alternate belong to the OLD destination and are dropped —
+    /// the fuel check then falls back to burn × time to the new ETA, the weather cards show the
+    /// new destination alone, and the briefing's OFP tier has no runway to offer until the FMS
+    /// has one. Everything about the aircraft, the load and the origin is kept.</summary>
+    public static OfpData WithDiversion(this OfpData planned, string icao, string? name)
+    {
+        ArgumentNullException.ThrowIfNull(planned);
+        ArgumentException.ThrowIfNullOrWhiteSpace(icao);
+        return planned with
+        {
+            DestinationIcao = icao.Trim().ToUpperInvariant(),
+            DestinationIata = "",
+            DestinationName = name ?? "",
+            PlannedRunwayIn = "",
+            AlternateIcao = "",
+            AlternateName = "",
+            FuelPlanLandingKg = 0,
+            Navlog = [],
+        };
     }
 }

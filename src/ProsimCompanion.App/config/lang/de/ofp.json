@@ -70,6 +70,32 @@
       },
       "menuHint": "Zeigt GSX 'Select pushback direction' mit den eigenen benannten Linien des Stands, wähle hier eine — das GSX-Fenster muss nicht geöffnet werden."
     },
+    "diversion": {
+      "title": "Diversion",
+      "active": "AUSWEICHEN",
+      "none": "NACH PLAN",
+      "to": "Nach",
+      "from": "Geplant",
+      "reason": "Grund",
+      "declared": "Erklärt",
+      "offers": "Der FO bietet an",
+      "cancel": "Diversion abbrechen",
+      "divertToAlternate": "Nach {0} ausweichen",
+      "divert": "Ausweichen",
+      "icao": "ICAO des Ausweichflughafens",
+      "offer": {
+        "briefing": "Arrival-Briefing",
+        "radNav": "RAD-NAV-Umstellung",
+        "atc": "ATC-Anfrage"
+      },
+      "reasons": {
+        "weather": "Wetter",
+        "technical": "Technisch",
+        "medical": "Medizinisch",
+        "fuel": "Kraftstoff",
+        "other": "Sonstiges"
+      }
+    },
     "deice": {
       "title": "Enteisung Holdover (HOT)",
       "oat.aria": "Außentemperatur",

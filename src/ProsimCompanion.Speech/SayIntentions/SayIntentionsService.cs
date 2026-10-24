@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using ProsimCompanion.Core.Aircraft.Ofp;
 using ProsimCompanion.Core.Airports;
 using ProsimCompanion.Core.Checklists;
 using ProsimCompanion.Core.Configuration;
@@ -61,6 +62,7 @@ public sealed class SayIntentionsService : IVoiceFeature, Core.Hosting.IStartupM
     private readonly ISpeechArbiter _arbiter;
     private readonly JsonlEventLog _eventLog;
     private readonly ILogger<SayIntentionsService> _logger;
+    private readonly OfpStore? _ofp; // issue #184: the {diversion} template value
     private readonly Core.State.ConfigProblemStore? _configProblems;
     private readonly IFlightPhaseSource? _phase;
     private readonly RunwayLocator? _runways;
@@ -122,13 +124,15 @@ public sealed class SayIntentionsService : IVoiceFeature, Core.Hosting.IStartupM
         IDepartureRunwaySource? departureRunway = null,
         PushbackChoiceStore? pushback = null,
         GsxDiagnosticsStore? gsx = null,
-        SayIntentionsFrequencyMonitor? frequencyMonitor = null)
+        SayIntentionsFrequencyMonitor? frequencyMonitor = null,
+        OfpStore? ofp = null)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(arbiter);
         ArgumentNullException.ThrowIfNull(eventLog);
         ArgumentNullException.ThrowIfNull(logger);
 
+        _ofp = ofp;
         _options = options;
         _arbiter = arbiter;
         _eventLog = eventLog;
@@ -413,7 +417,10 @@ public sealed class SayIntentionsService : IVoiceFeature, Core.Hosting.IStartupM
             standFrom = "gsx";
         }
 
-        return (new AtcRequestValues(flight.Callsign, gate, flight.DepartureRunway, flight.Airport, flight.Origin), standFrom);
+        // Issue #184: the diversion destination while one overlays the OFP; blank otherwise, so
+        // the "request diversion to {diversion}" entry is dropped whole without one.
+        var diversion = _ofp is { IsDiverted: true } ? _ofp.Current?.DestinationIcao : null;
+        return (new AtcRequestValues(flight.Callsign, gate, flight.DepartureRunway, flight.Airport, flight.Origin, diversion), standFrom);
     }
 
     /// <summary>The departure stand as GSX knows it: the pushback advisor's resolved stand
