@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased (feature/cockpit-switches)
+
+- New: **vJoy relay — ChasePlane views from a Stream Deck on another PC** (owner request 2026-10-24). A virtual joystick exists only on the PC that presses it and ChasePlane has no network interface, so a remote key now asks the app to press a **vJoy** button on the sim PC: commands `input.vjoyPress {"button":5}` and `input.pressView {"name":"wing"}`, Settings → Setup → **vJoy relay** (switch, DLL path with Browse, device number, hold time, a **Check** button with the driver/device state, and view rows *name | vJoy button | Press | ×* in one grid, with a warning when two rows share a name or a button). Needs the vJoy driver on the sim PC; `vJoyInterface.dll` is loaded from its folder at first use and never shipped. One press at a time, press → hold → release in a `finally`, device released on settings change and exit, no winmm/dinput anywhere. Session event `input.vjoy`. **Unverified live** (no vJoy on the dev machine; the SDK signatures come from `vjoyinterface.h`).
+
 ## 0.8.0-rc.2
 
 The two cross-package wires the package branches could not carry (each package lived on its own branch), 2026-10-24, local release-candidate build for the owner's sim test; **not yet verified live**. No new options; both ride on existing switches.

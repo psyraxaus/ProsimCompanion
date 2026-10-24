@@ -91,6 +91,31 @@
       "commandApi": { "label": "API de commandes", "hint": "Nécessaire au plugin Stream Deck. Exige toujours le jeton d'accès.", "more": "Permet à des outils externes d'envoyer des commandes GSX, check-list et devis de masse via le serveur web." },
       "pairHint": "Pour appairer le plugin, colle le lien d'intégration de la fenêtre de bureau dans les réglages de n'importe quelle touche. Les touches affichant \"API off\" se rétablissent d'elles-mêmes une fois ceci enregistré."
     },
+    "inputRelay": {
+      "title": "Relais vJoy (vues ChasePlane depuis un autre PC)",
+      "hint": "Appliqué immédiatement",
+      "enable": { "label": "Relais vJoy", "hint": "Permet à une touche distante d'appuyer sur un bouton d'un joystick virtuel vJoy sur ce PC. Associe les vues ChasePlane à ces boutons.", "more": "Nécessite le pilote vJoy sur ce PC (vjoystick.sourceforge.net ou le fork maintenu) avec un périphérique ayant assez de boutons. Rien n'est chargé tant que c'est désactivé." },
+      "dll": { "label": "vJoyInterface.dll", "hint": "Laisse vide pour utiliser le dossier du pilote (C:\\Program Files\\vJoy\\x64). Doit être la DLL 64 bits." },
+      "device": { "label": "Périphérique vJoy", "hint": "Le numéro de périphérique que cette application acquiert (1–16). Un propriétaire par périphérique : choisis-en un qu'aucun autre programme n'utilise." },
+      "hold": { "label": "Durée d'appui", "hint": "Combien de temps un appui relayé maintient le bouton." },
+      "status": "État",
+      "statusHint": "Vérifier charge la DLL et acquiert le périphérique avec les réglages enregistrés. Enregistre d'abord.",
+      "state": { "off": "ARRÊT", "notInstalled": "PAS DE PILOTE", "deviceMissing": "PAS DE PÉRIPHÉRIQUE", "deviceBusy": "PÉRIPHÉRIQUE OCCUPÉ", "ready": "PRÊT", "failed": "ÉCHEC" },
+      "lastPress": "Dernier appui : {0} à {1} UTC",
+      "check": "Vérifier",
+      "col": { "name": "Vue", "button": "Bouton vJoy", "test": "Test" },
+      "duplicate": "Deux lignes partagent {0} — une touche distante n'atteint que la première.",
+      "view": {
+        "name": { "label": "Nom", "hint": "Ce que la touche distante envoie : input.pressView {\"name\":\"wing\"}." },
+        "button": { "label": "Bouton vJoy", "hint": "Le bouton auquel ChasePlane a associé cette vue (1–128)." }
+      },
+      "press": "Appuyer",
+      "pressHint": "Appuie maintenant sur ce bouton via le relais avec les réglages enregistrés. ChasePlane devrait changer de vue.",
+      "remove": "Retirer",
+      "noViews": "Aucune vue pour l'instant. Ajoute-en une par vue ChasePlane, avec un nom et le numéro de bouton vJoy.",
+      "addView": "Ajouter une vue",
+      "commandsHint": "Commandes :"
+    },
     "wake": {
       "titleNumbered": "PC Wake-on-LAN {0}",
       "titleNamed": "Wake-on-LAN — {0}",

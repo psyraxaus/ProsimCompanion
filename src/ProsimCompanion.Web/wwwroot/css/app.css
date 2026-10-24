@@ -2081,3 +2081,23 @@ split-flap { display: inline-flex; align-items: center; justify-content: center;
 /* French pushback legends ("QUEUE À GAUCHE") at 8 px keep the three Korry tiles on one row
    of the OFP side column (2026-10-17). */
 :lang(fr) .korry-legend-text, :lang(fr) .korry-subtitle { font-size: 8px; }
+
+/* vJoy relay view rows (2026-10-24): the audio mapping editor's shape — Name | button | Press | remove. */
+.vjoy-view-header,
+.vjoy-view-row {
+  display: grid;
+  grid-template-columns: minmax(140px, 1.4fr) 90px 90px 32px;
+  gap: 8px;
+  align-items: center;
+  padding: 4px 0;
+  max-width: 560px;
+}
+.vjoy-view-header {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+}
+.vjoy-view-row .cell-input { width: 100%; min-width: 0; }
+.cell-input.invalid, .cell-input.invalid:focus { border-color: var(--danger); box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.25); }

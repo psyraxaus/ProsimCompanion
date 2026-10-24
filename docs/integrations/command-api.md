@@ -67,6 +67,8 @@ Naming convention: dotted lowercase area + camelCase verb — `gsx.forceNextServ
 | `speech.pauseListening` | — | Pilot "ear off" latch: stops speech recognition (the FO still speaks) so the pilot can talk to a real person. Sits below every other listen input (window, PTT, mic borrow) in the recognition controller. Silent — no FO acknowledgement. Runtime state only: cleared by an app restart. `alreadySatisfied` when already paused. |
 | `speech.resumeListening` | — | Clears the latch; `alreadySatisfied` when not paused. |
 | `speech.toggleListening` | — | The one-key Stream Deck flow (Voice Pause action); the reason text names the NEW state. |
+| `input.vjoyPress` | `{"button":5,"holdMs":150}` | vJoy relay (2026-10-24, `inputRelay` section, off by default): press-and-release button 1–128 of the configured vJoy device on THIS PC, so ChasePlane views bound to vJoy buttons can be changed from a second PC (PilotsDeck/Stream Deck key → this command). `holdMs` optional (20–2000; default `inputRelay.holdMs`). `unavailable` while the relay is off or the Sim pillar absent; `preconditionFailed` with the cause when the driver/DLL is missing, the device does not exist or is owned by another program, or the button is beyond the device's count. Session event `input.vjoy`. |
+| `input.pressView` | `{"name":"wing"}` | The same press by the name of a row on Settings → Setup → vJoy relay (case-insensitive); unknown name → `preconditionFailed` listing the known names. |
 
 ## Outcome → HTTP status
 
@@ -93,11 +95,13 @@ Settings section `commandApi` (`CommandApiOptions`):
   (where loopback always passes so the local UI can never be locked out): any local process can
   reach loopback, and "any local process may actuate the aircraft" is not an acceptable default.
 
-Credentials (both fixed-time compared; the token is the `webUi.accessToken` and is never
+Credentials (all fixed-time compared; the token is the `webUi.accessToken` and is never
 logged):
 
 - `Authorization: Bearer <token>` header — the Stream Deck/scripting path, or
 - the `prosimcompanion-token` cookie an onboarded browser session already carries.
+
+Never a token in a query string on an API route — a URL ends up in client logs and histories.
 
 Non-loopback requests additionally pass through `LanTokenMiddleware` first, unchanged.
 

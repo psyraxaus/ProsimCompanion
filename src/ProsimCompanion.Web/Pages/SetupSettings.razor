@@ -13,6 +13,8 @@
 @inject IOptionsMonitor<WeatherOptions> WeatherMonitor
 @inject IOptionsMonitor<UpdateCheckOptions> UpdateCheckMonitor
 @inject IOptionsMonitor<WakeTargetsOptions> WakeMonitor
+@inject IOptionsMonitor<InputRelayOptions> InputRelayMonitor
+@inject IInputRelay InputRelay
 @inject IWakeOnLanControl WakeControl
 @inject ProfileGsxMirror ProfileMirror
 @inject WebListenerStatus ListenerStatus
@@ -165,6 +167,77 @@
     </div>
 </Section>
 
+@* vJoy input relay (2026-10-24, owner option A): a remote key asks this PC to press a vJoy
+   button, so ChasePlane views bound to vJoy buttons can be changed from the second PC. The
+   view rows name buttons for input.pressView; the raw input.vjoyPress needs no row. *@
+<Section Title="@T["setup.inputRelay.title"]" Hint="@T["setup.inputRelay.hint"]">
+    <OptionField Draft="_inputRelay" For="o => o.Enabled" />
+    <OptionField Draft="_inputRelay" For="o => o.VJoyInterfacePath" />
+    <OptionField Draft="_inputRelay" For="o => o.VJoyDevice" />
+    <AdvancedFields>
+        <OptionField Draft="_inputRelay" For="o => o.HoldMs" />
+    </AdvancedFields>
+    <div class="field" style="align-items:center;">
+        <label class="field-label">
+            @T["setup.inputRelay.status"]
+            <FieldHint Hint="@InputRelayHint" />
+        </label>
+        <div class="field-control" style="display:flex; align-items:center; gap:10px; justify-content:flex-end; flex-wrap:wrap;">
+            <span class="pill @InputRelayTone">@InputRelayLabel</span>
+            <span class="field-hint" style="margin:0;">@InputRelayDetail</span>
+            <button type="button" class="btn primary" style="padding:4px 12px;" disabled="@_inputRelayBusy"
+                    @onclick="CheckInputRelayAsync">@(_inputRelayBusy ? "…" : T["setup.inputRelay.check"].Value)</button>
+        </div>
+    </div>
+    @* The view rows as one compact grid (owner request 2026-10-24), the audio mapping editor's
+       shape: Name | vJoy button | Press | ×. Press works on the SAVED settings, so it waits
+       while the draft is dirty; the last press's answer shows once under the grid. *@
+    @if (_inputRelay.Value.Views.Count == 0)
+    {
+        <div class="empty">@T["setup.inputRelay.noViews"]</div>
+    }
+    else
+    {
+        <div class="vjoy-view-header">
+            <span>@T["setup.inputRelay.col.name"]</span>
+            <span>@T["setup.inputRelay.col.button"]</span>
+            <span title="@T["setup.inputRelay.pressHint"]">@T["setup.inputRelay.col.test"]</span>
+            <span></span>
+        </div>
+        @for (var i = 0; i < _inputRelay.Value.Views.Count; i++)
+        {
+            var index = i;
+            var view = _inputRelay.Value.Views[index];
+            <div class="vjoy-view-row">
+                <input class="cell-input @(string.IsNullOrWhiteSpace(view.Name) ? "invalid" : "")" placeholder="wing"
+                       title="@T["setup.inputRelay.view.name.hint"]" @bind="view.Name" />
+                <input type="number" min="1" max="128" class="cell-input @(view.Button is < 1 or > 128 ? "invalid" : "")"
+                       title="@T["setup.inputRelay.view.button.hint"]" @bind="view.Button" />
+                <button type="button" class="btn secondary" style="padding:3px 10px;" title="@T["setup.inputRelay.pressHint"]"
+                        disabled="@(_inputRelayBusy || _inputRelay.IsDirty || view.Button is < 1 or > 128)"
+                        @onclick="() => PressViewAsync(index)">@T["setup.inputRelay.press"]</button>
+                <button type="button" class="remove-btn" title="@T["setup.inputRelay.remove"]" aria-label="@T["setup.inputRelay.remove"]"
+                        @onclick="() => _inputRelay.Value.Views.RemoveAt(index)">×</button>
+            </div>
+        }
+    }
+    <div style="margin-top:8px; display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+        <button type="button" class="btn secondary" @onclick="AddView">@T["setup.inputRelay.addView"]</button>
+        @if (_inputRelayPressResult.Length > 0)
+        {
+            <span class="field-hint" style="margin:0;">@_inputRelayPressResult</span>
+        }
+    </div>
+    @foreach (var duplicate in DuplicateViews())
+    {
+        <div class="field-hint field-hint-warn" style="margin-top:8px; max-width:640px;">@T["setup.inputRelay.duplicate", duplicate]</div>
+    }
+    <div class="field-hint" style="max-width:640px;">
+        @T["setup.inputRelay.commandsHint"] <code>input.pressView {"name":"wing"}</code>, <code>input.vjoyPress {"button":5}</code>
+        — Lua: <code>PSC_View("wing")</code>, <code>PSC_VJoy(5)</code>
+    </div>
+</Section>
+
 @* Wake-on-LAN (owner idea 2026-10-08): one list of PCs instead of one switch per feature.
    The old briefing.llmWakeOnLan block is migrated into the list on this page's first load
    (SetupPageRules.MigrateLegacyWake) and saved with the dirty bar. *@
@@ -235,8 +308,107 @@
     private OptionsDraft<WeatherOptions> _weather = default!;
     private OptionsDraft<UpdateCheckOptions> _updateCheck = default!;
     private OptionsDraft<WakeTargetsOptions> _wake = default!;
+    private OptionsDraft<InputRelayOptions> _inputRelay = default!;
     private readonly Dictionary<int, string> _wakeResults = [];
     private bool _gsxChanged;
+
+    // ---- vJoy input relay card (2026-10-24) ----
+    private string _inputRelayPressResult = "";
+    private bool _inputRelayBusy;
+
+    // Rows that share a name (case-insensitive) or a button: a remote key would hit the first
+    // match and the pilot would wonder why "tail" shows the wing. Mirrors the audio page's
+    // shared-target warning.
+    private IEnumerable<string> DuplicateViews()
+    {
+        var views = _inputRelay.Value.Views;
+        var names = views
+            .Select(v => v.Name.Trim())
+            .Where(n => n.Length > 0)
+            .GroupBy(n => n, StringComparer.OrdinalIgnoreCase)
+            .Where(g => g.Count() > 1)
+            .Select(g => $"\"{g.Key}\"");
+        var buttons = views
+            .GroupBy(v => v.Button)
+            .Where(g => g.Count() > 1)
+            .Select(g => T["setup.inputRelay.col.button"].Value + " " + g.Key.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        return names.Concat(buttons);
+    }
+
+    private InputRelaySnapshot RelayNow => InputRelay.Snapshot();
+
+    private string InputRelayLabel => RelayNow.State switch
+    {
+        InputRelayState.Ready => T["setup.inputRelay.state.ready"].Value,
+        InputRelayState.NotInstalled => T["setup.inputRelay.state.notInstalled"].Value,
+        InputRelayState.DeviceMissing => T["setup.inputRelay.state.deviceMissing"].Value,
+        InputRelayState.DeviceBusy => T["setup.inputRelay.state.deviceBusy"].Value,
+        InputRelayState.Failed => T["setup.inputRelay.state.failed"].Value,
+        _ => T["setup.inputRelay.state.off"].Value,
+    };
+
+    private string InputRelayTone => RelayNow.State switch
+    {
+        InputRelayState.Ready => "tone-ok",
+        InputRelayState.Off => "tone-neutral",
+        _ => "tone-bad",
+    };
+
+    // The relay's own words (English, like the wake-on-LAN verdicts): the Check button's
+    // outcome, else the last press.
+    private string InputRelayDetail => RelayNow switch
+    {
+        { State: InputRelayState.Ready, LastPressUtc: { } at, LastPressLabel: { } label }
+            => T["setup.inputRelay.lastPress", label, at.ToString("HH:mm:ss")].Value,
+        { Detail.Length: > 0 } snapshot => snapshot.Detail,
+        _ => "",
+    };
+
+    private string InputRelayHint => T["setup.inputRelay.statusHint"].Value;
+
+    private async Task CheckInputRelayAsync()
+    {
+        _inputRelayBusy = true;
+        try
+        {
+            await InputRelay.ProbeAsync();
+        }
+        finally
+        {
+            _inputRelayBusy = false;
+        }
+    }
+
+    // A new row takes the lowest button no row uses yet, so three Add clicks give 1, 2, 3.
+    private void AddView()
+    {
+        var used = _inputRelay.Value.Views.Select(v => v.Button).ToHashSet();
+        var next = Enumerable.Range(1, 128).FirstOrDefault(b => !used.Contains(b), 1);
+        _inputRelay.Value.Views.Add(new InputViewButton { Name = "", Button = next });
+    }
+
+    // Presses through the real seam (saved settings; the button is disabled while the draft is
+    // dirty so the row the pilot sees is the row that fires).
+    private async Task PressViewAsync(int index)
+    {
+        if (index >= _inputRelay.Value.Views.Count)
+        {
+            return;
+        }
+
+        var view = _inputRelay.Value.Views[index];
+        _inputRelayBusy = true;
+        try
+        {
+            var result = await InputRelay.PressAsync(view.Button, null, view.Name);
+            _inputRelayPressResult = result.Reason;
+        }
+        finally
+        {
+            _inputRelayBusy = false;
+        }
+    }
+
 
     // ---- the HTTPS listener's live state (ADR-0013): what the host actually bound at start.
     private WebListenerSnapshot Listener => ListenerStatus.Snapshot();
@@ -267,9 +439,11 @@
         _weather = Draft(WeatherMonitor);
         _updateCheck = Draft(UpdateCheckMonitor);
         _wake = Draft(WakeMonitor);
+        _inputRelay = Draft(InputRelayMonitor);
         SetupPageRules.MigrateLegacyWake(_briefing.Value, _wake.Value);
 
         Watch(SetupStore, snapshot => _setup = snapshot);
+        WatchChanged(h => InputRelay.Changed += h, h => InputRelay.Changed -= h, () => { });
         WatchChanged(h => Status.Changed += h, h => Status.Changed -= h, () => _prosimConnected = ProsimConnectedNow());
     }
 

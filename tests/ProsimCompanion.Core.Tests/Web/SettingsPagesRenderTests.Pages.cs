@@ -127,6 +127,11 @@ public sealed partial class SettingsPagesRenderTests
         Options(services, new UpdateCheckOptions { Enabled = !configured });
         Options(services, new WakeTargetsOptions { Targets = configured ? [new WakeTarget { Name = "LLM box", MacAddress = "AA:BB:CC:DD:EE:FF" }, new WakeTarget { Enabled = false }] : [] });
         services.AddSingleton(Mock.Of<IWakeOnLanControl>());
+        // vJoy relay card (2026-10-24): rows + the status pill in a non-Off state.
+        Options(services, new InputRelayOptions { Enabled = configured, Views = configured ? [new InputViewButton { Name = "Wing", Button = 5 }, new InputViewButton()] : [] });
+        services.AddSingleton(Mock.Of<IInputRelay>(relay => relay.Snapshot() == (configured
+            ? new InputRelaySnapshot(InputRelayState.Ready, "vJoy device 1 acquired — 32 buttons.", 32, DateTimeOffset.UtcNow, "Wing")
+            : InputRelaySnapshot.Off)));
         AddProfileMirror(services);
         services.AddSingleton<WebListenerStatus>();
         services.AddSingleton<ProsimSetupStore>();

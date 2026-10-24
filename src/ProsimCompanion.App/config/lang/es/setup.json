@@ -91,6 +91,31 @@
       "commandApi": { "label": "API de comandos", "hint": "Necesaria para el plugin de Stream Deck. Siempre necesita el token de acceso.", "more": "Permite que herramientas externas envíen comandos de GSX, listas de comprobación y hoja de carga a través del servidor web." },
       "pairHint": "Para emparejar el plugin, pega el enlace de incorporación de la ventana de escritorio en los ajustes de cualquier tecla. Las teclas que muestran \"API off\" se recuperan solas en cuanto esto se guarda."
     },
+    "inputRelay": {
+      "title": "Relé vJoy (vistas de ChasePlane desde otro PC)",
+      "hint": "Se aplica al instante",
+      "enable": { "label": "Relé vJoy", "hint": "Permite que una tecla remota pulse un botón de un joystick virtual vJoy en este PC. Asigna las vistas de ChasePlane a esos botones.", "more": "Necesita el controlador vJoy en este PC (vjoystick.sourceforge.net o el fork mantenido) con un dispositivo que tenga botones suficientes. Con esto apagado no se carga nada." },
+      "dll": { "label": "vJoyInterface.dll", "hint": "Déjalo vacío para usar la carpeta del controlador (C:\\Program Files\\vJoy\\x64). Debe ser la DLL de 64 bits." },
+      "device": { "label": "Dispositivo vJoy", "hint": "El número de dispositivo que adquiere esta app (1–16). Un propietario por dispositivo: elige uno que no use otro programa." },
+      "hold": { "label": "Duración de la pulsación", "hint": "Cuánto tiempo mantiene el botón una pulsación reenviada." },
+      "status": "Estado",
+      "statusHint": "Comprobar carga la DLL y adquiere el dispositivo con los ajustes guardados. Guarda primero.",
+      "state": { "off": "APAGADO", "notInstalled": "SIN CONTROLADOR", "deviceMissing": "SIN DISPOSITIVO", "deviceBusy": "DISPOSITIVO OCUPADO", "ready": "LISTO", "failed": "FALLO" },
+      "lastPress": "Última pulsación: {0} a las {1} UTC",
+      "check": "Comprobar",
+      "col": { "name": "Vista", "button": "Botón vJoy", "test": "Prueba" },
+      "duplicate": "Dos filas comparten {0}: una tecla remota solo acierta la primera.",
+      "view": {
+        "name": { "label": "Nombre", "hint": "Lo que envía la tecla remota: input.pressView {\"name\":\"wing\"}." },
+        "button": { "label": "Botón vJoy", "hint": "El botón al que ChasePlane tiene asignada esta vista (1–128)." }
+      },
+      "press": "Pulsar",
+      "pressHint": "Pulsa este botón ahora a través del relé con los ajustes guardados. ChasePlane debería cambiar de vista.",
+      "remove": "Quitar",
+      "noViews": "Aún no hay vistas. Añade una por vista de ChasePlane, con nombre y número de botón vJoy.",
+      "addView": "Añadir vista",
+      "commandsHint": "Comandos:"
+    },
     "wake": {
       "titleNumbered": "PC Wake-on-LAN {0}",
       "titleNamed": "Wake-on-LAN — {0}",

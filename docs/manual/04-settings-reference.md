@@ -60,6 +60,7 @@ for the DFD database), else the system drive.
 | `logging` | Settings → Advanced → Logs | per-subsystem levels (hot-reload), `wireTrace`, `keepVerbose` (off: a Debug level or the wire trace switches itself back to Information after 24 h), `mirrorToSession` |
 | `telemetryApi` | Settings → Advanced → Logs | read-only telemetry endpoints for post-flight verification |
 | `commandApi` | Settings → Setup | HTTP command API for the Stream Deck plugin (`enabled` checkbox, applies live; off by default; token-gated even on localhost — `requireTokenOnLoopback` is file-only) |
+| `inputRelay` | Settings → Setup | vJoy relay ([chapter 12](12-remote-streamdeck.md)): `enabled` (off), `vJoyInterfacePath` (empty = the driver's folder), `vJoyDevice` 1, advanced `holdMs` 150, `views[]` rows (name → vJoy button) for `input.pressView` |
 
 ## The `gsx` section
 

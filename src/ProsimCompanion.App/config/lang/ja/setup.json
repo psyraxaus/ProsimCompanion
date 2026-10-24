@@ -91,6 +91,31 @@
       "commandApi": { "label": "コマンド API", "hint": "Stream Deck プラグインに必要です。常にアクセストークンが必要です。", "more": "外部ツールが Web サーバー経由で GSX、チェックリスト、ロードシートのコマンドを送れるようにします。" },
       "pairHint": "プラグインをペアリングするには、デスクトップウィンドウのオンボーディングリンクを任意のキーの設定に貼り付けます。\"API off\" と表示されているキーは、これを保存すると自動的に回復します。"
     },
+    "inputRelay": {
+      "title": "vJoy リレー（別の PC から ChasePlane のビュー切替）",
+      "hint": "すぐに反映",
+      "enable": { "label": "vJoy リレー", "hint": "リモートのキーから、この PC の vJoy 仮想ジョイスティックのボタンを押せるようにします。ChasePlane のビューをそのボタンに割り当ててください。", "more": "この PC に vJoy ドライバー（vjoystick.sourceforge.net または保守版フォーク）と、十分なボタン数のデバイスが必要です。オフの間は何も読み込みません。" },
+      "dll": { "label": "vJoyInterface.dll", "hint": "空のままならドライバーのフォルダー（C:\\Program Files\\vJoy\\x64）を使います。64 ビット版の DLL が必要です。" },
+      "device": { "label": "vJoy デバイス", "hint": "このアプリが取得するデバイス番号（1〜16）。1 デバイスにつき所有者は 1 つ。他のプログラムが使っていない番号を選んでください。" },
+      "hold": { "label": "押下時間", "hint": "中継された押下がボタンを押し続ける時間。" },
+      "status": "状態",
+      "statusHint": "「確認」は保存済みの設定で DLL を読み込み、デバイスを取得します。先に保存してください。",
+      "state": { "off": "オフ", "notInstalled": "ドライバーなし", "deviceMissing": "デバイスなし", "deviceBusy": "デバイス使用中", "ready": "準備完了", "failed": "失敗" },
+      "lastPress": "最後の押下: {0}（{1} UTC）",
+      "check": "確認",
+      "col": { "name": "ビュー名", "button": "vJoy ボタン", "test": "テスト" },
+      "duplicate": "2 つの行が {0} を共有しています。リモートのキーは最初の行にしか届きません。",
+      "view": {
+        "name": { "label": "名前", "hint": "リモートのキーが送る名前: input.pressView {\"name\":\"wing\"}。" },
+        "button": { "label": "vJoy ボタン", "hint": "ChasePlane でこのビューを割り当てたボタン（1〜128）。" }
+      },
+      "press": "押す",
+      "pressHint": "保存済みの設定で、このボタンをリレー経由で今すぐ押します。ChasePlane のビューが切り替わるはずです。",
+      "remove": "削除",
+      "noViews": "ビューはまだありません。ChasePlane のビューごとに 1 つ追加し、名前と vJoy のボタン番号を入れてください。",
+      "addView": "ビューを追加",
+      "commandsHint": "コマンド:"
+    },
     "wake": {
       "titleNumbered": "Wake-on-LAN PC {0}",
       "titleNamed": "Wake-on-LAN — {0}",

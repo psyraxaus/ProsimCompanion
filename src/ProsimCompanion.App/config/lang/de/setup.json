@@ -91,6 +91,31 @@
       "commandApi": { "label": "Befehls-API", "hint": "Vom Stream-Deck-Plugin benötigt. Braucht immer das Zugriffstoken.", "more": "Lässt externe Werkzeuge GSX-, Checklisten- und Loadsheet-Befehle über den Webserver senden." },
       "pairHint": "Zum Koppeln des Plugins fügst du den Onboarding-Link aus dem Desktop-Fenster in die Einstellungen einer beliebigen Taste ein. Tasten mit \"API off\" erholen sich von selbst, sobald das gespeichert ist."
     },
+    "inputRelay": {
+      "title": "vJoy-Relais (ChasePlane-Ansichten von einem anderen PC)",
+      "hint": "Gilt sofort",
+      "enable": { "label": "vJoy-Relais", "hint": "Lässt eine entfernte Taste einen Knopf eines virtuellen vJoy-Joysticks auf diesem PC drücken. Lege ChasePlane-Ansichten auf diese Knöpfe.", "more": "Braucht den vJoy-Treiber auf diesem PC (vjoystick.sourceforge.net oder den gepflegten Fork) mit einem Gerät, das genug Knöpfe hat. Solange das aus ist, wird nichts geladen." },
+      "dll": { "label": "vJoyInterface.dll", "hint": "Leer lassen, um den Treiberordner zu nutzen (C:\\Program Files\\vJoy\\x64). Muss die 64-Bit-DLL sein." },
+      "device": { "label": "vJoy-Gerät", "hint": "Die Gerätenummer, die diese App belegt (1–16). Ein Besitzer pro Gerät — wähle eins, das kein anderes Programm nutzt." },
+      "hold": { "label": "Haltezeit", "hint": "Wie lange ein weitergeleiteter Druck den Knopf hält." },
+      "status": "Status",
+      "statusHint": "Prüfen lädt die DLL und belegt das Gerät mit den gespeicherten Einstellungen. Erst speichern.",
+      "state": { "off": "AUS", "notInstalled": "KEIN TREIBER", "deviceMissing": "KEIN GERÄT", "deviceBusy": "GERÄT BELEGT", "ready": "BEREIT", "failed": "FEHLER" },
+      "lastPress": "Letzter Druck: {0} um {1} UTC",
+      "check": "Prüfen",
+      "col": { "name": "Ansicht", "button": "vJoy-Knopf", "test": "Test" },
+      "duplicate": "Zwei Zeilen teilen sich {0} — eine entfernte Taste trifft nur die erste.",
+      "view": {
+        "name": { "label": "Name", "hint": "Was die entfernte Taste sendet: input.pressView {\"name\":\"wing\"}." },
+        "button": { "label": "vJoy-Knopf", "hint": "Der Knopf, auf dem ChasePlane diese Ansicht liegen hat (1–128)." }
+      },
+      "press": "Drücken",
+      "pressHint": "Drückt diesen Knopf jetzt über das Relais mit den gespeicherten Einstellungen. ChasePlane sollte die Ansicht wechseln.",
+      "remove": "Entfernen",
+      "noViews": "Noch keine Ansichten. Lege pro ChasePlane-Ansicht eine an, mit Name und vJoy-Knopfnummer.",
+      "addView": "Ansicht hinzufügen",
+      "commandsHint": "Befehle:"
+    },
     "wake": {
       "titleNumbered": "Wake-on-LAN-PC {0}",
       "titleNamed": "Wake-on-LAN — {0}",

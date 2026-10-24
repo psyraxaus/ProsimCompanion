@@ -27,6 +27,10 @@ public static class SimServiceCollectionExtensions
         // Session detection (camera state + Sim/Pause_EX1 events): publishes SimSessionStore,
         // the gate that keeps GSX ground prep from firing while MSFS is on the main menu.
         services.AddHostedService<SimSessionService>();
+        // vJoy input relay (2026-10-24): lazy — loads vJoyInterface.dll on the first press or
+        // the Setup page's Check, never at startup.
+        services.AddSingleton<Input.VJoyInputRelay>();
+        services.AddSingleton<Core.State.IInputRelay>(provider => provider.GetRequiredService<Input.VJoyInputRelay>());
 
         return services;
     }

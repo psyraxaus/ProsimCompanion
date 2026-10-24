@@ -34,6 +34,17 @@ loopback). Requires `commandApi.enabled: true`.
   URL format is `http://{host}:{port}/?token={token}` (query string, not
   fragment) — the Property Inspector's pair-via-URL box parses it.
 
+## Running the plugin on another PC
+
+Nothing in the plugin is loopback-specific: with `webUi.bindToAllInterfaces` on (Settings →
+Setup → Web server → LAN access, restart), TCP 5320 allowed through the sim PC's firewall and
+the onboarding link pasted into a key, the plugin runs in the Stream Deck app of any PC on the
+LAN. The installer only installs it on the sim PC; copy `{app}\streamdeck\
+com.prosimcompanion.streamdeck.streamDeckPlugin` to the other PC and double-click it there.
+Manual chapter 12 has the steps. Everything the remote deck needs goes through this one plugin
+(owner decision 2026-10-24): the cockpit-switch and camera-view keys below press ProSim switches
+and vJoy buttons on the sim PC from there (`cockpit-switches.md`).
+
 ## Historical reference
 
 The predecessor plugin (WebSocket push + Prosim2GSX's command names) is on the

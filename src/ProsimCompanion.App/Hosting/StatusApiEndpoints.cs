@@ -96,9 +96,14 @@ public static class StatusApiEndpoints
                 statusCode: StatusCodes.Status401Unauthorized);
         }
 
-        // Every pillar is optional (degrade-not-fail): resolve with GetService and let the
-        // builder null out what is absent.
-        var services = context.RequestServices;
+        return Results.Json(BuildStatus(context.RequestServices), Json);
+    }
+
+    /// <summary>The live status from the running host — every pillar optional
+    /// (degrade-not-fail): resolved with GetService so an absent pillar nulls out its section.</summary>
+    public static StatusResponse BuildStatus(IServiceProvider services)
+    {
+        ArgumentNullException.ThrowIfNull(services);
         var departure = services.GetService<IGsxDepartureControl>();
         var response = BuildStatus(
             services.GetService<IFlightPhaseSource>()?.CurrentPhase,
@@ -112,7 +117,7 @@ public static class StatusApiEndpoints
             services.GetService<ChecklistService>()?.ActiveView(),
             services.GetService<SpeechStatusStore>()?.Snapshot());
 
-        return Results.Json(response, Json);
+        return response;
     }
 
     /// <summary>Pure DTO assembly — separated from the endpoint so tests exercise it with fake

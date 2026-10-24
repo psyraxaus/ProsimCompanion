@@ -91,6 +91,31 @@
       "commandApi": { "label": "Command API", "hint": "Needed by the Stream Deck plugin. Always needs the access token.", "more": "Lets outside tools send GSX, checklist and loadsheet commands over the web server." },
       "pairHint": "To pair the plugin, paste the onboarding link from the desktop window into any key's settings. Keys showing \"API off\" recover on their own once this is saved."
     },
+    "inputRelay": {
+      "title": "vJoy relay (ChasePlane views from another PC)",
+      "hint": "Applies live",
+      "enable": { "label": "vJoy relay", "hint": "Lets a remote key press a button on a vJoy virtual joystick on this PC. Bind ChasePlane views to those buttons.", "more": "Needs the vJoy driver on this PC (vjoystick.sourceforge.net or the maintained fork) with one device that has enough buttons. Nothing is loaded while this is off." },
+      "dll": { "label": "vJoyInterface.dll", "hint": "Leave empty to use the driver's folder (C:\\Program Files\\vJoy\\x64). Must be the 64-bit DLL." },
+      "device": { "label": "vJoy device", "hint": "The device number this app acquires (1–16). One owner per device — pick one no other program uses." },
+      "hold": { "label": "Button hold", "hint": "How long a relayed press holds the button." },
+      "status": "Status",
+      "statusHint": "Check loads the DLL and acquires the device with the saved settings. Save first.",
+      "state": { "off": "OFF", "notInstalled": "NO DRIVER", "deviceMissing": "NO DEVICE", "deviceBusy": "DEVICE BUSY", "ready": "READY", "failed": "FAILED" },
+      "lastPress": "Last press: {0} at {1} UTC",
+      "check": "Check",
+      "col": { "name": "View name", "button": "vJoy button", "test": "Test" },
+      "duplicate": "Two rows share {0} — a remote key hits the first one only.",
+      "view": {
+        "name": { "label": "Name", "hint": "What the remote key sends: input.pressView {\"name\":\"wing\"}." },
+        "button": { "label": "vJoy button", "hint": "The button ChasePlane has this view bound to (1–128)." }
+      },
+      "press": "Press",
+      "pressHint": "Presses this button through the relay now, with the saved settings. ChasePlane should change view.",
+      "remove": "Remove",
+      "noViews": "No views yet. Add one per ChasePlane view, give it a name and the vJoy button number.",
+      "addView": "Add view",
+      "commandsHint": "Commands:"
+    },
     "wake": {
       "titleNumbered": "Wake-on-LAN PC {0}",
       "titleNamed": "Wake-on-LAN — {0}",

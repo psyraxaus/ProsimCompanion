@@ -53,6 +53,9 @@ public static class CoreServiceCollectionExtensions
         // Read-only telemetry API (issue #94) — serves session/log files to the
         // flight-verification workflow.
         services.AddOptionSection<TelemetryApiOptions>(configuration);
+        // vJoy input relay (2026-10-24): remote keys press a vJoy button on the sim PC so
+        // ChasePlane view changes can come from a second PC.
+        services.AddOptionSection<InputRelayOptions>(configuration);
         services.AddOptionSection<TechLogOptions>(configuration);
         services.AddOptionSection<LogbookOptions>(configuration);
         services.AddOptionSection<DebriefOptions>(configuration);

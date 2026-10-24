@@ -91,6 +91,31 @@
       "commandApi": { "label": "Opdracht-API", "hint": "Nodig voor de Stream Deck-plugin. Heeft altijd het toegangstoken nodig.", "more": "Laat externe tools GSX-, checklist- en loadsheet-opdrachten sturen via de webserver." },
       "pairHint": "Om de plugin te koppelen plak je de onboarding-link uit het bureaubladvenster in de instellingen van een willekeurige knop. Knoppen met \"API off\" herstellen zich vanzelf zodra dit is opgeslagen."
     },
+    "inputRelay": {
+      "title": "vJoy-relais (ChasePlane-weergaven vanaf een andere pc)",
+      "hint": "Geldt direct",
+      "enable": { "label": "vJoy-relais", "hint": "Laat een knop op afstand een knop van een virtuele vJoy-joystick op deze pc indrukken. Koppel ChasePlane-weergaven aan die knoppen.", "more": "Vereist het vJoy-stuurprogramma op deze pc (vjoystick.sourceforge.net of de onderhouden fork) met één apparaat met genoeg knoppen. Zolang dit uit staat wordt niets geladen." },
+      "dll": { "label": "vJoyInterface.dll", "hint": "Laat leeg om de map van het stuurprogramma te gebruiken (C:\\Program Files\\vJoy\\x64). Moet de 64-bits DLL zijn." },
+      "device": { "label": "vJoy-apparaat", "hint": "Het apparaatnummer dat deze app in gebruik neemt (1–16). Eén eigenaar per apparaat: kies er een dat geen ander programma gebruikt." },
+      "hold": { "label": "Knop vasthouden", "hint": "Hoe lang een doorgegeven druk de knop ingedrukt houdt." },
+      "status": "Status",
+      "statusHint": "Controleren laadt de DLL en neemt het apparaat in gebruik met de opgeslagen instellingen. Eerst opslaan.",
+      "state": { "off": "UIT", "notInstalled": "GEEN STUURPROGRAMMA", "deviceMissing": "GEEN APPARAAT", "deviceBusy": "APPARAAT BEZET", "ready": "GEREED", "failed": "MISLUKT" },
+      "lastPress": "Laatste druk: {0} om {1} UTC",
+      "check": "Controleren",
+      "col": { "name": "Weergave", "button": "vJoy-knop", "test": "Test" },
+      "duplicate": "Twee rijen delen {0} — een knop op afstand raakt alleen de eerste.",
+      "view": {
+        "name": { "label": "Naam", "hint": "Wat de knop op afstand stuurt: input.pressView {\"name\":\"wing\"}." },
+        "button": { "label": "vJoy-knop", "hint": "De knop waaraan ChasePlane deze weergave heeft gekoppeld (1–128)." }
+      },
+      "press": "Indrukken",
+      "pressHint": "Drukt deze knop nu via het relais in met de opgeslagen instellingen. ChasePlane zou van weergave moeten wisselen.",
+      "remove": "Verwijderen",
+      "noViews": "Nog geen weergaven. Voeg er per ChasePlane-weergave één toe, met een naam en het vJoy-knopnummer.",
+      "addView": "Weergave toevoegen",
+      "commandsHint": "Opdrachten:"
+    },
     "wake": {
       "titleNumbered": "Wake-on-LAN-pc {0}",
       "titleNamed": "Wake-on-LAN — {0}",

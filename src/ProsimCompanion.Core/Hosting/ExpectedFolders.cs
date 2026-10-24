@@ -47,6 +47,15 @@ public static class ExpectedFolders
             Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "VB", "Voicemeeter"),
         ];
 
+    /// <summary>The vJoy driver's 64-bit folder, where its installer puts <c>vJoyInterface.dll</c>
+    /// (2026-10-24, the input relay). The relay probes the same list when the path is empty.</summary>
+    public static IReadOnlyList<string> VJoy()
+        =>
+        [
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "vJoy", "x64"),
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "vJoy", "x64"),
+        ];
+
     /// <summary>Where ActiveSky writes its snapshot — the weather provider's own candidates.</summary>
     public static IReadOnlyList<string> ActiveSky() => ActiveSkyWxProvider.KnownSnapshotFolders();
 

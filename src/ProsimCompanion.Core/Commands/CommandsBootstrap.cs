@@ -45,5 +45,11 @@ public static class CommandsBootstrap
             registry,
             services.GetService<ISpeechControl>(),
             services.GetService<IVoiceListeningControl>());
+        // vJoy input relay (2026-10-24): the Sim pillar implements the seam; the view rows come
+        // from the inputRelay section.
+        InputCommandHandlers.Register(
+            registry,
+            services.GetService<IInputRelay>(),
+            services.GetService<Microsoft.Extensions.Options.IOptionsMonitor<Configuration.InputRelayOptions>>());
     }
 }
