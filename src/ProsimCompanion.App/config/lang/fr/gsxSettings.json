@@ -368,6 +368,8 @@
     "captainsQuestions": {
       "threatsBriefed": "Menaces briefées",
       "noFurtherThreats": "Pas d'autres menaces",
+      "issueRevisedFinal": "Émettre le final révisé",
+      "captainsAuthority": "Voler sous l'autorité du CDB",
       "title": "Questions au commandant",
       "hint": "Questions ouvertes du First Officer — réponds ici, à la voix ou dans le menu GSX",
       "none": "Aucune question ouverte.",

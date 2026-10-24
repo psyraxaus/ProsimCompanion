@@ -36,6 +36,26 @@
       "ident": "Ident",
       "received": "Recibido",
       "rangeAria": "MACTOW {0} por ciento en una escala de {1} a {2} por ciento"
+    },
+    "lmc": {
+      "check": "COMPROBAR LMC",
+      "checking": "COMPROBANDO…",
+      "title": "LAST MINUTE CHANGE",
+      "against": "Contra el final EDNO {0} · evaluado {1}",
+      "noChange": "El embarque coincide con el loadsheet final. Sin cambio de último minuto.",
+      "badge": {
+        "noChange": "SIN CAMBIO",
+        "withinLimits": "DENTRO DE LÍMITES",
+        "awaiting": "DECISIÓN",
+        "revised": "FINAL REVISADO",
+        "captainsAuthority": "AUTORIDAD DEL COMANDANTE"
+      },
+      "hint": {
+        "applied": "Aplicado a mano — sin nuevo loadsheet. SYNC TO FMS en la página INIT toma estas cifras.",
+        "awaiting": "Supera el límite LMC. El FO pide un final revisado — responde en la tarjeta Captain's Questions o por voz.",
+        "revised": "Se emitió un final revisado (EDNO +1) — mira la tarjeta Final.",
+        "captainsAuthority": "Loadsheet revisado requerido — volado bajo la autoridad del comandante."
+      }
     }
   }
 }

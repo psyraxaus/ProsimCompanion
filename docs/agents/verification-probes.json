@@ -3216,6 +3216,36 @@
         "requires-human: the FLEX / V-speed figures in the event match the FMS PERF page (or the Takeoff page when PERF was empty), the surface matches the real METAR, and the published EOSID (when any) matches the chart."
       ],
       "notes": "Package 1 of the November 2026 airline-ops batch (branch feature/takeoff-threat-briefing). BriefingComposer.EmergencySections / GoAroundSections, ThreatListBuilder, MetarConditions (Core), DfdNavDataProvider.AirportMsaFt (highest published sector) + EngineOutProcedure (SID route_type '0'), ThreatsQuestionStore + ThreatsQuestionPhrases over the shared captain's-question dialogue. Unverified live."
+    },
+    {
+      "id": "loadsheet-lmc",
+      "issue": 181,
+      "state": "open",
+      "kind": "assert-present",
+      "machine": {
+        "kind": "signature",
+        "source": "session",
+        "type": "loadsheet.lmc",
+        "contains": "\"verdict\"",
+        "trigger": {
+          "source": "log",
+          "component": "LoadsheetService",
+          "contains": "boarding complete"
+        }
+      },
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "Only with flightData.lmcEnabled = true (off by default). Trigger: the boarding-complete edge (log 'Loadsheet: boarding complete — …' or 'boarding complete — no final loadsheet yet, last-minute change not evaluated') while a final loadsheet already existed, or an on-demand check (loadsheet.lmc command, the Loadsheet page CHECK LMC button, the phrase 'last minute change').",
+        "assert-present: ONE loadsheet.lmc event per automatic evaluation (onDemand false) per departure cycle, with verdict NoChange|WithinTolerance|RevisedLoadsheetRequired, againstEdno, deltaPax, deltaZfwKg, deltaCargoKg, deltaFuelKg, deltaTowKg, macTowShift, newZfwKg/newTowKg/newLawKg/newMacZfw/newMacTow, reasons[] and the tolerances used. A second automatic evaluation in the same cycle is a failure (once-per-cycle latch); on-demand ones (onDemand true) may repeat.",
+        "assert-present (WithinTolerance): ONE 'ACARS uplink dispatched: LMC slot 03' log line (never slot 01/02), the FO's loadsheet.lmc.spoken event starting 'Last minute change:' and ending 'Update the FMS zero fuel weight when ready, captain.', and NO 'FMS INIT B synced' line caused by it (SYNC TO FMS stays the pilot's action).",
+        "assert-present (RevisedLoadsheetRequired, lmcAutoRevise off): loadsheet-revision-question raised with the prompt 'Boarding differs from the final loadsheet by n passengers — beyond the last minute change limit. Issue a revised final?'; then EITHER outcome revise → a second 'FINAL EDNO n+1 sent' decision and loadsheet.lmc {outcome revised, edno n+1} with the ACARS final carrying 'REVISION  LMC PAX ±n', OR outcome captains-authority / timeout → loadsheet.lmc {outcome captains-authority} and an LMC slot 03 uplink whose text ends 'REVISED LOADSHEET REQUIRED - FLOWN ON CAPTAINS AUTHORITY'.",
+        "assert-absent: a loadsheet.lmc event with verdict NoChange and onDemand false followed by any loadsheet.lmc.spoken (the automatic no-change path is silent); an LMC evaluation when no final existed (the log says 'no final loadsheet yet' instead).",
+        "requires-human: the LMC block under the Final card on the Loadsheet page shows the same figures as the slot-03 ACARS message in the MCDU RCVD MSGS, and SYNC TO FMS after the LMC writes the new ZFW."
+      ],
+      "notes": "Package 2 of the November 2026 airline-ops batch (branch feature/loadsheet-lmc). LmcEvaluator (Core, pure: actual = A320WeightAndBalance.CalculateFinal over the live state at the check, so the W&B stays bit-exact), LoadsheetFormatter.FormatLmc, LoadsheetService.Lmc (trigger, latch, ACARS slot 03, revised final EDNO +1 with a REVISION line), LmcRevisionStore + LmcRevisionPhrases over the shared captain's-question dialogue, LmcAnnouncer (Speech) for the within-tolerance reading. Children/adults are not distinguished (ProSim seat map carries counts only); no TRIM figure (no source for the THS setting). Unverified live."
     }
   ]
 }

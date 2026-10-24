@@ -63,6 +63,8 @@ public static class CaptainsQuestionPresentation
         // Issue #180: a free-text question on the web has two honest buttons — the captain
         // briefed the extra threats themselves, or there are none.
         [ThreatsQuestionStore.QuestionDefinition.Topic] = new("gsxSettings.captainsQuestions.threatsBriefed", "gsxSettings.captainsQuestions.noFurtherThreats", null, null),
+        // Issue #181: issue the revised final, or fly the LMC on the captain's authority.
+        [LmcRevisionStore.QuestionDefinition.Topic] = new("gsxSettings.captainsQuestions.issueRevisedFinal", "gsxSettings.captainsQuestions.captainsAuthority", null, null),
     };
 
     /// <summary>Every open question of the given stores (optionally only the given topics), in

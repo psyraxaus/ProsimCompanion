@@ -140,7 +140,8 @@
       "company": {
         "title": "Company",
         "loadsheet": "Gesprochenes Loadsheet aus Live-Gewichten, Pax und CG (ACARS-Chime).",
-        "lastMessage": "Wiederholt die letzte Company-Nachricht."
+        "lastMessage": "Wiederholt die letzte Company-Nachricht.",
+        "lmc": "Prüft die geboardete Ladung gegen das Final-Loadsheet und liest die Last-Minute-Änderung vor."
       },
       "day": {
         "title": "Dienstag",

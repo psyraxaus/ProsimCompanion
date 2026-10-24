@@ -252,6 +252,15 @@ last fix passed, ending in an estimated landing fuel against the planned figure.
 passed" is the start of the leg the aircraft is on; off every leg, the nearest fix behind.
 _Avoid_: fuel report, fuel monitor
 
+**Last-minute change**:
+The difference between the final loadsheet and the load actually aboard once boarding has
+completed — passengers, cargo, fuel, the resulting weights and MAC — measured once per
+departure cycle with the same W&B the final used. Within the operator's tolerances the crew
+applies it by hand (the LMC block under the final, read by the FO, sent to the cockpit beside
+the loadsheets); beyond them a revised final (EDNO +1) is issued or the captain flies on their
+own authority. The FMS is never re-synced by it.
+_Avoid_: LMC (in prose), loadsheet delta, revised loadsheet (that is one of its outcomes)
+
 **Gross error check**:
 The one-shot pre-departure comparison of the aircraft's weights with the final loadsheet and
 of the FMS PERF TO entries with the last Takeoff performance result — "checked" or a list of

@@ -36,6 +36,26 @@
       "ident": "Ident",
       "received": "Ontvangen",
       "rangeAria": "MACTOW {0} procent op een schaal van {1} tot {2} procent"
+    },
+    "lmc": {
+      "check": "LMC CONTROLEREN",
+      "checking": "CONTROLEERT…",
+      "title": "LAST MINUTE CHANGE",
+      "against": "Tegen final EDNO {0} · beoordeeld {1}",
+      "noChange": "Boarding komt overeen met het final loadsheet. Geen last-minute change.",
+      "badge": {
+        "noChange": "GEEN WIJZIGING",
+        "withinLimits": "BINNEN LIMIETEN",
+        "awaiting": "BESLISSING",
+        "revised": "HERZIEN FINAL",
+        "captainsAuthority": "GEZAGVOERDER"
+      },
+      "hint": {
+        "applied": "Met de hand toegepast — geen nieuw loadsheet. SYNC TO FMS op de INIT-pagina neemt deze cijfers over.",
+        "awaiting": "Boven de LMC-limiet. De FO vraagt om een herzien final — antwoord op de kaart Captain's Questions of met je stem.",
+        "revised": "Een herzien final (EDNO +1) is uitgegeven — zie de Final-kaart.",
+        "captainsAuthority": "Herzien loadsheet vereist — gevlogen op gezag van de gezagvoerder."
+      }
     }
   }
 }

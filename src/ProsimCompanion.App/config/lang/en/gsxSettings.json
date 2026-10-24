@@ -368,6 +368,8 @@
     "captainsQuestions": {
       "threatsBriefed": "Threats briefed",
       "noFurtherThreats": "No further threats",
+      "issueRevisedFinal": "Issue revised final",
+      "captainsAuthority": "Fly on captain's authority",
       "title": "Captain's Questions",
       "hint": "Open questions from the First Officer — answer here, by voice, or on GSX's own menu",
       "none": "No question open.",

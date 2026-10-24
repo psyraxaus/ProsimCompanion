@@ -38,6 +38,14 @@
     <OptionField Draft="_flightData" For="o => o.AutoSyncFmsOnFinal" />
 </Section>
 
+<Section Title="@T["appSettings.loadsheets.lmcTitle"]" Hint="@T["appSettings.loadsheets.lmcHint"]">
+    <OptionField Draft="_flightData" For="o => o.LmcEnabled" />
+    <OptionField Draft="_flightData" For="o => o.LmcMaxPax" />
+    <OptionField Draft="_flightData" For="o => o.LmcMaxWeightKg" />
+    <OptionField Draft="_flightData" For="o => o.LmcMaxMacShift" />
+    <OptionField Draft="_flightData" For="o => o.LmcAutoRevise" />
+</Section>
+
 <Section Title="@T["appSettings.flightStatus.title"]" Hint="@T["appSettings.flightStatus.hint"]">
     <OptionField Draft="_flightStatus" For="o => o.GateFinalCallPaxPercent" />
     <OptionField Draft="_flightStatus" For="o => o.GateFinalCallMinutesBeforeStd" />

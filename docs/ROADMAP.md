@@ -853,6 +853,21 @@ duties. New features default **off** and are **Unverified live** until a flight 
       `MissedApproachLegsText`. Events `briefing.emergency`, `briefing.threats`; probe
       `briefing-takeoff-emergency`. **Unverified live** — the DFD MSA / EOSID tables on a real
       database and the free-text answer on the LAN engine in particular.
+- [x] **Last-minute changes on the loadsheet** (#181, `feature/loadsheet-lmc`): pure
+      `LmcEvaluator` (final `LoadsheetData` vs the live W&B's `CalculateFinal` at the check —
+      no second model; verdicts `NoChange` / `WithinTolerance` / `RevisedLoadsheetRequired`
+      against `flightData.lmcMaxPax` / `lmcMaxWeightKg` (ZFW and TOW) / `lmcMaxMacShift`; LAW
+      from the final's trip fuel), `LoadsheetFormatter.FormatLmc` (the airline block, optional
+      CGO/FUEL deltas and the captain's-authority caption) and a `REVISION` line on a revised
+      final, `LoadsheetLmc` + `LmcDisposition` on the loadsheet snapshot, `LoadsheetService.Lmc`
+      (once per cycle at boarding-complete when a final exists, on demand via `loadsheet.lmc` /
+      the CHECK LMC button / "last minute change"; ACARS slot 03, never 01/02; revised final =
+      EDNO +1 through the existing final path), `LmcRevisionStore` (`loadsheetRevision`, #166
+      rules) + `LmcRevisionPhrases`, `LmcAnnouncer` (Speech; the within-tolerance reading under
+      the number verifier; the beyond-tolerance figures ride in the question prompt so nothing
+      talks over the question). Not modelled: adults vs children, a TRIM figure. Events
+      `loadsheet.lmc`, `loadsheet.lmc.spoken`; probe `loadsheet-lmc`. **Unverified live** — a
+      real no-show count against a manually issued early final in particular.
 
 ## Open items (after the rc.5 batch, 2026-10-11)
 

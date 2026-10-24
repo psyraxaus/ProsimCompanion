@@ -41,6 +41,13 @@ public sealed class CompanyChannelService : IVoiceFeature, ICompanyChannel, Core
     private static readonly string[] RepeatPhrases =
         ["read last company message", "repeat company message", "last company message", "say again company"];
 
+    // Issue #181: the on-demand last-minute-change check, through the command registry so
+    // voice, web and API share one seam (the loadsheet pipeline answers, the announcer speaks).
+    private static readonly string[] LmcPhrases =
+        ["last minute change", "check last minute change", "last minute changes", "any last minute change"];
+
+    private readonly Core.Commands.CommandRegistry? _registry;
+
     private readonly IProsimDataRefs _dataRefs;
     private readonly IFlightPhaseSource _flight;
     private readonly ISpeechArbiter _arbiter;
@@ -77,10 +84,12 @@ public sealed class CompanyChannelService : IVoiceFeature, ICompanyChannel, Core
         IOptionsMonitor<CompanyOptions> options,
         JsonlEventLog eventLog,
         ILogger<CompanyChannelService> logger,
-        Core.Speech.ISpokenText spokenText)
+        Core.Speech.ISpokenText spokenText,
+        Core.Commands.CommandRegistry? registry = null)
     {
         ArgumentNullException.ThrowIfNull(spokenText);
         _spokenText = spokenText;
+        _registry = registry;
         ArgumentNullException.ThrowIfNull(dataRefs);
         ArgumentNullException.ThrowIfNull(flight);
         ArgumentNullException.ThrowIfNull(arbiter);
@@ -109,6 +118,8 @@ public sealed class CompanyChannelService : IVoiceFeature, ICompanyChannel, Core
             new(["request loadsheet", "loadsheet please", "read the loadsheet", "loadsheet"], "voiceReference.group.company.loadsheet"),
             new(["read last company message", "repeat company message", "last company message", "say again company"],
                 "voiceReference.group.company.lastMessage"),
+            new(["last minute change", "check last minute change", "last minute changes", "any last minute change"],
+                "voiceReference.group.company.lmc", "Last minute change: minus 2 passengers, zero fuel weight 58.9 tonnes …"),
         ]),
     };
 
@@ -116,7 +127,7 @@ public sealed class CompanyChannelService : IVoiceFeature, ICompanyChannel, Core
 
     public bool Enabled => true;
 
-    public IEnumerable<string> Phrases => LoadsheetPhrases.Concat(RepeatPhrases);
+    public IEnumerable<string> Phrases => LoadsheetPhrases.Concat(RepeatPhrases).Concat(LmcPhrases);
 
     public bool ValueParse => false;
 
@@ -166,7 +177,39 @@ public sealed class CompanyChannelService : IVoiceFeature, ICompanyChannel, Core
             return true;
         }
 
+        if (LmcPhrases.Any(p => string.Equals(p, text, StringComparison.OrdinalIgnoreCase)))
+        {
+            _ = CheckLastMinuteChangeAsync();
+            return true;
+        }
+
         return false;
+    }
+
+    /// <summary>"last minute change": runs the <c>loadsheet.lmc</c> command (issue #181). The
+    /// verdict lands on the loadsheet store and the announcer speaks it; only a refusal (no
+    /// final, pipeline absent) is answered here.</summary>
+    private async Task CheckLastMinuteChangeAsync()
+    {
+        try
+        {
+            if (_registry is null)
+            {
+                await _arbiter.SpeakAsync("The loadsheet pipeline is not running.", SpeechPriority.Normal).ConfigureAwait(false);
+                return;
+            }
+
+            var result = await _registry.ExecuteAsync<Core.Commands.EmptyCommandRequest, Core.Commands.CommandResult>(
+                "loadsheet.lmc", new Core.Commands.EmptyCommandRequest(), source: "voice").ConfigureAwait(false);
+            if (result.Outcome != Core.Commands.CommandOutcome.Success)
+            {
+                await _arbiter.SpeakAsync("No final loadsheet to check against yet.", SpeechPriority.Normal).ConfigureAwait(false);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Last-minute change check by voice failed");
+        }
     }
 
     /// <summary>The web page's "request loadsheet" button — same path as the voice command.</summary>

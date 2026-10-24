@@ -255,6 +255,16 @@ Built because ProSim's Preliminary loadsheet endpoint is broken for non-A320 var
   values carry `L` markers.
 - CG plausibility validation before emitting (refuse to send a loadsheet from an unpopulated CG).
 - Randomized dispatcher name pool for flavour.
+- **Last-minute changes** (issue #181, 2026-10-24): at boarding-complete, when a final already
+  exists, the live state is run through the same `CalculateFinal` and compared with the cached
+  final (`LmcEvaluator`). Within tolerance → the LMC text (`LMC  PAX -2  ZFW 58.8  TOW 65.8  LAW
+  61.4  MACZFW 26.9  MACTOW 25.4`) is uplinked as type `LMC`, slot **`"03"`**, `accept=false` —
+  never slots 01/02, so it neither replaces nor is replaced by a loadsheet; INIT B is not
+  written. Beyond tolerance → either a revised final through the normal final path with the
+  prelim context's EDNO bumped by one and a `REVISION  LMC PAX -7` line before the dotted
+  footer, or (declined / timed out) the LMC text with the caption `REVISED LOADSHEET REQUIRED -
+  FLOWN ON CAPTAINS AUTHORITY` in slot 03. Whether ProSim keeps slot 03 beside 01/02 in RCVD
+  MSGS is **unverified live**.
 
 ## 5. File/where things live
 

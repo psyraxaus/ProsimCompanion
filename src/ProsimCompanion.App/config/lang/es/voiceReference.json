@@ -140,7 +140,8 @@
       "company": {
         "title": "Compañía",
         "loadsheet": "Loadsheet hablado con los pesos, pax y CG en vivo (chime ACARS).",
-        "lastMessage": "Repite el último mensaje de compañía."
+        "lastMessage": "Repite el último mensaje de compañía.",
+        "lmc": "Compara la carga embarcada con el loadsheet final y lee el cambio de último minuto."
       },
       "day": {
         "title": "Jornada",

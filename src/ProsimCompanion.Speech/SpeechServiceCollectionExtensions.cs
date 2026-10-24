@@ -176,6 +176,10 @@ public static class SpeechServiceCollectionExtensions
         // (issue #180): free-text answer, noted on the Core store.
         services.AddSingleton<Gsx.CaptainsQuestionPhrases>(p => Briefings.ThreatsQuestionPhrases.Create(
             p.GetRequiredService<ThreatsQuestionStore>(), p.GetRequiredService<Arbiter.ISpeechArbiter>()));
+        // "Issue a revised final?" after a last-minute change (issue #181), and the FO's
+        // reading of a within-tolerance change off the loadsheet store.
+        services.AddSingleton(Company.LmcRevisionPhrases.Table);
+        services.AddStartupModule<Company.LmcAnnouncer>();
         services.AddStartupModule<Gsx.CaptainsQuestionDialogue>();
         // The FO's packs-off / ditching-on calls and read-only checks around a GSX de-icing
         // (issue #166, opt-in gsx.deice.packsProcedure). Edges from the Core activity seam.

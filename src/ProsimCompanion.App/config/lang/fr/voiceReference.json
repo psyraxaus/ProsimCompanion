@@ -140,7 +140,8 @@
       "company": {
         "title": "Compagnie",
         "loadsheet": "Loadsheet parlé à partir des masses, pax et CG en direct (chime ACARS).",
-        "lastMessage": "Répète le dernier message compagnie."
+        "lastMessage": "Répète le dernier message compagnie.",
+        "lmc": "Compare la charge embarquée au loadsheet final et lit le changement de dernière minute."
       },
       "day": {
         "title": "Journée de service",

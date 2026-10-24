@@ -73,6 +73,22 @@ public static class LoadsheetCommandHandlers
                     "Loadsheet cycle reset — cached loadsheets cleared, edition counter back to 1."));
             });
 
+        // Issue #181: the on-demand last-minute-change check (also the voice phrase "last
+        // minute change"). The verdict lands on the loadsheet store; the FO speaks it.
+        registry.Register<EmptyCommandRequest, CommandResult>(
+            "loadsheet.lmc",
+            async (_, cancellationToken) =>
+            {
+                if (loadsheetControl is null)
+                {
+                    return CommandResult.Unavailable("The loadsheet pipeline is not running.");
+                }
+
+                return await loadsheetControl.EvaluateLastMinuteChangeAsync(cancellationToken).ConfigureAwait(false)
+                    ? CommandResult.Ok("Last-minute change evaluated against the final loadsheet.")
+                    : CommandResult.Failed("No final loadsheet to evaluate against, or the live CG is implausible — see log.");
+            });
+
         registry.Register<EmptyCommandRequest, CommandResult>(
             "fms.syncInit",
             async (_, cancellationToken) =>
