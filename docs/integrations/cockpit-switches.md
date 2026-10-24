@@ -10,7 +10,7 @@ plugin and the command API — no FSUIPC, no second plugin.
 ### Settings (`cockpitSwitches`, `CockpitSwitchesOptions`, Settings → Cockpit Switches)
 
 - `enabled` (true): off = keys still show state, every press answers `unavailable`.
-- `rows[]`, one card each: `id` (slug a key sends, filled from the dataref on pick), `name`
+- `rows[]`, one grid line each (rare fields in a per-row fold-out, owner pick 2026-10-24): `id` (slug a key sends, filled from the dataref on pick), `name`
   (key title), `dataRef` (picked from the catalogue; `system.switches.S_*` only — the picker
   hides `CB_*`), `look` (`korry2` | `korry1` | `toggle` | `knob` | `guarded`), `pressMode`
   (`toggle` | `momentary` | `cycle`), `upperLegend` / `lowerLegend`, `upperIndicator` /
@@ -65,7 +65,15 @@ to a button; the plugin's *Camera view* key (`camera-view-action.ts`) POSTs `inp
 {name}`; `input.vjoyPress {button, holdMs?}` is the raw form. States on the Setup page: OFF /
 NO DRIVER / NO DEVICE / DEVICE BUSY / READY / FAILED; session event `input.vjoy`.
 
-## Verify live (2026-10-24, nothing of this has run against ProSim or vJoy yet)
+## Seen live (2026-10-24, owner's sim PC via the ProSim gateway)
+
+Presses reach ProSim: `S_OH_HYD_LMV_GREEN` / `_YELLOW` read 1 after key presses. The lamps
+(`I_OH_HYD_LMV_*_L`) stayed 0 and the valves stayed open because the aircraft was unpowered
+(`S_OH_ELEC_BAT1` = 0, EXT PWR AVAIL lamp 0) — ProSim lights no indicator without power. The
+lamp rule stays "non-zero = lit" (ProSim sends 1 or 2 by brightness; the de-icing PACK lamps use
+the same rule, flown live).
+
+## Verify live (still open)
 
 1. Leak valve B: press the key → ProSim's overhead LMV B pushbutton changes, the key's lower
    lamp follows `I_OH_HYD_LMV_BLUE_L`, the log shows `Cockpit switch oh_hyd_lmv_blue … 0 → 1`.

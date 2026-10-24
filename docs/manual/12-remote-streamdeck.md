@@ -33,11 +33,13 @@ firewall and that LAN access is on. *re-pair* means the token was changed — pa
 
 Settings → **Cockpit Switches** on the sim PC's web UI.
 
-1. Press **Add the three leak measurement valves** if you want them: three cards appear,
+1. Press **Add the three leak measurement valves** if you want them: three lines appear,
    blue / green / yellow bezels, lamp from the overhead LED, OFF legend. Save.
-2. For any other switch press **Add switch** and pick it from **ProSim switch**. The list is
-   ProSim's own, grouped by panel (overhead, pedestal, FCU, …). The **Key id**, **Key title** and
-   a sensible **Look** fill in by themselves; change what you like:
+2. For any other switch press **Add switch** and pick it from the **ProSim switch** column. The
+   list is ProSim's own, grouped by panel (overhead, pedestal, FCU, …). The **Key id**, **Key
+   title** and a sensible **Look** fill in by themselves. The line holds what you touch every
+   time; **▸** at its end folds out the rare fields (key id, legends, lamp datarefs, the upper
+   lamp colour, a test **Press**). Change what you like:
    - **Look**: Korry two lamps / one lamp, toggle switch, rotary knob, guarded switch.
    - **Press does**: *Toggle* flips between the first two positions (most Korry buttons).
      *Momentary push* presses and releases (buttons that spring back, like EXT PWR).
@@ -47,8 +49,11 @@ Settings → **Cockpit Switches** on the sim PC's web UI.
      while the switch is pushed. Start typing `I_` to see the list.
    - **Colours**: upper lamp (amber FAULT, green AVAIL), lower lamp (white OFF, blue ON), bezel
      (grey, or a system colour).
-3. Save. The **Live state** pill on each card shows what ProSim reports; **Press** presses the
-   switch from the page so you can see ProSim react before you build a key.
+3. Save. The **Live state** pill on each line shows what ProSim reports; **Press** (in the
+   fold-out) presses the switch from the page so you can see ProSim react before you build a
+   key. **The aircraft must have electrical power** (batteries or external power) for ProSim to
+   light any lamp or move any valve — with a cold and dark aircraft every lamp stays dark, which
+   is correct.
 
 ## 12.3 Cockpit switches: the keys
 

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.0-rc.4
+
+Local build for the owner's sim test, 2026-10-24, on top of rc.3.
+
+- Changed: **Cockpit Switches is one line per switch** (owner pick, after rc.3 showed one card per switch). The line carries the key title, the ProSim switch picker, look, press mode, the lamp and bezel colour swatches and the live-state pill; **▸** folds out the rare fields (key id, legends, lamp datarefs, upper lamp colour, hex boxes, a test **Press**). Same shape as the vJoy and audio editors.
+- Docs: the lamps need electrical power — seen live on the owner's sim PC: presses reached ProSim (`S_OH_HYD_LMV_*` = 1) while the aircraft was cold and dark, so no lamp lit and no valve moved; that is ProSim being right, not the key.
+
 ## 0.8.0-rc.3
 
 Cockpit switches + vJoy relay (owner requests 2026-10-24, branch `feature/cockpit-switches` off `integration/nov-2026-batch`), local release-candidate build for the owner's sim test; **not yet verified live**.

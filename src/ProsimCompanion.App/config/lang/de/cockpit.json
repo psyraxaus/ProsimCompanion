@@ -7,37 +7,59 @@
       "hint": "Gilt sofort",
       "intro": "Schalter, die das Stream Deck drücken und anzeigen darf — Korry-Taster, Kippschalter und Drehknöpfe, für die du keine Hardware hast. Jede Zeile nennt einen ProSim-Schalter; die App schreibt ihn direkt, mehr ist nicht nötig."
     },
-    "enable": { "label": "Cockpit-Schalter", "hint": "Lässt Stream-Deck-Tasten die Schalter unten drücken. Braucht die Befehls-API (Einstellungen → Einrichtung).", "more": "Aus: Die Tasten zeigen den Zustand, jeder Druck wird abgelehnt." },
+    "enable": {
+      "label": "Cockpit-Schalter",
+      "hint": "Lässt Stream-Deck-Tasten die Schalter unten drücken. Braucht die Befehls-API (Einstellungen → Einrichtung).",
+      "more": "Aus: Die Tasten zeigen den Zustand, jeder Druck wird abgelehnt."
+    },
     "row": {
-      "titleNumbered": "Schalter {0}",
-      "hint": "Drücken wirkt auf die gespeicherte Zeile",
       "state": "Live-Zustand",
       "stateHint": "Was ProSim für diesen Schalter gerade meldet. Leuchtet heißt: die Lampe der Taste ist an.",
       "stateNone": "NICHT GESPEICHERT",
       "stateWaiting": "KEIN WERT",
       "stateStale": "PROSIM WEG",
       "pressNow": "Drücken",
-      "remove": "Entfernen",
       "removeTitle": "Diesen Schalter entfernen",
       "dataRef": {
         "label": "ProSim-Schalter",
         "hint": "Aus der Schalterliste von ProSim gewählt. Nur Schalter (S_…), keine Sicherungen.",
-        "more": "Die Liste stammt aus dem Dataref-Katalog; ein laufendes ProSim ersetzt sie durch seine eigene.",
         "pick": "— Schalter wählen —",
         "unknown": "{0} steht nicht in der Schalterliste — wähle ihn neu. Bis dahin wird die Zeile übersprungen.",
-        "positions": "Stellungen: {0}",
         "sourceLive": "Liste um {0} von ProSim gelesen.",
         "sourceShipped": "Liste aus dem mitgelieferten Katalog (ProSim noch nicht verbunden)."
       },
-      "id": { "label": "Tasten-ID", "hint": "Was eine Taste sendet: cockpit.press {\"id\":\"…\"}. Buchstaben, Ziffern und Unterstriche. Wird aus dem Schalter gefüllt; ändere sie, bevor du Tasten baust." },
-      "name": { "label": "Tastentitel", "hint": "Der Text oben auf der Taste, zum Beispiel LEAK MEAS B." },
-      "look": { "label": "Darstellung", "hint": "Wie die Taste den Schalter zeichnet." },
-      "press": { "label": "Druck bewirkt", "hint": "Umschalten wechselt zwischen den ersten beiden Stellungen. Tastend drückt und lässt los (federnde Taster). Durchschalten geht alle Stellungen durch; ein langer Druck geht zurück." },
-      "upperLegend": { "label": "Obere Beschriftung", "hint": "Text in der oberen Lampe (FAULT, AVAIL). Leer blendet den Text aus." },
-      "lowerLegend": { "label": "Untere Beschriftung", "hint": "Text in der unteren Lampe (OFF, ON)." },
-      "upperIndicator": { "label": "Obere Lampe von", "hint": "Ein system.indicators.I_…-Dataref; die Lampe leuchtet, solange er nicht null ist. Leer: Die obere Lampe leuchtet nie." },
-      "lowerIndicator": { "label": "Untere Lampe von", "hint": "Ein system.indicators.I_…-Dataref. Leer: leuchtet, solange der Schalter gedrückt ist (nicht null)." },
-      "colors": "Farben",
+      "id": {
+        "label": "Tasten-ID",
+        "hint": "Was eine Taste sendet: cockpit.press {\"id\":\"…\"}. Buchstaben, Ziffern und Unterstriche. Wird aus dem Schalter gefüllt; ändere sie, bevor du Tasten baust."
+      },
+      "name": {
+        "label": "Tastentitel",
+        "hint": "Der Text oben auf der Taste, zum Beispiel LEAK MEAS B."
+      },
+      "look": {
+        "label": "Darstellung",
+        "hint": "Wie die Taste den Schalter zeichnet."
+      },
+      "press": {
+        "label": "Druck bewirkt",
+        "hint": "Umschalten wechselt zwischen den ersten beiden Stellungen. Tastend drückt und lässt los (federnde Taster). Durchschalten geht alle Stellungen durch; ein langer Druck geht zurück."
+      },
+      "upperLegend": {
+        "label": "Obere Beschriftung",
+        "hint": "Text in der oberen Lampe (FAULT, AVAIL). Leer blendet den Text aus."
+      },
+      "lowerLegend": {
+        "label": "Untere Beschriftung",
+        "hint": "Text in der unteren Lampe (OFF, ON)."
+      },
+      "upperIndicator": {
+        "label": "Obere Lampe von",
+        "hint": "Ein system.indicators.I_…-Dataref; die Lampe leuchtet, solange er nicht null ist. Leer: Die obere Lampe leuchtet nie."
+      },
+      "lowerIndicator": {
+        "label": "Untere Lampe von",
+        "hint": "Ein system.indicators.I_…-Dataref. Leer: leuchtet, solange der Schalter gedrückt ist (nicht null)."
+      },
       "upperColor": "Obere Lampe",
       "upperColorHint": "Bernstein für FAULT, Grün für AVAIL.",
       "lowerColor": "Untere Lampe / aktiv",
@@ -45,18 +67,35 @@
       "bezelColor": "Einfassung",
       "bezelColorHint": "Ring um den Taster. Leer behält die graue Einfassung; die Leckventile nutzen Blau, Grün und Gelb.",
       "bezelNone": "grau",
-      "bezelClear": "Grau"
+      "lamp": "Lampe",
+      "more": "Mehr Felder",
+      "less": "Weniger Felder",
+      "positionsLabel": "Stellungen",
+      "positionsNone": "ProSim nennt keine Stellungen — der Schalter ist eine einfache Zahl.",
+      "pressHint": "Drückt diesen Schalter jetzt über die App mit den gespeicherten Zeilen. Sieh zu, wie ProSim reagiert, bevor du eine Taste baust."
     },
-    "lookOptions": { "korry2": "Korry — zwei Lampen", "korry1": "Korry — eine Lampe", "toggle": "Kippschalter", "knob": "Drehknopf", "guarded": "Schalter mit Schutzklappe" },
-    "pressOptions": { "toggle": "Umschalten", "momentary": "Tastend", "cycle": "Stellungen durchschalten" },
+    "lookOptions": {
+      "korry2": "Korry — zwei Lampen",
+      "korry1": "Korry — eine Lampe",
+      "toggle": "Kippschalter",
+      "knob": "Drehknopf",
+      "guarded": "Schalter mit Schutzklappe"
+    },
+    "pressOptions": {
+      "toggle": "Umschalten",
+      "momentary": "Tastend",
+      "cycle": "Stellungen durchschalten"
+    },
     "list": {
       "title": "Schalter hinzufügen",
-      "hint": "Eine Karte pro Schalter",
+      "hint": "Eine Zeile pro Schalter; ▸ zeigt die seltenen Felder",
       "none": "Noch keine Schalter.",
       "add": "Schalter hinzufügen",
       "addLeakValves": "Die drei Leak-Measurement-Ventile hinzufügen",
       "duplicate": "Zwei Zeilen teilen sich die ID \"{0}\" — eine Taste würde nur die erste drücken.",
-      "commandsHint": "Befehle:"
+      "sourceBefore": "Schalterliste:",
+      "more": "Tasten und Befehle",
+      "moreBody": "Eine Stream-Deck-Taste „Cockpit-Schalter“ wählt eine Zeile über ihre Tasten-ID. Befehle:"
     }
   }
 }

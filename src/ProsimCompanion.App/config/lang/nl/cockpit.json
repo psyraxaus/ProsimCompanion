@@ -7,37 +7,59 @@
       "hint": "Geldt direct",
       "intro": "Schakelaars die de Stream Deck mag indrukken en tonen — Korry-knoppen, tuimelschakelaars en draaiknoppen waarvoor je geen hardware hebt. Elke rij noemt één ProSim-schakelaar; de app schrijft die direct, meer is er niet nodig."
     },
-    "enable": { "label": "Cockpitschakelaars", "hint": "Laat Stream Deck-knoppen de schakelaars hieronder indrukken. Vereist de opdracht-API (Instellingen → Setup).", "more": "Uit: de knoppen tonen de status, maar elke druk wordt geweigerd." },
+    "enable": {
+      "label": "Cockpitschakelaars",
+      "hint": "Laat Stream Deck-knoppen de schakelaars hieronder indrukken. Vereist de opdracht-API (Instellingen → Setup).",
+      "more": "Uit: de knoppen tonen de status, maar elke druk wordt geweigerd."
+    },
     "row": {
-      "titleNumbered": "Schakelaar {0}",
-      "hint": "Indrukken werkt op de opgeslagen rij",
       "state": "Live status",
       "stateHint": "Wat ProSim nu voor deze schakelaar meldt. Aan betekent dat het lampje van de knop brandt.",
       "stateNone": "NIET OPGESLAGEN",
       "stateWaiting": "GEEN WAARDE",
       "stateStale": "PROSIM WEG",
       "pressNow": "Indrukken",
-      "remove": "Verwijderen",
       "removeTitle": "Deze schakelaar verwijderen",
       "dataRef": {
         "label": "ProSim-schakelaar",
         "hint": "Gekozen uit de eigen schakelaarlijst van ProSim. Alleen schakelaars (S_…), geen zekeringen.",
-        "more": "De lijst komt uit de dataref-catalogus; een draaiende ProSim vervangt die door zijn eigen lijst.",
         "pick": "— kies een schakelaar —",
         "unknown": "{0} staat niet in de schakelaarlijst — kies opnieuw. Tot dan wordt de rij overgeslagen.",
-        "positions": "Standen: {0}",
         "sourceLive": "Lijst om {0} uit ProSim gelezen.",
         "sourceShipped": "Lijst uit de meegeleverde catalogus (ProSim nog niet verbonden)."
       },
-      "id": { "label": "Knop-id", "hint": "Wat een knop stuurt: cockpit.press {\"id\":\"…\"}. Letters, cijfers en lage streepjes. Ingevuld vanuit de schakelaar; wijzig het voordat je knoppen bouwt." },
-      "name": { "label": "Knoptitel", "hint": "De tekst bovenaan de knop, bijvoorbeeld LEAK MEAS B." },
-      "look": { "label": "Uiterlijk", "hint": "Hoe de knop de schakelaar tekent." },
-      "press": { "label": "Indrukken doet", "hint": "Wisselen schakelt tussen de eerste twee standen. Kortstondig drukt in en laat los (terugverende drukknoppen). Doorlopen gaat alle standen langs; lang indrukken gaat terug." },
-      "upperLegend": { "label": "Bovenste opschrift", "hint": "Tekst in het bovenste lampje (FAULT, AVAIL). Leeg verbergt de tekst." },
-      "lowerLegend": { "label": "Onderste opschrift", "hint": "Tekst in het onderste lampje (OFF, ON)." },
-      "upperIndicator": { "label": "Bovenste lampje van", "hint": "Een system.indicators.I_…-dataref; het lampje brandt zolang die niet nul is. Leeg: het bovenste lampje brandt nooit." },
-      "lowerIndicator": { "label": "Onderste lampje van", "hint": "Een system.indicators.I_…-dataref. Leeg: brandt zolang de schakelaar is ingedrukt (niet nul)." },
-      "colors": "Kleuren",
+      "id": {
+        "label": "Knop-id",
+        "hint": "Wat een knop stuurt: cockpit.press {\"id\":\"…\"}. Letters, cijfers en lage streepjes. Ingevuld vanuit de schakelaar; wijzig het voordat je knoppen bouwt."
+      },
+      "name": {
+        "label": "Knoptitel",
+        "hint": "De tekst bovenaan de knop, bijvoorbeeld LEAK MEAS B."
+      },
+      "look": {
+        "label": "Uiterlijk",
+        "hint": "Hoe de knop de schakelaar tekent."
+      },
+      "press": {
+        "label": "Indrukken doet",
+        "hint": "Wisselen schakelt tussen de eerste twee standen. Kortstondig drukt in en laat los (terugverende drukknoppen). Doorlopen gaat alle standen langs; lang indrukken gaat terug."
+      },
+      "upperLegend": {
+        "label": "Bovenste opschrift",
+        "hint": "Tekst in het bovenste lampje (FAULT, AVAIL). Leeg verbergt de tekst."
+      },
+      "lowerLegend": {
+        "label": "Onderste opschrift",
+        "hint": "Tekst in het onderste lampje (OFF, ON)."
+      },
+      "upperIndicator": {
+        "label": "Bovenste lampje van",
+        "hint": "Een system.indicators.I_…-dataref; het lampje brandt zolang die niet nul is. Leeg: het bovenste lampje brandt nooit."
+      },
+      "lowerIndicator": {
+        "label": "Onderste lampje van",
+        "hint": "Een system.indicators.I_…-dataref. Leeg: brandt zolang de schakelaar is ingedrukt (niet nul)."
+      },
       "upperColor": "Bovenste lampje",
       "upperColorHint": "Amber voor FAULT, groen voor AVAIL.",
       "lowerColor": "Onderste lampje / actief",
@@ -45,18 +67,35 @@
       "bezelColor": "Rand",
       "bezelColorHint": "Ring om de knop. Leeg houdt de grijze rand; de lekmeetkleppen gebruiken blauw, groen en geel.",
       "bezelNone": "grijs",
-      "bezelClear": "Grijs"
+      "lamp": "Lampje",
+      "more": "Meer velden",
+      "less": "Minder velden",
+      "positionsLabel": "Standen",
+      "positionsNone": "ProSim noemt geen standen — de schakelaar is een gewoon getal.",
+      "pressHint": "Drukt deze schakelaar nu in via de app, met de opgeslagen rijen. Kijk hoe ProSim reageert voordat je een knop bouwt."
     },
-    "lookOptions": { "korry2": "Korry — twee lampjes", "korry1": "Korry — één lampje", "toggle": "Tuimelschakelaar", "knob": "Draaiknop", "guarded": "Schakelaar met kap" },
-    "pressOptions": { "toggle": "Wisselen", "momentary": "Kortstondig indrukken", "cycle": "Standen doorlopen" },
+    "lookOptions": {
+      "korry2": "Korry — twee lampjes",
+      "korry1": "Korry — één lampje",
+      "toggle": "Tuimelschakelaar",
+      "knob": "Draaiknop",
+      "guarded": "Schakelaar met kap"
+    },
+    "pressOptions": {
+      "toggle": "Wisselen",
+      "momentary": "Kortstondig indrukken",
+      "cycle": "Standen doorlopen"
+    },
     "list": {
       "title": "Schakelaars toevoegen",
-      "hint": "Eén kaart per schakelaar",
+      "hint": "Eén regel per schakelaar; ▸ toont de zeldzame velden",
       "none": "Nog geen schakelaars.",
       "add": "Schakelaar toevoegen",
       "addLeakValves": "De drie lekmeetkleppen toevoegen",
       "duplicate": "Twee rijen delen de id \"{0}\" — een knop zou alleen de eerste indrukken.",
-      "commandsHint": "Opdrachten:"
+      "sourceBefore": "Schakelaarlijst:",
+      "more": "Knoppen en opdrachten",
+      "moreBody": "Een Stream Deck-knop Cockpit Switch kiest een rij via de knop-id. Opdrachten:"
     }
   }
 }

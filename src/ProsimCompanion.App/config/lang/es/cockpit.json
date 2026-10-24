@@ -7,37 +7,59 @@
       "hint": "Se aplica al instante",
       "intro": "Interruptores que el Stream Deck puede pulsar y mostrar: pulsadores Korry, conmutadores y selectores para los que no tienes hardware. Cada fila nombra un interruptor de ProSim; la app lo escribe directamente, no hace falta nada más."
     },
-    "enable": { "label": "Interruptores de cabina", "hint": "Permite que las teclas del Stream Deck pulsen los interruptores de abajo. Necesita la API de comandos (Ajustes → Configuración).", "more": "Apagado: las teclas muestran el estado, pero toda pulsación se rechaza." },
+    "enable": {
+      "label": "Interruptores de cabina",
+      "hint": "Permite que las teclas del Stream Deck pulsen los interruptores de abajo. Necesita la API de comandos (Ajustes → Configuración).",
+      "more": "Apagado: las teclas muestran el estado, pero toda pulsación se rechaza."
+    },
     "row": {
-      "titleNumbered": "Interruptor {0}",
-      "hint": "Pulsar actúa sobre la fila guardada",
       "state": "Estado en vivo",
       "stateHint": "Lo que ProSim informa ahora para este interruptor. Encendido significa que la lámpara de la tecla está activa.",
       "stateNone": "SIN GUARDAR",
       "stateWaiting": "SIN VALOR",
       "stateStale": "PROSIM AUSENTE",
       "pressNow": "Pulsar",
-      "remove": "Quitar",
       "removeTitle": "Quitar este interruptor",
       "dataRef": {
         "label": "Interruptor de ProSim",
         "hint": "Elegido de la propia lista de interruptores de ProSim. Solo interruptores (S_…), sin disyuntores.",
-        "more": "La lista viene del catálogo de datarefs; un ProSim en marcha la sustituye por la suya.",
         "pick": "— elige un interruptor —",
         "unknown": "{0} no está en la lista de interruptores: elígelo de nuevo. La fila se omite hasta entonces.",
-        "positions": "Posiciones: {0}",
         "sourceLive": "Lista leída de ProSim a las {0}.",
         "sourceShipped": "Lista del catálogo incluido (ProSim aún no conectado)."
       },
-      "id": { "label": "Id de tecla", "hint": "Lo que envía una tecla: cockpit.press {\"id\":\"…\"}. Letras, dígitos y guiones bajos. Se rellena desde el interruptor; cámbialo antes de crear teclas." },
-      "name": { "label": "Título de la tecla", "hint": "El texto en la parte superior de la tecla, por ejemplo LEAK MEAS B." },
-      "look": { "label": "Aspecto", "hint": "Cómo dibuja la tecla el interruptor." },
-      "press": { "label": "La pulsación hace", "hint": "Alternar cambia entre las dos primeras posiciones. Momentáneo pulsa y suelta (botones con retorno). Ciclar recorre todas las posiciones; una pulsación larga retrocede." },
-      "upperLegend": { "label": "Leyenda superior", "hint": "Texto de la lámpara superior (FAULT, AVAIL). Vacío oculta el texto." },
-      "lowerLegend": { "label": "Leyenda inferior", "hint": "Texto de la lámpara inferior (OFF, ON)." },
-      "upperIndicator": { "label": "Lámpara superior desde", "hint": "Un dataref system.indicators.I_…; la lámpara se enciende mientras no sea cero. Vacío: la lámpara superior nunca se enciende." },
-      "lowerIndicator": { "label": "Lámpara inferior desde", "hint": "Un dataref system.indicators.I_…. Vacío: encendida mientras el interruptor esté pulsado (no cero)." },
-      "colors": "Colores",
+      "id": {
+        "label": "Id de tecla",
+        "hint": "Lo que envía una tecla: cockpit.press {\"id\":\"…\"}. Letras, dígitos y guiones bajos. Se rellena desde el interruptor; cámbialo antes de crear teclas."
+      },
+      "name": {
+        "label": "Título de la tecla",
+        "hint": "El texto en la parte superior de la tecla, por ejemplo LEAK MEAS B."
+      },
+      "look": {
+        "label": "Aspecto",
+        "hint": "Cómo dibuja la tecla el interruptor."
+      },
+      "press": {
+        "label": "La pulsación hace",
+        "hint": "Alternar cambia entre las dos primeras posiciones. Momentáneo pulsa y suelta (botones con retorno). Ciclar recorre todas las posiciones; una pulsación larga retrocede."
+      },
+      "upperLegend": {
+        "label": "Leyenda superior",
+        "hint": "Texto de la lámpara superior (FAULT, AVAIL). Vacío oculta el texto."
+      },
+      "lowerLegend": {
+        "label": "Leyenda inferior",
+        "hint": "Texto de la lámpara inferior (OFF, ON)."
+      },
+      "upperIndicator": {
+        "label": "Lámpara superior desde",
+        "hint": "Un dataref system.indicators.I_…; la lámpara se enciende mientras no sea cero. Vacío: la lámpara superior nunca se enciende."
+      },
+      "lowerIndicator": {
+        "label": "Lámpara inferior desde",
+        "hint": "Un dataref system.indicators.I_…. Vacío: encendida mientras el interruptor esté pulsado (no cero)."
+      },
       "upperColor": "Lámpara superior",
       "upperColorHint": "Ámbar para FAULT, verde para AVAIL.",
       "lowerColor": "Lámpara inferior / activo",
@@ -45,18 +67,35 @@
       "bezelColor": "Bisel",
       "bezelColorHint": "Anillo alrededor del botón. Vacío mantiene el bisel gris; las válvulas de fuga usan azul, verde y amarillo.",
       "bezelNone": "gris",
-      "bezelClear": "Gris"
+      "lamp": "Lámpara",
+      "more": "Más campos",
+      "less": "Menos campos",
+      "positionsLabel": "Posiciones",
+      "positionsNone": "ProSim no indica posiciones: el interruptor es un número simple.",
+      "pressHint": "Pulsa este interruptor ahora a través de la app, con las filas guardadas. Mira cómo reacciona ProSim antes de crear una tecla."
     },
-    "lookOptions": { "korry2": "Korry — dos lámparas", "korry1": "Korry — una lámpara", "toggle": "Conmutador", "knob": "Selector rotativo", "guarded": "Interruptor con guarda" },
-    "pressOptions": { "toggle": "Alternar", "momentary": "Pulsación momentánea", "cycle": "Ciclar posiciones" },
+    "lookOptions": {
+      "korry2": "Korry — dos lámparas",
+      "korry1": "Korry — una lámpara",
+      "toggle": "Conmutador",
+      "knob": "Selector rotativo",
+      "guarded": "Interruptor con guarda"
+    },
+    "pressOptions": {
+      "toggle": "Alternar",
+      "momentary": "Pulsación momentánea",
+      "cycle": "Ciclar posiciones"
+    },
     "list": {
       "title": "Añadir interruptores",
-      "hint": "Una tarjeta por interruptor",
+      "hint": "Una línea por interruptor; ▸ muestra los campos poco usados",
       "none": "Aún no hay interruptores.",
       "add": "Añadir interruptor",
       "addLeakValves": "Añadir las tres válvulas de medición de fugas",
       "duplicate": "Dos filas comparten el id \"{0}\": una tecla solo pulsaría la primera.",
-      "commandsHint": "Comandos:"
+      "sourceBefore": "Lista de interruptores:",
+      "more": "Teclas y comandos",
+      "moreBody": "Una tecla Cockpit Switch del Stream Deck elige una fila por su id de tecla. Comandos:"
     }
   }
 }

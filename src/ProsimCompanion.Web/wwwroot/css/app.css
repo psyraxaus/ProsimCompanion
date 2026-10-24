@@ -2101,3 +2101,40 @@ split-flap { display: inline-flex; align-items: center; justify-content: center;
 }
 .vjoy-view-row .cell-input { width: 100%; min-width: 0; }
 .cell-input.invalid, .cell-input.invalid:focus { border-color: var(--danger); box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.25); }
+
+/* Cockpit switch rows (2026-10-24): one line per switch — title | ProSim switch | look | press |
+   lamp swatch | bezel swatch | state | fold-out | remove — with the rare fields folded out below. */
+.cockpit-row-header,
+.cockpit-row {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) minmax(220px, 1.8fr) 130px 130px 40px 40px 100px 32px 32px;
+  gap: 8px;
+  align-items: center;
+  padding: 4px 0;
+}
+.cockpit-row-header {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+}
+.cockpit-row .cell-input, .cockpit-row .cell-select { width: 100%; min-width: 0; }
+.cockpit-row .pill { justify-self: start; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100px; }
+.cockpit-swatch {
+  width: 32px; height: 28px; padding: 0; border: 1px solid var(--border); border-radius: 6px;
+  background: transparent; cursor: pointer;
+}
+.cockpit-swatch-none { opacity: 0.45; }
+.cockpit-more { padding: 2px 8px; min-width: 0; }
+.cockpit-row-more {
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  gap: 6px 12px;
+  align-items: center;
+  margin: 0 0 10px 12px;
+  padding: 8px 12px;
+  border-left: 2px solid var(--border);
+}
+.cockpit-row-more label { font-size: 12px; color: var(--text-secondary); }
+.cockpit-row-more .cell-input { max-width: 420px; }
