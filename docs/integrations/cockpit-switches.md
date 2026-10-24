@@ -16,8 +16,11 @@ plugin and the command API — no FSUIPC, no second plugin.
   (`toggle` | `momentary` | `cycle`), `upperLegend` / `lowerLegend`, `upperIndicator` /
   `lowerIndicator` (optional `system.indicators.I_*` datarefs that light the lamps; the lower
   lamp defaults to "switch value ≠ 0"), `upperColor` / `lowerColor` / `bezelColor` (hex; the
-  page's swatches). **Add the three leak measurement valves** pre-fills B / G / Y with blue /
-  green / yellow bezels and the `I_OH_HYD_LMV_*_L` lamps.
+  page's swatches), `showUnlitLegend` (true = dim grey legend while the lamp is dark; false =
+  extinguished, the legend appears only when lit). **Add the three leak measurement valves**
+  sets (or resets) B / G / Y: blue / green / yellow bezels, lamp follows the switch (no
+  indicator, so it works unpowered), legend ON, `showUnlitLegend` false — nothing while Normal,
+  a lit ON while pushed (owner request 2026-10-24).
 
 ### Runtime (`src/ProsimCompanion.Prosim/Switches/CockpitSwitchService.cs`)
 
