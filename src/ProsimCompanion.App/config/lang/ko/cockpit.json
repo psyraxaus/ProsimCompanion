@@ -73,6 +73,12 @@
       "positionsLabel": "위치",
       "positionsNone": "ProSim에 위치 목록이 없습니다. 이 스위치는 단순 숫자입니다.",
       "pressHint": "저장된 행으로 앱을 통해 이 스위치를 지금 누릅니다. 키를 만들기 전에 ProSim의 반응을 확인하세요.",
+      "lowerLitAtZero": {
+        "label": "아래 램프가 켜지는 위치",
+        "hint": "표시등 dataref를 지정하지 않았을 때 어느 스위치 위치에서 아래 램프가 켜지는지 정합니다. 대부분의 Korry는 눌렀을 때 (0이 아닐 때) 켜집니다. 누설 측정 밸브는 Normal 위치 (0)에서 OFF가 켜지고 누르면 꺼집니다."
+      },
+      "litWhenPushed": "눌렀을 때 켜짐 (0이 아닐 때)",
+      "litAtZero": "위치 0 (Normal)에서 켜짐",
       "showUnlitLegend": {
         "label": "꺼짐 상태의 글자",
         "hint": "켬: 램프가 꺼져 있어도 실제 각인 Korry처럼 글자가 희미하게 보입니다. 끔: 램프가 켜질 때까지 아무것도 보이지 않습니다. 글자는 켜졌을 때만 나타납니다."

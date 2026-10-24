@@ -62,6 +62,23 @@ public sealed class CockpitSwitchLogicTests
     }
 
     [Fact]
+    public void Evaluate_LowerLitAtZero_InvertsTheLamp_ButNeverLightsAnUnknownSwitch()
+    {
+        // The leak measurement valves (owner correction 2026-10-25): OFF lit in the Normal
+        // position (0), extinguished while Pushed (1).
+        var row = new CockpitSwitchRow { Id = "lmv", DataRef = "system.switches.S_OH_HYD_LMV_BLUE", LowerLitAtZero = true, LowerLegend = "OFF" };
+
+        Assert.True(CockpitSwitchLogic.Evaluate(row, 0, null, null, false, TwoState).LowerLit);
+        Assert.False(CockpitSwitchLogic.Evaluate(row, 1, null, null, false, TwoState).LowerLit);
+        Assert.False(CockpitSwitchLogic.Evaluate(row, null, null, null, true, TwoState).LowerLit); // no value ≠ "is zero"
+
+        // A named indicator wins: ProSim decides, the flag is ignored.
+        row.LowerIndicator = "system.indicators.I_OH_HYD_LMV_BLUE_L";
+        Assert.True(CockpitSwitchLogic.Evaluate(row, 1, null, 1, false, TwoState).LowerLit);
+        Assert.False(CockpitSwitchLogic.Evaluate(row, 0, null, 0, false, TwoState).LowerLit);
+    }
+
+    [Fact]
     public void Evaluate_LowerLampFollowsTheSwitch_UnlessAnIndicatorIsNamed()
     {
         var row = new CockpitSwitchRow { Id = "lmv", DataRef = "system.switches.S_OH_HYD_LMV_BLUE" };

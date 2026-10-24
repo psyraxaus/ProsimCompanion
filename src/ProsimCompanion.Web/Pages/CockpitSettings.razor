@@ -114,6 +114,12 @@
                         <span class="field-hint" style="margin:0;">@(row.ShowUnlitLegend ? T["cockpit.row.unlitDim"].Value : T["cockpit.row.unlitHidden"].Value)</span>
                     </label>
 
+                    <label>@T["cockpit.row.lowerLitAtZero.label"] <FieldHint Hint="@T["cockpit.row.lowerLitAtZero.hint"]" /></label>
+                    <label style="display:flex; align-items:center; gap:8px;">
+                        <input type="checkbox" class="audio-cell-check" @bind="row.LowerLitAtZero" disabled="@(!string.IsNullOrWhiteSpace(row.LowerIndicator))" />
+                        <span class="field-hint" style="margin:0;">@(row.LowerLitAtZero ? T["cockpit.row.litAtZero"].Value : T["cockpit.row.litWhenPushed"].Value)</span>
+                    </label>
+
                     <label>@T["cockpit.row.upperColor"] <FieldHint Hint="@T["cockpit.row.upperColorHint"]" /></label>
                     <div style="display:flex; align-items:center; gap:8px;">
                         <input type="color" class="cockpit-swatch" value="@Swatch(row.UpperColor, CockpitSwitchRow.DefaultUpperColor)" @onchange="e => SetColor(c => row.UpperColor = c, e)" aria-label="@T["cockpit.row.upperColor"]" disabled="@(row.Look != CockpitSwitchLook.Korry2)" />
@@ -284,8 +290,9 @@
 
     /// <summary>The owner's three leak measurement valves in one click (sets them, or resets
     /// existing rows to this preset): blue / green / yellow bezels, the lamp follows the
-    /// switch itself (pushed = lit, no power needed), legend ON shown only while lit — a dark
-    /// lamp is extinguished (owner request 2026-10-24).</summary>
+    /// switch itself (no power needed) the way the real pb's OFF light does — value 0 (Normal)
+    /// shows a lit OFF, value 1 (Pushed) is extinguished, nothing in the lamp (owner
+    /// correction 2026-10-25; rc.5 had ON-when-pushed, the wrong way round).</summary>
     private void AddLeakValves()
     {
         foreach (var (letter, colour) in new[] { ("BLUE", "#5fb4ff"), ("GREEN", "#4fd18a"), ("YELLOW", "#f2cf4a") })
@@ -303,9 +310,10 @@
             row.Look = CockpitSwitchLook.Korry2;
             row.PressMode = CockpitPressMode.Toggle;
             row.UpperLegend = "";
-            row.LowerLegend = "ON";
+            row.LowerLegend = "OFF";
             row.UpperIndicator = "";
             row.LowerIndicator = "";
+            row.LowerLitAtZero = true;
             row.ShowUnlitLegend = false;
             row.LowerColor = CockpitSwitchRow.DefaultLowerColor;
             row.BezelColor = colour;

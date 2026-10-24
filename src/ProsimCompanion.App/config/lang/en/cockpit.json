@@ -73,6 +73,12 @@
       "positionsLabel": "Positions",
       "positionsNone": "ProSim lists no positions — the switch is a plain number.",
       "pressHint": "Presses this switch now through the app, with the saved rows. Watch ProSim react before you build a key.",
+      "lowerLitAtZero": {
+        "label": "Lower lamp lit at",
+        "hint": "Which switch position lights the lower lamp when no indicator dataref is named. Most Korrys light when pushed (not 0). The leak measurement valves light OFF in the Normal position (0) and go dark when pushed."
+      },
+      "litWhenPushed": "lit while pushed (not 0)",
+      "litAtZero": "lit in position 0 (Normal)",
       "showUnlitLegend": {
         "label": "Legend while dark",
         "hint": "On: the legend stays faintly readable while the lamp is dark, like a real engraved Korry. Off: nothing shows until the lamp lights — the word only appears when lit."

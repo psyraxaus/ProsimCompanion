@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.0-rc.7
+
+Local build for the owner's sim test, 2026-10-25, on top of rc.6.
+
+- Fixed: **the leak measurement valve preset lit the wrong way round** (owner correction 2026-10-25). The real pb shows a white **OFF** in the Normal position and nothing while pushed; rc.5/rc.6 showed ON while pushed. New per-switch fold-out setting **Lower lamp lit at** (`lowerLitAtZero`, off by default): with no lower indicator dataref, the lower lamp lights in position 0 instead of "not 0"; a switch with no value yet stays dark either way; greyed out while a **Lower lamp from** dataref is named (ProSim decides). The preset now sets legend **OFF**, lit at 0, extinguished while dark. **Existing leak-valve rows are not changed on update — press "Add the three leak measurement valves" once more to reset them, then Save.** Seven language packs; the Stream Deck plugin needs no change (the lamp state is computed in the app).
+
 ## 0.8.0-rc.6
 
 Local build for the owner's sim test, 2026-10-25, on top of rc.5. Two-axis review of `feature/cockpit-switches` (standards + spec against ADR-0015); every finding fixed; no new options.

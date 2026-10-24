@@ -73,6 +73,12 @@
       "positionsLabel": "Posiciones",
       "positionsNone": "ProSim no indica posiciones: el interruptor es un número simple.",
       "pressHint": "Pulsa este interruptor ahora a través de la app, con las filas guardadas. Mira cómo reacciona ProSim antes de crear una tecla.",
+      "lowerLitAtZero": {
+        "label": "Lámpara inferior encendida en",
+        "hint": "Qué posición del interruptor enciende la lámpara inferior cuando no se indica un dataref de indicador. La mayoría de los Korry se encienden pulsados (distinto de 0). Las válvulas de medición de fugas muestran OFF en la posición Normal (0) y se apagan al pulsarlas."
+      },
+      "litWhenPushed": "encendida pulsado (distinto de 0)",
+      "litAtZero": "encendida en la posición 0 (Normal)",
       "showUnlitLegend": {
         "label": "Leyenda apagada",
         "hint": "Activado: la leyenda sigue levemente legible con la lámpara apagada, como un Korry grabado real. Desactivado: no se ve nada hasta que la lámpara se enciende; la palabra solo aparece iluminada."

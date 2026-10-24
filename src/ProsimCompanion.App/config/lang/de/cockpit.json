@@ -73,6 +73,12 @@
       "positionsLabel": "Stellungen",
       "positionsNone": "ProSim nennt keine Stellungen — der Schalter ist eine einfache Zahl.",
       "pressHint": "Drückt diesen Schalter jetzt über die App mit den gespeicherten Zeilen. Sieh zu, wie ProSim reagiert, bevor du eine Taste baust.",
+      "lowerLitAtZero": {
+        "label": "Untere Lampe leuchtet bei",
+        "hint": "Welche Schalterstellung die untere Lampe einschaltet, wenn kein Indikator-Dataref angegeben ist. Die meisten Korrys leuchten gedrückt (ungleich 0). Die Leak-Measurement-Ventile zeigen OFF in der Normalstellung (0) und sind gedrückt dunkel."
+      },
+      "litWhenPushed": "leuchtet gedrückt (ungleich 0)",
+      "litAtZero": "leuchtet in Stellung 0 (Normal)",
       "showUnlitLegend": {
         "label": "Beschriftung im Dunkeln",
         "hint": "An: Die Beschriftung bleibt bei dunkler Lampe schwach lesbar, wie bei einem echten gravierten Korry. Aus: Nichts ist zu sehen, bis die Lampe leuchtet — das Wort erscheint nur beleuchtet."

@@ -73,6 +73,12 @@
       "positionsLabel": "Standen",
       "positionsNone": "ProSim noemt geen standen — de schakelaar is een gewoon getal.",
       "pressHint": "Drukt deze schakelaar nu in via de app, met de opgeslagen rijen. Kijk hoe ProSim reageert voordat je een knop bouwt.",
+      "lowerLitAtZero": {
+        "label": "Onderste lampje brandt bij",
+        "hint": "Welke schakelaarstand het onderste lampje laat branden als geen indicator-dataref is opgegeven. De meeste Korry's branden ingedrukt (niet 0). De lekmeetkleppen tonen OFF in de stand Normal (0) en zijn ingedrukt donker."
+      },
+      "litWhenPushed": "brandt ingedrukt (niet 0)",
+      "litAtZero": "brandt in stand 0 (Normal)",
       "showUnlitLegend": {
         "label": "Opschrift bij donker lampje",
         "hint": "Aan: het opschrift blijft vaag leesbaar terwijl het lampje donker is, zoals een echte gegraveerde Korry. Uit: niets te zien tot het lampje brandt — het woord verschijnt alleen verlicht."

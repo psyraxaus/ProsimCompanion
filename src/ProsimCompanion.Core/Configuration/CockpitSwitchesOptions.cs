@@ -110,9 +110,17 @@ public sealed class CockpitSwitchRow
     /// <summary>Show a legend as dim grey text while its lamp is dark (the default, the way a
     /// real Korry's engraved legend stays faintly readable) — or hide it completely so a dark
     /// lamp is truly extinguished and the word appears only when lit (owner's leak valves:
-    /// nothing when Normal, ON when pushed).</summary>
+    /// a lit OFF in the Normal position, nothing while pushed).</summary>
     [OptionField(FieldKind.Bool, "cockpit.row.showUnlitLegend")]
     public bool ShowUnlitLegend { get; set; } = true;
+
+    /// <summary>With no lower indicator, the lower lamp normally lights while the switch value
+    /// is not zero (pushed / on). True inverts that: lit while the value IS zero. The leak
+    /// measurement valves work this way (owner correction 2026-10-25): value 0 = Normal shows a
+    /// lit OFF, value 1 = Pushed is extinguished — the real pb's OFF light. Ignored when a lower
+    /// indicator dataref is named (ProSim then decides).</summary>
+    [OptionField(FieldKind.Bool, "cockpit.row.lowerLitAtZero")]
+    public bool LowerLitAtZero { get; set; }
 
     /// <summary>Upper lamp colour, hex. Amber by default (FAULT).</summary>
     public string UpperColor { get; set; } = DefaultUpperColor;

@@ -119,9 +119,11 @@ public static class CockpitSwitchLogic
         ArgumentNullException.ThrowIfNull(values);
 
         var upperLit = HasText(row.UpperIndicator) && (upperIndicator ?? 0) != 0;
+        // No value yet = dark, whichever way the lamp is wired: an unknown switch must not
+        // light an "OFF" the aircraft never showed.
         var lowerLit = HasText(row.LowerIndicator)
             ? (lowerIndicator ?? 0) != 0
-            : (value ?? 0) != 0;
+            : value is { } known && (row.LowerLitAtZero ? known == 0 : known != 0);
         var position = value is { } v ? Label(values, v) : null;
         return new CockpitSwitchState(row.Id, value, position, upperLit, lowerLit, stale);
     }

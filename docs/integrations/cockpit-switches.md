@@ -15,12 +15,14 @@ plugin and the command API — no FSUIPC, no second plugin.
   hides `CB_*`), `look` (`korry2` | `korry1` | `toggle` | `knob` | `guarded`), `pressMode`
   (`toggle` | `momentary` | `cycle`), `upperLegend` / `lowerLegend`, `upperIndicator` /
   `lowerIndicator` (optional `system.indicators.I_*` datarefs that light the lamps; the lower
-  lamp defaults to "switch value ≠ 0"), `upperColor` / `lowerColor` / `bezelColor` (hex; the
-  page's swatches), `showUnlitLegend` (true = dim grey legend while the lamp is dark; false =
-  extinguished, the legend appears only when lit). **Add the three leak measurement valves**
-  sets (or resets) B / G / Y: blue / green / yellow bezels, lamp follows the switch (no
-  indicator, so it works unpowered), legend ON, `showUnlitLegend` false — nothing while Normal,
-  a lit ON while pushed (owner request 2026-10-24).
+  lamp defaults to "switch value ≠ 0"), `lowerLitAtZero` (false; true = with no lower indicator
+  the lower lamp lights while the value IS 0 — a switch with no value yet is always dark),
+  `upperColor` / `lowerColor` / `bezelColor` (hex; the page's swatches), `showUnlitLegend`
+  (true = dim grey legend while the lamp is dark; false = extinguished, the legend appears only
+  when lit). **Add the three leak measurement valves** sets (or resets) B / G / Y: blue / green
+  / yellow bezels, lamp follows the switch (no indicator, so it works unpowered), legend OFF,
+  `lowerLitAtZero` true, `showUnlitLegend` false — a lit OFF while Normal (0), extinguished
+  while Pushed (1), the real pb's OFF light (owner correction 2026-10-25; rc.5 had ON-when-pushed).
 
 ### Runtime (`src/ProsimCompanion.Prosim/Switches/CockpitSwitchService.cs`)
 

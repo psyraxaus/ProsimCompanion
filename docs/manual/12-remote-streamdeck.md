@@ -35,9 +35,9 @@ Settings → **Cockpit Switches** on the sim PC's web UI.
 
 1. Press **Add the three leak measurement valves** if you want them: three lines appear (or
    existing ones are reset to the preset) — blue / green / yellow bezels, the lamp follows the
-   button itself (lit while pushed, no aircraft power needed), legend **ON** shown only while
-   lit. Save. Prefer the real overhead LED instead? Put `system.indicators.I_OH_HYD_LMV_BLUE_L`
-   (etc.) into **Lower lamp from** in the fold-out.
+   button itself (no aircraft power needed) the way the real OFF light does: a lit **OFF** in
+   the Normal position, nothing while pushed. Save. Prefer the real overhead LED instead? Put
+   `system.indicators.I_OH_HYD_LMV_BLUE_L` (etc.) into **Lower lamp from** in the fold-out.
 2. For any other switch press **Add switch** and pick it from the **ProSim switch** column. The
    list is ProSim's own, grouped by panel (overhead, pedestal, FCU, …). The **Key id**, **Key
    title** and a sensible **Look** fill in by themselves. The line holds what you touch every
@@ -50,10 +50,13 @@ Settings → **Cockpit Switches** on the sim PC's web UI.
    - **Legends**: the words in the lamps (FAULT / OFF, AVAIL / ON).
    - **Legend while dark** (in the fold-out): on = the word stays faintly readable while the
      lamp is dark, like a real engraved Korry; off = the lamp is truly extinguished and the
-     word appears only when lit. The leak-valve preset uses "off" with the legend **ON**: nothing
-     while Normal, a lit ON while pushed.
+     word appears only when lit. The leak-valve preset uses "off" with the legend **OFF**: a lit
+     OFF while Normal, nothing while pushed.
+   - **Lower lamp lit at** (in the fold-out): most Korrys light while pushed; the leak valves
+     light in the Normal position (0) instead. Greyed out when a **Lower lamp from** dataref is
+     named — ProSim then decides.
    - **Lamps from**: optional `system.indicators.I_…` datarefs. The lower lamp otherwise lights
-     while the switch is pushed. Start typing `I_` to see the list.
+     while the switch is pushed (or at 0 with the setting above). Start typing `I_` to see the list.
    - **Colours**: upper lamp (amber FAULT, green AVAIL), lower lamp (white OFF, blue ON), bezel
      (grey, or a system colour).
 3. Save. The **Live state** pill on each line shows what ProSim reports; **Press** (in the
@@ -106,6 +109,7 @@ On the **Stream Deck PC**, drag a **Camera View** key onto a page and pick the v
 | Key says **switches off** | Settings → Cockpit Switches → the master switch is off. |
 | Key says **prosim away** / **no value** | ProSim is not connected, or it has not sent this switch's value yet. |
 | Amber ring + a reason | ProsimCompanion refused the press; the reason is the app's own words. The same press from the page's **Press** button shows the full text. |
-| Lamp never lights | Check the row's **Lower lamp from**: the indicator name must exist (start typing `I_`); empty means "lit while pushed". |
+| Lamp never lights | Check the row's **Lower lamp from**: the indicator name must exist (start typing `I_`); empty means "lit while pushed", or "lit at 0" when **Lower lamp lit at** says so. |
+| Leak valve shows **ON** while pushed | Rows from a build before rc.7. Press **Add the three leak measurement valves** again: it resets them to a lit **OFF** in Normal and dark while pushed. Save. |
 | vJoy relay pill **NO DRIVER** | vJoy is not installed on the sim PC, is not running, or the DLL path points at the 32-bit DLL — use the `x64` folder. |
 | **Press** says READY but ChasePlane does nothing | The view is not bound to that vJoy button in ChasePlane. Bind it while pressing **Press** (12.4 step 5). |
