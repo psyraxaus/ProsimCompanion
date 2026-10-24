@@ -27,6 +27,23 @@
       "centre": "センター",
       "rightInner": "右インナー",
       "rightOuter": "右アウター"
+    },
+    "plan": {
+      "title": "燃料計画とホールディング",
+      "hint": "SimBrief内訳 · タンク内 {0} {1}",
+      "taxi": "タキシー",
+      "trip": "トリップ",
+      "contingency": "コンティンジェンシー",
+      "alternate": "代替",
+      "finalReserve": "最終予備",
+      "plannedHolding": "計画ホールディング",
+      "extra": "エクストラ",
+      "discretionary": "機長裁量",
+      "block": "ブロック",
+      "holding": "ホールディング可能",
+      "holdingDetail": "代替・最終予備を超える {0} {1} · {2}",
+      "advice": "燃料判断",
+      "applied": "+{0} {1} をブロックに適用"
     }
   }
 }

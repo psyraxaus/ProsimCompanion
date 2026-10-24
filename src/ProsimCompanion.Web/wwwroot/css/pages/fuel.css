@@ -156,3 +156,15 @@
   .fuel-tank-row { grid-template-columns: 70px minmax(0, 1fr); }
   .fuel-tank-value { grid-column: 2; text-align: right; }
 }
+
+/* ---- fuel plan breakdown + holding (issue #183) ---- */
+
+.fuel-plan-grid {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 6px 16px;
+  font-size: 13px;
+}
+.fuel-plan-label { color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.06em; font-size: 11px; align-self: center; }
+.fuel-plan-value { font-family: var(--font-mono); font-weight: 700; color: var(--text-primary); text-align: right; }
+.fuel-plan-advice { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--text-primary); }

@@ -370,6 +370,8 @@
       "noFurtherThreats": "Sin más amenazas",
       "issueRevisedFinal": "Emitir final revisado",
       "captainsAuthority": "Volar bajo autoridad del comandante",
+      "takeExtraFuel": "Tomar el combustible extra",
+      "planFuel": "Se mantiene el plan",
       "title": "Preguntas al comandante",
       "hint": "Preguntas abiertas del First Officer — responde aquí, por voz o en el propio menú de GSX",
       "none": "Ninguna pregunta abierta.",

@@ -882,6 +882,22 @@ duties. New features default **off** and are **Unverified live** until a flight 
       `wind-limits` clause after the wind clause. Events `wind.check`, `wind.runway-condition`,
       `wind.limit-advisory`; probe `wind-limits-callout`. **Unverified live** — the gateway's
       `HdgDegT` as the true heading and the ProSim LDR response per condition code in particular.
+- [x] **Fuel decision and holding-time advice** (#183, `feature/fuel-decision-holding`):
+      `OfpData` fuel breakdown (`FuelTripKg` … `FuelDiscretionaryKg` from the SimBrief `fuel`
+      node), `WxFacts.RawTaf` (SayIntentions cache + ActiveSky snapshot), Core `TafParser`
+      (base / FM / BECMG applied, TEMPO / PROB worst case, SM and CAVOK), `FuelDecisionAdvisor`
+      (`ArrivalOutlook` TAF-at-ETA else METAR; `LandingMinima` = briefed DH else cat 1; TS /
+      marginal / below-minima minutes from `FuelOptions`; legality line), `HoldingTimeCalculator`
+      + `HoldingEstimate`, `FuelOptions` (`fuel`: `decisionAdvice` off, `holdingBurnKgPerHour`
+      2200, the three minutes), `FuelDecisionStore` (captain's question, once per cycle,
+      `MarkApplied`) + `HoldingTimeStore`, Speech `FuelDecisionService` (precedence 15: the
+      dispatch question after the OFP import on the ground, "fuel decision", "extra fuel {n}
+      minutes | hundred | tonnes", "how long can we hold"; the yes raises the INIT override via
+      `IEfbInitOverrides`, rounded up to 100) + `FuelDecisionPhrases`; `FuelCheckMonitor` records
+      the holding estimate on each in-flight check; the Fuel page breakdown + holding + advice,
+      the hero `Holding` item, the fact sheet lines. Events `fuel.decision`, `fuel.extraApplied`,
+      `fuel.holdingAvailableMinutes`; probe `fuel-holding-time`. **Unverified live** — the TAF
+      text the SI cache / ActiveSky snapshot really carry, and the override → refuel-target chain.
 
 ## Open items (after the rc.5 batch, 2026-10-11)
 

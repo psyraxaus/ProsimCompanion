@@ -157,6 +157,12 @@
         "title": "Fuel check",
         "check": "Brandstof aan boord tegenover het SimBrief-plan op je positie, en de geschatte landingsbrandstof tegenover het geplande cijfer. In de cruise ook automatisch."
       },
+      "fuelDecision": {
+        "title": "Brandstofbeslissing",
+        "decision": "De bestemmings-TAF op de ETA tegen de minima — extra brandstof geadviseerd, of niet.",
+        "extra": "Verhoogt de INIT-blockbrandstof met holdingminuten of honderden kilo's.",
+        "holding": "Brandstof boven de bestemming min alternate en final reserve, als holdingminuten."
+      },
       "grossErrorCheck": {
         "title": "Gross error check",
         "check": "De gewichten van het vliegtuig tegenover de definitieve loadsheet en de FMS PERF-invoer tegenover de laatste takeoff-performanceberekening. Ook automatisch zodra de definitieve loadsheet en de V-speeds erin staan."

@@ -157,6 +157,12 @@
         "title": "Fuel check",
         "check": "Fuel on board against the SimBrief plan at your position, and the estimated landing fuel against the planned figure. Also automatic in the cruise."
       },
+      "fuelDecision": {
+        "title": "Fuel decision",
+        "decision": "The destination TAF at the ETA against the minima — extra fuel advised, or none.",
+        "extra": "Raises the INIT block fuel by minutes of holding or by hundreds of kilos.",
+        "holding": "Fuel over the destination minus alternate and final reserve, as minutes of holding."
+      },
       "grossErrorCheck": {
         "title": "Gross error check",
         "check": "The aircraft's weights against the final loadsheet and the FMS PERF entries against the last takeoff performance calculation. Also automatic once the final loadsheet and V-speeds are in."

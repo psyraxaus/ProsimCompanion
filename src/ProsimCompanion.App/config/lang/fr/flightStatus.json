@@ -39,6 +39,7 @@
       "flown": "Parcouru",
       "eta": "ETA",
       "topOfDescent": "Début de descente",
+      "holding": "Attente",
       "noFlightPlan": "Aucun plan de vol chargé — récupérez un OFP sur la page INIT"
     },
     "sequence": {

@@ -390,6 +390,14 @@ public sealed class SimbriefImportService : ISimbriefImporter, IDisposable
             FuelTaxiKg = Kg(ofp["fuel"]?["taxi"]),
             FuelMinTakeoffKg = Kg(ofp["fuel"]?["min_takeoff"]),
             FuelExtraKg = Kg(ofp["fuel"]?["extra"]),
+            // The rest of the breakdown (issue #183). `holding` and `extra_optional` exist only
+            // on plans that carry them — 0 otherwise (docs/integrations/simbrief.md).
+            FuelTripKg = Kg(ofp["fuel"]?["enroute_burn"]),
+            FuelContingencyKg = Kg(ofp["fuel"]?["contingency"]),
+            FuelAlternateKg = Kg(ofp["fuel"]?["alternate_burn"]),
+            FuelFinalReserveKg = Kg(ofp["fuel"]?["reserve"]),
+            FuelHoldingKg = Kg(ofp["fuel"]?["holding"]),
+            FuelDiscretionaryKg = Kg(ofp["fuel"]?["extra_optional"]),
             OewKg = Kg(ofp["weights"]?["oew"]),
             EstZfwKg = Kg(ofp["weights"]?["est_zfw"]),
             EstTowKg = Kg(ofp["weights"]?["est_tow"]),

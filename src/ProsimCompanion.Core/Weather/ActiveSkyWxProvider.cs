@@ -55,9 +55,9 @@ public sealed class ActiveSkyWxProvider : IWxProvider
         var sourceSeen = snapshotPath is not null;
 
         var fromFile = snapshotPath is null ? null : ReadFromFile(id, snapshotPath);
-        if (fromFile is not null)
+        if (fromFile is { } snapshot)
         {
-            return WxProbe.Found(MetarParser.ToFacts(fromFile));
+            return WxProbe.Found(MetarParser.ToFacts(snapshot.Metar, taf: snapshot.Taf));
         }
 
         if (options.UseActiveSkyApi)
@@ -77,7 +77,7 @@ public sealed class ActiveSkyWxProvider : IWxProvider
 
     // ---- file snapshot ----
 
-    private string? ReadFromFile(string icao, string path)
+    private (string Metar, string? Taf)? ReadFromFile(string icao, string path)
     {
         try
         {
@@ -85,19 +85,49 @@ public sealed class ActiveSkyWxProvider : IWxProvider
             // write doesn't block us (an exclusive open here fails intermittently in flight).
             using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
             using var reader = new StreamReader(stream);
-            var metar = FindMetarInSnapshot(ReadLines(reader), icao);
-            if (metar is not null)
+            var found = FindInSnapshot(ReadLines(reader), icao);
+            if (found is { } hit)
             {
-                _logger.LogInformation("ActiveSky WX {Icao} from snapshot: \"{Metar}\"", icao, metar);
+                _logger.LogInformation("ActiveSky WX {Icao} from snapshot: \"{Metar}\"", icao, hit.Metar);
             }
 
-            return metar;
+            return found;
         }
         catch (Exception ex)
         {
             _logger.LogDebug(ex, "ActiveSky snapshot read failed ({Path})", path);
             return null;
         }
+    }
+
+    /// <summary>The METAR and the TAF of one station from the snapshot (issue #183: the fuel
+    /// decision reads the TAF). Same rules as <see cref="FindMetarInSnapshot"/>; the TAF is
+    /// null when the third field is empty or <c>*</c>.</summary>
+    public static (string Metar, string? Taf)? FindInSnapshot(IEnumerable<string> lines, string icao)
+    {
+        ArgumentNullException.ThrowIfNull(lines);
+        ArgumentNullException.ThrowIfNull(icao);
+
+        var prefix = icao + "::";
+        foreach (var line in lines)
+        {
+            if (!line.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            var fields = line.Split("::");
+            var metar = fields.Length > 1 ? fields[1].Trim() : null;
+            if (string.IsNullOrWhiteSpace(metar) || metar == "*")
+            {
+                return null;
+            }
+
+            var taf = fields.Length > 2 ? fields[2].Trim() : null;
+            return (metar, string.IsNullOrWhiteSpace(taf) || taf == "*" ? null : taf);
+        }
+
+        return null;
     }
 
     private static IEnumerable<string> ReadLines(TextReader reader)

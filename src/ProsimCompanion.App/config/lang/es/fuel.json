@@ -27,6 +27,23 @@
       "centre": "CENTRAL",
       "rightInner": "DER. INTERIOR",
       "rightOuter": "DER. EXTERIOR"
+    },
+    "plan": {
+      "title": "Plan de combustible y espera",
+      "hint": "Desglose SimBrief · en tanques {0} {1}",
+      "taxi": "Taxi",
+      "trip": "Trip",
+      "contingency": "Contingencia",
+      "alternate": "Alternativo",
+      "finalReserve": "Reserva final",
+      "plannedHolding": "Espera planificada",
+      "extra": "Extra",
+      "discretionary": "Discrecional",
+      "block": "Block",
+      "holding": "Espera disponible",
+      "holdingDetail": "{0} {1} por encima de alternativo y reserva final · {2}",
+      "advice": "Decisión de combustible",
+      "applied": "+{0} {1} aplicados al block"
     }
   }
 }

@@ -51,6 +51,10 @@ through with a note if deliberately dropped. Sources: Prosim2GSX 0.9.0, ProsimIn
 
 ## Flight data / EFB (Prosim2GSX + ProsimInterface → Phase 3)
 
+- [x] Fuel decision at dispatch (#183, off): destination TAF at the ETA vs the minima →
+      holding minutes / kilos → captain's question → INIT block override; "how long can we
+      hold" + holding time on each fuel check (Fuel page, hero, fact sheet); the SimBrief fuel
+      breakdown on the OFP model and the Fuel page
 - [x] SimBrief OFP fetch (MCDU-triggered + manual force-fetch, typed model, retry) and EFB
       import; OFP gating of services
 - [x] EFB INIT page with overrides (zfw/block/cargo/pax) + SYNC TO FMS; FMS init sync

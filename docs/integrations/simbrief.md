@@ -20,3 +20,14 @@
   position is skipped. The destination row closes the plan at `fuel.plan_landing`. TOC / TOD
   are ordinary fixes with those idents. `OfpData.Navlog` is empty for an OFP without one —
   the fuel check then falls back to burn × time-to-ETA.
+- **Fuel breakdown** (2026-10-24, #183): beside `plan_ramp` / `plan_landing` / `taxi` /
+  `min_takeoff` / `extra`, the importer reads `enroute_burn` (trip), `contingency`,
+  `alternate_burn`, `reserve` (final reserve), `holding` and `extra_optional` (discretionary)
+  into `OfpData.FuelTripKg` … `FuelDiscretionaryKg`, plan units converted like every other
+  weight. `holding` and `extra_optional` are absent on most plans (SimBrief folds any holding
+  into `extra`) — they read 0, and the fuel decision then treats `extra` as the whole extra.
+  The saved fixture `simbrief-ofp-sample.json` predates these fields: a plan without them
+  loads with zeros, which is the back-compat case the test pins.
+- **No TAF in the OFP JSON** we fetch: the fuel decision reads the TAF from the weather chain
+  (SayIntentions `getWX` `taf`, the ActiveSky snapshot's third `::` field) via
+  `WxFacts.RawTaf`; the ProSim gateway METAR carries none.

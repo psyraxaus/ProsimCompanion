@@ -90,6 +90,28 @@ public sealed record OfpData
     /// <summary>Extra fuel above minimum (SimBrief <c>fuel.extra</c>), kg; 0 when absent.</summary>
     public double FuelExtraKg { get; init; }
 
+    // ---- The rest of the SimBrief fuel breakdown (issue #183) — each 0 when absent ----
+
+    /// <summary>Trip fuel (SimBrief <c>fuel.enroute_burn</c>), kg.</summary>
+    public double FuelTripKg { get; init; }
+
+    /// <summary>Contingency fuel (SimBrief <c>fuel.contingency</c>), kg.</summary>
+    public double FuelContingencyKg { get; init; }
+
+    /// <summary>Fuel to the alternate (SimBrief <c>fuel.alternate_burn</c>), kg.</summary>
+    public double FuelAlternateKg { get; init; }
+
+    /// <summary>Final reserve (SimBrief <c>fuel.reserve</c>), kg.</summary>
+    public double FuelFinalReserveKg { get; init; }
+
+    /// <summary>Planned holding fuel (SimBrief <c>fuel.holding</c> when the plan carries one —
+    /// most do not; see docs/integrations/simbrief.md), kg.</summary>
+    public double FuelHoldingKg { get; init; }
+
+    /// <summary>Discretionary (captain's) extra (SimBrief <c>fuel.extra_optional</c> when the
+    /// plan splits its extra; else 0 — <see cref="FuelExtraKg"/> then carries the whole extra), kg.</summary>
+    public double FuelDiscretionaryKg { get; init; }
+
     /// <summary>Operating empty weight (SimBrief <c>weights.oew</c>), kg; 0 when absent.</summary>
     public double OewKg { get; init; }
 

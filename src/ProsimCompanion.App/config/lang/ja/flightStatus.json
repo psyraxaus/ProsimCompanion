@@ -39,6 +39,7 @@
       "flown": "飛行済み",
       "eta": "ETA",
       "topOfDescent": "降下開始点",
+      "holding": "ホールディング",
       "noFlightPlan": "フライトプランが読み込まれていません — INIT ページで OFP を取得してください"
     },
     "sequence": {

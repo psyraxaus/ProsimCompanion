@@ -27,6 +27,23 @@
       "centre": "CENTRAL",
       "rightInner": "DROIT INTERNE",
       "rightOuter": "DROIT EXTERNE"
+    },
+    "plan": {
+      "title": "Plan carburant et attente",
+      "hint": "Détail SimBrief · dans les réservoirs {0} {1}",
+      "taxi": "Taxi",
+      "trip": "Étape",
+      "contingency": "Contingence",
+      "alternate": "Dégagement",
+      "finalReserve": "Réserve finale",
+      "plannedHolding": "Attente planifiée",
+      "extra": "Extra",
+      "discretionary": "Discrétionnaire",
+      "block": "Block",
+      "holding": "Attente disponible",
+      "holdingDetail": "{0} {1} au-dessus du dégagement et de la réserve finale · {2}",
+      "advice": "Décision carburant",
+      "applied": "+{0} {1} ajoutés au block"
     }
   }
 }

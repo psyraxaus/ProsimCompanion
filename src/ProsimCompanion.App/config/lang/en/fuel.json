@@ -27,6 +27,23 @@
       "centre": "CENTRE",
       "rightInner": "RIGHT INNER",
       "rightOuter": "RIGHT OUTER"
+    },
+    "plan": {
+      "title": "Fuel Plan & Holding",
+      "hint": "SimBrief breakdown · in tanks {0} {1}",
+      "taxi": "Taxi",
+      "trip": "Trip",
+      "contingency": "Contingency",
+      "alternate": "Alternate",
+      "finalReserve": "Final reserve",
+      "plannedHolding": "Planned holding",
+      "extra": "Extra",
+      "discretionary": "Discretionary",
+      "block": "Block",
+      "holding": "Holding available",
+      "holdingDetail": "{0} {1} over the alternate and final reserve · {2}",
+      "advice": "Fuel decision",
+      "applied": "+{0} {1} applied to the block"
     }
   }
 }

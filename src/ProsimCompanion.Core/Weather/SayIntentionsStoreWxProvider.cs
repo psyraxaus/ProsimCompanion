@@ -54,6 +54,8 @@ public sealed class SayIntentionsStoreWxProvider : IWxProvider
             string.IsNullOrWhiteSpace(entry.ActiveRunway) ? null : entry.ActiveRunway,
             parsed.CeilingFt,
             parsed.WindGustKt,
-            parsed.Precip);
+            parsed.Precip,
+            parsed.DewPointC,
+            string.IsNullOrWhiteSpace(entry.Taf) ? null : entry.Taf.Trim());
     }
 }

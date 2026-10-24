@@ -60,6 +60,8 @@ public static class CoreServiceCollectionExtensions
         // Wind limits for the performance pages, the briefings and the FO's wind check
         // (issue #182) — A320 demonstrated values by default, editable per operator.
         services.AddOptionSection<AircraftLimitsOptions>(configuration);
+        // The captain's fuel decision and the holding-time advice (issue #183).
+        services.AddOptionSection<FuelOptions>(configuration);
         services.AddOptionSection<LoggingOptions>(configuration);
         services.AddOptionSection<AircraftProfilesOptions>(configuration);
         services.AddOptionSection<UpdateCheckOptions>(configuration);
@@ -170,6 +172,11 @@ public static class CoreServiceCollectionExtensions
         // The landing runway condition for this flight (issue #182): the Landing page sets it,
         // the wind-limit check, the briefing and the FO read it.
         services.AddSingleton<RunwayConditionStore>();
+        // The captain's fuel decision at dispatch and the holding time on each fuel check
+        // (issue #183): the Speech pillar asks and computes, the Fuel page and the hero read.
+        services.AddSingleton<FuelDecisionStore>();
+        services.AddSingleton<ICaptainsQuestionStore>(p => p.GetRequiredService<FuelDecisionStore>());
+        services.AddSingleton<HoldingTimeStore>();
         // The four captain's questions above share one store module (architecture review C2);
         // the ICaptainsQuestionStore registrations feed the FO dialogue, the web card and this
         // one TTL clock — the only thing that settles a question on silence (issue #166).

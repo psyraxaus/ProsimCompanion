@@ -39,6 +39,7 @@
       "flown": "비행 거리",
       "eta": "ETA",
       "topOfDescent": "강하 개시점",
+      "holding": "홀딩",
       "noFlightPlan": "불러온 비행 계획이 없습니다 — INIT 페이지에서 OFP를 가져오세요"
     },
     "sequence": {

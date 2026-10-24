@@ -370,6 +370,8 @@
       "noFurtherThreats": "他の脅威なし",
       "issueRevisedFinal": "改訂ファイナルを発行",
       "captainsAuthority": "機長判断で運航",
+      "takeExtraFuel": "追加燃料を積む",
+      "planFuel": "計画燃料のまま",
       "title": "キャプテンへの質問",
       "hint": "FO からの未回答の質問 — ここで、音声で、または GSX のメニューで回答",
       "none": "未回答の質問はありません。",

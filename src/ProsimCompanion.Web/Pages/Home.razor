@@ -25,6 +25,7 @@
 @inject HeroWeatherStore HeroWeather
 @inject GateStatusStore GateStatus
 @inject FlightProgressStore FlightProgress
+@inject HoldingTimeStore Holding
 @inject IProsimDataRefs DataRefs
 @inject DisplayUnitService Units
 @inject IOptionsMonitor<FlightStatusOptions> FlightStatusOptionsMonitor
@@ -169,7 +170,7 @@
                along the route, and the row says so; the tags name where each figure came
                from (GS = position and ground speed, PLAN = the time-based fallback). *@
             <div class="fs-progress" title="@T["flightStatus.hero.progressTitle"]">
-                @foreach (var item in FlightStatusPresentation.Progress(_progress))
+                @foreach (var item in FlightStatusPresentation.Progress(_progress, _holding))
                 {
                     <span class="fs-progress-item">
                         <span class="label-caps">@T[item.LabelTextId]</span>
@@ -308,6 +309,7 @@
     private HeroWeatherSnapshot _weather = HeroWeatherSnapshot.Empty;
     private GateStatusSnapshot _gate = GateStatusSnapshot.Empty;
     private FlightProgressSnapshot _progress = FlightProgressSnapshot.Empty;
+    private Core.Fuel.HoldingEstimate? _holding; // issue #183
 
     private FlightPhase _forcePhase = FlightPhase.Preflight;
     private bool _freeze = true;
@@ -675,6 +677,7 @@
         Watch(HeroWeather, snapshot => _weather = snapshot);
         Watch(GateStatus, snapshot => _gate = snapshot);
         Watch(FlightProgress, snapshot => _progress = snapshot);
+        Watch(Holding, estimate => _holding = estimate);
 
         _tileOrder = FlightStatusTiles.Normalize(FlightStatusOptionsMonitor.CurrentValue.TileOrder);
         _tileOrderChange = FlightStatusOptionsMonitor.OnChange(options =>

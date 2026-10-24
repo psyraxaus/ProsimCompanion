@@ -5,6 +5,7 @@ using ProsimCompanion.Core.Aircraft.Ofp;
 using ProsimCompanion.Core.Configuration;
 using ProsimCompanion.Core.EventLog;
 using ProsimCompanion.Core.Flight;
+using ProsimCompanion.Core.State;
 using ProsimCompanion.Core.VoiceReference;
 using ProsimCompanion.Speech.Arbiter;
 using ProsimCompanion.Speech.Recognition;
@@ -35,6 +36,10 @@ public sealed class FuelCheckMonitor : Core.Hosting.IStartupModule, IVoiceFeatur
     private readonly ILogger<FuelCheckMonitor> _logger;
     private readonly FuelCheckLogStore? _checkLog;
     private readonly ISimClock? _simClock;
+
+    // Holding time on each check (issue #183). Optional: without the store (tests) no estimate.
+    private readonly HoldingTimeStore? _holding;
+    private readonly IOptionsMonitor<FuelOptions>? _fuelOptions;
     private readonly IDataRefSubscription<double> _fuelTotal;
     private readonly IDataRefSubscription<double> _flow1;
     private readonly IDataRefSubscription<double> _flow2;
@@ -57,8 +62,12 @@ public sealed class FuelCheckMonitor : Core.Hosting.IStartupModule, IVoiceFeatur
         JsonlEventLog eventLog,
         ILogger<FuelCheckMonitor> logger,
         FuelCheckLogStore? checkLog = null,
-        ISimClock? simClock = null)
+        ISimClock? simClock = null,
+        HoldingTimeStore? holding = null,
+        IOptionsMonitor<FuelOptions>? fuelOptions = null)
     {
+        _holding = holding;
+        _fuelOptions = fuelOptions;
         ArgumentNullException.ThrowIfNull(sop);
         ArgumentNullException.ThrowIfNull(speech);
         ArgumentNullException.ThrowIfNull(flight);
@@ -272,6 +281,42 @@ public sealed class FuelCheckMonitor : Core.Hosting.IStartupModule, IVoiceFeatur
         _checkLog?.Add(new FuelCheckRecord(
             FlightClockNow, trigger, result.Method, result.Fix, result.FuelOnBoardKg, result.PlannedFuelOnBoardKg,
             result.DifferenceKg, result.EstimatedLandingKg, result.PlannedLandingKg, result.Shortfall, result.Text));
+        RecordHolding(result, trigger);
+    }
+
+    /// <summary>The holding time beside every in-flight check (issue #183): the estimated
+    /// landing fuel is the fuel over the destination; minus the OFP alternate and final reserve,
+    /// at the holding burn. Not spoken here — the Fuel page, the hero and "how long can we
+    /// hold" read the store; the session event is the probe's evidence.</summary>
+    private void RecordHolding(FuelCheckResult result, string trigger)
+    {
+        if (_holding is null || _fuelOptions is null || result.Method == "ground" || result.EstimatedLandingKg is not { } overDestination)
+        {
+            return;
+        }
+
+        var ofp = _ofp.Current;
+        var estimate = Core.Fuel.HoldingTimeCalculator.Compute(
+            result.FuelOnBoardKg, result.FuelOnBoardKg - overDestination,
+            ofp?.FuelAlternateKg ?? 0, ofp?.FuelFinalReserveKg ?? 0,
+            _fuelOptions.CurrentValue.HoldingBurnKgPerHour, FlightClockNow);
+        if (estimate is null)
+        {
+            return;
+        }
+
+        _holding.Set(estimate);
+        _eventLog.Record("fuel.holdingAvailableMinutes", new
+        {
+            trigger,
+            minutes = estimate.AvailableMinutes,
+            holdingFuelKg = Math.Round(estimate.HoldingFuelKg),
+            overDestinationKg = Math.Round(estimate.EstimatedOverDestinationKg),
+            alternateKg = estimate.AlternateKg,
+            finalReserveKg = estimate.FinalReserveKg,
+            burnKgPerHour = estimate.HoldingBurnKgPerHour,
+            divertNow = estimate.DivertNow,
+        });
     }
 
     private static double? Round(double? value) => value is { } v ? Math.Round(v) : null;
