@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.0-rc.5
+
+Local build for the owner's sim test, 2026-10-24, on top of rc.4.
+
+- New: **a Korry lamp can be truly extinguished while dark** — per switch, *Legend while dark* (fold-out): on keeps the dim grey legend like a real engraved Korry, off shows nothing until the lamp lights. The leak-valve preset now uses it: legend **ON**, lamp following the push button itself (works with the aircraft unpowered), nothing while Normal and a lit ON while pushed; the preset button also resets existing leak-valve rows. `/api/controls` carries `showUnlitLegend`; the plugin honours it.
+
 ## 0.8.0-rc.4
 
 Local build for the owner's sim test, 2026-10-24, on top of rc.3.

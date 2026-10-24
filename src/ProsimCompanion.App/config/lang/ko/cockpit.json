@@ -72,7 +72,13 @@
       "less": "항목 접기",
       "positionsLabel": "위치",
       "positionsNone": "ProSim에 위치 목록이 없습니다. 이 스위치는 단순 숫자입니다.",
-      "pressHint": "저장된 행으로 앱을 통해 이 스위치를 지금 누릅니다. 키를 만들기 전에 ProSim의 반응을 확인하세요."
+      "pressHint": "저장된 행으로 앱을 통해 이 스위치를 지금 누릅니다. 키를 만들기 전에 ProSim의 반응을 확인하세요.",
+      "showUnlitLegend": {
+        "label": "꺼짐 상태의 글자",
+        "hint": "켬: 램프가 꺼져 있어도 실제 각인 Korry처럼 글자가 희미하게 보입니다. 끔: 램프가 켜질 때까지 아무것도 보이지 않습니다. 글자는 켜졌을 때만 나타납니다."
+      },
+      "unlitDim": "꺼짐 상태에서 흐린 회색",
+      "unlitHidden": "꺼짐 상태에서 소등"
     },
     "lookOptions": {
       "korry2": "Korry — 램프 2개",

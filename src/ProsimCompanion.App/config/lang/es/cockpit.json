@@ -72,7 +72,13 @@
       "less": "Menos campos",
       "positionsLabel": "Posiciones",
       "positionsNone": "ProSim no indica posiciones: el interruptor es un número simple.",
-      "pressHint": "Pulsa este interruptor ahora a través de la app, con las filas guardadas. Mira cómo reacciona ProSim antes de crear una tecla."
+      "pressHint": "Pulsa este interruptor ahora a través de la app, con las filas guardadas. Mira cómo reacciona ProSim antes de crear una tecla.",
+      "showUnlitLegend": {
+        "label": "Leyenda apagada",
+        "hint": "Activado: la leyenda sigue levemente legible con la lámpara apagada, como un Korry grabado real. Desactivado: no se ve nada hasta que la lámpara se enciende; la palabra solo aparece iluminada."
+      },
+      "unlitDim": "gris tenue con la lámpara apagada",
+      "unlitHidden": "extinguida con la lámpara apagada"
     },
     "lookOptions": {
       "korry2": "Korry — dos lámparas",

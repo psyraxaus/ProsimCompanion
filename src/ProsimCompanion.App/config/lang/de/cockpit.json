@@ -72,7 +72,13 @@
       "less": "Weniger Felder",
       "positionsLabel": "Stellungen",
       "positionsNone": "ProSim nennt keine Stellungen — der Schalter ist eine einfache Zahl.",
-      "pressHint": "Drückt diesen Schalter jetzt über die App mit den gespeicherten Zeilen. Sieh zu, wie ProSim reagiert, bevor du eine Taste baust."
+      "pressHint": "Drückt diesen Schalter jetzt über die App mit den gespeicherten Zeilen. Sieh zu, wie ProSim reagiert, bevor du eine Taste baust.",
+      "showUnlitLegend": {
+        "label": "Beschriftung im Dunkeln",
+        "hint": "An: Die Beschriftung bleibt bei dunkler Lampe schwach lesbar, wie bei einem echten gravierten Korry. Aus: Nichts ist zu sehen, bis die Lampe leuchtet — das Wort erscheint nur beleuchtet."
+      },
+      "unlitDim": "bei dunkler Lampe schwach grau",
+      "unlitHidden": "bei dunkler Lampe erloschen"
     },
     "lookOptions": {
       "korry2": "Korry — zwei Lampen",

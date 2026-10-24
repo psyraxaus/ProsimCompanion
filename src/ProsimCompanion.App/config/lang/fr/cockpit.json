@@ -72,7 +72,13 @@
       "less": "Moins de champs",
       "positionsLabel": "Positions",
       "positionsNone": "ProSim n’indique aucune position — l’interrupteur est un simple nombre.",
-      "pressHint": "Actionne cet interrupteur maintenant via l’application, avec les lignes enregistrées. Regarde ProSim réagir avant de créer une touche."
+      "pressHint": "Actionne cet interrupteur maintenant via l’application, avec les lignes enregistrées. Regarde ProSim réagir avant de créer une touche.",
+      "showUnlitLegend": {
+        "label": "Légende éteinte",
+        "hint": "Activé : la légende reste faiblement lisible voyant éteint, comme un Korry gravé réel. Désactivé : rien ne s’affiche tant que le voyant est éteint — le mot n’apparaît qu’allumé."
+      },
+      "unlitDim": "gris pâle voyant éteint",
+      "unlitHidden": "éteinte voyant éteint"
     },
     "lookOptions": {
       "korry2": "Korry — deux voyants",

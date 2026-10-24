@@ -33,8 +33,11 @@ firewall and that LAN access is on. *re-pair* means the token was changed — pa
 
 Settings → **Cockpit Switches** on the sim PC's web UI.
 
-1. Press **Add the three leak measurement valves** if you want them: three lines appear,
-   blue / green / yellow bezels, lamp from the overhead LED, OFF legend. Save.
+1. Press **Add the three leak measurement valves** if you want them: three lines appear (or
+   existing ones are reset to the preset) — blue / green / yellow bezels, the lamp follows the
+   button itself (lit while pushed, no aircraft power needed), legend **ON** shown only while
+   lit. Save. Prefer the real overhead LED instead? Put `system.indicators.I_OH_HYD_LMV_BLUE_L`
+   (etc.) into **Lower lamp from** in the fold-out.
 2. For any other switch press **Add switch** and pick it from the **ProSim switch** column. The
    list is ProSim's own, grouped by panel (overhead, pedestal, FCU, …). The **Key id**, **Key
    title** and a sensible **Look** fill in by themselves. The line holds what you touch every
@@ -45,6 +48,10 @@ Settings → **Cockpit Switches** on the sim PC's web UI.
      *Momentary push* presses and releases (buttons that spring back, like EXT PWR).
      *Cycle positions* for knobs: short press next, long press back.
    - **Legends**: the words in the lamps (FAULT / OFF, AVAIL / ON).
+   - **Legend while dark** (in the fold-out): on = the word stays faintly readable while the
+     lamp is dark, like a real engraved Korry; off = the lamp is truly extinguished and the
+     word appears only when lit. The leak-valve preset uses "off" with the legend **ON**: nothing
+     while Normal, a lit ON while pushed.
    - **Lamps from**: optional `system.indicators.I_…` datarefs. The lower lamp otherwise lights
      while the switch is pushed. Start typing `I_` to see the list.
    - **Colours**: upper lamp (amber FAULT, green AVAIL), lower lamp (white OFF, blue ON), bezel

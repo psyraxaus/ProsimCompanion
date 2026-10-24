@@ -135,6 +135,7 @@ function pair(def: ControlsSwitchDto): [string, string] {
 function faceFor(def: ControlsSwitchDto, live: SwitchStatusDto | undefined, dim: boolean, flash: Flash, note?: string): string {
 	const bezel = def.bezelColor && def.bezelColor.length > 0 ? def.bezelColor : undefined;
 	const lower = def.lowerColor ?? "#f4f6f8";
+	const showUnlit = def.showUnlitLegend !== false;
 	const positions = def.positions ?? [];
 	const value = live?.value ?? null;
 	const on = value !== null && value !== 0 && (positions.length < 2 || value === positions[1].value || positions.length > 2);
@@ -144,7 +145,7 @@ function faceFor(def: ControlsSwitchDto, live: SwitchStatusDto | undefined, dim:
 			return korryTile({
 				title: def.name,
 				bezel,
-				lower: { legend: def.lowerLegend ?? "", color: lower, lit: live?.lowerLit === true },
+				lower: { legend: def.lowerLegend ?? "", color: lower, lit: live?.lowerLit === true, showUnlit },
 				dim,
 				flash,
 				note,
@@ -163,8 +164,8 @@ function faceFor(def: ControlsSwitchDto, live: SwitchStatusDto | undefined, dim:
 			return korryTile({
 				title: def.name,
 				bezel,
-				upper: { legend: def.upperLegend ?? "", color: def.upperColor ?? "#ffb000", lit: live?.upperLit === true },
-				lower: { legend: def.lowerLegend ?? "", color: lower, lit: live?.lowerLit === true },
+				upper: { legend: def.upperLegend ?? "", color: def.upperColor ?? "#ffb000", lit: live?.upperLit === true, showUnlit },
+				lower: { legend: def.lowerLegend ?? "", color: lower, lit: live?.lowerLit === true, showUnlit },
 				dim,
 				flash,
 				note,

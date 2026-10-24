@@ -16,7 +16,7 @@ public sealed class ControlsApiTests
         {
             Rows =
             [
-                new CockpitSwitchRow { Id = "oh_hyd_lmv_blue", Name = "", DataRef = "system.switches.S_OH_HYD_LMV_BLUE", UpperColor = "not-a-colour", BezelColor = "#5fb4ff" },
+                new CockpitSwitchRow { Id = "oh_hyd_lmv_blue", Name = "", DataRef = "system.switches.S_OH_HYD_LMV_BLUE", UpperColor = "not-a-colour", BezelColor = "#5fb4ff", ShowUnlitLegend = false },
                 new CockpitSwitchRow { Id = "", DataRef = "system.switches.S_OH_HYD_LMV_GREEN" },
                 new CockpitSwitchRow { Id = "nothing", DataRef = "" },
             ],
@@ -31,6 +31,7 @@ public sealed class ControlsApiTests
         Assert.Equal("#ffb000", row.UpperColor);   // bad hex → default amber
         Assert.Equal("#5fb4ff", row.BezelColor);
         Assert.Equal(CockpitSwitchLook.Korry2, row.Look);
+        Assert.False(row.ShowUnlitLegend);
         Assert.Equal([0, 1], row.Positions.Select(p => p.Value));
         Assert.Equal("Pushed", row.Positions[1].Label);
 

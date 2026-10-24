@@ -72,7 +72,13 @@
       "less": "Fewer fields",
       "positionsLabel": "Positions",
       "positionsNone": "ProSim lists no positions — the switch is a plain number.",
-      "pressHint": "Presses this switch now through the app, with the saved rows. Watch ProSim react before you build a key."
+      "pressHint": "Presses this switch now through the app, with the saved rows. Watch ProSim react before you build a key.",
+      "showUnlitLegend": {
+        "label": "Legend while dark",
+        "hint": "On: the legend stays faintly readable while the lamp is dark, like a real engraved Korry. Off: nothing shows until the lamp lights — the word only appears when lit."
+      },
+      "unlitDim": "dim grey legend while dark",
+      "unlitHidden": "extinguished while dark"
     },
     "lookOptions": {
       "korry2": "Korry — two lamps",

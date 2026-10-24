@@ -26,7 +26,8 @@ public sealed record ControlsSwitch(
     string UpperColor,
     string LowerColor,
     string BezelColor,
-    IReadOnlyList<ControlsPosition> Positions);
+    IReadOnlyList<ControlsPosition> Positions,
+    bool ShowUnlitLegend = true);
 
 /// <summary>A vJoy relay view row.</summary>
 public sealed record ControlsView(string Name, int Button);
@@ -100,7 +101,8 @@ public static class ControlsApiEndpoints
                 CockpitSwitchLogic.IsHexColor(r.UpperColor) ? r.UpperColor.Trim() : "#ffb000",
                 CockpitSwitchLogic.IsHexColor(r.LowerColor) ? r.LowerColor.Trim() : "#f4f6f8",
                 CockpitSwitchLogic.IsHexColor(r.BezelColor) ? r.BezelColor.Trim() : "",
-                catalog?.Find(r.DataRef)?.Values.Select(v => new ControlsPosition(v.Value, v.Label)).ToList() ?? []))
+                catalog?.Find(r.DataRef)?.Values.Select(v => new ControlsPosition(v.Value, v.Label)).ToList() ?? [],
+                r.ShowUnlitLegend))
             .ToList();
 
         var views = inputRelay.Views

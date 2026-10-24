@@ -73,13 +73,13 @@ function plate(bezel: string | undefined, y = 44, h = 84): string {
 	return `<rect x="24" y="${y}" width="96" height="${h}" rx="6" fill="${Face.plate}" stroke="${stroke}" stroke-width="${width}"/>`;
 }
 
-function lamp(y: number, h: number, legend: string, color: string, lit: boolean, fontSize = 21): string {
+function lamp(y: number, h: number, legend: string, color: string, lit: boolean, showUnlit: boolean, fontSize = 21): string {
 	let out = `<rect x="30" y="${y}" width="84" height="${h}" rx="4" fill="${Face.lampOff}"/>`;
 	const c = safeColor(color, "#f4f6f8");
 	if (lit) {
 		out += `<rect x="31.5" y="${y + 1.5}" width="81" height="${h - 3}" rx="4" fill="none" stroke="${c}" stroke-width="3"/>`;
 	}
-	if (legend.trim().length > 0) {
+	if (legend.trim().length > 0 && (lit || showUnlit)) {
 		const size = legend.length > 6 ? Math.max(13, fontSize - 6) : fontSize;
 		out += text(SIZE / 2, y + h / 2 + size * 0.36, size, lit ? c : Face.legendOff, legend.toUpperCase(), 1.5);
 	}
@@ -94,6 +94,8 @@ export interface Lamp {
 	legend: string;
 	color: string;
 	lit: boolean;
+	/** Draw the legend dim while dark (default true); false = extinguished, nothing shown. */
+	showUnlit?: boolean;
 }
 
 export interface KorryOptions {
@@ -111,10 +113,10 @@ export interface KorryOptions {
 export function korryTile(o: KorryOptions): string {
 	let svg = open(o.dim === true) + title(o.title) + plate(o.bezel);
 	if (o.upper) {
-		svg += lamp(50, 34, o.upper.legend, o.upper.color, o.upper.lit);
-		svg += lamp(88, 34, o.lower.legend, o.lower.color, o.lower.lit);
+		svg += lamp(50, 34, o.upper.legend, o.upper.color, o.upper.lit, o.upper.showUnlit !== false);
+		svg += lamp(88, 34, o.lower.legend, o.lower.color, o.lower.lit, o.lower.showUnlit !== false);
 	} else {
-		svg += lamp(64, 44, o.lower.legend, o.lower.color, o.lower.lit);
+		svg += lamp(64, 44, o.lower.legend, o.lower.color, o.lower.lit, o.lower.showUnlit !== false);
 	}
 	return uri(svg + close(o.flash, o.note));
 }

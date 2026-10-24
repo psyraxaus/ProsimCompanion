@@ -123,6 +123,8 @@ export interface ControlsSwitchDto {
 	lowerColor?: string;
 	bezelColor?: string;
 	positions?: ControlsPositionDto[];
+	/** False = a dark lamp shows no legend at all (extinguished); true/absent = dim grey legend. */
+	showUnlitLegend?: boolean;
 }
 
 /** One vJoy relay view row from /api/controls. */

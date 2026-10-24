@@ -98,6 +98,13 @@ public sealed class CockpitSwitchRow
     [OptionField(FieldKind.Text, "cockpit.row.lowerIndicator", Normalize = FieldNormalization.Trim, Placeholder = "system.indicators.I_…")]
     public string LowerIndicator { get; set; } = "";
 
+    /// <summary>Show a legend as dim grey text while its lamp is dark (the default, the way a
+    /// real Korry's engraved legend stays faintly readable) — or hide it completely so a dark
+    /// lamp is truly extinguished and the word appears only when lit (owner's leak valves:
+    /// nothing when Normal, ON when pushed).</summary>
+    [OptionField(FieldKind.Bool, "cockpit.row.showUnlitLegend")]
+    public bool ShowUnlitLegend { get; set; } = true;
+
     /// <summary>Upper lamp colour, hex. Amber by default (FAULT).</summary>
     public string UpperColor { get; set; } = "#ffb000";
 
