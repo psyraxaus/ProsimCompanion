@@ -936,6 +936,25 @@
         "hint": "The FO announces the change, then waits this long so you can cancel."
       }
     },
+    "foSide": {
+      "title": "FO-side duties",
+      "hint": "The FO sets its own altimeter and ND and cross-checks the ADIRS and the FMGC — nothing on your side",
+      "baroFollow": {
+        "label": "Baro follow",
+        "hint": "The FO follows your altimeter: STD when yours goes to STD, your QNH when it comes back or changes. Also \"QNH one zero one three\" and \"your side standard\" by voice.",
+        "more": "Every change is announced, waits three seconds for \"negative\", is written to the FO side only and read back. If the FO side is in inches the FO says so and leaves it."
+      },
+      "efisCommands": {
+        "label": "EFIS commands",
+        "hint": "\"Your range forty\", \"ND to arc\": the FO's own ND range and mode. Say \"your\" or \"ND\" so your own words are never taken."
+      },
+      "adirsCheck": {
+        "label": "ADIRS / FMGC cross-check",
+        "hint": "\"Cross-check\": ADIRS alignment, the INIT page against the plan, the PERF speeds against the computed figures. Runs once by itself when the FMGC init settles at the gate.",
+        "more": "Read-only — no MCDU key is pressed. Cost index has no dataref and is read from the plan."
+      },
+      "fileCommandsHint": "The bare \"set standard\" and \"set QNH\" are file commands (commands.json) and stay there."
+    },
     "briefing": {
       "title": "Briefings",
       "hint": "Departure and arrival briefings from nav data and weather",

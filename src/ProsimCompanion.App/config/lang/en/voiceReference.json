@@ -49,7 +49,8 @@
       "notInBuild": "not available in this build",
       "foQuestions": "{0} is off — Settings → Voice First Officer → Briefings & LLM → Ask the First Officer",
       "cruiseQuery": "{0} is off — Settings → Voice First Officer → Cabin Crew → Purser cruise query",
-      "abnormals": "{0} is off — Settings → Voice First Officer → ECAM Abnormals"
+      "abnormals": "{0} is off — Settings → Voice First Officer → ECAM Abnormals",
+      "foSide": "{0} is off — Settings → Voice First Officer → MCDU → FO-side duties"
     },
     "always": {
       "skip": "Skip the current checklist item.",
@@ -80,6 +81,17 @@
         "arm": "APPR or LOC.",
         "ownNav": "Heading back to managed.",
         "negative": "Cancel a pending FCU or radio action inside its 3 s window."
+      },
+      "foSide": {
+        "title": "FO-side altimeter and ND",
+        "qnh": "Sets the FO's QNH to the value (900–1100 hPa). Announced, 3 s to cancel, read back.",
+        "standard": "Pushes STD on the FO side. The bare \"set standard\" is the file command.",
+        "range": "The FO's ND range: 10, 20, 40, 80, 160 or 320.",
+        "mode": "The FO's ND mode: rose ILS, rose VOR, rose NAV, arc or plan."
+      },
+      "crossCheck": {
+        "title": "ADIRS / FMGC cross-check",
+        "check": "Reads the ADIRS alignment, the INIT page against the plan and the PERF speeds against the computed figures. Also runs once by itself when the FMGC init settles at the gate."
       },
       "radios": {
         "title": "Radios",

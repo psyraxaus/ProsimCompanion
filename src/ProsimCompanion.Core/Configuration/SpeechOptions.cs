@@ -105,6 +105,9 @@ public sealed class SpeechOptions : IOptionSection
     /// <summary>Free-form questions to the FO, answered by the LLM from live facts (issue #149).</summary>
     public FoQuestionOptions FoQuestions { get; set; } = new();
 
+    /// <summary>The FO's own-side duties — baro follow, EFIS commands, ADIRS/FMGC cross-check (issue #188).</summary>
+    public FoSideDutiesOptions FoSide { get; set; } = new();
+
     /// <summary>Unprompted facts about the region below, in the cruise (issue #122).</summary>
     public RegionFactsOptions RegionFacts { get; set; } = new();
 

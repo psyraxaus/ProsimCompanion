@@ -3527,6 +3527,92 @@
         "not-in-this-package: the package-1 EOSID fact after gear up (package 1 is on its own branch; wire BriefingFacts.EngineOutProcedure into EfatoService at the merge)."
       ],
       "notes": "Package 8 of the November 2026 airline-ops batch. Abnormal DSL extensions documented in docs/integrations/abnormals.md: trigger.window {afterV1, maxAglFt} (FailureMonitor.WindowOpen, pure, from the engine's flight snapshot) and definition.sequencer ('efato' — the monitor announces only; the named service paces the items). FailureMonitor.TryRunProcedure(id, origin) runs an ECAM procedure outside its own trigger. Unverified live."
+    },
+    {
+      "id": "fo-baro-follow",
+      "issue": 188,
+      "state": "open",
+      "kind": "assert-present",
+      "machine": {
+        "kind": "signature",
+        "source": "session",
+        "type": "fo.baroSet",
+        "contains": "\"ok\":true",
+        "trigger": {
+          "source": "session",
+          "type": "fo.baroAnnounce",
+          "contains": "\"source\":\"follow\""
+        }
+      },
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "Only with speech.foSide.baroFollow = true (off by default). The FO FOLLOWS the captain: the trigger is a change on the captain's side — B_FCU_EFIS1_BARO_STD flipping, or N_FCU_EFIS1_BARO_HPA moving by ≥ 1 hPa while both read QNH — that has stood 2 s with the FO side still different. A mismatch present before the captain touched anything is left alone (never leads).",
+        "assert-present (climb through TA, captain pushes STD): fo.baroAnnounce {kind SetStd, source follow} and the FO's 'Standard.' (tag fo.baro), 3 s later the write — S_FCU_EFIS2_BARO_STD press 2 / 300 ms / 0 — then fo.baroSet {kind SetStd, readBack 1, foStd true, ok true} and 'Standard set.'. Descent (captain pulls QNH): {kind SetQnh, requested <captain's hPa>} — 'QNH one zero one three.' → A_FCU_EFIS2_BARO_HPA written, press 1 (pull) → fo.baroSet {readBack within ±1, foStd false, ok true} → 'QNH one zero one three set.'. ATIS update (both on QNH): {kind SetValue}. By voice: 'QNH one zero one three' / 'your side standard' → the same flow with source voice; the bare 'set standard' / 'set qnh' still route to the commands.json file commands (command.* events), never here.",
+        "assert-present (the first flight's question): fo.baroSet {kind SetQnh|SetValue, requested, readBack} with readBack == requested ± 1 proves ProSim takes A_FCU_EFIS2_BARO_HPA as whole hPa. readBack unchanged / ok false twice → 'Unable — your altimeter.' and the follow is inhibited for the cycle: report it — the encoder fallback (E_FCU_EFIS2_BARO) is the next step.",
+        "assert-present (do-nothing paths, each with no fo.baroSet): captain's side unchanged; the FO side already matches (or caught up during the 2 s); ProSim disconnected / stale (no live sample); ColdAndDark / Unknown phase; FO side in inches → ONE fo.baroSet {kind inchesNotice} and 'My altimeter is in inches — your call, captain.' per episode; the pilot moving the FO knob during the 3 s window → fo.baroSet {reason backoff} and 'You're on my altimeter — your knob.'; 'negative' in the window → fo.cancelled.",
+        "assert-absent: any write to an EFIS1 name with the default seat (FoSideDutiesGate refuses; the gate test enumerates every Efis1 catalogue symbol); any write outside the four FO-side names; a fo.baroSet while speech.foSide.baroFollow was false; the FO changing its altimeter before the captain did.",
+        "requires-human: the FO's 'Standard.' lands a beat after the captain's own call, not over it; the FO altimeter shows STD / the captain's QNH afterwards; with speech.pilotSeat = right the FO works EFIS1 and leaves EFIS2 alone."
+      ],
+      "notes": "Package 9 of the November 2026 airline-ops batch (branch feature/fo-side-duties, design approved on #188). Pure BaroFollowCore (edge-armed candidate, 2 s debounce, inhibit after two misses) + FoSideDutiesService (FCU flow: announce → 3 s cancel → write → verify, one retry). Writes only through FoSideDutiesGate: S_FCU_EFIS2_BARO_STD (press 2 = STD / 1 = QNH, the inverted legend of #109), A_FCU_EFIS2_BARO_HPA (value; unverified whether whole hPa), S_FCU_EFIS2_ND_MODE, S_FCU_EFIS2_ND_ZOOM — seat-mapped. The inches case writes nothing (owner pick 1); the encoder fallback is not on the write gate (owner pick 3). Unverified live."
+    },
+    {
+      "id": "fo-efis-command",
+      "issue": 188,
+      "state": "open",
+      "kind": "assert-present",
+      "machine": {
+        "kind": "signature",
+        "source": "session",
+        "type": "fo.efisSet",
+        "contains": "\"ok\":true",
+        "trigger": {
+          "source": "session",
+          "type": "speech.recognized",
+          "contains": "range"
+        }
+      },
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "Only with speech.foSide.efisCommands = true (off by default). Trigger: 'your range forty' / 'range eighty on your side' / 'ND range ten' (a your-side marker — 'your', 'your side', 'nd' — is required; the captain's bare 'range forty' is never taken) and 'ND to arc' / 'your ND rose nav' / 'plan on your side'.",
+        "assert-present: the FO's 'Range forty.' / 'Arc.' (tag fo.efis), the selector written directly (S_FCU_EFIS2_ND_ZOOM index 0 10 … 5 320; S_FCU_EFIS2_ND_MODE 0 ILS 1 VOR 2 NAV 3 ARC 4 PLAN — no cancel window, a selector is instant and harmless to redo), then fo.efisSet {field range|mode, value, readBack, ok} with readBack == value within 1 s; 'Unable — your ND.' when it does not read back. A range not on the knob ('your range fifty') → 'Range ten, twenty, forty, eighty, one sixty or three twenty — which one?' and no write.",
+        "assert-absent: a fo.efisSet while speech.foSide.efisCommands was false; any EFIS1 write with the default seat; any write to FD / LS / CSTR / ARPT / NAV1 / NAV2 / baro mode (not FO duties — the gate refuses them).",
+        "requires-human: the FO's ND changes, the captain's does not."
+      ],
+      "notes": "Package 9 of the November 2026 airline-ops batch. FoSidePhrases (pure parser, tested: bare file commands and marker-less range/mode words are not taken). Unverified live."
+    },
+    {
+      "id": "fo-cross-check",
+      "issue": 188,
+      "state": "open",
+      "kind": "assert-present",
+      "machine": {
+        "kind": "signature",
+        "source": "session",
+        "type": "fo.crossCheck",
+        "contains": "\"source\":\"auto\"",
+        "trigger": {
+          "source": "session",
+          "type": "flight-progress",
+          "contains": "\"phase\":\"Preflight\""
+        }
+      },
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "Only with speech.foSide.adirsCheck = true (off by default). Auto trigger ONCE per departure cycle: at the gate (ColdAndDark / Preflight / Departure), flight live, aircraft.fms.origin AND .destination non-empty AND aircraft.fms.perf.takeOff.v1 > 0 (the FMGC init settled) → fo.crossCheck {source auto}. By voice any time: 'cross-check' / 'FMGC cross-check' / 'ADIRS check' → {source voice}.",
+        "assert-present: fo.crossCheck {ok true, complete, adirs[{number, aligned, aligning, minutesLeft}], init{origin, destination, cruiseFl, costIndex}, perf{v1, vr, v2, flex}, mismatches[], numbersOk true, text} and the FO's reading (tag fo.crossCheck, Normal): 'ADIRS one, two and three aligned.' (or per-ADIRU 'aligning, N minutes to go' / 'no attitude'), 'INIT page: <origin> to <destination>.' (+ 'The plan says …' on a route mismatch against the OFP), 'Cost index per the plan NN.' (no dataref exists — never 'cross-checked'), 'Cruise flight level NNN.' (+ 'The plan has flight level …'), 'PERF: V one …, V R …, V two …, flex NN|TOGA.' (+ 'V one … — the computed figure is …' against the Takeoff page's last result), 'Cross-check complete[ — check the differences].'. Every spoken number appears in the payload (NumberVerifier guard: numbersOk true).",
+        "assert-absent: a second {source auto} in one cycle; any MCDU key press (S_CDU2_KEY_*) caused by the cross-check; any fo.crossCheck while speech.foSide.adirsCheck was false; a reading while not live ('Cross-check unavailable — no live aircraft data.' with ok false instead).",
+        "requires-human: the figures match the MCDU pages the captain sees; a deliberately wrong V1 on the PERF page is named with the computed figure."
+      ],
+      "notes": "Package 9 of the November 2026 airline-ops batch. CrossCheckComposer (pure) over the ADIRU aligning / align_minutes_left / attitude_available datarefs (new typed catalogue entries), aircraft.fms.origin / destination / cruiseAlt / perf.takeOff.*, OfpStore and TakeoffPerfStore; FmgcCrossCheckService (voice feature precedence 66, AcknowledgeOnly, auto once per cycle — owner pick 2). Read-only. Unverified live."
     }
   ]
 }

@@ -49,7 +49,8 @@
       "notInBuild": "このビルドでは利用できません",
       "foQuestions": "{0} はオフです — 設定 → 音声副操縦士 → ブリーフィングと LLM → 副操縦士に質問",
       "cruiseQuery": "{0} はオフです — 設定 → 音声副操縦士 → 客室乗務員 → 巡航中のパーサー問い合わせ",
-      "abnormals": "{0} はオフです — 設定 → Voice First Officer → ECAM Abnormals"
+      "abnormals": "{0} はオフです — 設定 → Voice First Officer → ECAM Abnormals",
+      "foSide": "{0} はオフです — 設定 → Voice First Officer → MCDU → FO側の作業"
     },
     "always": {
       "skip": "現在のチェックリスト項目をスキップします。",
@@ -80,6 +81,17 @@
         "arm": "APPR または LOC。",
         "ownNav": "ヘディングを managed に戻します。",
         "negative": "保留中の FCU または無線の操作を 3 秒の窓の中で取り消します。"
+      },
+      "foSide": {
+        "title": "FO側の高度計とND",
+        "qnh": "FOのQNHをその値（900〜1100 hPa）にします。読み上げ、3秒の取消待ち、読み返し。",
+        "standard": "FO側でSTDを押します。単独の「set standard」はファイルコマンドです。",
+        "range": "FO側NDのレンジ：10、20、40、80、160、320。",
+        "mode": "FO側NDのモード：rose ILS、rose VOR、rose NAV、arc、plan。"
+      },
+      "crossCheck": {
+        "title": "ADIRS/FMGC照合",
+        "check": "ADIRSのアライン状態、INITページとプラン、PERF速度と計算値を読み上げて照合します。ゲートでFMGC入力が落ち着くと1回自動でも行います。"
       },
       "radios": {
         "title": "無線",

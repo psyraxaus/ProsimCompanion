@@ -237,6 +237,14 @@ value = hPa × 16, index 0 = captain.
   pushes the knob (STD gate goes true), writing **1** pulls it (QNH), the switch reads 0 again
   immediately either way, and a 300 ms hold is plenty. The catalog says `1:Pushed, 2:Pulled`.
   Presume the captain's `S_FCU_EFIS1_BARO_STD` matches, unverified (issue #109).
+- **FO baro value** (issue #188): `N_FCU_EFIS2_BARO_HPA` is an OUTPUT (read-only). The writable
+  inputs are `system.analog.A_FCU_EFIS2_BARO_HPA` (Int32, catalogue "EFIS F/O baro input hPa
+  [0 - 1200]") and the encoder `system.encoders.E_FCU_EFIS2_BARO` (write-only pulses). The FO-side
+  duties write the analog as whole hPa and read the N_ output back (±1 hPa, 2 s); **whether ProSim
+  takes the analog as whole hPa is unverified live** — the first flight's `fo.baroSet` event
+  (requested vs readBack) settles it. The encoder is NOT on the write gate (owner decision
+  2026-10-24: add it only if the analog proves inert). The FO ND selectors `S_FCU_EFIS2_ND_MODE`
+  / `_ND_ZOOM` are rotary positions written directly and read back from the same switch.
 - Park brake: read `system.switches.S_MIP_PARKING_BRAKE`; the hydraulic gate
   `B_HYD_PARKING_BRAKE_SET` reads **inverted on the A322** (found 2026-05-02).
 - ACP knob range is 0–1024 (`VolumeMax = 1024`).

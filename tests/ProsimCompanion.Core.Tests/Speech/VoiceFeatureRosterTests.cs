@@ -41,6 +41,8 @@ public sealed partial class VoiceFeatureRosterTests
         (typeof(ProsimCompanion.Speech.Monitoring.StandaloneReadbacks), 40),
         (typeof(ProsimCompanion.Speech.Radios.RadioExecutor), 50),
         (typeof(ProsimCompanion.Speech.Fcu.FcuExecutor), 60),
+        (typeof(ProsimCompanion.Speech.FoSide.FoSideDutiesService), 65), // the FO's own baro / EFIS (issue #188)
+        (typeof(ProsimCompanion.Speech.FoSide.FmgcCrossCheckService), 66),
         (typeof(ProsimCompanion.Speech.Commands.ConfiguredVoiceCommands), 70),
         (typeof(ProsimCompanion.Speech.Callouts.EngineFlapCallFeature), 80),
         (typeof(ProsimCompanion.Speech.Callouts.GearCallFeature), 90),

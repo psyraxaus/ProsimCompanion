@@ -938,6 +938,11 @@ Ten packages, one branch and one GitHub issue each, branched from `feature/remot
       refusal, logbook count), the `drill-engine-failure-after-v1` drill with the new trigger
       `window` and drill `sequencer` (`EfatoCore`: rudder / rotate / V2 / gear up / ECAM actions
       at 400 ft → ENG FAIL hand-over). Probes `takeoff-rto`, `takeoff-efato`. Unverified live.
+- [x] **FO-side cockpit duties** (#188, package 9, `feature/fo-side-duties`, design-first) — baro
+      follow (the FO follows the captain's STD / QNH, FCU flow), "QNH …" / "your side standard" /
+      "your range forty" / "ND to arc" by voice, the read-only ADIRS / FMGC cross-check, all behind
+      the four-name `FoSideDutiesGate`. Probes `fo-baro-follow`, `fo-efis-command`,
+      `fo-cross-check`. Unverified live; the first flight proves the baro value input.
 
 
 ## Open items (after the rc.5 batch, 2026-10-11)

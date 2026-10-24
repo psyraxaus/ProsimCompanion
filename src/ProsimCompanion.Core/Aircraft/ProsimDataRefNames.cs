@@ -552,6 +552,19 @@ public static class ProsimDataRefNames
     public const string Adiru2PositionAvailable = "aircraft.adiru.2.position_available";
     public const string Adiru3PositionAvailable = "aircraft.adiru.3.position_available";
 
+    // ADIRS alignment state for the FO's cross-check (issue #188): aligning flag, minutes to
+    // go and attitude availability per ADIRU. Fallbacks read "not aligning, no attitude" so a
+    // dead subscription is reported, never presumed aligned.
+    public static readonly DataRef<bool> Adiru1Aligning = new("aircraft.adiru.1.aligning", DataRefTier.Infrequent, false);
+    public static readonly DataRef<bool> Adiru2Aligning = new("aircraft.adiru.2.aligning", DataRefTier.Infrequent, false);
+    public static readonly DataRef<bool> Adiru3Aligning = new("aircraft.adiru.3.aligning", DataRefTier.Infrequent, false);
+    public static readonly DataRef<double> Adiru1AlignMinutesLeft = new("aircraft.adiru.1.align_minutes_left", DataRefTier.Infrequent, 0.0);
+    public static readonly DataRef<double> Adiru2AlignMinutesLeft = new("aircraft.adiru.2.align_minutes_left", DataRefTier.Infrequent, 0.0);
+    public static readonly DataRef<double> Adiru3AlignMinutesLeft = new("aircraft.adiru.3.align_minutes_left", DataRefTier.Infrequent, 0.0);
+    public static readonly DataRef<bool> Adiru1AttitudeAvailable = new("aircraft.adiru.1.attitude_available", DataRefTier.Infrequent, false);
+    public static readonly DataRef<bool> Adiru2AttitudeAvailable = new("aircraft.adiru.2.attitude_available", DataRefTier.Infrequent, false);
+    public static readonly DataRef<bool> Adiru3AttitudeAvailable = new("aircraft.adiru.3.attitude_available", DataRefTier.Infrequent, false);
+
     /// <summary>
     /// Flap handle index (Int32: 0=Up, 1=F1, 2=F1+F, 3=F2, 4=F3, 5=F4) — distinct from
     /// <see cref="FcFlaps"/>, which is the cockpit switch dataref.
@@ -813,6 +826,8 @@ public static class ProsimDataRefNames
     public const string Efis1BaroMode = "system.switches.S_FCU_EFIS1_BARO_MODE"; // 0=inHg 1=hPa
     public const string Efis1BaroStd = "system.switches.S_FCU_EFIS1_BARO_STD"; // 0=Normal 1=Push(STD) 2=Pull(QNH)
     public const string Efis1QnhIndicator = "system.indicators.I_FCU_EFIS1_QNH";
+    /// <summary>The captain's effective STD state gate — what the FO's baro follow watches (issue #188).</summary>
+    public static readonly DataRef<bool> Efis1BaroStdGate = new("system.gates.B_FCU_EFIS1_BARO_STD", DataRefTier.Normal, false);
     /// <summary>Captain's baro setting, hPa — the altimeter read-back compares against it
     /// (issue #148). Fallback 0 = not read.</summary>
     public static readonly DataRef<double> Efis1BaroHpa = new("system.numerical.N_FCU_EFIS1_BARO_HPA", DataRefTier.Normal, 0.0);
@@ -832,6 +847,10 @@ public static class ProsimDataRefNames
     public const string Efis2ArptIndicator = "system.indicators.I_FCU_EFIS2_ARPT";
     public const string Efis2NdMode = "system.switches.S_FCU_EFIS2_ND_MODE";
     public const string Efis2NdZoom = "system.switches.S_FCU_EFIS2_ND_ZOOM";
+    /// <summary>The FO baro INPUT, whole hPa (catalogue "EFIS F/O baro input hPa [0 - 1200]") — the
+    /// one way to set the FO's QNH by value (the N_ output is read-only); verified by reading
+    /// <see cref="Efis2BaroHpa"/> back. Whether ProSim takes whole hPa is unverified live (#188).</summary>
+    public const string Efis2BaroHpaInput = "system.analog.A_FCU_EFIS2_BARO_HPA";
     public const string Efis2Nav1 = "system.switches.S_FCU_EFIS2_NAV1";
     public const string Efis2Nav2 = "system.switches.S_FCU_EFIS2_NAV2";
     /// <summary>Fallback 1 (hPa): with no data, baro readouts assume hectopascals.</summary>
