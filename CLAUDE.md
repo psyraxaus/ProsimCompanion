@@ -62,6 +62,11 @@ start and remain usable (degraded mode) when the SDK, ProSim, MSFS, or GSX are a
   absent. A failed subsystem logs and disables itself; it never blocks startup or other features.
 - **Write safety**: anything that writes to the aircraft goes through explicit code-level allow-lists.
   Dataref-first; never actuate cockpit switches when a dataref write achieves the same result.
+- **Branching** (owner rule, 2026-10-24): build on whatever branch is currently checked out on
+  the dev machine. If that branch is not `main`, build on it — merging to `main` is decided
+  later, never by the agent. If it is `main`, create a new feature branch first. In a
+  multi-package prompt, each package builds on top of the previous package (sequential commits
+  on the same branch — never each package from `main`). Never merge anything.
 - **ProSim read model**: register a `DataRef` subscription once and read the cached value. Never poll
   `ReadDataRef` in a loop — it is a synchronous network round-trip and stalls the app.
 - Tests: xunit + Moq only (no MSTest/NUnit/FluentAssertions). Favour extracting pure
