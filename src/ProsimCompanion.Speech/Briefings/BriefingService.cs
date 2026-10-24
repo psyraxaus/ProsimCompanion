@@ -82,6 +82,15 @@ public sealed class BriefingService : IVoiceFeature, IDisposable
     private readonly IOptionsMonitor<AircraftLimitsOptions>? _aircraftLimits;
     private readonly RunwayConditionStore? _runwayCondition;
 
+    // The plan's NOTAMs for the threats clause (issue #189, wired at the merge). Optional: without
+    // the store (tests) the threats carry no NOTAM lines.
+    private readonly Core.Aircraft.Ofp.OfpStore? _ofp;
+
+    /// <summary>The last departure briefing's emergency facts (issue #187 wire) — the EFATO drill
+    /// reads the briefed engine-out routing from here. Null until a departure briefing with the
+    /// emergency brief on has run this session.</summary>
+    public DepartureEmergencyBrief? LastDepartureEmergency { get; private set; }
+
     // Spoken text (campaign #81): names when the DFD is present, NATO-spelled ICAO otherwise
     // — the fallback policy lives in the module, not here (issue #70).
     private readonly Core.Speech.ISpokenText _spokenText;
@@ -108,7 +117,8 @@ public sealed class BriefingService : IVoiceFeature, IDisposable
         ThreatsQuestionStore? threats = null,
         IOptionsMonitor<SopOptions>? sop = null,
         IOptionsMonitor<AircraftLimitsOptions>? aircraftLimits = null,
-        RunwayConditionStore? runwayCondition = null)
+        RunwayConditionStore? runwayCondition = null,
+        Core.Aircraft.Ofp.OfpStore? ofp = null)
     {
         _persona = persona;
         _narrator = narrator;
@@ -119,6 +129,7 @@ public sealed class BriefingService : IVoiceFeature, IDisposable
         _sop = sop;
         _aircraftLimits = aircraftLimits;
         _runwayCondition = runwayCondition;
+        _ofp = ofp;
         ArgumentNullException.ThrowIfNull(spokenText);
         _spokenText = spokenText;
         ArgumentNullException.ThrowIfNull(options);
@@ -437,7 +448,8 @@ public sealed class BriefingService : IVoiceFeature, IDisposable
         var thrust = fmsFlex is { } flex ? $"FLEX {flex}"
             : perf is null ? null
             : perf.FlexTempC is { } perfFlex ? $"FLEX {perfFlex}" : "TOGA";
-        return new EmergencyBriefFacts(
+        var notamThreats = NotamThreats.Lines(_ofp?.Current?.Notams ?? [], ids.Airport);
+        var emergency = new EmergencyBriefFacts(
             Surface: MetarConditions.Surface(wx),
             Thunderstorms: wx.Precip == PrecipKind.Thunderstorm,
             MsaFt: _navData.AirportMsaFt(ids.Airport),
@@ -452,7 +464,10 @@ public sealed class BriefingService : IVoiceFeature, IDisposable
             ThrustMode: thrust,
             CeilingFt: wx.CeilingFt,
             IcingLikely: MetarConditions.GroundIcingLikely(wx),
-            AirportElevationFt: elevation);
+            AirportElevationFt: elevation,
+            NotamThreats: notamThreats);
+        LastDepartureEmergency = new DepartureEmergencyBrief(ids.Airport, ids.Runway, emergency, DateTimeOffset.UtcNow);
+        return emergency;
     }
 
     /// <summary>An AAL figure made MSL when the elevation is known, rounded to the nearest 100

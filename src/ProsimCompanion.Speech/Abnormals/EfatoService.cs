@@ -37,7 +37,8 @@ public sealed class EfatoService : Core.Hosting.IStartupModule, IDisposable
         FailureMonitor failures,
         ISpeechArbiter arbiter,
         JsonlEventLog eventLog,
-        ILogger<EfatoService> logger)
+        ILogger<EfatoService> logger,
+        Briefings.BriefingService? briefing = null)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(source);
@@ -53,7 +54,22 @@ public sealed class EfatoService : Core.Hosting.IStartupModule, IDisposable
         _arbiter = arbiter;
         _eventLog = eventLog;
         _logger = logger;
+        _briefing = briefing;
     }
+
+    /// <summary>The briefed engine-out routing is spoken only when the briefing is this recent.</summary>
+    public static readonly TimeSpan BriefingMaxAge = TimeSpan.FromHours(3);
+
+    // Optional (package-1 wire): the last departure briefing's engine-out routing, spoken once
+    // after gear up when it was a published EOSID. Without the briefing service (tests) nothing is added.
+    private readonly Briefings.BriefingService? _briefing;
+
+    /// <summary>The engine-out line after gear up, pure: the briefed routing when the brief is
+    /// recent and the routing was published; null otherwise.</summary>
+    public static string? EngineOutLine(Briefings.DepartureEmergencyBrief? brief, DateTimeOffset nowUtc)
+        => brief is { Facts.EngineOutIsPublished: true } && nowUtc - brief.AtUtc <= BriefingMaxAge
+            ? $"Engine-out routing: {brief.Facts.EngineOutProcedure}."
+            : null;
 
     public void Start()
     {
@@ -150,6 +166,13 @@ public sealed class EfatoService : Core.Hosting.IStartupModule, IDisposable
             };
             _eventLog.Record("efato.item", new { item = item.ToString(), text, iasKt = Math.Round(sample.IasKt), aglFt = Math.Round(sample.AltitudeAglFt) });
             _ = _arbiter.EnqueueAsync(new SpeechRequest(text, SpeechPriority.Critical, TimeSpan.FromSeconds(6), Tag: "efato." + item.ToString().ToLowerInvariant()));
+
+            if (item == EfatoItem.GearUp && EngineOutLine(_briefing?.LastDepartureEmergency, sample.NowUtc) is { } eosid)
+            {
+                // The package-1 EOSID fact, once, right after gear up (the briefing said it; the drill repeats it).
+                _eventLog.Record("efato.item", new { item = "EngineOut", text = eosid, airport = _briefing!.LastDepartureEmergency!.Airport, runway = _briefing.LastDepartureEmergency.Runway });
+                _ = _arbiter.EnqueueAsync(new SpeechRequest(eosid, SpeechPriority.High, TimeSpan.FromSeconds(10), Tag: "efato.engineout"));
+            }
 
             if (item == EfatoItem.EcamActions)
             {

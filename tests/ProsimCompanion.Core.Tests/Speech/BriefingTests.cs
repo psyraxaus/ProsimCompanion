@@ -341,6 +341,12 @@ public sealed class BriefingTests
         ], items);
         Assert.Equal("contaminated runway", ThreatListBuilder.Build(Departure(), Emergency() with { Surface = Core.Weather.RunwaySurfaceState.Contaminated })[0]);
         Assert.Empty(ThreatListBuilder.Build(Departure(), Emergency()));
+
+        // The departure NOTAM highlights follow the runway surface (issue #189, wired at the merge).
+        var withNotams = Emergency() with { Surface = Core.Weather.RunwaySurfaceState.Wet, NotamThreats = ["runway 12 closed by NOTAM", "PAPI runway 04L unserviceable"] };
+        Assert.Equal(["wet runway", "runway 12 closed by NOTAM", "PAPI runway 04L unserviceable"], ThreatListBuilder.Build(Departure(), withNotams));
+        Assert.Contains(12, ThreatListBuilder.Numbers(Departure(), withNotams));
+        Assert.Contains(4, ThreatListBuilder.Numbers(Departure(), withNotams));
         // MSA 3500 over a 21 ft airport is no terrain threat; 9000 over 4500 is not either (margin 5000).
         Assert.False(ThreatListBuilder.IsTerrainThreat(Emergency()));
         Assert.False(ThreatListBuilder.IsTerrainThreat(Emergency() with { MsaFt = 9000, AirportElevationFt = 4500 }));

@@ -72,11 +72,20 @@ public sealed record EmergencyBriefFacts(
     string? ThrustMode,
     int? CeilingFt,
     bool IcingLikely,
-    double? AirportElevationFt)
+    double? AirportElevationFt,
+    IReadOnlyList<string>? NotamThreats = null)
 {
     /// <summary>The engine-out routing when the DFD publishes none for the runway.</summary>
     public const string DefaultEngineOutProcedure = "straight ahead, runway heading, to the acceleration altitude";
+
+    /// <summary>The departure NOTAM highlights as threat lines (issue #189, wired at the merge); empty = none.</summary>
+    public IReadOnlyList<string> NotamThreats { get; init; } = NotamThreats ?? [];
 }
+
+/// <summary>The last departure briefing's emergency facts with their station and clock (issue
+/// #187 wire): the EFATO drill speaks the briefed engine-out routing after gear up, only when it
+/// was published and briefed for this airport within the last few hours.</summary>
+public sealed record DepartureEmergencyBrief(string? Airport, string? Runway, EmergencyBriefFacts Facts, DateTimeOffset AtUtc);
 
 /// <summary>The go-around additions of an arrival briefing (issue #180). Present only while
 /// <c>briefing.arrivalGoAroundBrief</c> is on.</summary>

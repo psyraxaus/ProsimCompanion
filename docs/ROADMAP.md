@@ -918,7 +918,7 @@ duties. New features default **off** and are **Unverified live** until a flight 
       snapshot persists the effective OFP; the card is empty after a restart) in particular.
 Ten packages, one branch and one GitHub issue each, branched from `feature/remote-mixer-agents`
 (0.7.0-rc.12) because that branch was not yet on `main`. Every item is off by default and
-**Unverified live** until flown; details in `CHANGELOG.md` under *0.8.0-rc.1*.
+**Unverified live** until flown; details in `CHANGELOG.md` under *0.8.0-rc.1* and *0.8.0-rc.2* (the two cross-package wires).
 
 - [x] **ACARS movement messages, delay codes and on-time performance** (#185, package 6,
       `feature/acars-movement-messages`) — MVT AD/AA telex in RCVD MSGS slots 06/07, the

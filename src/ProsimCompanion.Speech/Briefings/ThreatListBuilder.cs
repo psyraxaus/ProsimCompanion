@@ -38,6 +38,13 @@ public static class ThreatListBuilder
                 break;
         }
 
+        // Departure NOTAM highlights (issue #189, wired at the merge): runway and taxiway
+        // closures, ILS, lighting, PAPI, displaced threshold — the runway group, so right here.
+        foreach (var line in emergency.NotamThreats)
+        {
+            items.Add(line);
+        }
+
         if (emergency.Thunderstorms)
         {
             items.Add("thunderstorms in the vicinity");
@@ -94,6 +101,11 @@ public static class ThreatListBuilder
         if (emergency.MsaFt is { } msa)
         {
             yield return Math.Round(msa);
+        }
+
+        foreach (var number in NotamThreats.Numbers(emergency.NotamThreats))
+        {
+            yield return number;
         }
     }
 
