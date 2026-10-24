@@ -40,7 +40,13 @@
       "eta": "ETA",
       "topOfDescent": "Top of Descent",
       "holding": "Holding",
-      "noFlightPlan": "Kein Flugplan geladen — hole einen OFP auf der INIT-Seite"
+      "noFlightPlan": "Kein Flugplan geladen — hole einen OFP auf der INIT-Seite",
+      "turbulenceTitle": "Turbulenz: Spitze {0} g in den letzten zwei Sekunden (Einheit {1})",
+      "turbulence": {
+        "light": "LEICHTE TURBULENZ",
+        "moderate": "MÄSSIGE TURBULENZ",
+        "severe": "SCHWERE TURBULENZ"
+      }
     },
     "sequence": {
       "title": "Flugablauf",
@@ -84,6 +90,38 @@
       "label": "Gate",
       "popoutTitle": "Das Flight-Monitor-Board in einem eigenen Fenster öffnen (zweiter Monitor / Tablet)",
       "popout": "Auskoppeln"
+    },
+    "pa": {
+      "title": "Captain's PA",
+      "dismiss": "Ausblenden",
+      "dismissTitle": "Skript ausblenden; „PA-Skript“ holt es zurück",
+      "reopen": "PA-Skript",
+      "reopenTitle": "Das letzte PA-Skript wieder anzeigen",
+      "note": "Über die Kabinen-PA vorlesen. Der FO spricht es nicht.",
+      "kind": {
+        "afterTakeoff": "Nach dem Start",
+        "topOfDescent": "Vor dem Sinkflug",
+        "seatbeltsOn": "Anschnallzeichen an"
+      },
+      "script": {
+        "welcome": "Guten Tag, meine Damen und Herren, hier spricht Ihr Kapitän. Willkommen an Bord des Fluges {0} nach {1}.",
+        "welcomeNoFlight": "Guten Tag, meine Damen und Herren, hier spricht Ihr Kapitän. Willkommen an Bord dieses Fluges nach {0}.",
+        "welcomePlain": "Guten Tag, meine Damen und Herren, hier spricht Ihr Kapitän. Willkommen an Bord.",
+        "flightTime": "Unsere Flugzeit beträgt heute etwa {0}.",
+        "cruise": "Wir werden in {0} Fuß fliegen.",
+        "weather": "Das Wetter in {0}: {1}.",
+        "temperature": "{0} Grad",
+        "wind": "Wind {0} mit {1} Knoten",
+        "eta": "Wir erwarten die Ankunft um {0}.",
+        "sitBack": "Lehnen Sie sich zurück und genießen Sie den Flug.",
+        "descent": "Meine Damen und Herren, wir haben den Sinkflug nach {0} begonnen.",
+        "descentPlain": "Meine Damen und Herren, wir haben den Sinkflug begonnen.",
+        "seatbeltsForLanding": "Die Anschnallzeichen gehen in Kürze an; bitte kehren Sie zu Ihren Plätzen zurück und schnallen Sie sich an.",
+        "thanks": "Vielen Dank, dass Sie heute mit uns fliegen.",
+        "turbulence": "Meine Damen und Herren, wir durchfliegen gerade Turbulenzen.",
+        "returnToSeats": "Bitte kehren Sie zu Ihren Plätzen zurück und schnallen Sie sich an.",
+        "crewSuspend": "Kabinenpersonal, bitte den Service unterbrechen und Platz nehmen."
+      }
     },
     "sim": {
       "title": "Sim",

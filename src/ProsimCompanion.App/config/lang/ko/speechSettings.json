@@ -428,6 +428,55 @@
         "label": "순항 문의 응답 창",
         "hint": "퍼서가 당신의 답을 듣는 시간."
       },
+      "turbulence": {
+        "title": "터뷸런스",
+        "hint": "수직 가속도로 본 흔들림과 객실의 대응",
+        "detect": {
+          "label": "터뷸런스 감지",
+          "hint": "항공기 수직 가속도로 흔들림(없음 / 약 / 중 / 강)을 판정합니다.",
+          "more": "원시값의 단위는 주기 중에 학습합니다: 약 1이면 G, 9.8이면 m/s², 32이면 ft/s². Flight Status 머리말의 칩이 수준을 보여줍니다. 기본값은 꺼짐."
+        },
+        "unit": {
+          "label": "가속도 단위",
+          "hint": "자동은 정지 시 값으로 학습합니다. 칩이 분명히 틀릴 때만 단위를 고정하세요."
+        },
+        "light": {
+          "label": "약 기준",
+          "hint": "2초 동안 기준선에서의 편차(g). 심에서 확인하기 전까지는 임시값입니다."
+        },
+        "moderate": {
+          "label": "중 기준"
+        },
+        "severe": {
+          "label": "강 기준"
+        },
+        "seatbeltAdvice": {
+          "label": "좌석벨트 사인 조언",
+          "hint": "약 이상에서 사인이 꺼져 있으면 FO가 에피소드마다 한 번 \"seat belt signs, captain?\"이라고 묻습니다."
+        },
+        "purserCall": {
+          "label": "흔들림 시 사무장 호출",
+          "hint": "중에서 사무장이 호출해 객실을 고정할지 묻고, 강에서는 승무원이 스스로 착석하고 보고합니다.",
+          "more": "예라고 하면 승무원이 착석하고 30~90초 뒤 객실이 고정됐다고 보고합니다. 흔들림이 가라앉고 2분 뒤 사무장이 객실 정상 복귀를 보고합니다."
+        }
+      },
+      "pa": {
+        "title": "기장 PA",
+        "hint": "본인 방송 안내와 사무장 PA",
+        "prompts": {
+          "label": "\"Captain, your PA\" 안내",
+          "hint": "이륙 후, 강하 시작 알림 시, 순항 중 흔들림으로 좌석벨트 사인이 켜질 때 FO가 PA를 안내합니다.",
+          "more": "Flight Status에 실시간 정보가 채워진 PA 대본 카드가 나타납니다. 객실 PA로 읽는 것은 본인입니다. 대신 읽어주지 않습니다."
+        },
+        "afterTakeoff": {
+          "label": "이륙 후 첫 PA",
+          "hint": "이륙 후 몇 분."
+        },
+        "purserAudible": {
+          "label": "사무장 PA 듣기",
+          "hint": "사무장의 객실 PA를 객실 필터로 듣습니다: 비콘 켜짐에 도어 암, 엔진 정지에 도어 매뉴얼, 10,000 ft에서 착륙 준비."
+        }
+      },
       "wording": {
         "title": "객실 문구",
         "hint": "글자 그대로 말합니다",
@@ -454,6 +503,31 @@
         "noReply": {
           "label": "순항 문의 — 무응답",
           "hint": "창이 침묵 속에 닫힐 때."
+        },
+        "turbulenceCall": {
+          "label": "흔들림 — 사무장 호출",
+          "hint": "기장이 답하는 질문."
+        },
+        "turbulenceSeated": {
+          "label": "흔들림 — 승무원 착석(예 이후)"
+        },
+        "turbulenceSecured": {
+          "label": "흔들림 — 객실 고정"
+        },
+        "turbulenceSevere": {
+          "label": "흔들림 — 강, 승무원 착석"
+        },
+        "turbulenceNormal": {
+          "label": "흔들림 — 정상 복귀"
+        },
+        "paArmDoors": {
+          "label": "사무장 PA — 도어 암"
+        },
+        "paDoorsManual": {
+          "label": "사무장 PA — 도어 매뉴얼"
+        },
+        "paPrepareLanding": {
+          "label": "사무장 PA — 착륙 준비"
         }
       }
     },
@@ -1296,6 +1370,13 @@
       "apiKeySource": {
         "auto": "자동 (flight.json에서)",
         "manual": "수동 (아래 입력)"
+      },
+      "turbulenceUnit": {
+        "auto": "자동(주기 중 학습)",
+        "g": "G(정지 시 약 1)",
+        "gNoGravity": "중력 제외 G(정지 시 약 0)",
+        "mps2": "m/s²(정지 시 약 9.8)",
+        "ftps2": "ft/s²(정지 시 약 32)"
       },
       "elevenLabsModel": {
         "flash": "eleven_flash_v2_5 (빠름, 비용 절반)",

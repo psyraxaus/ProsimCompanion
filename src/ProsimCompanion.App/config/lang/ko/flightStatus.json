@@ -40,7 +40,13 @@
       "eta": "ETA",
       "topOfDescent": "강하 개시점",
       "holding": "홀딩",
-      "noFlightPlan": "불러온 비행 계획이 없습니다 — INIT 페이지에서 OFP를 가져오세요"
+      "noFlightPlan": "불러온 비행 계획이 없습니다 — INIT 페이지에서 OFP를 가져오세요",
+      "turbulenceTitle": "터뷸런스: 최근 2초 최대 {0} g (단위 {1})",
+      "turbulence": {
+        "light": "약한 흔들림",
+        "moderate": "중간 흔들림",
+        "severe": "강한 흔들림"
+      }
     },
     "sequence": {
       "title": "비행 순서",
@@ -84,6 +90,38 @@
       "label": "게이트",
       "popoutTitle": "Flight Monitor 보드를 별도 창에서 엽니다 (두 번째 모니터 / 태블릿)",
       "popout": "창 분리"
+    },
+    "pa": {
+      "title": "기장 PA",
+      "dismiss": "닫기",
+      "dismissTitle": "대본 숨기기. \"PA 대본\"으로 되돌릴 수 있습니다",
+      "reopen": "PA 대본",
+      "reopenTitle": "마지막 PA 대본 다시 보기",
+      "note": "객실 PA로 읽으세요. FO는 읽지 않습니다.",
+      "kind": {
+        "afterTakeoff": "이륙 후",
+        "topOfDescent": "강하 전",
+        "seatbeltsOn": "좌석벨트 사인 켜짐"
+      },
+      "script": {
+        "welcome": "승객 여러분, 안녕하십니까. 기장입니다. {1}행 {0}편에 탑승하신 것을 환영합니다.",
+        "welcomeNoFlight": "승객 여러분, 안녕하십니까. 기장입니다. {0}행 항공편에 탑승하신 것을 환영합니다.",
+        "welcomePlain": "승객 여러분, 안녕하십니까. 기장입니다. 탑승을 환영합니다.",
+        "flightTime": "오늘 비행 시간은 약 {0}입니다.",
+        "cruise": "{0}피트 고도로 순항하겠습니다.",
+        "weather": "{0}의 날씨는 {1}입니다.",
+        "temperature": "기온 {0}도",
+        "wind": "바람 {0}도 {1}노트",
+        "eta": "{0}에 도착할 예정입니다.",
+        "sitBack": "편안한 비행 되시기 바랍니다.",
+        "descent": "승객 여러분, {0}을(를) 향해 강하를 시작했습니다.",
+        "descentPlain": "승객 여러분, 강하를 시작했습니다.",
+        "seatbeltsForLanding": "곧 좌석벨트 사인이 켜집니다. 자리로 돌아가 좌석벨트를 매 주십시오.",
+        "thanks": "오늘 저희와 함께해 주셔서 감사합니다.",
+        "turbulence": "승객 여러분, 현재 흔들림 구간을 지나고 있습니다.",
+        "returnToSeats": "자리로 돌아가 좌석벨트를 매 주십시오.",
+        "crewSuspend": "객실 승무원은 서비스를 중단하고 착석하십시오."
+      }
     },
     "sim": {
       "title": "시뮬레이터",

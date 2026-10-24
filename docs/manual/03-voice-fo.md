@@ -424,3 +424,38 @@ card on the Ground Services page offers the same list as buttons. The code is ad
 movement message as *DL 15/0022*, to the debrief and to the Logbook's Delay column. The list
 is `%LOCALAPPDATA%\ProsimCompanion\config\delay-codes.json` — add your airline's codes
 and the words you say for them; your edits survive updates.
+
+### Turbulence and the captain's PA
+
+**Detect turbulence** (Settings → Voice First Officer → Cabin Crew → Turbulence, off by
+default) watches the aircraft's vertical acceleration and judges the ride: none, light,
+moderate or severe. A chip in the Flight Status hero shows the level while it is rough. The
+raw value's unit is not documented by ProSim, so the app learns it while you are parked: the
+reading at rest is about 1 for g, 9.8 for m/s², 32 for ft/s². If the chip is clearly wrong
+(rough in smooth air, or never rough), set **Acceleration unit** by hand; the three thresholds
+sit under Advanced and are in g.
+
+Two cabin reactions, each its own switch and off by default:
+
+- **Seat-belt advice** — at light turbulence or worse with the sign not ON, the FO asks
+  *"Seat belt signs, captain?"* once per episode. The switch stays yours.
+- **Purser call in turbulence** — at moderate the purser calls (chime, CAB as for every
+  report): *"It's getting bumpy back here — should we secure the cabin?"*. The FO relays it as
+  a question; answer *"yes"* / *"secure the cabin"* and the crew is seated — the cabin reports
+  *"secured"* 30 to 90 seconds later — or *"carry on"* / *"no"* and the service continues.
+  Silence for five minutes counts as no. At severe the crew seats itself and tells you.
+  Two minutes after the ride settles the purser reports *"the cabin's back to normal"*.
+
+**"Captain, your PA" prompts** (same card, off by default) remind you of your own announcements:
+ten minutes after take-off (setting), at the top-of-descent notice, and when you switch the
+seat-belt sign on in cruise turbulence. Each time the FO says *"Captain, your PA"* and a
+**Captain's PA** card appears in the Flight Status hero with a short airline-style script —
+flight number, destination, flight time, cruise level, destination weather, ETA — for you to
+read over the cabin PA. A fact the app does not have is left out. **Dismiss** hides the card;
+the **PA script** button brings it back. Nothing reads the script aloud: the captain is a human.
+
+**Purser PAs audible** (off by default) lets you hear the purser's own announcements from the
+cabin, in the purser voice through the cabin filter: *"Cabin crew, arm doors and cross-check"*
+when the beacon comes on, *"Cabin crew, prepare the cabin for landing"* passing 10,000 feet in
+the descent, *"Cabin crew, doors to manual"* with the engines off on stand. All eight new lines
+are editable under Cabin Wording.

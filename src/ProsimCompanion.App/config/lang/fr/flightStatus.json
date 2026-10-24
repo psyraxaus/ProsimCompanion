@@ -40,7 +40,13 @@
       "eta": "ETA",
       "topOfDescent": "Début de descente",
       "holding": "Attente",
-      "noFlightPlan": "Aucun plan de vol chargé — récupérez un OFP sur la page INIT"
+      "noFlightPlan": "Aucun plan de vol chargé — récupérez un OFP sur la page INIT",
+      "turbulenceTitle": "Turbulence : pic {0} g sur les deux dernières secondes (unité {1})",
+      "turbulence": {
+        "light": "TURBULENCE LÉGÈRE",
+        "moderate": "TURBULENCE MODÉRÉE",
+        "severe": "TURBULENCE FORTE"
+      }
     },
     "sequence": {
       "title": "Séquence du vol",
@@ -84,6 +90,38 @@
       "label": "Porte",
       "popoutTitle": "Ouvrir le tableau Flight Monitor dans sa propre fenêtre (second écran / tablette)",
       "popout": "Détacher"
+    },
+    "pa": {
+      "title": "PA du commandant",
+      "dismiss": "Fermer",
+      "dismissTitle": "Masquer le script ; « Script PA » le ramène",
+      "reopen": "Script PA",
+      "reopenTitle": "Afficher à nouveau le dernier script",
+      "note": "À lire au PA cabine. Le FO ne le dit pas.",
+      "kind": {
+        "afterTakeoff": "Après le décollage",
+        "topOfDescent": "Avant la descente",
+        "seatbeltsOn": "Ceintures allumées"
+      },
+      "script": {
+        "welcome": "Mesdames et messieurs bonjour, ici votre commandant de bord. Bienvenue à bord du vol {0} à destination de {1}.",
+        "welcomeNoFlight": "Mesdames et messieurs bonjour, ici votre commandant de bord. Bienvenue à bord de ce vol vers {0}.",
+        "welcomePlain": "Mesdames et messieurs bonjour, ici votre commandant de bord. Bienvenue à bord.",
+        "flightTime": "Notre temps de vol aujourd'hui est d'environ {0}.",
+        "cruise": "Nous volerons à {0} pieds.",
+        "weather": "La météo à {0} : {1}.",
+        "temperature": "{0} degrés",
+        "wind": "vent {0} pour {1} nœuds",
+        "eta": "Nous prévoyons d'arriver à {0}.",
+        "sitBack": "Installez-vous confortablement et bon vol.",
+        "descent": "Mesdames et messieurs, nous avons entamé notre descente vers {0}.",
+        "descentPlain": "Mesdames et messieurs, nous avons entamé notre descente.",
+        "seatbeltsForLanding": "La consigne ceintures va s'allumer ; merci de regagner vos sièges et d'attacher vos ceintures.",
+        "thanks": "Merci d'avoir voyagé avec nous aujourd'hui.",
+        "turbulence": "Mesdames et messieurs, nous traversons une zone de turbulence.",
+        "returnToSeats": "Merci de regagner vos sièges et d'attacher vos ceintures.",
+        "crewSuspend": "Personnel de cabine, veuillez suspendre le service et vous asseoir."
+      }
     },
     "sim": {
       "title": "Sim",

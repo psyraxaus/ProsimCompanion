@@ -26,6 +26,8 @@
 @inject GateStatusStore GateStatus
 @inject FlightProgressStore FlightProgress
 @inject HoldingTimeStore Holding
+@inject TurbulenceStore Turbulence
+@inject PaPromptStore PaPrompts
 @inject IProsimDataRefs DataRefs
 @inject DisplayUnitService Units
 @inject IOptionsMonitor<FlightStatusOptions> FlightStatusOptionsMonitor
@@ -111,6 +113,11 @@
                             <span class="fs-chip-note">@T["flightStatus.hero.frozen"]</span>
                         }
                     </span>
+                    @if (_ride.Level != TurbulenceLevel.None)
+                    {
+                        @* The ride (issue #186): shows only while the detector judges Light or worse. *@
+                        <span class="fs-chip fs-ride @RideClass" title="@T["flightStatus.hero.turbulenceTitle", _ride.PeakG.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture), _ride.Unit]">@T[RideTextId]</span>
+                    }
 
                     <div class="fs-route">
                         <div class="fs-route-end">
@@ -147,6 +154,37 @@
                     @WeatherCardMarkup(FlightStatusPresentation.Weather(_weather.Second))
                 </div>
                 @GateStripMarkup(FlightStatusPresentation.Gate(_gate))
+                @if (_pa.Kind is { } paKind)
+                {
+                    @* The captain's PA script (issue #186): the FO said "captain, your PA"; the
+                       card holds the lines with the live facts. Dismiss hides it, Reopen brings
+                       it back; the next prompt replaces it. Nothing reads it aloud. *@
+                    @if (_pa.Visible)
+                    {
+                        <div class="inset fs-pa">
+                            <div class="fs-pa-head">
+                                <span class="label-caps">@T["flightStatus.pa.title"]</span>
+                                <span class="fs-chip">@T[PaScriptPresentation.KindTextId(paKind)]</span>
+                                @if (_pa.PromptedAtUtc is { } promptedAt)
+                                {
+                                    <span class="fs-pa-stamp">@PaScriptPresentation.Stamp(promptedAt)</span>
+                                }
+                                <button type="button" class="btn secondary fs-pa-btn" @onclick="PaPrompts.Dismiss" title="@T["flightStatus.pa.dismissTitle"]">@T["flightStatus.pa.dismiss"]</button>
+                            </div>
+                            <ol class="fs-pa-script">
+                                @foreach (var line in PaScriptPresentation.Lines(paKind, _pa.Facts, T))
+                                {
+                                    <li>@line</li>
+                                }
+                            </ol>
+                            <div class="fs-pa-note">@T["flightStatus.pa.note"]</div>
+                        </div>
+                    }
+                    else
+                    {
+                        <button type="button" class="btn secondary fs-pa-reopen" @onclick="PaPrompts.Reopen" title="@T["flightStatus.pa.reopenTitle"]">@T["flightStatus.pa.reopen"] · @T[PaScriptPresentation.KindTextId(paKind)]</button>
+                    }
+                }
             </div>
 
             <div class="fs-metrics">
@@ -313,6 +351,12 @@
     private GateStatusSnapshot _gate = GateStatusSnapshot.Empty;
     private FlightProgressSnapshot _progress = FlightProgressSnapshot.Empty;
     private Core.Fuel.HoldingEstimate? _holding; // issue #183
+    private TurbulenceSnapshot _ride = TurbulenceSnapshot.Empty;
+    private PaPromptSnapshot _pa = PaPromptSnapshot.Empty;
+
+    private string RideClass => _ride.Level.ToString().ToLowerInvariant();
+
+    private string RideTextId => "flightStatus.hero.turbulence." + RideClass;
 
     private FlightPhase _forcePhase = FlightPhase.Preflight;
     private bool _freeze = true;
@@ -681,6 +725,8 @@
         Watch(GateStatus, snapshot => _gate = snapshot);
         Watch(FlightProgress, snapshot => _progress = snapshot);
         Watch(Holding, estimate => _holding = estimate);
+        Watch(Turbulence, snapshot => _ride = snapshot);
+        Watch(PaPrompts, snapshot => _pa = snapshot);
 
         _tileOrder = FlightStatusTiles.Normalize(FlightStatusOptionsMonitor.CurrentValue.TileOrder);
         _tileOrderChange = FlightStatusOptionsMonitor.OnChange(options =>

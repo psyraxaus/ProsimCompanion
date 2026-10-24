@@ -428,6 +428,55 @@
         "label": "Fenêtre de réponse de la question",
         "hint": "Combien de temps le chef de cabine écoute ta réponse."
       },
+      "turbulence": {
+        "title": "Turbulence",
+        "hint": "Le vol d'après l'accélération verticale, et ce qu'en fait la cabine",
+        "detect": {
+          "label": "Détecter la turbulence",
+          "hint": "Juge le vol (aucune / légère / modérée / forte) d'après l'accélération verticale de l'avion.",
+          "more": "L'unité de la valeur brute s'apprend au parking : environ 1 = G, 9,8 = m/s², 32 = ft/s². Une puce dans l'en-tête Flight Status affiche le niveau. Désactivé par défaut."
+        },
+        "unit": {
+          "label": "Unité d'accélération",
+          "hint": "Auto l'apprend de la lecture au repos. Force une unité seulement si la puce est clairement fausse."
+        },
+        "light": {
+          "label": "Légère à partir de",
+          "hint": "Écart à la base sur deux secondes, en g. Provisoire jusqu'à confirmation dans le sim."
+        },
+        "moderate": {
+          "label": "Modérée à partir de"
+        },
+        "severe": {
+          "label": "Forte à partir de"
+        },
+        "seatbeltAdvice": {
+          "label": "Conseil ceintures",
+          "hint": "À turbulence légère ou pire, consigne éteinte, le FO demande « seat belt signs, captain? » une fois par épisode."
+        },
+        "purserCall": {
+          "label": "Appel du chef de cabine en turbulence",
+          "hint": "À modérée le chef de cabine appelle et demande s'il faut sécuriser la cabine ; à forte l'équipage s'assied de lui-même et le dit.",
+          "more": "Dis oui et l'équipage s'assied ; la cabine annonce « sécurisée » 30 à 90 secondes plus tard. Deux minutes après le retour au calme, le chef de cabine annonce le retour à la normale."
+        }
+      },
+      "pa": {
+        "title": "PA du commandant",
+        "hint": "Rappels pour tes annonces et les PA du chef de cabine",
+        "prompts": {
+          "label": "Rappels « Captain, your PA »",
+          "hint": "Le FO rappelle ton PA après le décollage, à l'avis de début de descente et quand la consigne ceintures s'allume en turbulence de croisière.",
+          "more": "Une carte avec le script du PA apparaît sur Flight Status avec les données en direct. Tu le lis au PA cabine — rien ne le dit à ta place."
+        },
+        "afterTakeoff": {
+          "label": "Premier PA après le décollage",
+          "hint": "Minutes après le décollage."
+        },
+        "purserAudible": {
+          "label": "PA du chef de cabine audibles",
+          "hint": "Entendre les PA cabine du chef de cabine par le filtre cabine : armer les portes au beacon, portes en manuel moteurs coupés, préparer la cabine à 10 000 ft."
+        }
+      },
       "wording": {
         "title": "Formulation cabine",
         "hint": "Dite mot pour mot",
@@ -454,6 +503,31 @@
         "noReply": {
           "label": "Question en croisière — sans réponse",
           "hint": "Quand la fenêtre se ferme en silence."
+        },
+        "turbulenceCall": {
+          "label": "Turbulence — appel du chef de cabine",
+          "hint": "La question à laquelle répond le commandant."
+        },
+        "turbulenceSeated": {
+          "label": "Turbulence — équipage assis (après oui)"
+        },
+        "turbulenceSecured": {
+          "label": "Turbulence — cabine sécurisée"
+        },
+        "turbulenceSevere": {
+          "label": "Turbulence — forte, équipage assis"
+        },
+        "turbulenceNormal": {
+          "label": "Turbulence — retour à la normale"
+        },
+        "paArmDoors": {
+          "label": "PA chef de cabine — armer les portes"
+        },
+        "paDoorsManual": {
+          "label": "PA chef de cabine — portes en manuel"
+        },
+        "paPrepareLanding": {
+          "label": "PA chef de cabine — préparer l'atterrissage"
         }
       }
     },
@@ -1296,6 +1370,13 @@
       "apiKeySource": {
         "auto": "Auto (depuis flight.json)",
         "manual": "Manuel (saisie ci-dessous)"
+      },
+      "turbulenceUnit": {
+        "auto": "Auto (apprise au parking)",
+        "g": "G (environ 1 au repos)",
+        "gNoGravity": "G sans gravité (environ 0 au repos)",
+        "mps2": "m/s² (environ 9,8 au repos)",
+        "ftps2": "ft/s² (environ 32 au repos)"
       },
       "elevenLabsModel": {
         "flash": "eleven_flash_v2_5 (rapide, moitié prix)",

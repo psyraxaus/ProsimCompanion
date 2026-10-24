@@ -428,6 +428,55 @@
         "label": "問い合わせの返答ウィンドウ",
         "hint": "パーサーがあなたの答えを聞く時間。"
       },
+      "turbulence": {
+        "title": "タービュランス",
+        "hint": "垂直加速度から見た揺れと、客室の対応",
+        "detect": {
+          "label": "タービュランスを検出",
+          "hint": "機体の垂直加速度から揺れ（なし／弱／中／強）を判定します。",
+          "more": "生の値の単位は駐機中に学習します：約1ならG、9.8ならm/s²、32ならft/s²。Flight Statusの見出しにチップでレベルを表示します。既定ではオフ。"
+        },
+        "unit": {
+          "label": "加速度の単位",
+          "hint": "自動は静止時の値から学習します。チップが明らかに間違うときだけ単位を固定してください。"
+        },
+        "light": {
+          "label": "弱 の下限",
+          "hint": "2秒間の基準からの偏差（g）。シムで確認するまでの仮の値です。"
+        },
+        "moderate": {
+          "label": "中 の下限"
+        },
+        "severe": {
+          "label": "強 の下限"
+        },
+        "seatbeltAdvice": {
+          "label": "シートベルトサインの助言",
+          "hint": "弱以上でサインがオフのとき、FOがエピソードごとに一度「seat belt signs, captain?」と尋ねます。"
+        },
+        "purserCall": {
+          "label": "揺れ時のパーサーコール",
+          "hint": "中でパーサーが呼び出し、客室を固めるか尋ねます。強では乗務員が自ら着席して報告します。",
+          "more": "はいと答えると乗務員が着席し、30〜90秒後に客室から「固めました」の報告があります。揺れが収まって2分後、パーサーが客室の通常復帰を報告します。"
+        }
+      },
+      "pa": {
+        "title": "キャプテンPA",
+        "hint": "自分のアナウンスの促しと、パーサーのPA",
+        "prompts": {
+          "label": "「Captain, your PA」の促し",
+          "hint": "離陸後、降下開始の通知時、巡航中の揺れでシートベルトサインが点灯したときに、FOがPAを促します。",
+          "more": "Flight StatusにライブデータをはめこんだPA原稿カードが出ます。客室PAで読み上げるのはあなたです。代読はしません。"
+        },
+        "afterTakeoff": {
+          "label": "離陸後の最初のPA",
+          "hint": "離陸から何分後か。"
+        },
+        "purserAudible": {
+          "label": "パーサーPAを聞く",
+          "hint": "パーサーの客室PAを客室フィルター経由で聞きます：ビーコン点灯でドアアーム、エンジン停止でドアをマニュアルへ、10,000 ftで着陸準備。"
+        }
+      },
       "wording": {
         "title": "キャビンの言い回し",
         "hint": "そのまま読み上げられます",
@@ -454,6 +503,31 @@
         "noReply": {
           "label": "巡航中の問い合わせ — 返答なし",
           "hint": "ウィンドウが無言で閉じたとき。"
+        },
+        "turbulenceCall": {
+          "label": "揺れ — パーサーコール",
+          "hint": "キャプテンが答える質問。"
+        },
+        "turbulenceSeated": {
+          "label": "揺れ — 乗務員着席（はいの後）"
+        },
+        "turbulenceSecured": {
+          "label": "揺れ — 客室固め完了"
+        },
+        "turbulenceSevere": {
+          "label": "揺れ — 強、乗務員着席"
+        },
+        "turbulenceNormal": {
+          "label": "揺れ — 通常に復帰"
+        },
+        "paArmDoors": {
+          "label": "パーサーPA — ドアアーム"
+        },
+        "paDoorsManual": {
+          "label": "パーサーPA — ドアをマニュアルへ"
+        },
+        "paPrepareLanding": {
+          "label": "パーサーPA — 着陸準備"
         }
       }
     },
@@ -1296,6 +1370,13 @@
       "apiKeySource": {
         "auto": "自動（flight.json から）",
         "manual": "手動（下に入力）"
+      },
+      "turbulenceUnit": {
+        "auto": "自動（駐機中に学習）",
+        "g": "G（静止時 約1）",
+        "gNoGravity": "重力を除いたG（静止時 約0）",
+        "mps2": "m/s²（静止時 約9.8）",
+        "ftps2": "ft/s²（静止時 約32）"
       },
       "elevenLabsModel": {
         "flash": "eleven_flash_v2_5（高速、半額）",

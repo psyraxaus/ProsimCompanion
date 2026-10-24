@@ -40,7 +40,13 @@
       "eta": "ETA",
       "topOfDescent": "Top of descent",
       "holding": "Holding",
-      "noFlightPlan": "No flight plan loaded — fetch an OFP on the INIT page"
+      "noFlightPlan": "No flight plan loaded — fetch an OFP on the INIT page",
+      "turbulenceTitle": "Turbulence: peak {0} g over the last two seconds (unit {1})",
+      "turbulence": {
+        "light": "LIGHT TURBULENCE",
+        "moderate": "MODERATE TURBULENCE",
+        "severe": "SEVERE TURBULENCE"
+      }
     },
     "sequence": {
       "title": "Flight sequence",
@@ -84,6 +90,38 @@
       "label": "Gate",
       "popoutTitle": "Open the Flight Monitor board in its own window (second monitor / tablet)",
       "popout": "Pop out"
+    },
+    "pa": {
+      "title": "Captain's PA",
+      "dismiss": "Dismiss",
+      "dismissTitle": "Hide the script; Reopen brings it back",
+      "reopen": "PA script",
+      "reopenTitle": "Show the last PA script again",
+      "note": "Read this over the cabin PA. The FO does not speak it.",
+      "kind": {
+        "afterTakeoff": "After take-off",
+        "topOfDescent": "Before descent",
+        "seatbeltsOn": "Seat belts on"
+      },
+      "script": {
+        "welcome": "Good day, ladies and gentlemen, this is your captain. Welcome aboard flight {0} to {1}.",
+        "welcomeNoFlight": "Good day, ladies and gentlemen, this is your captain. Welcome aboard this flight to {0}.",
+        "welcomePlain": "Good day, ladies and gentlemen, this is your captain. Welcome aboard.",
+        "flightTime": "Our flight time today is about {0}.",
+        "cruise": "We will be cruising at {0} feet.",
+        "weather": "The weather in {0} is {1}.",
+        "temperature": "{0} degrees",
+        "wind": "wind {0} at {1} knots",
+        "eta": "We expect to arrive at {0}.",
+        "sitBack": "Sit back, relax and enjoy the flight.",
+        "descent": "Ladies and gentlemen, we have started our descent into {0}.",
+        "descentPlain": "Ladies and gentlemen, we have started our descent.",
+        "seatbeltsForLanding": "The seat-belt sign will come on shortly; please return to your seats and fasten your seat belts.",
+        "thanks": "Thank you for flying with us today.",
+        "turbulence": "Ladies and gentlemen, we are passing through some turbulence.",
+        "returnToSeats": "Please return to your seats and fasten your seat belts.",
+        "crewSuspend": "Cabin crew, please suspend the service and take your seats."
+      }
     },
     "sim": {
       "title": "Sim",

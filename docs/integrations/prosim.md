@@ -195,7 +195,10 @@ acceleration, so a dead ref is a blank figure. Two things are **unverified live*
   `accelerationYRawBeforeContact` (mean over the second before contact),
   `accelerationYRawMax` and `accelerationYRawMin` (contact to contact + 3 s). The baseline
   tells the unit apart: about 1 = G including gravity, about 0 = G with gravity removed,
-  about 9.8 = m/s², about 32 = ft/s². Nothing converts it to G and no page shows it until
+  about 9.8 = m/s², about 32 = ft/s². Since package 7 of the November 2026 batch (#186) the
+  `TurbulenceDetector` LEARNS the unit from that baseline while parked (`turbulence.calibrated`
+  event, `cabin.turbulenceUnit` override) and measures the ride as deviation from it in G; the
+  touchdown recorder still records the raw values and no page converts them until
   the owner confirms the unit from a flight.
 
 **Cockpit systems**: FCU `system.analog.A_FCU_{HEADING|ALTITUDE|SPEED|VS}`,

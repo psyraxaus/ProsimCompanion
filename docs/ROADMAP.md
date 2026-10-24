@@ -926,6 +926,13 @@ Ten packages, one branch and one GitHub issue each, branched from `feature/remot
       `delay-codes.json` (99 on silence), DL line on the MVT, Logbook On time % + Delay column +
       five CSV columns, day-summary OTP sentence. Probes `acars-movement-message`,
       `delay-code-prompt`. Unverified live.
+- [x] **Turbulence, cabin management and captain's PA prompts** (#186, package 7,
+      `feature/turbulence-cabin-pa`) — pure `TurbulenceDetector` over acceleration.Y with the
+      unit auto-calibrated at rest, Flight Status chip, seat-belt advice, purser "secure the
+      cabin?" captain's question + secured/severe/back-to-normal reports, "captain, your PA"
+      prompts with the script card, purser PAs (arm doors / doors to manual / prepare for
+      landing). Probes `turbulence-seatbelt-advice`, `captain-pa-prompt`. Unverified live;
+      the first flight's `turbulence.calibrated` event confirms the unit.
 
 
 ## Open items (after the rc.5 batch, 2026-10-11)

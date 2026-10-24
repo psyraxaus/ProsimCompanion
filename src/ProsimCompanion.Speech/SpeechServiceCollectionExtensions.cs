@@ -163,6 +163,13 @@ public static class SpeechServiceCollectionExtensions
         // mic like the hails; the cabin service runs it off its own tick.
         services.AddSingleton<Cabin.CabinCruiseQueryDialogue>();
         services.AddStartupModule<Cabin.CabinCrewService>();
+        // Turbulence, cabin management and the captain's PA (issue #186): the cabin's
+        // reactions ride the Core turbulence store; the purser's "secure the cabin?" is a
+        // captain's question over the shared dialogue; the PA prompts fill the Flight Status card.
+        services.AddSingleton(Cabin.CabinSecureQuestionPhrases.Table);
+        services.AddStartupModule<Cabin.TurbulenceCabinService>();
+        services.AddStartupModule<Cabin.PaPromptService>();
+        services.AddStartupModule<Cabin.PurserPaService>();
         // The cabin's once-per-flight latches ride in the flight-state snapshot (issue #167).
         services.AddSingleton<Core.Flight.IFlightStatePart>(p => p.GetRequiredService<Cabin.CabinCrewService>());
         // Prosim2GSX-parity cabin dings (startup / final loadsheet) — plain chime playback,

@@ -428,6 +428,55 @@
         "label": "Antwoordvenster cruise-vraag",
         "hint": "Hoe lang de purser naar je antwoord luistert."
       },
+      "turbulence": {
+        "title": "Turbulentie",
+        "hint": "De vlucht volgens de verticale versnelling, en wat de cabine ermee doet",
+        "detect": {
+          "label": "Turbulentie detecteren",
+          "hint": "Beoordeelt de vlucht (geen / licht / matig / zwaar) uit de verticale versnelling van het vliegtuig.",
+          "more": "De eenheid van de ruwe waarde wordt geparkeerd geleerd: ongeveer 1 is G, 9,8 is m/s², 32 is ft/s². Een chip in de Flight Status-kop toont het niveau. Standaard uit."
+        },
+        "unit": {
+          "label": "Versnellingseenheid",
+          "hint": "Auto leert hem uit de waarde in rust. Forceer alleen een eenheid als de chip duidelijk fout zit."
+        },
+        "light": {
+          "label": "Licht vanaf",
+          "hint": "Afwijking van de basislijn over twee seconden, in g. Voorlopig tot bevestiging in de sim."
+        },
+        "moderate": {
+          "label": "Matig vanaf"
+        },
+        "severe": {
+          "label": "Zwaar vanaf"
+        },
+        "seatbeltAdvice": {
+          "label": "Gordeladvies",
+          "hint": "Bij lichte turbulentie of erger met het teken uit vraagt de FO eenmaal per episode \"seat belt signs, captain?\"."
+        },
+        "purserCall": {
+          "label": "Purser-oproep bij turbulentie",
+          "hint": "Bij matig belt de purser en vraagt of de cabine moet worden gezekerd; bij zwaar gaat de crew zelf zitten en meldt dat.",
+          "more": "Zeg ja en de crew gaat zitten; de cabine meldt 30–90 seconden later \"gezekerd\". Twee minuten na het kalmeren meldt de purser de cabine weer normaal."
+        }
+      },
+      "pa": {
+        "title": "Captain's PA",
+        "hint": "Herinneringen voor je eigen omroepen en de PA's van de purser",
+        "prompts": {
+          "label": "\"Captain, your PA\"-herinneringen",
+          "hint": "De FO herinnert je aan je PA na de start, bij de top-of-descent-melding en als het gordelteken aangaat bij turbulentie in de cruise.",
+          "more": "Een PA-scriptkaart verschijnt op Flight Status met de live gegevens. Jij leest hem om via de cabine-PA — niets spreekt hem voor je uit."
+        },
+        "afterTakeoff": {
+          "label": "Eerste PA na de start",
+          "hint": "Minuten na het loskomen."
+        },
+        "purserAudible": {
+          "label": "Purser-PA's hoorbaar",
+          "hint": "Hoor de cabine-PA's van de purser via het cabinefilter: deuren op armed bij beacon aan, deuren op manual met motoren uit, cabine gereedmaken op 10.000 ft."
+        }
+      },
       "wording": {
         "title": "Bewoording cabine",
         "hint": "Woord voor woord uitgesproken",
@@ -454,6 +503,31 @@
         "noReply": {
           "label": "Cruise-vraag — geen antwoord",
           "hint": "Wanneer het venster in stilte sluit."
+        },
+        "turbulenceCall": {
+          "label": "Turbulentie — purser-oproep",
+          "hint": "De vraag die de gezagvoerder beantwoordt."
+        },
+        "turbulenceSeated": {
+          "label": "Turbulentie — crew zit (na ja)"
+        },
+        "turbulenceSecured": {
+          "label": "Turbulentie — cabine gezekerd"
+        },
+        "turbulenceSevere": {
+          "label": "Turbulentie — zwaar, crew zit"
+        },
+        "turbulenceNormal": {
+          "label": "Turbulentie — weer normaal"
+        },
+        "paArmDoors": {
+          "label": "Purser-PA — deuren armed"
+        },
+        "paDoorsManual": {
+          "label": "Purser-PA — deuren manual"
+        },
+        "paPrepareLanding": {
+          "label": "Purser-PA — landing voorbereiden"
         }
       }
     },
@@ -1296,6 +1370,13 @@
       "apiKeySource": {
         "auto": "Auto (uit flight.json)",
         "manual": "Handmatig (hieronder ingevoerd)"
+      },
+      "turbulenceUnit": {
+        "auto": "Auto (geparkeerd geleerd)",
+        "g": "G (ongeveer 1 in rust)",
+        "gNoGravity": "G zonder zwaartekracht (ongeveer 0 in rust)",
+        "mps2": "m/s² (ongeveer 9,8 in rust)",
+        "ftps2": "ft/s² (ongeveer 32 in rust)"
       },
       "elevenLabsModel": {
         "flash": "eleven_flash_v2_5 (snel, halve kosten)",
