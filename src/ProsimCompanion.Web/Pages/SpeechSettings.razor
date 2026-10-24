@@ -336,6 +336,9 @@ else if (CurrentSection == "company")
         <OptionField Draft="_day" For="o => o.TurnaroundSummary" />
         <OptionField Draft="_day" For="o => o.PostFlightAllowanceMinutes" />
         <OptionField Draft="_day" For="o => o.AutoCloseIdleMinutes" />
+        <OptionField Draft="_day" For="o => o.FdpWarning" />
+        <OptionField Draft="_day" For="o => o.ReportBeforeStdMinutes" />
+        <div class="field-hint" style="max-width:640px;">@T["speechSettings.company.day.fdpFileHint"]</div>
         <AdvancedFields>
             <OptionField Draft="_day" For="o => o.RotationsFolder" />
             <OptionField Draft="_day" For="o => o.Path" />
@@ -748,6 +751,9 @@ else if (CurrentSection == "callouts")
         <OptionField Draft="_sop" For="o => o.Monitoring.Readbacks.AltimeterToleranceHpa" />
         <OptionField Draft="_sop" For="o => o.Monitoring.Readbacks.VSpeedToleranceKt" />
         <OptionField Draft="_sop" For="o => o.Monitoring.Readbacks.MinimumsToleranceFt" />
+
+        <OptionField Draft="_speech" For="o => o.StepClimbAdvice" />
+        <OptionField Draft="_speech" For="o => o.StepClimbLeadNm" />
     </Section>
 }
 else if (CurrentSection == "abnormals")

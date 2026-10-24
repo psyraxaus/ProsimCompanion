@@ -208,6 +208,50 @@
     </section>
 
     <div class="ofp-side">
+        @* NOTAM highlights (issue #189): the departure and destination NOTAMs SimBrief's JSON
+           carries, filtered to the loud classes — runway / taxiway closed, ILS unserviceable,
+           lighting, PAPI, displaced threshold. Nothing to show = the card says so. *@
+        <section class="section ofp-notams">
+            <div class="section-header">
+                <h3 class="section-title">@T["ofp.notams.title"]</h3>
+                @if (_ofp is { Notams.Count: > 0 })
+                {
+                    <span class="section-hint">@T["ofp.notams.count", _ofp.Notams.Count]</span>
+                }
+            </div>
+            <div class="section-body">
+                @if (_ofp is null)
+                {
+                    <div class="empty">@T["ofp.notams.noPlan"]</div>
+                }
+                else if (_ofp.Notams.Count == 0)
+                {
+                    <div class="empty">@T["ofp.notams.none"]</div>
+                }
+                else
+                {
+                    var highlights = NotamHighlighter.Highlights(_ofp.Notams);
+                    @if (highlights.Count == 0)
+                    {
+                        <div class="empty">@T["ofp.notams.noHighlights"]</div>
+                    }
+                    else
+                    {
+                        <ul class="ofp-notam-list">
+                            @foreach (var h in highlights)
+                            {
+                                <li class="ofp-notam" title="@h.Notam.Id · @h.Notam.QCode">
+                                    <span class="pill tone-warn ofp-notam-class">@T[$"ofp.notams.class.{char.ToLowerInvariant(h.Class.ToString()[0])}{h.Class.ToString()[1..]}"]</span>
+                                    <span class="mono ofp-notam-icao">@h.Notam.Icao</span>
+                                    <span class="ofp-notam-text">@NotamHighlighter.ShortText(h.Notam)</span>
+                                </li>
+                            }
+                        </ul>
+                    }
+                }
+            </div>
+        </section>
+
         @* Every open captain's question (de-icing, turnaround start, gate suffix, pushback
            direction) with its buttons — the same Core stores the FO's questions answer (C2).
            Shown only while a question stands. *@

@@ -16,6 +16,14 @@
     "legsCompleted": "{0} 완료",
     "block": "블록",
     "duty": "근무",
+    "fdp": {
+      "title": "EASA ORO.FTL.205 기본 최대치(config/ftl-easa.json) 대비 비행근무시간. 참고용: 순응, 연장, 분할 근무, 휴식은 반영하지 않습니다.",
+      "label": "FDP",
+      "soFar": "{0} / 최대 {1} · 출두 {2}Z · 다음 포함 {3}개 섹터",
+      "exceeds": "다음 섹터는 {0}Z에 끝나 최대치를 {1} 초과합니다.",
+      "margin": "다음 섹터 여유 {0}.",
+      "caveat": "참고용 — 순응·연장 미반영."
+    },
     "schedule": "스케줄",
     "behind": "지연",
     "ahead": "앞섬",

@@ -9,7 +9,8 @@ namespace ProsimCompanion.Speech.SayIntentions;
 /// <param name="Runway">flight.json <c>flight_plan_departing_runway</c>.</param>
 /// <param name="Airport">flight.json <c>current_airport</c>.</param>
 /// <param name="Origin">flight.json <c>flight_origin</c>.</param>
-internal sealed record AtcRequestValues(string? Callsign, string? Gate, string? Runway, string? Airport, string? Origin);
+/// <param name="StepLevel">The planned level at the next navlog step ("370") from the step-climb advisor (issue #189); null/empty = no step ahead.</param>
+internal sealed record AtcRequestValues(string? Callsign, string? Gate, string? Runway, string? Airport, string? Origin, string? StepLevel = null);
 
 /// <summary>
 /// Fills an atc-requests.json template (<c>{callsign} {gate} {runway} {airport} {origin}</c>).
@@ -86,6 +87,7 @@ internal static partial class AtcRequestTemplate
         "runway" => values.Runway?.Trim() ?? "",
         "airport" => values.Airport?.Trim() ?? "",
         "origin" => values.Origin?.Trim() ?? "",
+        "steplevel" => values.StepLevel?.Trim() ?? "",
         _ => null,
     };
 

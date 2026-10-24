@@ -16,6 +16,14 @@
     "legsCompleted": "{0} abgeschlossen",
     "block": "Block",
     "duty": "Dienst",
+    "fdp": {
+      "title": "Flugdienstzeit gegen das EASA-ORO.FTL.205-Grundmaximum (config/ftl-easa.json). Hinweis: Akklimatisierung, Verlängerungen, geteilter Dienst und Ruhe werden nicht modelliert.",
+      "label": "FDP",
+      "soFar": "{0} von max. {1} · Meldezeit {2}Z · {3} Sektor(en) mit dem nächsten",
+      "exceeds": "Nächster Sektor würde um {0}Z enden — {1} über dem Maximum.",
+      "margin": "{0} Reserve für den nächsten Sektor.",
+      "caveat": "Nur Hinweis — ohne Akklimatisierung oder Verlängerungen."
+    },
     "schedule": "Zeitplan",
     "behind": "verspätet",
     "ahead": "voraus",

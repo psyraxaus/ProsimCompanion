@@ -261,6 +261,14 @@ public sealed class CompanyDayEngine
                 : $"Leg {day.CurrentLegIndex} complete."
             : null;
 
+    /// <summary>The FDP warning's table and settings (issue #189); null = the warning is off.
+    /// Set by the service from the options and the user's ftl-easa.json.</summary>
+    public FdpConfiguration? FdpConfiguration { get; set; }
+
+    /// <summary>The FDP picture for the open or last day; null with the warning off.</summary>
+    public FdpStatus? Fdp(DateTimeOffset nowUtc)
+        => Day is { } day && FdpConfiguration is { Enabled: true } configuration ? FdpCalculator.Evaluate(day, configuration, nowUtc) : null;
+
     /// <summary>The full snapshot the <see cref="DayStatusStore"/> publishes to the web page.</summary>
     public DaySnapshot BuildSnapshot(DateTimeOffset nowUtc)
     {
@@ -275,7 +283,7 @@ public sealed class CompanyDayEngine
                 l.Index, l.From, l.To, l.FlightNo, l.ScheduledOffUtc, l.ScheduledOnUtc,
                 l.ActualOffUtc, l.ActualOnUtc, l.BlockMinutes, l.Landed, l.Stabilized, l.Deviation))
             .ToList();
-        return new DaySnapshot(DayMath.BuildView(day, nowUtc), legs, DebriefContextLine);
+        return new DaySnapshot(DayMath.BuildView(day, nowUtc), legs, DebriefContextLine, Fdp(nowUtc));
     }
 
     private static string Iso(DateTimeOffset t) => t.ToString("O", CultureInfo.InvariantCulture);

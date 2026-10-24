@@ -826,6 +826,20 @@ Owner requests and flight-test fixes after the batch. One line each; the full te
       hand-over by phase (legacy distance gate kept); SI stand fallback; event-flood dedupe.
       **Unverified live** — every item.
 
+## Phase 10 — November 2026 airline-ops batch
+
+Ten packages, one branch and one GitHub issue each, branched from `feature/remote-mixer-agents`
+(0.7.0-rc.12) because that branch was not yet on `main`. Every item is off by default and
+**Unverified live** until flown; details in `CHANGELOG.md` under *Unreleased*.
+
+- [x] **Small wins** (#189, package 10, `feature/small-wins-nov`) — NOTAM highlights on the OFP
+      page from SimBrief's JSON (`OfpNotam` / `NotamHighlighter`), step-climb advice from the
+      navlog's altitude per fix (`StepClimbPlan` / `StepClimbAdvisor`, "request climb" with
+      `{stepLevel}`), the FDP warning against the EASA ORO.FTL.205 table as data
+      (`FtlTable` / `FdpCalculator`, Day page line + turnaround sentence). Probes
+      `notam-highlights`, `step-climb-advice`, `fdp-warning`. Unverified live.
+
+
 ## Open items (after the rc.5 batch, 2026-10-11)
 
 Nothing on this roadmap is open as code. What remains:

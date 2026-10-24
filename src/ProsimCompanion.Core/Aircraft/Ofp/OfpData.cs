@@ -116,6 +116,11 @@ public sealed record OfpData
     /// fuel on board and time from takeoff, for the cruise fuel check. Empty when the OFP had
     /// none (or came from another source).</summary>
     public IReadOnlyList<OfpFix> Navlog { get; init; } = [];
+
+    /// <summary>The departure and destination NOTAMs SimBrief's JSON carries (issue #189):
+    /// <c>origin.notam</c>, <c>destination.notam</c> and the FIR records for those two stations,
+    /// each id once. Empty on a plan without them (the shipped test fixture has none).</summary>
+    public IReadOnlyList<OfpNotam> Notams { get; init; } = [];
 }
 
 /// <summary>One navlog fix.</summary>

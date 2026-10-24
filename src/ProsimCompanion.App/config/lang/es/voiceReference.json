@@ -151,6 +151,10 @@
         "title": "Fuel check",
         "check": "Combustible a bordo frente al plan de SimBrief en tu posición, y el combustible estimado al aterrizaje frente a la cifra planificada. También automático en crucero."
       },
+      "stepClimb": {
+        "title": "Step climb",
+        "next": "El siguiente step planificado del navlog: nivel, punto y distancia. El FO también lo avisa solo cerca del punto."
+      },
       "grossErrorCheck": {
         "title": "Gross error check",
         "check": "Los pesos del avión frente al loadsheet final y las entradas PERF del FMS frente al último cálculo de performance de despegue. También automático una vez cargados el loadsheet final y las V-speeds."

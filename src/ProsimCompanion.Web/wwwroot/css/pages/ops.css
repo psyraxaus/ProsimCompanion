@@ -26,6 +26,14 @@
 /* With no side card (no legs yet, tech log not wired) the main card takes the full width. */
 .ops-page > .ops-main:only-child { grid-column: 1 / -1; }
 .ops-bad { color: var(--danger) !important; text-shadow: none !important; }
+/* FDP line on the Day page (issue #189) */
+.ops-fdp, .ops-fdp-warn { margin-top: 10px; }
+.ops-fdp-warn { border-left: 3px solid var(--danger); padding-left: 10px; }
+/* NOTAM highlights on the OFP page (issue #189) */
+.ofp-notam-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.ofp-notam { display: grid; grid-template-columns: auto auto 1fr; gap: 8px; align-items: baseline; font-size: 13px; line-height: 1.35; }
+.ofp-notam-class { white-space: nowrap; }
+.ofp-notam-icao { color: var(--text-muted); }
 
 .ops-route {
   display: flex;

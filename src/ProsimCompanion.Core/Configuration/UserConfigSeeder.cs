@@ -45,6 +45,7 @@ public static class UserConfigSeeder
         "commands.json",
         "phrases.json",
         "region-facts.json",
+        "ftl-easa.json", // the FDP maximum table (issue #189) — the operator's scheme goes here
         @"rotations\README.txt", // creates the planned-rotations folder and its format note (2026-10-13)
     ];
 

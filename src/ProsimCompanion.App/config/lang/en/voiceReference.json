@@ -151,6 +151,10 @@
         "title": "Fuel check",
         "check": "Fuel on board against the SimBrief plan at your position, and the estimated landing fuel against the planned figure. Also automatic in the cruise."
       },
+      "stepClimb": {
+        "title": "Step climb",
+        "next": "The next planned step from the navlog: level, fix and distance. The FO also advises it on its own near the fix."
+      },
       "grossErrorCheck": {
         "title": "Gross error check",
         "check": "The aircraft's weights against the final loadsheet and the FMS PERF entries against the last takeoff performance calculation. Also automatic once the final loadsheet and V-speeds are in."

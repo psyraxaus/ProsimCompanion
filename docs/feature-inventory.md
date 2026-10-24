@@ -145,6 +145,10 @@ through with a note if deliberately dropped. Sources: Prosim2GSX 0.9.0, ProsimIn
       cruise-query ambient deferred)
 - [x] Company/ACARS channel (loadsheet readout with session persistence, opt-in deterministic
       cruise messages, ACARS chime, distinct company voice, push seam for day mode)
+- [x] NOTAM highlights on the OFP page (from SimBrief's JSON), step-climb advice from the navlog
+      altitude per fix + "request climb" with the planned level, FDP warning against the EASA
+      ORO.FTL.205 table as data (Day page line + turnaround sentence) — #189, November 2026
+      batch package 10, Unverified live (new to this codebase)
 - [x] Tech log & MEL (persistent defects, A–D due dates, wear pool, web raise/rectify,
       voice brief + guided raise/rectify dialogues + post-abnormal offer; procedural hooks
       deferred)

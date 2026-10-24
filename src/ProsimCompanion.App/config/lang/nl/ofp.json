@@ -38,6 +38,21 @@
       "arrival": "Aankomst",
       "noData": "Geen gegevens."
     },
+    "notams": {
+      "title": "NOTAM-highlights",
+      "count": "{0} in het plan",
+      "noPlan": "Geen vliegplan geladen.",
+      "none": "Het plan bevat geen NOTAM's (SimBrief stuurt ze alleen met de NOTAM-optie aan).",
+      "noHighlights": "Geen baan-, taxibaan-, ILS-, verlichtings-, PAPI- of drempel-NOTAM aan beide kanten — de volledige lijst staat in je SimBrief-briefing.",
+      "class": {
+        "runwayClosed": "BAAN GESLOTEN",
+        "taxiwayClosed": "TWY GESLOTEN",
+        "ilsUnserviceable": "ILS BUITEN DIENST",
+        "lightingUnserviceable": "VERLICHTING",
+        "papi": "PAPI",
+        "displacedThreshold": "DREMPEL VERPLAATST"
+      }
+    },
     "pushback": {
       "title": "Pushbackrichting",
       "aria": "Pushbackrichting",

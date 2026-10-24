@@ -45,4 +45,17 @@ public sealed class DayOptions : IOptionSection
     /// (the predecessor hard-coded this path; here it is options-overridable).</summary>
     [OptionField(FieldKind.Text, "speechSettings.company.day.stateFile", Hint = "speechSettings.common.emptyUsesFileShown", TextKind = TextFieldKind.OutputFilePath, Placeholder = @"%LOCALAPPDATA%\ProsimCompanion\daystate.json", BrowseStartIn = "AppStateFolder", BrowseFilter = "JSON (*.json)|*.json", BrowseFileName = "daystate.json", Normalize = FieldNormalization.Path, Advanced = true)]
     public string Path { get; set; } = "";
+
+    /// <summary>Flight-duty-period warning (issue #189): the FDP from the report time against
+    /// the EASA ORO.FTL.205 basic maximum for the report hour and sector count
+    /// (<c>config/ftl-easa.json</c>, user-editable) — a banner on the Day page and one spoken line
+    /// at the turnaround summary when the next leg would exceed it. Advisory: no acclimatisation,
+    /// extensions or rest rules. Off by default.</summary>
+    [OptionField(FieldKind.Bool, "speechSettings.company.day.fdpWarning", DependsOn = "Enabled")]
+    public bool FdpWarning { get; set; }
+
+    /// <summary>Minutes before the day's first session start the report time is assumed at,
+    /// when the rotation file names no report time.</summary>
+    [OptionField(FieldKind.Number, "speechSettings.company.day.reportBefore", Suffix = "min", Min = "0", Max = "180", DependsOn = "Enabled; FdpWarning")]
+    public int ReportBeforeStdMinutes { get; set; } = 60;
 }

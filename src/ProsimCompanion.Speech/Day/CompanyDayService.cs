@@ -168,6 +168,7 @@ public sealed class CompanyDayService : IVoiceFeature, ISessionFinalizationStep,
             }
 
             _started = true;
+            ConfigureFdp();
             _engine.Resume(_stateFile.Load());
             _flight.PhaseChanged += OnPhaseChanged;
             _ofp.Changed += OnOfpChanged;
@@ -462,6 +463,28 @@ public sealed class CompanyDayService : IVoiceFeature, ISessionFinalizationStep,
             var open = OpenDefectCountSafe(); // tech log read outside any lock
             Speak(DaySummaryComposer.TurnaroundLine(outcome.Leg.Index, block, delay, open), SpeechPriority.Low);
         }
+
+        // The FDP check for the next sector (issue #189): one spoken line only when the
+        // projection is past the table's maximum; the Day page banner carries the figures.
+        if (snapshot.Fdp is { } fdp)
+        {
+            _eventLog.Record("day.fdp", new
+            {
+                report = fdp.ReportUtc,
+                reportSource = fdp.ReportSource,
+                sectorsFlown = fdp.SectorsFlown,
+                sectorsWithNext = fdp.SectorsWithNext,
+                maxMinutes = fdp.MaxFdpMinutes,
+                soFarMinutes = fdp.FdpSoFarMinutes,
+                projectedEnd = fdp.ProjectedEndUtc,
+                projectedMinutes = fdp.ProjectedFdpMinutes,
+                exceeds = fdp.Exceeds,
+            });
+            if (fdp.Exceeds && fdp.ProjectedEndUtc is { } end)
+            {
+                Speak(DaySummaryComposer.FdpWarningLine(end, fdp.MaxFdpMinutes, fdp.ReportUtc, fdp.SectorsWithNext), SpeechPriority.Normal);
+            }
+        }
     }
 
     // ---- start / end / tick ----
@@ -672,6 +695,32 @@ public sealed class CompanyDayService : IVoiceFeature, ISessionFinalizationStep,
 
     private void Speak(string text, SpeechPriority priority)
         => _ = _arbiter.EnqueueAsync(new SpeechRequest(text, priority, Tag: "day"));
+
+    /// <summary>Loads the user's ftl-easa.json (the shipped table when absent or unreadable) and
+    /// hands the engine the FDP settings; called at start and whenever the day options change.</summary>
+    private void ConfigureFdp()
+    {
+        var options = _options.CurrentValue;
+        FtlTable table = FtlTable.Default;
+        try
+        {
+            var path = Core.Configuration.UserConfigPaths.File("ftl-easa.json");
+            if (File.Exists(path))
+            {
+                table = FtlTable.Parse(File.ReadAllText(path), path) ?? FtlTable.Default;
+                if (table.Source == "shipped")
+                {
+                    _logger.LogWarning("ftl-easa.json has no usable rows — the shipped EASA table stands");
+                }
+            }
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            _logger.LogWarning(ex, "ftl-easa.json could not be read — the shipped EASA table stands");
+        }
+
+        _engine.FdpConfiguration = new FdpConfiguration(table, options.ReportBeforeStdMinutes, options.FdpWarning);
+    }
 
     /// <summary>Name when known ("Heathrow"), spelled ICAO otherwise ("E G C C").</summary>
     private string SpokenAirport(string icao)

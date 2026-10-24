@@ -86,6 +86,8 @@
     <!-- Curated cruise region facts (issue #122; user-editable, hot-reloaded). Keys: ISO 3166-1
          alpha-2 country codes, or "sea:<name>" for open water, as the atlas names them. -->
     <Content Include="config\region-facts.json" CopyToOutputDirectory="PreserveNewest" />
+    <!-- EASA ORO.FTL.205 basic maximum FDP table (issue #189) — user-editable content, seeded with keep-user-edits. -->
+    <Content Include="config\ftl-easa.json" CopyToOutputDirectory="PreserveNewest" />
     <!-- Random-wear pool for the tech log (benign, purely procedural; techLog.randomWear). -->
     <Content Include="config\techlog\wear-pool.json" CopyToOutputDirectory="PreserveNewest" />
     <!-- Planned-rotations README: seeded into the per-user rotations folder (creates it). -->

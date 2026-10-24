@@ -3185,6 +3185,96 @@
         "requires-human: the run still sounds like a checklist — the pilot hears every line, the read-through ones as one callout, and 'complete' at the end."
       ],
       "notes": "Owner request 2026-10-18 (UX pass): already-correct switches should not need a reply. SatisfiedLineReadThrough (pure, tested) decides; SpokenChecklistEngine pre-subscribes the checklist's verify datarefs before the title so the values are cached by the first line. The visual Checklists page ticks the line as Done like any voice completion. Unverified live."
+    },
+    {
+      "id": "notam-highlights",
+      "issue": 189,
+      "state": "open",
+      "kind": "assert-present",
+      "machine": {
+        "kind": "required-fields",
+        "source": "session",
+        "type": "ofp.loaded",
+        "fields": [
+          "origin",
+          "destination"
+        ],
+        "trigger": {
+          "source": "session",
+          "type": "ofp.loaded",
+          "contains": "\"origin\""
+        }
+      },
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "Always (no switch): after a SimBrief import the OFP model carries the departure and destination NOTAMs when the plan has them — SimBrief's JSON puts them in origin.notam (an object when one, an array when several), destination.notam and notams.notamdrec (FIR records, kept only for the two stations). A plan fetched with SimBrief's NOTAM option off carries none; the shipped test fixture has none.",
+        "assert-present: the OFP page's NOTAM highlights card lists only the loud classes — RWY CLOSED, TWY CLOSED, ILS U/S, LIGHTING, PAPI, THR DISPLACED — classified Q-code first (QMRLC, QMXLC, QIC/QIL/QIG…AS, QL…AS, QLP, QMT/QMD) with the E-line keywords as the fallback, each NOTAM id once, runways first, the count of all plan NOTAMs in the header; 'no runway, taxiway, ILS…' when nothing qualifies; obstacles, AIP references, procedures and DGS notes never appear.",
+        "assert-absent: a FIR NOTAM for a station other than origin/destination on the card; the same id twice (a destination copy and its FIR duplicate); a fetch failure caused by a plan without NOTAMs.",
+        "requires-human: compare the card with the NOTAM section of the SimBrief briefing for the same plan — every RWY/TWY closure and ILS U/S there is on the card.",
+        "not-in-this-package: the package-1 threats clause does not read the highlights yet (package 1 lives on its own branch); the seam is OfpData.Notams + NotamHighlighter.Highlights(notams, departureIcao) — wire it at the merge."
+      ],
+      "notes": "Package 10 of the November 2026 airline-ops batch (branch feature/small-wins-nov). Settled against the owner's live plan 2026-10-24 (EFHK→EKCH, 95 NOTAMs: 1 origin, 8 destination, 86 FIR). SimbriefImportService.ParseNotams + NotamTime (ISO-8601 and yyyyMMddHHmm, PERM = null); Core OfpNotam / NotamHighlighter (pure). The item was almost dropped: the shipped fixture has no NOTAMs — docs/integrations/simbrief.md records both shapes."
+    },
+    {
+      "id": "step-climb-advice",
+      "issue": 189,
+      "state": "open",
+      "kind": "assert-present",
+      "machine": {
+        "kind": "signature",
+        "source": "session",
+        "type": "step-climb.advice",
+        "contains": "\"toFl\"",
+        "trigger": {
+          "source": "session",
+          "type": "flight-progress",
+          "contains": "\"phase\":\"Cruise\""
+        }
+      },
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "Only with speech.stepClimbAdvice = true (off by default) and a SimBrief navlog whose altitude per fix rises after the top of climb (a step = +900 ft or more over the previous fix, at or above FL180, held at the next fix, not a SID/STAR fix).",
+        "assert-present: in Cruise, when the aircraft is within speech.stepClimbLeadNm (20) direct of the next step fix and still more than 450 ft below the planned level, ONE step-climb.advice {fix, toFl, fromFt, distanceNm, altitudeFt, offeredRequest} and the FO's 'Planned step to flight level three seven zero at <fix>, captain.' (+ ' Say request climb when you want it.' with SayIntentions on); never a second one for the same fix. 'request climb' / 'request step climb' then transmits '<callsign>, request climb flight level 370' — the {stepLevel} token from the advisor's store; with no step ahead the clause is dropped.",
+        "assert-present: 'when is our next step?' / 'next step climb' → step-climb.query {text} and 'Next step: flight level three seven zero at <fix>, N miles ahead.' ('No further step planned.' past the last one; 'No step climb planned — the plan holds one level.' on a flat plan; 'No navlog loaded…' without a plan).",
+        "assert-absent: an advice outside Cruise (climb, descent), beyond the lead, for a step already passed (NavlogProgress.LastFixPassed), for a level the aircraft already holds, or while speech.stepClimbAdvice was false; any FCU or MCDU write — the climb stays the captain's and ATC's.",
+        "requires-human: the fix named is the one on the SimBrief navlog where the planned altitude changes; the advice arrives before the fix, not after."
+      ],
+      "notes": "Package 10 of the November 2026 airline-ops batch. Core StepClimbPlan (pure derive + Next) and StepClimbStore; Speech StepClimbAdvisor (voice feature precedence 185, 10 s poll, AcknowledgeOnly); AtcRequestValues gained StepLevel and atc-requests.json a 'request climb' entry (commType CENTER, unverified). The lead option lives on SpeechOptions as speech.stepClimbLeadNm — the prompt's fuel.stepClimbLeadNm needs the package-4 fuel section that is not on this branch; move it at the merge if wanted. Unverified live."
+    },
+    {
+      "id": "fdp-warning",
+      "issue": 189,
+      "state": "open",
+      "kind": "assert-present",
+      "machine": {
+        "kind": "signature",
+        "source": "session",
+        "type": "day.fdp",
+        "contains": "\"exceeds\"",
+        "trigger": {
+          "source": "session",
+          "type": "day.leg.completed",
+          "contains": "\"leg\""
+        }
+      },
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "Only with day.enabled AND day.fdpWarning = true (off by default). The report time is the rotation file's reportTimeUtc, else the day's first session start minus day.reportBeforeStdMinutes (60). The maximum is the EASA ORO.FTL.205 basic table in %LOCALAPPDATA%\\ProsimCompanion\\config\\ftl-easa.json (shipped copy = FtlTable.Default; a broken file falls back to it with a warning log line) for the report hour (UTC) and the sector count INCLUDING the next leg.",
+        "assert-present: at every turnaround (leg completed) a day.fdp event {report, reportSource rotation|firstSession, sectorsFlown, sectorsWithNext, maxMinutes, soFarMinutes, projectedEnd, projectedMinutes, exceeds}; the Day page shows 'FDP h:mm of h:mm max · report HH:MMZ · N sector(s) with the next' with the margin, in the warning tone with 'Next sector would end at HH:MMZ — h:mm over the maximum.' when exceeds; the FO's one line 'Flight duty check: the next sector would run to HH:MM zulu — past the h:mm maximum for a HH:MM report with N sectors. Acclimatisation and extensions are not counted.' ONLY when exceeds (after the turnaround summary line).",
+        "assert-present (projection source): the next leg's scheduledOnUtc when the rotation has one; else now + its planned block; with neither there is no projection, no warning, and the page shows the FDP so far only.",
+        "assert-absent: a day.fdp while day.fdpWarning was false; a spoken FDP line when exceeds is false; any FDP figure claiming to be a legal determination (the page and the line both carry the advisory caveat).",
+        "requires-human: with a rotation file whose last leg lands past the table maximum for the report hour, the warning appears at the previous turnaround and not before."
+      ],
+      "notes": "Package 10 of the November 2026 airline-ops batch. Core FtlTable (table as data, 13 bands × 9 sector columns, the shipped file equals the default and a test pins it), FdpCalculator (pure, clock in), FdpStatus on DaySnapshot via CompanyDayEngine.FdpConfiguration; DaySummaryComposer.FdpWarningLine; CompanyDayService loads ftl-easa.json at start. Report times are UTC — no acclimatisation model, no extensions, split duty or rest rules. Unverified live."
     }
   ]
 }

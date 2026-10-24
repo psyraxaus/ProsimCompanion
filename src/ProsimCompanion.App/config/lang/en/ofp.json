@@ -38,6 +38,21 @@
       "arrival": "Arrival",
       "noData": "No data."
     },
+    "notams": {
+      "title": "NOTAM highlights",
+      "count": "{0} on the plan",
+      "noPlan": "No flight plan loaded.",
+      "none": "The plan carries no NOTAMs (SimBrief sends them only when its NOTAM option is on).",
+      "noHighlights": "No runway, taxiway, ILS, lighting, PAPI or threshold NOTAM at either end — the full list stays on your SimBrief briefing.",
+      "class": {
+        "runwayClosed": "RWY CLOSED",
+        "taxiwayClosed": "TWY CLOSED",
+        "ilsUnserviceable": "ILS U/S",
+        "lightingUnserviceable": "LIGHTING",
+        "papi": "PAPI",
+        "displacedThreshold": "THR DISPLACED"
+      }
+    },
     "pushback": {
       "title": "Pushback Direction",
       "aria": "Pushback direction",

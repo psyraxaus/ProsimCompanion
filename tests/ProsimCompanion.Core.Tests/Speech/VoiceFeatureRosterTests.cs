@@ -50,6 +50,7 @@ public sealed partial class VoiceFeatureRosterTests
         (typeof(ProsimCompanion.Speech.Briefings.MissedApproachVoiceFeature), 160),
         (typeof(ProsimCompanion.Speech.Briefings.MinimaQueryVoiceFeature), 170),
         (typeof(ProsimCompanion.Speech.Company.CompanyChannelService), 180),
+        (typeof(ProsimCompanion.Speech.Monitoring.StepClimbAdvisor), 185), // "when is our next step?" (issue #189)
         (typeof(ProsimCompanion.Speech.Day.CompanyDayService), 190),
         (typeof(ProsimCompanion.Speech.SayIntentions.SayIntentionsService), 200),
         (typeof(GsxVoiceService), 210),

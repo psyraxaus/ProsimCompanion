@@ -510,6 +510,16 @@
           "label": "Toeslag na de vlucht",
           "hint": "Minuten opgeteld na de laatste on-blocks voor de diensttijd."
         },
+        "fdpWarning": {
+          "label": "FDP-waarschuwing",
+          "hint": "Een regel op de dagpagina en één gesproken zin bij de turnaround als de volgende sector het EASA-basismaximum voor je meldtijd en aantal sectoren zou overschrijden.",
+          "more": "Alleen indicatief: acclimatisatie, verlengingen, gesplitste dienst en rustregels worden niet gemodelleerd. De tabel is config/ftl-easa.json."
+        },
+        "reportBefore": {
+          "label": "Melden vóór de eerste sessie",
+          "hint": "Minuten vóór de eerste sessie van de dag waarop de meldtijd wordt aangenomen als het rotatiebestand er geen heeft."
+        },
+        "fdpFileHint": "De FDP-maximumtabel is ftl-easa.json in %LOCALAPPDATA%\\ProsimCompanion\\config — pas hem aan het schema van je maatschappij aan.",
         "autoClose": {
           "label": "Automatisch sluiten na inactiviteit",
           "hint": "Sluit een open dag na zo lang inactief in een turnaround. 0 = nooit."
@@ -1175,6 +1185,15 @@
           "label": "Read-backs",
           "hint": "Zeg 'altimeter one zero one three', 'V speeds one four one, one four four, one four seven', 'runway two seven right' of 'minimums two one zero' en de FO toetst het aan het vliegtuig.",
           "more": "De hoogtemeter wordt getoetst aan je baro-instelling, de V-speeds aan de FMS PERF-pagina, de baan aan het FMS-plan (vertrek voor de start, aankomst erna), de minimums aan de gebriefte. De FO antwoordt 'checked' of de waarde die hij afleest."
+        },
+        "stepClimb": {
+          "label": "Step-climb-advies",
+          "hint": "In de cruise, bij een geplande step uit de navlog, zegt de FO eenmaal per step \"planned step to flight level … at {fix}, captain\". \"When is our next step?\" werkt altijd.",
+          "more": "De steps komen uit de hoogte per fix op je SimBrief-navlog. Met SayIntentions aan voegt de FO \"say request climb\" toe en vraagt \"request climb\" het geplande niveau."
+        },
+        "stepClimbLead": {
+          "label": "Voorsprong step-climb-advies",
+          "hint": "Hoe ver vóór de step-fix het advies komt, rechte afstand."
         },
         "altimeter": "Hoogtemetertolerantie",
         "minimums": "Minimumstolerantie"

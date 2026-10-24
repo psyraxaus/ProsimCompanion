@@ -510,6 +510,16 @@
           "label": "フライト後の加算",
           "hint": "勤務時間の算出のため、最後のオンブロック後に加える分数。"
         },
+        "fdpWarning": {
+          "label": "FDP警告",
+          "hint": "次のセクターが出頭時刻とセクター数に対するEASA基本上限を超える場合、デイページに一行、ターンアラウンドで一言。",
+          "more": "参考のみ：順応、延長、分割勤務、休養規則は考慮しません。表は config/ftl-easa.json です。"
+        },
+        "reportBefore": {
+          "label": "初回セッション前の出頭",
+          "hint": "ローテーションファイルに出頭時刻がないとき、当日の初回セッションの何分前を出頭とみなすか。"
+        },
+        "fdpFileHint": "FDP上限表は %LOCALAPPDATA%\\ProsimCompanion\\config の ftl-easa.json です。自社の規定に合わせて編集してください。",
         "autoClose": {
           "label": "待機後に自動で終了",
           "hint": "ターンアラウンド中にこの時間待機したら開いている勤務日を閉じます。0 = しない。"
@@ -1175,6 +1185,15 @@
           "label": "リードバック",
           "hint": "'altimeter one zero one three'、'V speeds one four one, one four four, one four seven'、'runway two seven right'、'minimums two one zero' と言うと FO が機体と照合します。",
           "more": "高度計はあなたの気圧設定と、V 速度は FMS の PERF ページと、滑走路は FMS の計画と（離陸前は出発、以降は到着）、ミニマムはブリーフィングしたものと照合されます。FO は 'checked' か読み取った値を答えます。"
+        },
+        "stepClimb": {
+          "label": "ステップクライムの助言",
+          "hint": "巡航中、ナブログの計画ステップに近づくと、FOがステップごとに一度「planned step to flight level … at {fix}, captain」と言います。「when is our next step?」はいつでも使えます。",
+          "more": "ステップはSimBriefナブログのフィックスごとの高度から求めます。SayIntentionsがオンならFOが「say request climb」を添え、「request climb」で計画高度を要求します。"
+        },
+        "stepClimbLead": {
+          "label": "助言の先行距離",
+          "hint": "ステップのフィックス何マイル手前（直線距離）で助言するか。"
         },
         "altimeter": "高度計の許容差",
         "minimums": "ミニマムの許容差"

@@ -38,6 +38,21 @@
       "arrival": "Arrivée",
       "noData": "Aucune donnée."
     },
+    "notams": {
+      "title": "NOTAM à retenir",
+      "count": "{0} sur le plan",
+      "noPlan": "Aucun plan de vol chargé.",
+      "none": "Le plan ne contient pas de NOTAM (SimBrief ne les envoie qu'avec son option NOTAM activée).",
+      "noHighlights": "Aucun NOTAM piste, taxiway, ILS, balisage, PAPI ou seuil aux deux bouts — la liste complète reste sur ton briefing SimBrief.",
+      "class": {
+        "runwayClosed": "PISTE FERMÉE",
+        "taxiwayClosed": "TWY FERMÉE",
+        "ilsUnserviceable": "ILS H/S",
+        "lightingUnserviceable": "BALISAGE",
+        "papi": "PAPI",
+        "displacedThreshold": "SEUIL DÉCALÉ"
+      }
+    },
     "pushback": {
       "title": "Sens du repoussage",
       "aria": "Sens du repoussage",

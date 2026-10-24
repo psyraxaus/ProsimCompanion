@@ -16,6 +16,14 @@
     "legsCompleted": "{0} completed",
     "block": "Block",
     "duty": "Duty",
+    "fdp": {
+      "title": "Flight duty period against the EASA ORO.FTL.205 basic maximum (config/ftl-easa.json). Advisory: acclimatisation, extensions, split duty and rest are not modelled.",
+      "label": "FDP",
+      "soFar": "{0} of {1} max · report {2}Z · {3} sector(s) with the next",
+      "exceeds": "Next sector would end at {0}Z — {1} over the maximum.",
+      "margin": "{0} margin on the next sector.",
+      "caveat": "Advisory — no acclimatisation or extensions."
+    },
     "schedule": "Schedule",
     "behind": "behind",
     "ahead": "ahead",

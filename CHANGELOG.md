@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+November 2026 airline-ops batch, one package per branch; every package is off by default and **Unverified live**.
+
+- New: **small wins — NOTAM highlights, step-climb advice, FDP warning** ([#189](https://github.com/psyraxaus/ProsimCompanion/issues/189), package 10, branch `feature/small-wins-nov`). **NOTAM highlights**: SimBrief's JSON does carry the NOTAMs (settled against the owner's live plan — one on the origin, eight on the destination, 86 FIR records); the importer keeps the departure and destination ones on the OFP model and the OFP page gets a **NOTAM highlights** card with only the loud classes — RWY CLOSED, TWY CLOSED, ILS U/S, LIGHTING, PAPI, THR DISPLACED — classified by Q-code first and by the E-line keywords as the fallback; obstacles, AIP references and procedure notes stay off it. Always on (it only reads what the plan carries). **Step-climb advice** (Settings → Voice First Officer → Callouts & Placards → In-flight monitoring, off): the planned steps come from the navlog's altitude per fix; in the cruise, within the lead distance (20 nm) of the next step with the aircraft still below the planned level, the FO says once *"planned step to flight level three seven zero at TOPLA, captain"* and, with SayIntentions on, *"say request climb when you want it"* — a new *"request climb"* ATC request asks for the planned level. *"When is our next step?"* answers any time. **FDP warning** (Settings → Voice First Officer → Company & Debrief → Company day, off): the flight duty period from the report time (the rotation file's, else the first session minus the report lead) against the EASA ORO.FTL.205 basic maximum for the report hour and sector count, encoded as data in the user-editable `config/ftl-easa.json`; the Day page shows the FDP line and turns it red when the next sector's projection is past the maximum, and the FO adds one line at the turnaround summary. Advisory: no acclimatisation, extensions, split duty or rest rules. Read-and-speak only. Probes `notam-highlights`, `step-climb-advice`, `fdp-warning`. Seven language packs. Not in this package: feeding the highlights into the package-1 threats clause (wired at the merge).
+
+
 ## 0.7.0-rc.12
 
 Remote mixer for two-pilot rigs, 2026-10-22. A local release-candidate build on top of rc.11 for the owner's sim test; **not yet verified live** (neither are rc.11's refactors, which this build carries).

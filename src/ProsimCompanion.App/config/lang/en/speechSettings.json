@@ -510,6 +510,16 @@
           "label": "Post-flight allowance",
           "hint": "Minutes added after the last on-blocks for the duty figure."
         },
+        "fdpWarning": {
+          "label": "FDP warning",
+          "hint": "A line on the Day page and one spoken line at the turnaround when the next sector would run past the EASA basic maximum for your report time and sector count.",
+          "more": "Advisory only: acclimatisation, extensions, split duty and rest rules are not modelled. The table is config/ftl-easa.json."
+        },
+        "reportBefore": {
+          "label": "Report before first session",
+          "hint": "Minutes before the day's first session the report time is assumed, when the rotation file has none."
+        },
+        "fdpFileHint": "The FDP maximum table is ftl-easa.json in %LOCALAPPDATA%\\ProsimCompanion\\config — edit it for your operator's scheme.",
         "autoClose": {
           "label": "Auto-close after idle",
           "hint": "Close an open day after this long idle in a turnaround. 0 = never."
@@ -1175,6 +1185,15 @@
           "label": "Read-backs",
           "hint": "Say 'altimeter one zero one three', 'V speeds one four one, one four four, one four seven', 'runway two seven right' or 'minimums two one zero' and the FO checks it against the aircraft.",
           "more": "The altimeter is checked against your baro setting, the V-speeds against the FMS PERF page, the runway against the FMS plan (departure before takeoff, arrival after), the minimums against the ones you briefed. The FO answers 'checked' or the value it reads."
+        },
+        "stepClimb": {
+          "label": "Step-climb advice",
+          "hint": "In the cruise, near a planned step from the navlog, the FO says \"planned step to flight level … at {fix}, captain\" once per step. \"When is our next step?\" works any time.",
+          "more": "Steps come from the altitude per fix on your SimBrief navlog. With SayIntentions on, the FO adds \"say request climb\" and \"request climb\" asks for the planned level."
+        },
+        "stepClimbLead": {
+          "label": "Step-climb advice lead",
+          "hint": "How far before the step fix the advice comes, direct distance."
         },
         "altimeter": "Altimeter tolerance",
         "minimums": "Minimums tolerance"

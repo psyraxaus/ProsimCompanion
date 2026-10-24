@@ -510,6 +510,16 @@
           "label": "Zuschlag nach dem Flug",
           "hint": "Minuten, die nach dem letzten On-Blocks zur Dienstzeit addiert werden."
         },
+        "fdpWarning": {
+          "label": "FDP-Warnung",
+          "hint": "Eine Zeile auf der Tag-Seite und eine gesprochene Zeile beim Turnaround, wenn der nächste Sektor über das EASA-Grundmaximum für Meldezeit und Sektorenzahl hinausginge.",
+          "more": "Nur Hinweis: Akklimatisierung, Verlängerungen, geteilter Dienst und Ruheregeln werden nicht modelliert. Die Tabelle ist config/ftl-easa.json."
+        },
+        "reportBefore": {
+          "label": "Meldezeit vor der ersten Session",
+          "hint": "Minuten vor der ersten Session des Tages, zu denen die Meldezeit angenommen wird, wenn die Rotationsdatei keine hat."
+        },
+        "fdpFileHint": "Die FDP-Maximaltabelle ist ftl-easa.json in %LOCALAPPDATA%\\ProsimCompanion\\config — passe sie an das Schema deines Betreibers an.",
         "autoClose": {
           "label": "Nach Leerlauf automatisch schließen",
           "hint": "Einen offenen Tag nach so langem Leerlauf in einem Turnaround schließen. 0 = nie."
@@ -1175,6 +1185,15 @@
           "label": "Read-backs",
           "hint": "Sag 'altimeter one zero one three', 'V speeds one four one, one four four, one four seven', 'runway two seven right' oder 'minimums two one zero', und der FO prüft es gegen das Flugzeug.",
           "more": "Der Altimeter wird gegen deine Baro-Einstellung geprüft, die V-Speeds gegen die FMS-PERF-Seite, die Piste gegen den FMS-Plan (Abflug vor dem Start, Ankunft danach), die Minima gegen die gebrieften. Der FO antwortet 'checked' oder den Wert, den er liest."
+        },
+        "stepClimb": {
+          "label": "Step-Climb-Hinweis",
+          "hint": "Im Reiseflug nahe eines geplanten Steps aus dem Navlog sagt der FO einmal pro Step „planned step to flight level … at {fix}, captain“. „When is our next step?“ geht jederzeit.",
+          "more": "Die Steps kommen aus der Höhe pro Fix im SimBrief-Navlog. Mit SayIntentions ergänzt der FO „say request climb“, und „request climb“ fragt die geplante Höhe an."
+        },
+        "stepClimbLead": {
+          "label": "Vorlauf des Step-Climb-Hinweises",
+          "hint": "Wie weit vor dem Step-Fix der Hinweis kommt, Direktentfernung."
         },
         "altimeter": "Altimeter-Toleranz",
         "minimums": "Minima-Toleranz"

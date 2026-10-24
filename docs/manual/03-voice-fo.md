@@ -346,3 +346,26 @@ The VOICE drawer's Cabin tab shows the replies it understands.
 To pick the First Officer and crew voices from every provider, follow [chapter 10](10-voices.md).
 To set up ElevenLabs — key, plan, cost — follow the
 [ElevenLabs setup guide](06-elevenlabs.md).
+
+### Step-climb advice and the FDP warning
+
+**Step-climb advice** (Settings → Voice First Officer → Callouts & Placards → In-flight
+monitoring, off by default) reads the planned steps off your SimBrief navlog — every fix where
+the planned altitude goes up after the top of climb. In the cruise, when the next step fix is
+within the lead distance (20 nautical miles unless you change it) and you are still below the
+planned level, the FO says once *"Planned step to flight level three seven zero at TOPLA,
+captain."* With SayIntentions on, the FO adds *"say request climb when you want it"*, and
+*"request climb"* asks ATC for the planned level. Ask *"when is our next step?"* at any time for
+the level, the fix and the distance. The FO only advises; the climb is yours and ATC's.
+
+**FDP warning** (Settings → Voice First Officer → Company & Debrief → Company day, off by default)
+estimates your flight duty period in day mode. The report time is the one in your rotation file,
+or the day's first session start minus the report lead (60 minutes unless you change it). The
+maximum is the EASA ORO.FTL.205 basic table for the report hour and the number of sectors
+including the next one. The Duty Day page shows *FDP h:mm of h:mm max* with the margin for the
+next sector, and turns red when the next sector's scheduled on-blocks would run past the maximum;
+at the turnaround the FO then adds one line: *"Flight duty check: the next sector would run to
+19:01 zulu — past the 13 hours maximum for a 06:00 report with 2 sectors. Acclimatisation and
+extensions are not counted."* It is advisory only: report times are taken in UTC and
+acclimatisation, extensions, split duty and rest rules are not modelled. The table is
+`%LOCALAPPDATA%\ProsimCompanion\config\ftl-easa.json` — edit it for your operator's scheme.

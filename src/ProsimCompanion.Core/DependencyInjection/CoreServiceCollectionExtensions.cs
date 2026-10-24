@@ -169,6 +169,9 @@ public static class CoreServiceCollectionExtensions
         // Landing analysis (issue #146): one `touchdown` session event per landing, read
         // back by the debrief and the logbook fold. Passive — it never writes to the aircraft.
         services.AddStartupModule<Flight.TouchdownRecorder>();
+        // The next planned step climb (issue #189): written by the Speech advisor, read by the
+        // SayIntentions request filler's {stepLevel} token.
+        services.AddSingleton<StepClimbStore>();
         // Outbound event notifications (issue #151): one bounded queue + one background
         // sender; the signal source only ever writes to the queue, so no raiser waits.
         services.AddSingleton<Notifications.NotificationDispatcher>();

@@ -151,6 +151,10 @@
         "title": "Fuel check",
         "check": "Carburant à bord face au plan SimBrief à ta position, et carburant estimé à l'atterrissage face au chiffre prévu. Aussi automatique en croisière."
       },
+      "stepClimb": {
+        "title": "Palier de montée",
+        "next": "Le prochain palier prévu au navlog : niveau, point et distance. Le FO le signale aussi de lui-même près du point."
+      },
       "grossErrorCheck": {
         "title": "Gross error check",
         "check": "Les masses de l'avion face au loadsheet final et les entrées PERF du FMS face au dernier calcul de performance décollage. Aussi automatique dès que le loadsheet final et les V-speeds sont saisis."

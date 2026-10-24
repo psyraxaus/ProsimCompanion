@@ -510,6 +510,16 @@
           "label": "Marge après vol",
           "hint": "Minutes ajoutées après les dernières cales pour le temps de service."
         },
+        "fdpWarning": {
+          "label": "Alerte TSV",
+          "hint": "Une ligne sur la page Journée et une phrase à l'escale quand l'étape suivante dépasserait le maximum de base EASA pour ta prise de service et ton nombre d'étapes.",
+          "more": "Indicatif seulement : acclimatation, extensions, service fractionné et repos ne sont pas modélisés. La table est config/ftl-easa.json."
+        },
+        "reportBefore": {
+          "label": "Prise de service avant la première session",
+          "hint": "Minutes avant la première session de la journée où la prise de service est supposée, sans heure dans le fichier de rotation."
+        },
+        "fdpFileHint": "La table des maxima TSV est ftl-easa.json dans %LOCALAPPDATA%\\ProsimCompanion\\config — adapte-la au schéma de ton exploitant.",
         "autoClose": {
           "label": "Fermer automatiquement après inactivité",
           "hint": "Fermer une journée ouverte après ce temps d'inactivité en escale. 0 = jamais."
@@ -1175,6 +1185,15 @@
           "label": "Collationnements",
           "hint": "Dis 'altimeter one zero one three', 'V speeds one four one, one four four, one four seven', 'runway two seven right' ou 'minimums two one zero' et le copilote le vérifie contre l'avion.",
           "more": "L'altimètre est vérifié contre ton calage baro, les vitesses V contre la page PERF du FMS, la piste contre le plan FMS (départ avant le décollage, arrivée après), les minimums contre ceux que tu as briefés. Le copilote répond 'checked' ou la valeur qu'il lit."
+        },
+        "stepClimb": {
+          "label": "Conseil de palier de montée",
+          "hint": "En croisière, près d'un palier prévu au navlog, le FO dit une fois par palier « planned step to flight level … at {fix}, captain ». « When is our next step? » marche à tout moment.",
+          "more": "Les paliers viennent de l'altitude par point du navlog SimBrief. Avec SayIntentions, le FO ajoute « say request climb » et « request climb » demande le niveau prévu."
+        },
+        "stepClimbLead": {
+          "label": "Anticipation du conseil de palier",
+          "hint": "À quelle distance avant le point du palier arrive le conseil, distance directe."
         },
         "altimeter": "Tolérance d'altimètre",
         "minimums": "Tolérance de minimums"

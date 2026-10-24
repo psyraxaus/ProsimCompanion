@@ -88,6 +88,26 @@
                     </div>
                 </div>
 
+                @if (_snapshot.Fdp is { } fdp)
+                {
+                    @* FDP (issue #189): the figures always; the warning tone only when the next
+                       sector's projection is past the table's maximum. Advisory — no
+                       acclimatisation, extensions or rest rules. *@
+                    <div class="ops-note @(fdp.Exceeds ? "ops-fdp-warn" : "ops-fdp")" title="@T["day.fdp.title"]">
+                        <strong>@T["day.fdp.label"]</strong>
+                        @T["day.fdp.soFar", DayMath.FormatClock(fdp.FdpSoFarMinutes), DayMath.FormatClock(fdp.MaxFdpMinutes), fdp.ReportUtc.ToString("HH:mm", System.Globalization.CultureInfo.InvariantCulture), fdp.SectorsWithNext]
+                        @if (fdp.Exceeds && fdp.ProjectedEndUtc is { } end)
+                        {
+                            <span class="ops-bad"> @T["day.fdp.exceeds", end.ToString("HH:mm", System.Globalization.CultureInfo.InvariantCulture), DayMath.FormatClock(-(fdp.MarginMinutes ?? 0))]</span>
+                        }
+                        else if (fdp.MarginMinutes is { } margin)
+                        {
+                            <span> @T["day.fdp.margin", DayMath.FormatClock(margin)]</span>
+                        }
+                        <span class="ops-item-sub"> @T["day.fdp.caveat"]</span>
+                    </div>
+                }
+
                 <div class="ops-actions">
                     @if (view.Active)
                     {

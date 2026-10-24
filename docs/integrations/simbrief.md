@@ -20,3 +20,29 @@
   position is skipped. The destination row closes the plan at `fuel.plan_landing`. TOC / TOD
   are ordinary fixes with those idents. `OfpData.Navlog` is empty for an OFP without one —
   the fuel check then falls back to burn × time-to-ETA.
+
+## NOTAMs (issue #189)
+
+The JSON fetch (`xml.fetcher.php?json=1`) DOES carry NOTAMs when the pilot's SimBrief options
+include them — settled 2026-10-24 against the owner's live plan (EFHK→EKCH: 95 NOTAMs). The
+shipped test fixture `simbrief-ofp-sample.json` has none, which is why the item was nearly
+dropped. Three containers, two shapes:
+
+- `origin.notam` / `destination.notam` — the station's own NOTAMs. **Polymorphic like the
+  alternate node**: an object when there is one, an array when several, `""` when none. Fields
+  `notam_id`, `location_icao`, `notam_qcode` (ICAO Q-code, e.g. `QMRLC`), `notam_qcode_category`
+  / `_subject` / `_status` (English words), `notam_text` (the E line), `notam_raw`, `notam_html`,
+  `date_effective` / `date_expire` as ISO-8601 UTC (`"PERM"` for permanent), `date_expire_is_estimated`
+  (`"1"` or an empty object), `notam_schedule`.
+- `notams.notamdrec[]` — the FIR records for every station on the plan (count in
+  `notams.rec-count`). Fields `notam_id`, `icao_id`, `notam_qcode`, `notam_text`, `notam_report`,
+  `notam_effective_dtg` / `notam_expire_dtg` / `notam_expire_dtg_estimated` as `yyyyMMddHHmm`
+  (no field at all for PERM). No category/subject/status words here.
+
+`SimbriefImportService.ParseNotams` keeps the origin and destination containers plus the FIR
+records whose `icao_id` is the origin or destination, each `notam_id` once (the station copy
+wins), on `OfpData.Notams`. `NotamHighlighter` (Core) classifies by Q-code — subject letters 2–3
+(`MR` runway, `MX` taxiway, `IC/IL/IG` ILS/LOC/GP, `L*` lighting, `LP` PAPI, `MT/MD` threshold /
+declared distances) and status letters 4–5 (`LC` closed, `AS` unserviceable) — with the E-line
+keywords (`RWY … CLSD`, `ILS … U/S`, `PAPI`, `THR DISPLACED`, `LGT U/S`) as the fallback for a
+NOTAM without a Q-code. Nothing else is read from a NOTAM.

@@ -38,6 +38,21 @@
       "arrival": "Ankunft",
       "noData": "Keine Daten."
     },
+    "notams": {
+      "title": "NOTAM-Hinweise",
+      "count": "{0} im Plan",
+      "noPlan": "Kein Flugplan geladen.",
+      "none": "Der Plan enthält keine NOTAMs (SimBrief liefert sie nur mit eingeschalteter NOTAM-Option).",
+      "noHighlights": "Kein Piste-, Rollweg-, ILS-, Befeuerungs-, PAPI- oder Schwellen-NOTAM an beiden Enden — die volle Liste steht im SimBrief-Briefing.",
+      "class": {
+        "runwayClosed": "PISTE GESCHL.",
+        "taxiwayClosed": "RWG GESCHL.",
+        "ilsUnserviceable": "ILS U/S",
+        "lightingUnserviceable": "BEFEUERUNG",
+        "papi": "PAPI",
+        "displacedThreshold": "SCHWELLE VERSETZT"
+      }
+    },
     "pushback": {
       "title": "Pushback-Richtung",
       "aria": "Pushback-Richtung",
