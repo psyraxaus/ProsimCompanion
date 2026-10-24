@@ -23,6 +23,7 @@ public static class LogbookCsv
         "abnormals", "defectsRaised", "defectsRectified", "defectsCarried",
         "diverted", "plannedDestination", "diversionReason",
         "scheduledOutUtc", "scheduledInUtc", "delayCode", "delayMinutes", "onTime",
+        "rejectedTakeoffs",
     ];
 
     public static string Build(IEnumerable<LogbookFlight> flights)
@@ -47,6 +48,7 @@ public static class LogbookCsv
                 f.Diverted ? "true" : "false", Text(f.PlannedDestination), Text(f.DiversionReason),
                 Time(f.ScheduledOutUtc), Time(f.ScheduledInUtc), Text(f.DelayCode), Number(f.DelayMinutes),
                 f.OnTime is { } onTime ? (onTime ? "true" : "false") : "",
+                Number(f.RejectedTakeoffs),
             ];
             csv.Append(string.Join(',', cells)).Append("\r\n");
         }

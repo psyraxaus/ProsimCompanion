@@ -1333,6 +1333,16 @@
         "label": "허용되는 검증 불일치",
         "hint": "FO가 계속 또는 스탠바이를 제안하기 전 점검 줄에서의 불일치 수."
       },
+      "rto": {
+        "label": "이륙 중단(RTO)",
+        "hint": "활주 중 \"stop\" 또는 \"reject\"라고 말하거나 40 kt 이상에서 두 추력 레버를 아이들로 내리면 FO가 reverse green, decel, seventy knots, \"aircraft stopped, park brake\"를 콜하고 열린 ECAM을 제시합니다.",
+        "more": "100 kt 이상에서는 FO가 먼저 \"stop\"을 읽어줍니다. 이륙 후에는 거부합니다: \"we're flying, captain\". GSX와 출발은 그대로이며 같은 턴어라운드에서 재시도가 가능하고 기록됩니다."
+      },
+      "efato": {
+        "label": "V1 이후 엔진 고장",
+        "hint": "V1과 400 ft 사이에 한 엔진의 N2가 떨어지고 다른 엔진은 이륙 추력을 유지하면 \"engine failure\", 이어서 rudder, rotate, V2, positive climb — gear up, 400 ft에서 ECAM actions.",
+        "more": "400 ft에서 ENG 1 / ENG 2 FAIL 절차가 이어받습니다. 지상에서 \"engine failure after V1\"으로 연습하세요. 고장 감지가 켜져 있어야 합니다."
+      },
       "filesBefore": "절차 자체는",
       "filesAfter": " 아래의 JSON 파일입니다. 불러오지 못한 파일은 배너에 이름이 표시됩니다. 진행 중인 대화는 상태 섹션에서 취소할 수 있습니다."
     },

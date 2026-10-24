@@ -374,6 +374,25 @@ sign on in cruise turbulence), paired with the Flight Status script card that fi
 airline-style announcement with live facts for the captain to read. Nothing speaks the
 captain's PA. Distinct from the purser's own PAs, which are heard from the cabin.
 _Avoid_: announcement reminder, PA callout
+**Rejected takeoff**:
+A takeoff abandoned on the roll — by the captain's word or by both thrust levers to idle above
+40 kt — after which the FO runs the rollout calls and offers the open ECAM. It is an event
+inside a departure cycle, never a reset of it: GSX, the loadsheet and the flight state carry on,
+a second roll re-arms, and the logbook counts it on the flight it belongs to.
+_Avoid_: aborted takeoff (the drawer phrase "abort" is accepted, the term is RTO), takeoff reset
+
+**Trigger window**:
+The part of an abnormal trigger the dataref language cannot say — "after V1" (IAS against the
+FMS V1, or airborne) and "below an AGL ceiling" — judged from the flight engine's snapshot each
+tick; closed when the flight is not live. Checked after the condition, before the corroborate.
+_Avoid_: phase filter (that is `phases`), callout gate
+
+**Sequenced drill**:
+A memory drill whose items a service paces on the flight data instead of reading them straight
+through: the monitor only announces and raises the detection; the named sequencer speaks each
+item at its cue and hands over to the ECAM procedure at the end. A voice rehearsal still reads
+the file straight.
+_Avoid_: scripted drill, timed drill
 
 
 ### Web host

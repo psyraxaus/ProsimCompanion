@@ -1333,6 +1333,16 @@
         "label": "許容する検証の不一致",
         "hint": "FO が続行かスタンバイを提案する前の、チェック行での不一致の回数。"
       },
+      "rto": {
+        "label": "離陸中止（RTO）",
+        "hint": "滑走中に「stop」か「reject」と言う、または40 kt以上で両スラストレバーをアイドルに戻すと、FOが reverse green、decel、seventy knots、「aircraft stopped, park brake」をコールし、開いているECAMを提示します。",
+        "more": "100 kt以上ではFOがまず「stop」を読み返します。離陸後は拒否します：「we're flying, captain」。GSXと出発はそのままで、同じターンアラウンドでの再試行は可能で記録されます。"
+      },
+      "efato": {
+        "label": "V1後のエンジン故障",
+        "hint": "V1から400 ftの間に片方のN2が落ち、他方が離陸推力のままなら「engine failure」、続いて rudder、rotate、V2、positive climb — gear up、400 ftでECAM actions。",
+        "more": "400 ftでENG 1 / ENG 2 FAIL手順に引き継ぎます。地上では「engine failure after V1」で練習できます。故障検出がオンである必要があります。"
+      },
       "filesBefore": "手順自体は",
       "filesAfter": "の下の JSON ファイルです。読み込めないファイルはバナーに名前が出ます。実行中の対話はステータスセクションから中止できます。"
     },

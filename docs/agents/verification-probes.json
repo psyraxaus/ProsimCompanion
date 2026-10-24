@@ -3467,6 +3467,66 @@
         "requires-human: the script reads like an airline PA with the right numbers (flight time, cruise level, destination weather, ETA in Z); the purser's PAs sound like they come from the cabin, not the flight deck."
       ],
       "notes": "Package 7 of the November 2026 airline-ops batch. PaPromptCore (pure, clock in) + PaPromptService over FlightTimesStore / GroundOpsSignals.TodApproaching / TurbulenceStore; PaPromptStore (Core) holds the once-per-cycle latch and the card state; PaScriptFacts.From gathers OFP + progress ETA + destination hero weather card; the Web PaScriptPresentation renders pack sentences per fact (seven languages). PurserPaCore/Service for the purser's own PAs. No destination local time: no time-zone source exists in the app — the ETA is given in Z. Unverified live."
+    },
+    {
+      "id": "takeoff-rto",
+      "issue": 187,
+      "state": "open",
+      "kind": "assert-present",
+      "machine": {
+        "kind": "signature",
+        "source": "session",
+        "type": "takeoff.rto-callout",
+        "contains": "\"id\":\"stopped\"",
+        "trigger": {
+          "source": "session",
+          "type": "takeoff.rejected",
+          "contains": "\"speedKt\""
+        }
+      },
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "Only with abnormals.rtoEnabled = true (off by default). Trigger: a takeoff.rejected event {speedKt, trigger word|levers, confirmed, phase TakeoffRoll, aboveReadbackSpeed} — from the captain's 'stop' / 'reject' (speech.recognized routed to RejectedTakeoffService, dispatch precedence 5, before every other feature) or from both thrust levers brought under 0.15 above 40 kt after they were above 0.5. Log line 'TAKEOFF REJECTED at N kt by word|levers'.",
+        "assert-present (above 100 kt by word): the FO's 'Stop!' read-back (tag rto.readback) BEFORE the callouts and confirmed true in the event; below 100 kt no read-back, confirmed false.",
+        "assert-present (the callouts, in order, each once, tags rto.*): takeoff.rto-callout {id reverseGreen} when both reversers reach max; {id decel} once IAS is 10 kt under the reject speed; {id seventyKnots} at 70 kt only when the reject speed was above 80; {id stopped, text 'Aircraft stopped — park brake.'} under 2 kt ground speed; then within 4 s (or at once on the park brake) takeoff.rto-complete {ecam [titles], offered} with {id ecamOffer} — 'ECAM — <title>. Your call, captain.' when FailureMonitor has an ECAM procedure latched, else 'No ECAM — your assessment, captain.'.",
+        "assert-present (go/no-go self-check): a 'stop' after the airborne edge (InitialClimb) → takeoff.stop-refused {phase, iasKt} and the FO's 'We're flying, captain.' (tag rto.refused); no takeoff.rejected.",
+        "assert-present (after the flight): the logbook flight carries RejectedTakeoffs = the count of takeoff.rejected events in the session (CSV column rejectedTakeoffs, detail line 'N rejected takeoff(s) before the flight'); the departure cycle was NOT reset — no gsx.* reset events follow the rejection, and a second TakeoffRoll on the same cycle re-arms (a second takeoff.rejected is possible and logged).",
+        "assert-absent: a takeoff.rejected while abnormals.rtoEnabled was false; one in any phase but TakeoffRoll; one from a lever retard under 40 kt or from levers that were never up (line-up with the levers at idle); callouts after the aircraft became airborne following a rejection; any aircraft write (the brakes, reversers and park brake are the captain's — the FO only calls).",
+        "requires-human: the 'stop' lands as the first word even in a noisy cockpit (gray-band match accepted without 'did you mean' — AcknowledgeOnly); the callouts keep up with a real RTO from 120 kt (reverse → decel → seventy → stopped within the roll)."
+      ],
+      "notes": "Package 8 of the November 2026 airline-ops batch (branch feature/rto-efato). Pure RejectedTakeoffCore (armed TakeoffRoll→airborne, word or lever trigger, callout latches, Done→Armed on the next roll) + RejectedTakeoffService (IVoiceFeature precedence 5, 100 ms shell, Throttle1/2Lever subscriptions, FailureMonitor.ActiveAbnormalTitles for the offer). DebriefFacts.RejectedTakeoffs ← takeoff.rejected; LogbookFlight.RejectedTakeoffs + CSV. 'attention, crew at stations' is deliberately NOT spoken (the captain's PA). Unverified live."
+    },
+    {
+      "id": "takeoff-efato",
+      "issue": 187,
+      "state": "open",
+      "kind": "assert-present",
+      "machine": {
+        "kind": "signature",
+        "source": "session",
+        "type": "efato.handoff",
+        "contains": "\"procedure\":\"eng-",
+        "trigger": {
+          "source": "session",
+          "type": "drill.started",
+          "contains": "\"id\":\"drill-engine-failure-after-v1\""
+        }
+      },
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "Only with abnormals.enabled AND abnormals.efatoEnabled = true (off by default; with it off the monitor does not arm the drill at all). Trigger: drill.started {id drill-engine-failure-after-v1, sequencer efato} from FailureMonitor when one engine's N2 is under 60 % and the other above 85 % (0.5 s debounce) in TakeoffRoll/InitialClimb AND the trigger window is open — IAS at or above the FMS V1 (V1 entered) or already airborne, and below 400 ft AGL. The FO's 'Engine failure.' (Critical, tag drill:drill-engine-failure-after-v1) follows; the drill's file items are NOT read straight through (that is the voice rehearsal path only).",
+        "assert-present: efato.armed {engine 1|2 (the lower N2), n2Engine1, n2Engine2}, then efato.item events in this order with the FO's words (tags efato.*): Rudder at once; Rotate when IAS reaches VR (skipped when already airborne); V2 airborne at V2 − 2 kt; GearUp ('Positive climb — gear up.') on a climbing radio altitude above 10 ft with VS > 100 (skipped when the gear is already up); EcamActions at 400 ft AGL. An item whose cue never comes falls through after 25 s (events still in order). Then efato.handoff {procedure eng-1-fail|eng-2-fail, started true} and abnormal.handoff {id, origin efato}, the ENG N FAIL announcement and — with the mic seam and abnormals.interactiveDialogue — the line-by-line ECAM dialogue (thrust lever idle, monitor/no relight, master off, ATC) exactly as a cruise ENG FAIL runs.",
+        "assert-absent: a drill.started for this drill before V1 (IAS under the FMS V1 on the ground), above 400 ft AGL, with both N2 healthy, or with abnormals.efatoEnabled false; a second efato.armed while one sequence runs; the eng-N-fail procedure firing TWICE (once by hand-off, once by its own trigger — its phases exclude the takeoff, and TryRunProcedure latches it as detected so its clearedWhen ends it); any aircraft write.",
+        "requires-human: the words fall where a PM would say them (rotate at VR, gear up on positive climb, ECAM at 400); the hand-over does not talk over the climb callouts (positive climb from the callouts engine is a separate High callout — both may be heard).",
+        "not-in-this-package: the package-1 EOSID fact after gear up (package 1 is on its own branch; wire BriefingFacts.EngineOutProcedure into EfatoService at the merge)."
+      ],
+      "notes": "Package 8 of the November 2026 airline-ops batch. Abnormal DSL extensions documented in docs/integrations/abnormals.md: trigger.window {afterV1, maxAglFt} (FailureMonitor.WindowOpen, pure, from the engine's flight snapshot) and definition.sequencer ('efato' — the monitor announces only; the named service paces the items). FailureMonitor.TryRunProcedure(id, origin) runs an ECAM procedure outside its own trigger. Unverified live."
     }
   ]
 }

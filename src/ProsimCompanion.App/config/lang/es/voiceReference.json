@@ -48,7 +48,8 @@
       "cabinCrew": "{0} está desactivado — Ajustes → Primer oficial por voz → Tripulación de cabina",
       "notInBuild": "no disponible en esta compilación",
       "foQuestions": "{0} está desactivado — Ajustes → Primer oficial por voz → Briefings y LLM → Pregunta al primer oficial",
-      "cruiseQuery": "{0} está desactivado — Ajustes → Primer oficial por voz → Tripulación de cabina → Consulta del sobrecargo en crucero"
+      "cruiseQuery": "{0} está desactivado — Ajustes → Primer oficial por voz → Tripulación de cabina → Consulta del sobrecargo en crucero",
+      "abnormals": "{0} está apagado — Ajustes → Voice First Officer → ECAM Abnormals"
     },
     "always": {
       "skip": "Saltar el ítem actual de la checklist.",
@@ -208,6 +209,10 @@
       "disregard": {
         "title": "Disregard",
         "disregard": "Silencia el aviso que el FO está diciendo (estado del avión, estacionamiento, llamada perdida) y lo confirma — si no suena nada, solo la confirmación."
+      },
+      "rto": {
+        "title": "Despegue abortado",
+        "stop": "Solo en la carrera de despegue: aborta el despegue e inicia los cantos del PM. Tras el despegue el FO responde \"we're flying, captain\"."
       },
       "aircraftState": {
         "title": "Estado del avión",

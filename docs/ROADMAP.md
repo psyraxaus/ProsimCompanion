@@ -933,6 +933,11 @@ Ten packages, one branch and one GitHub issue each, branched from `feature/remot
       prompts with the script card, purser PAs (arm doors / doors to manual / prepare for
       landing). Probes `turbulence-seatbelt-advice`, `captain-pa-prompt`. Unverified live;
       the first flight's `turbulence.calibrated` event confirms the unit.
+- [x] **Rejected takeoff and engine failure after V1** (#187, package 8, `feature/rto-efato`) —
+      pure `RejectedTakeoffCore` (word or levers, the PM calls, the ECAM offer, "we're flying"
+      refusal, logbook count), the `drill-engine-failure-after-v1` drill with the new trigger
+      `window` and drill `sequencer` (`EfatoCore`: rudder / rotate / V2 / gear up / ECAM actions
+      at 400 ft → ENG FAIL hand-over). Probes `takeoff-rto`, `takeoff-efato`. Unverified live.
 
 
 ## Open items (after the rc.5 batch, 2026-10-11)

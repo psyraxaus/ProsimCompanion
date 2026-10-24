@@ -89,6 +89,7 @@ public sealed class DebriefFactExtractor : IDebriefFactExtractor
             int callouts = 0, suppressed = 0, degradations = 0, cabinReports = 0;
             int defectsRaised = 0, defectsRectified = 0, defectsCarried = 0;
             int radioTunes = 0, memoryDrills = 0;
+            int rejectedTakeoffs = 0; // takeoff.rejected (issue #187)
             var checklists = new List<string>();
             double? takeoffFob = null, landingFob = null, onBlocksFob = null;
             var advisories = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -369,6 +370,12 @@ public sealed class DebriefFactExtractor : IDebriefFactExtractor
                             break;
                         }
 
+                        case "takeoff.rejected":
+                        {
+                            rejectedTakeoffs++;
+                            break;
+                        }
+
                         case "ofp.loaded":
                         case "airport-coordinates":
                         {
@@ -459,7 +466,8 @@ public sealed class DebriefFactExtractor : IDebriefFactExtractor
                 scheduledOut, scheduledIn, delayCode,
                 // The delay from the stamps when the movement service did not judge it.
                 delayMinutes ?? Aircraft.Acars.MovementMessageComposer.DelayMinutes(scheduledOut, stampOff),
-                onTime);
+                onTime,
+                rejectedTakeoffs);
         }
         catch (Exception ex)
         {

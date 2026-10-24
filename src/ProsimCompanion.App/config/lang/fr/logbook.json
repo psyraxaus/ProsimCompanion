@@ -80,6 +80,8 @@
       "none": "aucune",
       "defects": "Défauts",
       "defectsLine": "{0} déclaré(s) · {1} rectifié(s) · {2} reporté(s)",
+      "rto": "Décollages interrompus",
+      "rtoLine": "{0} décollage(s) interrompu(s) avant le vol",
       "session": "Session",
       "confirmDelete": "CONFIRMER LA SUPPRESSION",
       "deleteFlight": "Supprimer le vol",

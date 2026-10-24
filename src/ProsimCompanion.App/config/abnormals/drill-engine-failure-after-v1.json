@@ -1,0 +1,42 @@
+{
+  "id": "drill-engine-failure-after-v1",
+  "title": "ENGINE FAILURE AFTER V1",
+  "class": "memoryDrill",
+  "sequencer": "efato",
+  "severity": "warning",
+  "enabled": true,
+  "phases": [ "TakeoffRoll", "InitialClimb" ],
+  "voiceTriggers": [ "engine failure after v1", "efato drill", "memory items engine failure" ],
+  "trigger": {
+    "condition": {
+      "logic": "or",
+      "conditions": [
+        {
+          "logic": "and",
+          "conditions": [
+            { "dataref": "aircraft.engines.1.n2", "op": "lessThan", "value": 60 },
+            { "dataref": "aircraft.engines.2.n2", "op": "greaterThan", "value": 85 }
+          ]
+        },
+        {
+          "logic": "and",
+          "conditions": [
+            { "dataref": "aircraft.engines.2.n2", "op": "lessThan", "value": 60 },
+            { "dataref": "aircraft.engines.1.n2", "op": "greaterThan", "value": 85 }
+          ]
+        }
+      ]
+    },
+    "window": { "afterV1": true, "maxAglFt": 400 },
+    "debounceSeconds": 0.5
+  },
+  "announce": "Engine failure.",
+  "actions": [
+    { "say": "Rudder." },
+    { "say": "Rotate." },
+    { "say": "V2." },
+    { "say": "Positive climb — gear up." },
+    { "say": "At four hundred feet, ECAM actions." }
+  ],
+  "status": [ "Fly the aircraft. ECAM actions at four hundred feet above the airfield." ]
+}

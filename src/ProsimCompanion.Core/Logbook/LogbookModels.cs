@@ -97,6 +97,12 @@ public sealed class LogbookFlight
 
     /// <summary>Off blocks within the tolerance of the schedule; null without a schedule.</summary>
     public bool? OnTime { get; set; }
+
+    // ---- Rejected takeoffs (issue #187). Additive; absent on older files. ----
+
+    /// <summary>Rejected takeoffs in the flight (issue #187) — a stop on the roll, then a
+    /// second attempt on the same cycle, is one flight with one RTO.</summary>
+    public int RejectedTakeoffs { get; set; }
 }
 
 /// <summary>One duty day's record, folded by company day mode at end of day (idempotent by

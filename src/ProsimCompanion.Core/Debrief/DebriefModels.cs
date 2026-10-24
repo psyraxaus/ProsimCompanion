@@ -63,7 +63,8 @@ public sealed record DebriefFacts(
     DateTimeOffset? ScheduledInUtc = null,
     string? DelayCode = null,
     int? DelayMinutes = null,
-    bool? OnTime = null)
+    bool? OnTime = null,
+    int RejectedTakeoffs = 0)
 {
     public static DebriefFacts Empty { get; } = new(
         null, null, null, null, [], 0, 0, 0, [],

@@ -32,6 +32,7 @@ public sealed partial class VoiceFeatureRosterTests
     /// at 3f98344).</summary>
     private static readonly (Type Feature, int Precedence)[] PinnedOrder =
     [
+        (typeof(ProsimCompanion.Speech.Abnormals.RejectedTakeoffService), 5), // "stop" on the roll beats everything (issue #187)
         (typeof(ProsimCompanion.Speech.Monitoring.FuelCheckMonitor), 10),
         // Issue #183: "fuel decision" / "extra fuel …" / "how long can we hold", beside the fuel check.
         (typeof(ProsimCompanion.Speech.Monitoring.FuelDecisionService), 15),

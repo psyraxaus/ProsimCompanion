@@ -80,6 +80,8 @@
       "none": "なし",
       "defects": "不具合",
       "defectsLine": "起票 {0} · 処置 {1} · 持ち越し {2}",
+      "rto": "離陸中止",
+      "rtoLine": "飛行前に {0} 回の離陸中止",
       "session": "セッション",
       "confirmDelete": "削除を確定",
       "deleteFlight": "フライトを削除",

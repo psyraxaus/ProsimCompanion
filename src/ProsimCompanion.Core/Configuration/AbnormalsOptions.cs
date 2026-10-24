@@ -37,4 +37,18 @@ public sealed class AbnormalsOptions : IOptionSection
     /// its own (0 = re-prompt forever, the Prosim2FO behaviour).</summary>
     [OptionField(FieldKind.Number, "speechSettings.abnormals.silentPrompts", Min = "0", Max = "20", DependsOn = "Enabled; InteractiveDialogue", Advanced = true)]
     public int MaxSilentPrompts { get; set; } = 3;
+
+    /// <summary>Rejected takeoff (issue #187): armed on the takeoff roll, triggered by the
+    /// captain's "stop" / "reject" or by both thrust levers brought to idle above 40 kt on the
+    /// ground; the FO then calls reverse, decel, seventy knots and "aircraft stopped, park
+    /// brake" and offers the open ECAM. Read-and-speak only. Off by default.</summary>
+    [OptionField(FieldKind.Bool, "speechSettings.abnormals.rto")]
+    public bool RtoEnabled { get; set; }
+
+    /// <summary>Engine failure after V1 (issue #187): the <c>drill-engine-failure-after-v1</c>
+    /// drill arms between V1 and 400 ft AAL; the FO sequences the memory items on the flight
+    /// data (rudder, rotate, V2, positive climb — gear up) and hands over to the ENG FAIL ECAM
+    /// at 400 ft. Needs failure detection on. Off by default.</summary>
+    [OptionField(FieldKind.Bool, "speechSettings.abnormals.efato", DependsOn = "Enabled")]
+    public bool EfatoEnabled { get; set; }
 }

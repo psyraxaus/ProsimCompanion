@@ -1333,6 +1333,16 @@
         "label": "Écarts de vérification tolérés",
         "hint": "Écarts sur une ligne contrôlée avant que le copilote ne propose continuer ou standby."
       },
+      "rto": {
+        "label": "Décollage interrompu",
+        "hint": "Dis « stop » ou « reject » au roulage, ou ramène les deux manettes au ralenti au-dessus de 40 kt : le FO annonce reverse green, decel, seventy knots et « aircraft stopped, park brake », puis propose l'ECAM ouvert.",
+        "more": "Au-dessus de 100 kt le FO répète d'abord « stop ». Après le décollage il refuse : « we're flying, captain ». GSX et le départ ne sont pas touchés — un second essai sur la même rotation fonctionne et est consigné."
+      },
+      "efato": {
+        "label": "Panne moteur après V1",
+        "hint": "Le N2 d'un moteur s'effondre entre V1 et 400 ft pendant que l'autre reste à la poussée de décollage : « engine failure », puis rudder, rotate, V2, positive climb — gear up et ECAM actions à 400 ft.",
+        "more": "La procédure ENG 1 / ENG 2 FAIL prend le relais à 400 ft. Répète-la au sol avec « engine failure after V1 ». Nécessite la détection des pannes."
+      },
       "filesBefore": "Les procédures elles-mêmes sont des fichiers JSON sous",
       "filesAfter": " ; un fichier qui ne se charge pas est nommé dans un bandeau. Un dialogue en cours peut être annulé depuis la section État."
     },

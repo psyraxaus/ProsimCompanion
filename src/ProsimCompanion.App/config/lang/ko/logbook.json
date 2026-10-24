@@ -80,6 +80,8 @@
       "none": "없음",
       "defects": "결함",
       "defectsLine": "등록 {0} · 수리 {1} · 이월 {2}",
+      "rto": "이륙 중단",
+      "rtoLine": "비행 전 이륙 중단 {0}회",
       "session": "세션",
       "confirmDelete": "삭제 확인",
       "deleteFlight": "비행 삭제",

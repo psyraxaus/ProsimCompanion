@@ -347,8 +347,8 @@ public sealed class FailureMonitorTests : IDisposable
         var folder = Path.Combine(FindRepoRoot(), "src", "ProsimCompanion.App", "config", "abnormals");
         var definitions = AbnormalLoader.LoadFolder(folder);
 
-        Assert.Equal(30, definitions.Count);
-        Assert.Equal(4, definitions.Count(d => d.IsDrill));
+        Assert.Equal(31, definitions.Count); // + drill-engine-failure-after-v1 (issue #187)
+        Assert.Equal(5, definitions.Count(d => d.IsDrill));
         Assert.All(definitions, d => Assert.False(string.IsNullOrWhiteSpace(d.Announce)));
 
         // Issue #103: ECAM page-button lights (I_ECAM_*) only illuminate on MANUAL page

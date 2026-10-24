@@ -48,7 +48,8 @@
       "cabinCrew": "{0} ist aus — Einstellungen → Sprach-Erster-Offizier → Kabinencrew",
       "notInBuild": "in diesem Build nicht verfügbar",
       "foQuestions": "{0} ist aus — Einstellungen → Sprach-Erster-Offizier → Briefings & LLM → Den Ersten Offizier fragen",
-      "cruiseQuery": "{0} ist aus — Einstellungen → Sprach-Erster-Offizier → Kabinencrew → Purser-Rückfrage im Reiseflug"
+      "cruiseQuery": "{0} ist aus — Einstellungen → Sprach-Erster-Offizier → Kabinencrew → Purser-Rückfrage im Reiseflug",
+      "abnormals": "{0} ist aus — Einstellungen → Voice First Officer → ECAM Abnormals"
     },
     "always": {
       "skip": "Den aktuellen Checklistenpunkt überspringen.",
@@ -208,6 +209,10 @@
       "disregard": {
         "title": "Disregard",
         "disregard": "Bricht die Durchsage ab, die der FO gerade spricht (Flugzeugzustand, Parkposition, verlorener Call), und bestätigt — läuft nichts, nur die Bestätigung."
+      },
+      "rto": {
+        "title": "Startabbruch",
+        "stop": "Nur im Startlauf: bricht den Start ab und startet die PM-Calls. Nach dem Abheben antwortet der FO „we're flying, captain“."
       },
       "aircraftState": {
         "title": "Flugzeugzustand",

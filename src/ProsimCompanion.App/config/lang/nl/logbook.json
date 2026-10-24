@@ -80,6 +80,8 @@
       "none": "geen",
       "defects": "Defecten",
       "defectsLine": "{0} gemeld · {1} verholpen · {2} meegenomen",
+      "rto": "Afgebroken starts",
+      "rtoLine": "{0} afgebroken start(s) vóór de vlucht",
       "session": "Sessie",
       "confirmDelete": "VERWIJDEREN BEVESTIGEN",
       "deleteFlight": "Vlucht verwijderen",

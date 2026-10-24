@@ -80,6 +80,8 @@
       "none": "keine",
       "defects": "Mängel",
       "defectsLine": "{0} gemeldet · {1} behoben · {2} mitgeführt",
+      "rto": "Startabbrüche",
+      "rtoLine": "{0} Startabbruch/-abbrüche vor dem Flug",
       "session": "Sitzung",
       "confirmDelete": "LÖSCHEN BESTÄTIGEN",
       "deleteFlight": "Flug löschen",

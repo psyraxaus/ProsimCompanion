@@ -262,8 +262,8 @@ public sealed class MovementMessageTests : IDisposable
         var csv = LogbookCsv.Build([new LogbookFlight { SessionId = "s", ScheduledOutUtc = Std, DelayCode = "15", DelayMinutes = 22, OnTime = false }]);
         var lines = csv.Split("\r\n");
 
-        Assert.EndsWith(",scheduledOutUtc,scheduledInUtc,delayCode,delayMinutes,onTime", lines[0], StringComparison.Ordinal);
-        Assert.EndsWith(",2026-10-03T10:00:00Z,,15,22,false", lines[1], StringComparison.Ordinal);
+        Assert.EndsWith(",scheduledOutUtc,scheduledInUtc,delayCode,delayMinutes,onTime,rejectedTakeoffs", lines[0], StringComparison.Ordinal);
+        Assert.EndsWith(",2026-10-03T10:00:00Z,,15,22,false,0", lines[1], StringComparison.Ordinal);
     }
 
     private static SessionLogBuilder Leg(string id, bool onTime, bool scheduled = true)

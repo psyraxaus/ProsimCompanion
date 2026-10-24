@@ -48,7 +48,8 @@
       "cabinCrew": "{0} はオフです — 設定 → 音声副操縦士 → 客室乗務員",
       "notInBuild": "このビルドでは利用できません",
       "foQuestions": "{0} はオフです — 設定 → 音声副操縦士 → ブリーフィングと LLM → 副操縦士に質問",
-      "cruiseQuery": "{0} はオフです — 設定 → 音声副操縦士 → 客室乗務員 → 巡航中のパーサー問い合わせ"
+      "cruiseQuery": "{0} はオフです — 設定 → 音声副操縦士 → 客室乗務員 → 巡航中のパーサー問い合わせ",
+      "abnormals": "{0} はオフです — 設定 → Voice First Officer → ECAM Abnormals"
     },
     "always": {
       "skip": "現在のチェックリスト項目をスキップします。",
@@ -208,6 +209,10 @@
       "disregard": {
         "title": "Disregard",
         "disregard": "FO が話している注意喚起（機体状態、駐機、失われたコール）を止めて応答します — 何も再生中でなければ応答だけです。"
+      },
+      "rto": {
+        "title": "離陸中止",
+        "stop": "離陸滑走中のみ：離陸を中止しPMコールを始めます。離陸後はFOが「we're flying, captain」と答えます。"
       },
       "aircraftState": {
         "title": "機体状態",
