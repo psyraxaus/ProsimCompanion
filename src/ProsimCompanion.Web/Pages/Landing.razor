@@ -10,6 +10,8 @@
 @inject IProsimDataRefs DataRefs
 @inject IWxProvider Wx
 @inject OfpStore Ofp
+@inject RunwayConditionStore Condition
+@inject IOptionsMonitor<AircraftLimitsOptions> Limits
 @inject DisplayUnitService Units
 @inject IStringLocalizer T
 
@@ -150,10 +152,11 @@
                     <span class="perf-surface-strip" role="radiogroup" aria-label="@T["landing.runway.conditionAria"]">
                         @foreach (var option in SurfaceOptions)
                         {
-                            var code = option.Code;
-                            <button type="button" class="perf-surface-btn @(code == _rwySurfaceCode ? "active" : "")"
-                                    role="radio" aria-checked="@(code == _rwySurfaceCode)"
-                                    @onclick="() => SetInput(() => _rwySurfaceCode = code)">@T[option.TextId]</button>
+                            var condition = option.Condition;
+                            <button type="button" class="perf-surface-btn @(condition == _condition ? "active" : "")"
+                                    role="radio" aria-checked="@(condition == _condition)"
+                                    title="@(condition is RunwayCondition.Dry or RunwayCondition.Wet ? null : $"RWYCC {RunwayConditions.Rwycc(condition)}")"
+                                    @onclick="() => SetInput(() => SetCondition(condition))">@(condition is RunwayCondition.Dry or RunwayCondition.Wet ? "" : $"{RunwayConditions.Rwycc(condition)} ")@T[option.TextId]</button>
                         }
                     </span>
                 </Surface>
@@ -187,6 +190,15 @@
                         @OutFigure(_hwKt < 0 ? "TW (kt)" : "HW (kt)", ShowResult ? Math.Round(Math.Abs(_hwKt)).ToString(CultureInfo.InvariantCulture) : null, FigureTone(_hwClass) + " small")
                         @OutFigure("XW (kt)", ShowResult ? Math.Round(Math.Abs(_xwKt)).ToString(CultureInfo.InvariantCulture) : null, FigureTone(_xwClass) + " small")
                     </div>
+
+                    @* Wind against the aircraft limits (issue #182), the selected runway
+                       condition picking the crosswind limit. *@
+                    @if (WindVerdict() is { } windVerdict)
+                    {
+                        <div class="perf-limits inset">
+                            <WindLimitRow Verdict="windVerdict" />
+                        </div>
+                    }
 
                     @if (ShowResult && _ldaM > 0)
                     {
@@ -235,16 +247,19 @@
     private static readonly string[] AutolandOptions = ["manual", "auto"];
     private static readonly string[] AthrOptions = ["0", "1"];
 
-    // Runway-condition strip. Codes are fixed by the gateway: 6=Dry … 1=Poor.
-    // Displayed Dry → Poor (descending code) to match the EFB.
-    private static readonly (int Code, string TextId)[] SurfaceOptions =
+    // Runway-condition strip (issue #182): Dry / Wet / GRF RWYCC 5 … 1, displayed dry → poor to
+    // match the EFB. The gateway's BreakAction codes (6 = dry … 1 = poor) come from
+    // RunwayConditions.BreakAction — "Wet" rides as code 5 for the calculation but carries the
+    // wet-runway crosswind limit. The selection persists per flight in RunwayConditionStore.
+    private static readonly (RunwayCondition Condition, string TextId)[] SurfaceOptions =
     [
-        (6, "landing.condition.dry"),
-        (5, "landing.condition.good"),
-        (4, "landing.condition.goodMedium"),
-        (3, "landing.condition.medium"),
-        (2, "landing.condition.mediumPoor"),
-        (1, "landing.condition.poor"),
+        (RunwayCondition.Dry, "landing.condition.dry"),
+        (RunwayCondition.Wet, "landing.condition.wet"),
+        (RunwayCondition.Rwycc5, "landing.condition.good"),
+        (RunwayCondition.Rwycc4, "landing.condition.goodMedium"),
+        (RunwayCondition.Rwycc3, "landing.condition.medium"),
+        (RunwayCondition.Rwycc2, "landing.condition.mediumPoor"),
+        (RunwayCondition.Rwycc1, "landing.condition.poor"),
     ];
 
     // Autoland crosswind limits (kt) indexed by runway condition code 1–6
@@ -261,11 +276,12 @@
     private IDataRefSubscription<string?>? _fmsDestinationSub;
     private IReadOnlyList<RunwayResponse>? _runways;
     private string? _runwayId;
-    private int _rwySurfaceCode = 6;
+    private RunwayCondition _condition = RunwayCondition.Dry;
     private int _oat;
     private int _qnh = 1013;
     private string _windDir = "0";
     private int _windKt;
+    private int _windGustKt;
     private double _ldgWeightTons;
     private string _flapConfig = "FULL";
     private string _brakeMode = "MED";
@@ -334,6 +350,9 @@
         // Seed before watching: the watch helpers run their refresh once immediately, and
         // ReseedIcaoAsync only early-returns cheaply when the ICAO is already seeded.
         SeedFromContext();
+        // The runway condition picked earlier this flight (issue #182) — another device, or
+        // this page before a reload.
+        _condition = Condition.Current ?? RunwayCondition.Dry;
 
         WatchChanged(h => Units.Changed += h, h => Units.Changed -= h, () => { });
         // OFP import / MCDU plan entry after the page opened (issue #65): re-seed the ICAO —
@@ -341,6 +360,35 @@
         WatchChanged(h => Ofp.Changed += h, h => Ofp.Changed -= h, () => _ = ReseedIcaoAsync());
         WatchChanged(h => fmsDestinationSub.ValueChanged += h, h => fmsDestinationSub.ValueChanged -= h,
             () => _ = ReseedIcaoAsync());
+        Watch(Condition, current => _condition = current ?? RunwayCondition.Dry);
+    }
+
+    /// <summary>The condition chip: the per-flight store is the one truth (issue #182); the
+    /// store's change notification sets the field back.</summary>
+    private void SetCondition(RunwayCondition condition)
+    {
+        _condition = condition;
+        Condition.Set(condition);
+    }
+
+    /// <summary>The wind row's verdict (issue #182): the page's wind on the runway's surveyed
+    /// true heading (the QDM when the gateway has none), landing limits, the selected runway
+    /// condition picking the crosswind limit. Null without a runway or a wind.</summary>
+    private WindLimitVerdict? WindVerdict()
+    {
+        var runway = SelectedRunway();
+        if (runway is null)
+        {
+            return null;
+        }
+
+        var heading = runway.HdgDegT is { } text && double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out var hdg)
+            ? hdg
+            : RunwayQdm(runway.RunwayId);
+        var isVrb = string.Equals(_windDir.Trim(), "VRB", StringComparison.OrdinalIgnoreCase);
+        int? direction = !isVrb && int.TryParse(_windDir, NumberStyles.Integer, CultureInfo.InvariantCulture, out var dir) ? dir : null;
+        var wind = WindMath.Resolve(direction, _windKt, _windGustKt > 0 ? _windGustKt : null, heading);
+        return wind is null ? null : WindLimitCheck.Evaluate(wind, Limits.CurrentValue, WindPhase.Landing, _condition);
     }
 
     /// <summary>The context's destination: OFP first, MCDU FMS destination as fallback (the
@@ -609,6 +657,7 @@
             ? dir.ToString(CultureInfo.InvariantCulture)
             : (facts.RawMetar?.Contains("VRB", StringComparison.Ordinal) == true ? "VRB" : "0");
         _windKt = facts.WindSpeedKt ?? 0;
+        _windGustKt = facts.WindGustKt ?? 0;
     }
 
     private async Task CalculateAsync()
@@ -651,7 +700,7 @@
                 WindSpeed = _windKt,
                 Oat = _oat,
                 Slp = _qnh,
-                BreakAction = _rwySurfaceCode,
+                BreakAction = RunwayConditions.BreakAction(_condition),
                 AircraftSpeed = _vappOverride > 0 ? _vappOverride : null,
                 LdgW = (float)_ldgWeightTons,               // tonnes wire scale
                 BreakMode = _brakeMode,
@@ -720,7 +769,7 @@
         var absXw = (int)Math.Round(Math.Abs(_xwKt));
         if (autoland)
         {
-            var code = Math.Clamp(_rwySurfaceCode, 1, 6);
+            var code = Math.Clamp(RunwayConditions.BreakAction(_condition), 1, 6);
             _xwClass = absXw > CrosswindLimitKt[code - 1] ? "red" : "normal";
         }
         else
@@ -765,11 +814,12 @@
         _recalcTimer?.Change(System.Threading.Timeout.Infinite, System.Threading.Timeout.Infinite);
         _runways = null;
         _runwayId = null;
-        _rwySurfaceCode = 6;
+        SetCondition(RunwayCondition.Dry);
         _oat = 0;
         _qnh = 1013;
         _windDir = "0";
         _windKt = 0;
+        _windGustKt = 0;
         _flapConfig = "FULL";
         _brakeMode = "MED";
         _revMode = "idle";

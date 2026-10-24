@@ -16,6 +16,7 @@
     },
     "condition": {
       "dry": "건조",
+      "wet": "습윤",
       "good": "양호",
       "goodMedium": "양호/보통",
       "medium": "보통",

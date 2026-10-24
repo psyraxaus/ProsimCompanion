@@ -1190,6 +1190,15 @@
           "hint": "Desde el crucero, el FO te avisa cuando la visibilidad o el techo del destino cruzan tu límite, cuando cambia la letra del ATIS o cuando el viento pasa a ser de cola en la pista de aterrizaje prevista.",
           "more": "Usa la propia actualización de las tarjetas meteorológicas, sin sondeo extra. La meteorología del alternativo se añade cuando el destino está por debajo de un límite. Cada tipo de cambio se dice como mucho una vez en el periodo de silencio."
         },
+        "windLimits": {
+          "label": "Límites de viento",
+          "hint": "\"Wind check\" y \"runway condition\" por voz, y una línea de límites de viento en los briefings de salida y llegada.",
+          "more": "Los límites están en Display & Flight Data → Límites del avión. El estado de pista viene de la página Landing."
+        },
+        "windLimitAdvisory": {
+          "label": "Aviso de viento en aproximación",
+          "hint": "En la aproximación el FO avisa una vez si el viento de destino deja la pista fuera de límite."
+        },
         "visibility": "Límite de visibilidad",
         "ceiling": "Límite de techo",
         "tailwind": {

@@ -1,0 +1,34 @@
+@* The wind-against-limits row of the Takeoff and Landing pages (issue #182): the steady and
+   gust components, the tone (green within limits, amber within 5 kt, red beyond) and the
+   one-line verdict. Pure render over a Core WindLimitVerdict; the pages compute it. *@
+@using System.Globalization
+@using ProsimCompanion.Core.Weather
+@inject IStringLocalizer T
+
+@if (Verdict is { } v)
+{
+    var tone = v.Tone switch { WindLimitTone.Red => "red", WindLimitTone.Amber => "amber", _ => "ok" };
+    <div class="perf-limit perf-wind-limit">
+        <span class="perf-field-label">@T["perfRunway.wind.components"]</span>
+        <span class="perf-limit-value @(tone == "ok" ? "" : tone)">
+            @if (v.Wind.DirectionUnknown)
+            {
+                <text>VRB @Kt(v.Wind.CrosswindKt) KT</text>
+            }
+            else
+            {
+                <text>XW @Kt(v.Wind.CrosswindKt)@(v.Wind.GustCrosswindKt is { } gc && Math.Round(gc) > Math.Round(v.Wind.CrosswindKt) ? $"G{Kt(gc)}" : "") · @(v.Wind.HeadwindKt >= 0 ? "HW" : "TW") @Kt(Math.Abs(v.Wind.HeadwindKt))@(v.Wind.GustHeadwindKt is { } gh && Math.Round(Math.Abs(gh)) > Math.Round(Math.Abs(v.Wind.HeadwindKt)) ? $"G{Kt(Math.Abs(gh))}" : "") KT</text>
+            }
+        </span>
+    </div>
+    <div class="perf-limit perf-wind-limit">
+        <span class="perf-field-label">@T["perfRunway.wind.limits"]</span>
+        <span class="pill tone-@(tone == "ok" ? "ok" : tone == "amber" ? "warn" : "bad")" title="@T["perfRunway.wind.title", v.CrosswindLimitKt, v.TailwindLimitKt, v.CrosswindLimitName]">@WindLimitCheck.Summary(v)</span>
+    </div>
+}
+
+@code {
+    [Parameter] public WindLimitVerdict? Verdict { get; set; }
+
+    private static string Kt(double value) => Math.Round(value).ToString("0", CultureInfo.InvariantCulture);
+}

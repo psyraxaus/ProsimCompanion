@@ -143,6 +143,11 @@
         "lastMessage": "Herhaalt het laatste companybericht.",
         "lmc": "Vergelijkt de geboarde lading met het final loadsheet en leest de last-minute change voor."
       },
+      "windLimits": {
+        "title": "Windlimieten",
+        "windCheck": "De huidige wind op de gebruikte baan tegen de vliegtuiglimieten.",
+        "runwayCondition": "De op de Landing-pagina gekozen baantoestand en zijn dwarswindlimiet."
+      },
       "day": {
         "title": "Dienstdag",
         "start": "Start de company-dienstdag.",

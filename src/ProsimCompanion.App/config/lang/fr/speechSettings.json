@@ -1190,6 +1190,15 @@
           "hint": "À partir de la croisière, le copilote te dit quand la visibilité ou le plafond de la destination franchit ta limite, quand la lettre ATIS change, ou quand le vent devient arrière sur la piste d'atterrissage prévue.",
           "more": "Utilise l'actualisation propre des cartes météo, sans interrogation supplémentaire. La météo du dégagement est ajoutée dès que la destination est sous une limite. Chaque type de changement est dit au plus une fois par période de silence."
         },
+        "windLimits": {
+          "label": "Limites de vent",
+          "hint": "« Wind check » et « runway condition » à la voix, et une ligne limites de vent dans les briefings départ et arrivée.",
+          "more": "Les limites sont sous Display & Flight Data → Limites avion. L'état de piste vient de la page Landing."
+        },
+        "windLimitAdvisory": {
+          "label": "Avis vent en approche",
+          "hint": "En approche le FO dit une fois si le vent à destination met la piste hors limite."
+        },
         "visibility": "Limite de visibilité",
         "ceiling": "Limite de plafond",
         "tailwind": {

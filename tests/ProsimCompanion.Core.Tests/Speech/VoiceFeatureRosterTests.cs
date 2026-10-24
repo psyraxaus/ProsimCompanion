@@ -49,6 +49,8 @@ public sealed partial class VoiceFeatureRosterTests
         (typeof(ProsimCompanion.Speech.Briefings.BriefingService), 150),
         (typeof(ProsimCompanion.Speech.Briefings.MissedApproachVoiceFeature), 160),
         (typeof(ProsimCompanion.Speech.Briefings.MinimaQueryVoiceFeature), 170),
+        // Issue #182: "wind check" / "runway condition", between the minima query and the company channel.
+        (typeof(ProsimCompanion.Speech.Monitoring.WindLimitsVoiceFeature), 175),
         (typeof(ProsimCompanion.Speech.Company.CompanyChannelService), 180),
         (typeof(ProsimCompanion.Speech.Day.CompanyDayService), 190),
         (typeof(ProsimCompanion.Speech.SayIntentions.SayIntentionsService), 200),

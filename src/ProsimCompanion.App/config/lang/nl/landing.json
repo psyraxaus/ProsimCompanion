@@ -16,6 +16,7 @@
     },
     "condition": {
       "dry": "Droog",
+      "wet": "Nat",
       "good": "Goed",
       "goodMedium": "G/M",
       "medium": "Matig",

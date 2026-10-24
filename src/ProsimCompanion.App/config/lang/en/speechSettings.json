@@ -1190,6 +1190,15 @@
           "hint": "From the cruise on, the FO tells you when the destination's visibility or ceiling crosses your limit, when the ATIS letter changes, or when the wind turns into a tailwind on the planned landing runway.",
           "more": "Uses the weather cards' own refresh, no extra polling. The alternate's weather is added once the destination is below a limit. Each kind of change is spoken at most once in the quiet period."
         },
+        "windLimits": {
+          "label": "Wind limits",
+          "hint": "\"Wind check\" and \"runway condition\" by voice, and a wind-limit line in the departure and arrival briefings.",
+          "more": "The limits are on Display & Flight Data → Aircraft limits. The landing runway condition comes from the Landing page."
+        },
+        "windLimitAdvisory": {
+          "label": "Approach wind advisory",
+          "hint": "On the approach the FO says once when the destination wind puts the landing runway beyond a limit."
+        },
         "visibility": "Visibility limit",
         "ceiling": "Ceiling limit",
         "tailwind": {

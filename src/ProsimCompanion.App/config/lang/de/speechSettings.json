@@ -1190,6 +1190,15 @@
           "hint": "Ab dem Reiseflug sagt dir der FO, wenn Sicht oder Wolkenuntergrenze am Ziel dein Limit kreuzen, wenn sich der ATIS-Buchstabe ändert oder wenn der Wind auf der geplanten Landepiste zum Rückenwind wird.",
           "more": "Nutzt die eigene Aktualisierung der Wetterkarten, kein zusätzliches Polling. Das Wetter des Ausweichflughafens kommt dazu, sobald das Ziel unter einem Limit liegt. Jede Art von Änderung wird in der Ruhezeit höchstens einmal gesprochen."
         },
+        "windLimits": {
+          "label": "Windlimits",
+          "hint": "„Wind check“ und „runway condition“ per Stimme sowie eine Windlimit-Zeile im Departure- und Arrival-Briefing.",
+          "more": "Die Limits stehen unter Display & Flight Data → Flugzeuglimits. Der Bahnzustand kommt von der Landing-Seite."
+        },
+        "windLimitAdvisory": {
+          "label": "Wind-Hinweis im Anflug",
+          "hint": "Im Anflug sagt der FO einmal, wenn der Zielwind die Landebahn über ein Limit bringt."
+        },
         "visibility": "Sichtlimit",
         "ceiling": "Wolkenuntergrenzen-Limit",
         "tailwind": {

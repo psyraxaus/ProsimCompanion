@@ -16,6 +16,7 @@
     },
     "condition": {
       "dry": "Sèche",
+      "wet": "Mouillée",
       "good": "Bon",
       "goodMedium": "B/M",
       "medium": "Moyen",

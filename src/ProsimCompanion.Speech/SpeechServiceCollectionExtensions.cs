@@ -51,6 +51,10 @@ public static class SpeechServiceCollectionExtensions
         services.AddStartupModule<Monitoring.GrossErrorCheckMonitor>();
         services.AddVoiceFeature<Monitoring.GrossErrorCheckMonitor>();
         services.AddStartupModule<Monitoring.DestinationWeatherWatch>();
+        // Wind limits (issue #182): "wind check" / "runway condition" and the once-per-approach
+        // advisory when the destination wind puts the landing runway beyond a limit.
+        services.AddStartupModule<Monitoring.WindLimitAdvisory>();
+        services.AddVoiceFeature<Monitoring.WindLimitsVoiceFeature>();
         // PM engine-start monitoring (issue #131): starting / avail / both stabilized, from
         // datarefs — advisory only, ground only.
         services.AddStartupModule<Callouts.EngineStartMonitor>();

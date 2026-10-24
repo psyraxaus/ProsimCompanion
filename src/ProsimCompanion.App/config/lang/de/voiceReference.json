@@ -143,6 +143,11 @@
         "lastMessage": "Wiederholt die letzte Company-Nachricht.",
         "lmc": "Prüft die geboardete Ladung gegen das Final-Loadsheet und liest die Last-Minute-Änderung vor."
       },
+      "windLimits": {
+        "title": "Windlimits",
+        "windCheck": "Der aktuelle Wind auf der benutzten Bahn gegen die Flugzeuglimits.",
+        "runwayCondition": "Der auf der Landing-Seite gewählte Bahnzustand und sein Seitenwindlimit."
+      },
       "day": {
         "title": "Dienstag",
         "start": "Startet den Company-Diensttag.",

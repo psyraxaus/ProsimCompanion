@@ -57,6 +57,9 @@ public static class CoreServiceCollectionExtensions
         services.AddOptionSection<LogbookOptions>(configuration);
         services.AddOptionSection<DebriefOptions>(configuration);
         services.AddOptionSection<FlightDataOptions>(configuration);
+        // Wind limits for the performance pages, the briefings and the FO's wind check
+        // (issue #182) — A320 demonstrated values by default, editable per operator.
+        services.AddOptionSection<AircraftLimitsOptions>(configuration);
         services.AddOptionSection<LoggingOptions>(configuration);
         services.AddOptionSection<AircraftProfilesOptions>(configuration);
         services.AddOptionSection<UpdateCheckOptions>(configuration);
@@ -164,6 +167,9 @@ public static class CoreServiceCollectionExtensions
         // the loadsheet pipeline asks, the FO dialogue or the card answers.
         services.AddSingleton<LmcRevisionStore>();
         services.AddSingleton<ICaptainsQuestionStore>(p => p.GetRequiredService<LmcRevisionStore>());
+        // The landing runway condition for this flight (issue #182): the Landing page sets it,
+        // the wind-limit check, the briefing and the FO read it.
+        services.AddSingleton<RunwayConditionStore>();
         // The four captain's questions above share one store module (architecture review C2);
         // the ICaptainsQuestionStore registrations feed the FO dialogue, the web card and this
         // one TTL clock — the only thing that settles a question on silence (issue #166).

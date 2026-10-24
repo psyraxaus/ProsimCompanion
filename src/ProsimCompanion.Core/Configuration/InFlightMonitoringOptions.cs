@@ -15,6 +15,25 @@ public sealed class InFlightMonitoringOptions
     public DestinationWeatherWatchOptions DestinationWeather { get; set; } = new();
 
     public ReadbackOptions Readbacks { get; set; } = new();
+
+    public WindLimitsOptions WindLimits { get; set; } = new();
+}
+
+/// <summary>The wind-limits feature (issue #182): the FO's "wind check" / "runway condition"
+/// answers and the wind-limit clause in the briefings, plus the once-per-approach advisory
+/// when the destination METAR puts the landing runway beyond a limit. The limits themselves
+/// live in <see cref="AircraftLimitsOptions"/> (Display &amp; Flight Data → Aircraft limits).</summary>
+public sealed class WindLimitsOptions
+{
+    /// <summary>"Wind check" / "runway condition" by voice and the wind-limit line in the
+    /// departure and arrival briefings.</summary>
+    [OptionField(FieldKind.Bool, "speechSettings.callouts.monitoring.windLimits")]
+    public bool Enabled { get; set; }
+
+    /// <summary>On the approach, say once when the current destination METAR puts the landing
+    /// runway beyond a wind limit (the runway condition from the Landing page applies).</summary>
+    [OptionField(FieldKind.Bool, "speechSettings.callouts.monitoring.windLimitAdvisory", DependsOn = "Enabled")]
+    public bool ApproachAdvisory { get; set; }
 }
 
 /// <summary>Periodic and on-request cruise fuel check against the SimBrief navlog.</summary>

@@ -3246,6 +3246,43 @@
         "requires-human: the LMC block under the Final card on the Loadsheet page shows the same figures as the slot-03 ACARS message in the MCDU RCVD MSGS, and SYNC TO FMS after the LMC writes the new ZFW."
       ],
       "notes": "Package 2 of the November 2026 airline-ops batch (branch feature/loadsheet-lmc). LmcEvaluator (Core, pure: actual = A320WeightAndBalance.CalculateFinal over the live state at the check, so the W&B stays bit-exact), LoadsheetFormatter.FormatLmc, LoadsheetService.Lmc (trigger, latch, ACARS slot 03, revised final EDNO +1 with a REVISION line), LmcRevisionStore + LmcRevisionPhrases over the shared captain's-question dialogue, LmcAnnouncer (Speech) for the within-tolerance reading. Children/adults are not distinguished (ProSim seat map carries counts only); no TRIM figure (no source for the THS setting). Unverified live."
+    },
+    {
+      "id": "wind-limits-callout",
+      "issue": 182,
+      "state": "open",
+      "kind": "assert-present",
+      "machine": {
+        "kind": "required-fields",
+        "type": "wind.check",
+        "fields": [
+          "airport",
+          "runway",
+          "phase",
+          "headingDeg",
+          "crosswindKt",
+          "tailwindKt",
+          "crosswindLimitKt",
+          "tailwindLimitKt",
+          "limitName",
+          "tone",
+          "text"
+        ]
+      },
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "Only with sop.monitoring.windLimits.enabled = true (off by default). Trigger: the pilot says 'wind check' (speech.recognized) — or 'runway condition', or a briefing ran with a DFD runway heading and a METAR wind.",
+        "assert-present ('wind check'): ONE wind.check event with the runway in use (the departure runway before the airborne edge, the landing runway after), the heading used (gateway/DFD true heading, else designator × 10), the gust-included components, the limits applied and the tone; the spoken text starts 'Runway … : Crosswind component … knots' and ends 'within limits.' / '— exceeds the … crosswind limit of … knots.' / '— exceeds the tailwind limit of … knots.'. The components must match the METAR wind in the event resolved onto headingDeg (cos/sin), gust included.",
+        "assert-present ('runway condition'): ONE wind.runway-condition event naming the Landing page's selection (or 'No runway condition selected — dry limits apply').",
+        "assert-present (briefing): the briefing.spoken narrative carries, right after 'Wind ddd at ss knots.', the wind-limit sentence; with the LLM on, no llm.stream takeoverReason verify-failed caused by its figures (crosswind/headwind/tailwind components and the two limits are in the allowed set).",
+        "assert-present (approachAdvisory on, trigger = Approach phase with a destination METAR wind beyond a limit): ONE wind.limit-advisory event per approach, text 'Wind check for runway …: … exceeds …'; a second approach (go-around) may produce another.",
+        "assert-absent: a wind.limit-advisory outside the Approach phase, a second one in the same approach, or one whose verdict is within limits; a wind.check whose limitName is 'wet-runway' or 'RWYCC n' while the Landing page selection was Dry (the store did not carry the selection).",
+        "requires-human: the wind row on the Takeoff and Landing pages shows the same components and tone as the spoken verdict; the Landing page's condition chip survives a page reload (per-flight store) and is cleared by the flight-cycle reset."
+      ],
+      "notes": "Package 3 of the November 2026 airline-ops batch (branch feature/wind-limits-runway-condition). Core WindMath/WindComponents (the destination weather watch's tailwind trigger now reads it), AircraftLimitsOptions (A320 demonstrated defaults), RunwayCondition + RunwayConditionStore (Wet rides as BreakAction 5 for the ProSim calculator; no factor table because the calculator takes the code), WindLimitCheck (gust-included, amber band 5 kt), WindLimitsVoiceFeature, WindLimitAdvisoryCore/WindLimitAdvisory, BriefingFacts.WindLimits + the 'wind-limits' clause. Unverified live."
     }
   ]
 }

@@ -36,6 +36,11 @@
       "runwayFetchFailed": "활주로 조회 실패: {0}",
       "weatherFetchFailed": "기상 조회 실패 ({0})",
       "calcRequestFailedProsim": "계산 요청 실패 — ProSim이 실행 중인가요?"
+    },
+    "wind": {
+      "components": "바람 성분",
+      "limits": "바람 제한",
+      "title": "측풍 제한 {0} kt({2}), 배풍 제한 {1} kt — 거스트 포함"
     }
   }
 }

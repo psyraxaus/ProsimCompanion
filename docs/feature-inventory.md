@@ -109,6 +109,10 @@ through with a note if deliberately dropped. Sources: Prosim2GSX 0.9.0, ProsimIn
 - [x] SOP callouts (thrust set, 100kt, V1, rotate, V2, positive climb, RA gates, minimums,
       spoilers, reverse, decel; altitude callouts; 1000-to-go)
 - [x] Stabilized-approach gates (1000/500 ft); go-around advisory
+- [x] Wind limits and runway condition (#182, off): wind row on the Takeoff/Landing pages
+      against `aircraftLimits` (A320 demonstrated defaults), Dry/Wet/RWYCC condition strip
+      persisted per flight, "wind check" / "runway condition", briefing wind-limit sentence,
+      once-per-approach advisory
 - [x] Flow monitor advisories (lights, flaps, gear, brake, seatbelts, beacon, spoilers, XPDR;
       placard speeds) + icing/anti-ice/ISA weather advisories
 - [x] Sterile cockpit suppression; periodic fuel checks, takeoff-perf gross-error check and

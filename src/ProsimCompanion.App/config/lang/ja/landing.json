@@ -16,6 +16,7 @@
     },
     "condition": {
       "dry": "乾燥",
+      "wet": "ウェット",
       "good": "良",
       "goodMedium": "良/中",
       "medium": "中",

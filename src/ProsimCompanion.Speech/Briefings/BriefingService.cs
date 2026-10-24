@@ -76,6 +76,11 @@ public sealed class BriefingService : IVoiceFeature, IDisposable
     // it has and asks nothing.
     private readonly TakeoffPerfStore? _takeoffPerf;
     private readonly ThreatsQuestionStore? _threats;
+    // Wind limits (issue #182). Optional: without the options (tests) the briefing has no
+    // wind-limit clause.
+    private readonly IOptionsMonitor<SopOptions>? _sop;
+    private readonly IOptionsMonitor<AircraftLimitsOptions>? _aircraftLimits;
+    private readonly RunwayConditionStore? _runwayCondition;
 
     // Spoken text (campaign #81): names when the DFD is present, NATO-spelled ICAO otherwise
     // — the fallback policy lives in the module, not here (issue #70).
@@ -100,7 +105,10 @@ public sealed class BriefingService : IVoiceFeature, IDisposable
         Core.TechLog.ITechLogService? techLog = null,
         IOptionsMonitor<TechLogOptions>? techLogOptions = null,
         TakeoffPerfStore? takeoffPerf = null,
-        ThreatsQuestionStore? threats = null)
+        ThreatsQuestionStore? threats = null,
+        IOptionsMonitor<SopOptions>? sop = null,
+        IOptionsMonitor<AircraftLimitsOptions>? aircraftLimits = null,
+        RunwayConditionStore? runwayCondition = null)
     {
         _persona = persona;
         _narrator = narrator;
@@ -108,6 +116,9 @@ public sealed class BriefingService : IVoiceFeature, IDisposable
         _techLogOptions = techLogOptions;
         _takeoffPerf = takeoffPerf;
         _threats = threats;
+        _sop = sop;
+        _aircraftLimits = aircraftLimits;
+        _runwayCondition = runwayCondition;
         ArgumentNullException.ThrowIfNull(spokenText);
         _spokenText = spokenText;
         ArgumentNullException.ThrowIfNull(options);
@@ -410,7 +421,8 @@ public sealed class BriefingService : IVoiceFeature, IDisposable
             AirportName: _spokenText.Airport(ids.Airport),
             TechLogItems: ConsultTechLog(departure),
             Emergency: departure && options.TakeoffEmergencyBrief ? BuildEmergencyFacts(ids, nav, wx, flexTemp, perf, options) : null,
-            GoAround: !departure && options.ArrivalGoAroundBrief ? BuildGoAroundFacts(ids) : null);
+            GoAround: !departure && options.ArrivalGoAroundBrief ? BuildGoAroundFacts(ids) : null,
+            WindLimits: WindLimitsFor(departure, nav, wx));
     }
 
     /// <summary>The emergency half's facts (issue #180). Every source is optional: no DFD = no
@@ -458,6 +470,24 @@ public sealed class BriefingService : IVoiceFeature, IDisposable
         var missed = _navData.MissedApproach(ids.Airport, ids.Approach);
         var altitude = missed.Legs.Select(l => l.AltitudeFt).Where(a => a is > 0).Max();
         return new GoAroundBriefFacts(altitude, _navData.AirportMsaFt(ids.Airport), [.. missed.Legs.Select(l => l.Phrase)]);
+    }
+
+    /// <summary>The wind against the aircraft limits for the briefed runway (issue #182): with
+    /// the wind-limits feature on, a runway true heading from the DFD and a wind in the
+    /// observation. The landing runway condition applies to the arrival only.</summary>
+    private WindLimitVerdict? WindLimitsFor(bool departure, NavDataFacts nav, WxFacts wx)
+    {
+        if (_sop?.CurrentValue.Monitoring.WindLimits.Enabled != true || _aircraftLimits is null
+            || nav.RunwayTrueHeading is not { } heading
+            || WindMath.Resolve(wx.WindDirDeg, wx.WindSpeedKt, wx.WindGustKt, heading) is not { } wind)
+        {
+            return null;
+        }
+
+        return WindLimitCheck.Evaluate(
+            wind, _aircraftLimits.CurrentValue,
+            departure ? WindPhase.Takeoff : WindPhase.Landing,
+            departure ? null : _runwayCondition?.Current);
     }
 
     /// <summary>The open tech-log items this briefing names (2026-10-09): all of them for the

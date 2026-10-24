@@ -868,6 +868,20 @@ duties. New features default **off** and are **Unverified live** until a flight 
       talks over the question). Not modelled: adults vs children, a TRIM figure. Events
       `loadsheet.lmc`, `loadsheet.lmc.spoken`; probe `loadsheet-lmc`. **Unverified live** — a
       real no-show count against a manually issued early final in particular.
+- [x] **Wind limits and runway condition** (#182, `feature/wind-limits-runway-condition`):
+      Core `WindMath` / `WindComponents` (head/tail + crosswind, gust as a second pair, 360/000
+      wrap, variable wind as the worst case; the destination weather watch's tailwind trigger
+      consumes it), `AircraftLimitsOptions` (`aircraftLimits`: A320 demonstrated defaults —
+      tailwind 15, crosswind 38, wet 33, RWYCC 5…1 = 25/20/15/10/5), `RunwayCondition` +
+      `RunwayConditionStore` (Dry / Wet / RWYCC 5…1, per flight; Wet = calculator code 5 with
+      the wet limit; no factor table because the ProSim LDR calculator takes the code),
+      `WindLimitCheck` (gust-included, 5 kt amber band, spoken / summary / numbers), the
+      `WindLimitRow` on the Takeoff and Landing pages, `WindLimitsVoiceFeature` ("wind check" /
+      "runway condition", precedence 175), `WindLimitAdvisoryCore` + `WindLimitAdvisory`
+      (once per approach, re-armed on a go-around), `BriefingFacts.WindLimits` + the
+      `wind-limits` clause after the wind clause. Events `wind.check`, `wind.runway-condition`,
+      `wind.limit-advisory`; probe `wind-limits-callout`. **Unverified live** — the gateway's
+      `HdgDegT` as the true heading and the ProSim LDR response per condition code in particular.
 
 ## Open items (after the rc.5 batch, 2026-10-11)
 
