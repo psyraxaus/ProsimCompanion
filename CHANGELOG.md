@@ -1,8 +1,8 @@
 # Changelog
 
-## Unreleased
+## 0.8.0-rc.6
 
-Two-axis review of `feature/cockpit-switches` (standards + spec against ADR-0015), 2026-10-25. Every finding fixed; no new options.
+Local build for the owner's sim test, 2026-10-25, on top of rc.5. Two-axis review of `feature/cockpit-switches` (standards + spec against ADR-0015); every finding fixed; no new options.
 
 - Removed: **`input.vjoyPress`** — the raw "press button N" command. ADR-0015 asked for a Camera view key that names a configured view; the plugin never sent the raw form, and it let any token holder press any of the 128 buttons. `input.pressView {"name"}` is the only input command. The Setup page's hint no longer advertises Lua helpers that do not exist.
 - Changed: **`/api/controls` no longer carries `dataRef`** — the key addresses a row by id only, so no dataref name crosses the wire in either direction. The field list in the docs now includes `showUnlitLegend`.
