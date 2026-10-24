@@ -110,11 +110,13 @@ export interface ControlsPositionDto {
 	label: string;
 }
 
-/** One configured cockpit switch from /api/controls — how the key draws it. */
+/**
+ * One configured cockpit switch from /api/controls — how the key draws it. No dataref: the key
+ * addresses the row by `id` only (ADR-0015); the app keeps the dataref to itself.
+ */
 export interface ControlsSwitchDto {
 	id: string;
 	name: string;
-	dataRef?: string;
 	look?: SwitchLook;
 	pressMode?: SwitchPressMode;
 	upperLegend?: string;

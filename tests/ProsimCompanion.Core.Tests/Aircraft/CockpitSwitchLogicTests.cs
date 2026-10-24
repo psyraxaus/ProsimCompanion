@@ -34,6 +34,26 @@ public sealed class CockpitSwitchLogicTests
         Assert.Equal(0, CockpitSwitchLogic.NextValue(CockpitPressMode.Cycle, 9, Adirs, false)); // unknown value → first
     }
 
+    [Theory]
+    [InlineData(CockpitPressMode.Toggle, false, "toggle")]
+    [InlineData(CockpitPressMode.Toggle, true, "toggle")]       // a held Toggle key still toggles
+    [InlineData(CockpitPressMode.Momentary, true, "momentary")]
+    [InlineData(CockpitPressMode.Cycle, false, "cycle")]
+    [InlineData(CockpitPressMode.Cycle, true, "cycleBack")]     // the only long press that differs
+    public void ModeLabel_SaysCycleBack_OnlyForALongPressedCycleRow(CockpitPressMode mode, bool longPress, string expected)
+        => Assert.Equal(expected, CockpitSwitchLogic.ModeLabel(mode, longPress));
+
+    [Fact]
+    public void IsCatalogueValue_BoundsASet_ToTheList_Or0And1WithoutOne()
+    {
+        Assert.True(CockpitSwitchLogic.IsCatalogueValue(Adirs, 2));
+        Assert.False(CockpitSwitchLogic.IsCatalogueValue(Adirs, 3));
+        Assert.True(CockpitSwitchLogic.IsCatalogueValue([], 0));
+        Assert.True(CockpitSwitchLogic.IsCatalogueValue([], 1));
+        Assert.False(CockpitSwitchLogic.IsCatalogueValue([], 2));   // list-less ≠ unbounded
+        Assert.False(CockpitSwitchLogic.IsCatalogueValue([], -1));
+    }
+
     [Fact]
     public void Label_UsesTheCatalogue_ElseTheNumber()
     {

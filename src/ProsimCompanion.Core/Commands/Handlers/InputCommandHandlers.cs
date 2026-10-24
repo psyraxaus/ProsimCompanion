@@ -1,19 +1,8 @@
-using System.Globalization;
 using Microsoft.Extensions.Options;
 using ProsimCompanion.Core.Configuration;
 using ProsimCompanion.Core.State;
 
 namespace ProsimCompanion.Core.Commands.Handlers;
-
-/// <summary>Request DTO for <c>input.vjoyPress</c>.</summary>
-public sealed record InputVJoyPressRequest
-{
-    /// <summary>The vJoy button, 1-based (vJoy numbers them 1–128).</summary>
-    public int? Button { get; init; }
-
-    /// <summary>Hold time in ms; null = the configured <c>inputRelay.holdMs</c>.</summary>
-    public int? HoldMs { get; init; }
-}
 
 /// <summary>Request DTO for <c>input.pressView</c>.</summary>
 public sealed record InputPressViewRequest
@@ -26,17 +15,18 @@ public sealed record InputPressViewRequest
 /// <c>input.*</c> command handlers over the <see cref="IInputRelay"/> seam (2026-10-24, the
 /// vJoy relay for ChasePlane views from a second PC). The seam is nullable because the Sim
 /// pillar is optional; the relay itself answers <c>unavailable</c> while switched off.
+/// <para>
+/// One command only: <c>input.pressView {name}</c>. A remote key names a view row the pilot
+/// configured; it never names a raw button number (ADR-0015's "configured rows, not free
+/// names", applied to the relay too — the raw <c>input.vjoyPress</c> was removed in the
+/// 2026-10-25 review: the plugin never used it, and it let any token holder press any of the
+/// 128 buttons).
+/// </para>
 /// </summary>
 public static class InputCommandHandlers
 {
-    /// <summary>vJoy's hard limit per device.</summary>
-    public const int MaxButton = 128;
-
-    /// <summary>Below ~20 ms ChasePlane/MSFS may not see the press at all; above two seconds
-    /// a stuck-looking button is a mistake, not a view change.</summary>
-    public const int MinHoldMs = 20;
-    public const int MaxHoldMs = 2000;
-
+    /// <summary>Registers <c>input.pressView</c>. <paramref name="relay"/> may be null (Sim
+    /// pillar off): the command still exists and answers <c>unavailable</c> after validation.</summary>
     public static void Register(
         CommandRegistry registry,
         IInputRelay? relay,
@@ -44,49 +34,9 @@ public static class InputCommandHandlers
     {
         ArgumentNullException.ThrowIfNull(registry);
 
-        registry.Register<InputVJoyPressRequest, CommandResult>(
-            "input.vjoyPress",
-            (request, cancellationToken) => PressAsync(relay, request, cancellationToken));
-
         registry.Register<InputPressViewRequest, CommandResult>(
             "input.pressView",
             (request, cancellationToken) => PressViewAsync(relay, options?.CurrentValue, request, cancellationToken));
-    }
-
-    /// <summary>Validates the button number. Public and pure so the rule is unit-tested.</summary>
-    /// <exception cref="CommandValidationException">Missing or out-of-range button.</exception>
-    public static int ValidateButton(int? button)
-    {
-        if (button is null)
-        {
-            throw new CommandValidationException("button is required, e.g. { \"button\": 5 }.");
-        }
-
-        if (button is < 1 or > MaxButton)
-        {
-            throw new CommandValidationException(
-                FormattableString.Invariant($"button must be between 1 and {MaxButton} (vJoy numbers buttons from 1)."));
-        }
-
-        return button.Value;
-    }
-
-    /// <summary>Validates an explicit hold time; null passes through (configured default).</summary>
-    /// <exception cref="CommandValidationException">Out-of-range hold.</exception>
-    public static int? ValidateHold(int? holdMs)
-    {
-        if (holdMs is null)
-        {
-            return null;
-        }
-
-        if (holdMs is < MinHoldMs or > MaxHoldMs)
-        {
-            throw new CommandValidationException(
-                FormattableString.Invariant($"holdMs must be between {MinHoldMs} and {MaxHoldMs}."));
-        }
-
-        return holdMs;
     }
 
     /// <summary>Finds the view row for a name (trimmed, case-insensitive). Null when there is no
@@ -103,19 +53,8 @@ public static class InputCommandHandlers
             string.Equals(view.Name.Trim(), wanted, StringComparison.OrdinalIgnoreCase));
     }
 
-    public static Task<CommandResult> PressAsync(IInputRelay? relay, InputVJoyPressRequest request, CancellationToken cancellationToken)
-    {
-        ArgumentNullException.ThrowIfNull(request);
-        var button = ValidateButton(request.Button);
-        var hold = ValidateHold(request.HoldMs);
-        if (relay is null)
-        {
-            return Task.FromResult(CommandResult.Unavailable("The Sim pillar is not running — the vJoy relay lives there."));
-        }
-
-        return relay.PressAsync(button, hold, "button " + button.ToString(CultureInfo.InvariantCulture), cancellationToken);
-    }
-
+    /// <summary>Presses the button a named view row maps. Validation first (a missing name is a
+    /// 400), then the row lookup, then the pillar check — so the reason always says why.</summary>
     public static Task<CommandResult> PressViewAsync(
         IInputRelay? relay,
         InputRelayOptions? options,
@@ -138,10 +77,10 @@ public static class InputCommandHandlers
                     : $"No view named '{request.Name.Trim()}' — known views: {string.Join(", ", known)}."));
         }
 
-        if (view.Button is < 1 or > MaxButton)
+        if (view.Button is < 1 or > InputRelayOptions.MaxButton)
         {
             return Task.FromResult(CommandResult.PreconditionFailed(
-                FormattableString.Invariant($"View '{view.Name}' maps to button {view.Button}, outside 1–{MaxButton} — fix the row.")));
+                FormattableString.Invariant($"View '{view.Name}' maps to button {view.Button}, outside 1–{InputRelayOptions.MaxButton} — fix the row.")));
         }
 
         if (relay is null)

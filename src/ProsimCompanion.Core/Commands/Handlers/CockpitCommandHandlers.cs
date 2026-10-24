@@ -15,6 +15,7 @@ public sealed record CockpitPressRequest
 /// <summary>Request DTO for <c>cockpit.set</c>.</summary>
 public sealed record CockpitSetRequest
 {
+    /// <summary>The row id from Settings → Cockpit Switches — never a dataref name.</summary>
     public string? Id { get; init; }
 
     /// <summary>A catalogue value of the switch (0 = Normal, 1 = Pushed, …).</summary>
@@ -28,6 +29,9 @@ public sealed record CockpitSetRequest
 /// </summary>
 public static class CockpitCommandHandlers
 {
+    /// <summary>Registers <c>cockpit.press</c> and <c>cockpit.set</c>. <paramref name="control"/>
+    /// may be null (ProSim pillar off): the commands still exist and answer <c>unavailable</c>,
+    /// so a Stream Deck key gets a reason instead of a 404.</summary>
     public static void Register(CommandRegistry registry, ICockpitSwitchControl? control)
     {
         ArgumentNullException.ThrowIfNull(registry);
@@ -41,6 +45,7 @@ public static class CockpitCommandHandlers
             (request, cancellationToken) => SetAsync(control, request, cancellationToken));
     }
 
+    /// <summary>The trimmed row id. Public and pure so the rule is unit-tested.</summary>
     /// <exception cref="CommandValidationException">Missing id.</exception>
     public static string ValidateId(string? id)
     {
@@ -52,6 +57,8 @@ public static class CockpitCommandHandlers
         return id.Trim();
     }
 
+    /// <summary>One key press on a row (validation first, so a bad request is a 400 even with
+    /// the pillar off).</summary>
     public static Task<CommandResult> PressAsync(ICockpitSwitchControl? control, CockpitPressRequest request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
@@ -61,6 +68,7 @@ public static class CockpitCommandHandlers
             : control.PressAsync(id, request.Long, cancellationToken);
     }
 
+    /// <summary>Writes an explicit catalogue value of a row's switch (a knob position).</summary>
     public static Task<CommandResult> SetAsync(ICockpitSwitchControl? control, CockpitSetRequest request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);

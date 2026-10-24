@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased
+
+Two-axis review of `feature/cockpit-switches` (standards + spec against ADR-0015), 2026-10-25. Every finding fixed; no new options.
+
+- Removed: **`input.vjoyPress`** — the raw "press button N" command. ADR-0015 asked for a Camera view key that names a configured view; the plugin never sent the raw form, and it let any token holder press any of the 128 buttons. `input.pressView {"name"}` is the only input command. The Setup page's hint no longer advertises Lua helpers that do not exist.
+- Changed: **`/api/controls` no longer carries `dataRef`** — the key addresses a row by id only, so no dataref name crosses the wire in either direction. The field list in the docs now includes `showUnlitLegend`.
+- Fixed: **the `cockpit.press` audit event said `cycleBack` for every long press**, including a held Toggle key (which still toggles). `cycleBack` now appears only for a long press on a Cycle row.
+- Fixed: **`cockpit.set` on a switch the catalogue lists without values** accepted any integer; it now takes 0 or 1 only, the same pair a Toggle press moves between.
+- Fixed: **the vJoy relay's status detail reached the Setup page in English** whatever the UI language. Every state now travels with a text id (`setup.inputRelay.detail.*`) in all seven packs; the English form stays the command API's reason. The last-press time is formatted invariant.
+- Fixed: the relay's dispose unloaded `vJoyInterface.dll` even when a press was still holding a button (3 s wait ignored) — it now leaves the DLL loaded and logs instead. `CockpitSwitchService` turns every SDK exception into a `failed` result, as the seam promises. A row that was fixed and later broke again warns again.
+- Changed: the write gate's `ConfiguredSwitchAllowed` hook is `internal` — only the Prosim assembly can install a predicate (the compiler enforces "one implementer"). Lamp colour defaults and the vJoy bounds (device 1–16, button 1–128, hold 20–2000 ms) each live in one constant; two unused dropdown catalogue entries were removed; the public API that lacked XML docs has them.
+- Docs: `04-settings-reference.md` says grid lines (not cards) and lists `showUnlitLegend`; probes `cockpit-press` and `input-vjoy` watch both features' session events.
+- Tests: the mixer mapping tests failed about one run in three under the full suite's load (`KeyNotFoundException` on the captain's VHF1 knob). Root cause: .NET 10 runs all of `BackgroundService.ExecuteAsync` on a background thread, so `StartAsync` returns before the service has subscribed the knobs. The fixture now waits for the service's published rows before any test pushes a value. Five full runs green.
+
 ## 0.8.0-rc.5
 
 Local build for the owner's sim test, 2026-10-24, on top of rc.4.

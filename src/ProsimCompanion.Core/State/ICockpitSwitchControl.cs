@@ -14,6 +14,7 @@ public sealed record CockpitSwitchState(string Id, int? Value, string? Position,
 /// <summary>Every configured switch's state, published by the ProSim pillar.</summary>
 public sealed record CockpitSwitchesSnapshot(IReadOnlyList<CockpitSwitchState> Switches)
 {
+    /// <summary>No rows published yet (the store's initial value, and the ProSim pillar absent).</summary>
     public static CockpitSwitchesSnapshot Empty { get; } = new([]);
 }
 

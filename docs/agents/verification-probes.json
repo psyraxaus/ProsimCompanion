@@ -16,6 +16,64 @@
   },
   "probes": [
     {
+      "id": "cockpit-press",
+      "issue": 0,
+      "state": "open",
+      "kind": "watch",
+      "machine": {
+        "kind": "required-fields",
+        "type": "cockpit.press",
+        "fields": [
+          "id",
+          "dataRef",
+          "mode",
+          "from",
+          "source"
+        ]
+      },
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "Every 'cockpit.press' event carries id, dataRef (always system.switches.S_*), mode (toggle | momentary | cycle | cycleBack | set), from, to (null for momentary) and source. mode = cycleBack appears ONLY on a long press of a row whose press mode is Cycle — a held Toggle key logs 'toggle'.",
+        "watch: count presses per id; a 'Cockpit switch … press refused' / 'set refused' warning in the log without a matching event is the gate or the SDK refusing — quote it.",
+        "watch: the log line 'names …, which is not a catalogued system.switches.S_* switch — row skipped' once per broken row (a row that was fixed and broke again warns again).",
+        "assert-absent: a dataRef outside system.switches.S_ in any cockpit.press event (the gate's family check failed).",
+        "requires-human: the leak valve key moved ProSim's overhead LMV push button and the key's lamp followed (needs the aircraft powered — see cockpit-switches.md 'Seen live')."
+      ],
+      "notes": "Feature 2026-10-24 (ADR-0015, branch feature/cockpit-switches, no issue number; unverified live). CockpitSwitchService.Record; the pure rules (ModeLabel, IsCatalogueValue, NextValue) are in Core CockpitSwitchLogic. Review 2026-10-25 fixed the cycleBack mislabel and bounded cockpit.set for list-less switches to 0/1."
+    },
+    {
+      "id": "input-vjoy",
+      "issue": 0,
+      "state": "open",
+      "kind": "watch",
+      "machine": {
+        "kind": "required-fields",
+        "type": "input.vjoy",
+        "fields": [
+          "device",
+          "button",
+          "holdMs",
+          "label",
+          "source"
+        ]
+      },
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "Every 'input.vjoy' event carries device, button (1–128), holdMs (20–2000), label (the view name — there is no raw button command, so label is never 'button N' from the network) and source.",
+        "watch: 'vJoy relay ready: device … acquired' once per acquire; repeated acquires between presses mean the device is being released (settings change or a failure path) — count them.",
+        "watch: 'vJoy relay press failed' or 'vJoyInterface.dll failed to load' warnings — quote the first.",
+        "watch: 'a press was still in flight at dispose' at shutdown — the DLL was deliberately left loaded; note it, it is not a crash.",
+        "requires-human: a Camera view key on the other PC changed the ChasePlane view bound to that vJoy button."
+      ],
+      "notes": "Feature 2026-10-24 (branch feature/cockpit-switches, no issue number; unverified live — no vJoy on the dev machine). VJoyInputRelay (Sim) over vJoyInterface.dll, no winmm/dinput. Review 2026-10-25 removed input.vjoyPress; input.pressView {name} is the only command."
+    },
+    {
       "id": "si-arrival-gate-from-atc",
       "issue": 0,
       "state": "open",

@@ -62,6 +62,13 @@ public sealed class CockpitSwitchesOptions : IOptionSection
 /// <summary>One cockpit switch a key may press and show.</summary>
 public sealed class CockpitSwitchRow
 {
+    /// <summary>Upper lamp colour when the row has none or a bad hex: Airbus amber (FAULT).
+    /// The one place the default lives — the controls API and the page's swatches read it.</summary>
+    public const string DefaultUpperColor = "#ffb000";
+
+    /// <summary>Lower lamp colour when the row has none or a bad hex: lamp white (ON / OFF).</summary>
+    public const string DefaultLowerColor = "#f4f6f8";
+
     /// <summary>Stable id a key refers to (<c>cockpit.press {"id":"oh_hyd_lmv_blue"}</c>);
     /// letters, digits and underscores. Filled from the dataref on pick, editable.</summary>
     [OptionField(FieldKind.Text, "cockpit.row.id", Normalize = FieldNormalization.Trim)]
@@ -74,10 +81,12 @@ public sealed class CockpitSwitchRow
     /// <summary>The <c>system.switches.S_*</c> dataref, picked from the catalogue on the page.</summary>
     public string DataRef { get; set; } = "";
 
-    [OptionField(FieldKind.Select, "cockpit.row.look", Choices = "cockpitLook")]
+    /// <summary>How the key draws the switch. A dropdown on the page's grid line (the
+    /// Cockpit Switches page writes its own select, so no field attribute here).</summary>
     public CockpitSwitchLook Look { get; set; } = CockpitSwitchLook.Korry2;
 
-    [OptionField(FieldKind.Select, "cockpit.row.press", Choices = "cockpitPress")]
+    /// <summary>What one key press does — see <see cref="CockpitPressMode"/>. A dropdown on
+    /// the page's grid line.</summary>
     public CockpitPressMode PressMode { get; set; } = CockpitPressMode.Toggle;
 
     /// <summary>Upper lamp legend (Korry2) — "FAULT", "AVAIL".</summary>
@@ -106,10 +115,10 @@ public sealed class CockpitSwitchRow
     public bool ShowUnlitLegend { get; set; } = true;
 
     /// <summary>Upper lamp colour, hex. Amber by default (FAULT).</summary>
-    public string UpperColor { get; set; } = "#ffb000";
+    public string UpperColor { get; set; } = DefaultUpperColor;
 
     /// <summary>Lower lamp colour, hex. White by default; blue for a selected ON.</summary>
-    public string LowerColor { get; set; } = "#f4f6f8";
+    public string LowerColor { get; set; } = DefaultLowerColor;
 
     /// <summary>Button bezel colour, hex; empty = the plain grey bezel. The leak measurement
     /// valves use blue / green / yellow here for the hydraulic system.</summary>

@@ -28,6 +28,8 @@ namespace ProsimCompanion.Prosim.Switches;
 /// </summary>
 public sealed class CockpitSwitchService : IHostedService, ICockpitSwitchControl, IDisposable
 {
+    /// <summary>Session event type of every write this service makes — the audit trail
+    /// (<c>id, dataRef, mode, from, to, source</c>; probe <c>cockpit-press</c>).</summary>
     public const string PressEvent = "cockpit.press";
     private const string SwitchFamily = SwitchCatalog.Prefix + "S_";
 
@@ -44,6 +46,7 @@ public sealed class CockpitSwitchService : IHostedService, ICockpitSwitchControl
     private IDisposable? _optionsChange;
     private IDisposable? _catalogChange;
 
+    /// <summary>Collaborators only; nothing is subscribed until <see cref="StartAsync"/>.</summary>
     public CockpitSwitchService(
         IOptionsMonitor<CockpitSwitchesOptions> options,
         IProsimDataRefs dataRefs,
@@ -129,12 +132,17 @@ public sealed class CockpitSwitchService : IHostedService, ICockpitSwitchControl
 
             var next = CockpitSwitchLogic.NextValue(row.PressMode, current.Value, values, longPress);
             await _dataRefs.WriteAsync(name, next, cancellationToken).ConfigureAwait(false);
-            Record(row, name, current.Value, next, longPress ? "cycleBack" : row.PressMode.ToString().ToLowerInvariant());
+            Record(row, name, current.Value, next, CockpitSwitchLogic.ModeLabel(row.PressMode, longPress));
             return CommandResult.Ok($"{row.Name}: {CockpitSwitchLogic.Label(values, current.Value)} → {CockpitSwitchLogic.Label(values, next)}.");
         }
-        catch (InvalidOperationException ex)
+        catch (OperationCanceledException)
         {
-            // The gate refused (row/catalogue changed under us) or ProSim dropped mid-call.
+            throw;
+        }
+        catch (Exception ex)
+        {
+            // The gate refused (row/catalogue changed under us), ProSim dropped mid-call, or the
+            // SDK threw something of its own — the seam promises words, never an exception.
             _logger.LogWarning(ex, "Cockpit switch {Id} press refused", row.Id);
             return CommandResult.Failed(ex.Message);
         }
@@ -151,10 +159,13 @@ public sealed class CockpitSwitchService : IHostedService, ICockpitSwitchControl
 
         var name = row.DataRef.Trim();
         var values = _catalog.Snapshot().Find(name)?.Values ?? [];
-        if (values.Count > 0 && values.All(v => v.Value != value))
+        if (!CockpitSwitchLogic.IsCatalogueValue(values, value))
         {
-            return CommandResult.PreconditionFailed(
-                $"{row.Name} has no position {value} — choices: {string.Join(", ", values.Select(v => $"{v.Value} = {v.Label}"))}.");
+            // Bounded like a press (ADR-0015): a list-less switch takes 0 or 1 only.
+            var choices = values.Count > 0
+                ? string.Join(", ", values.Select(v => $"{v.Value} = {v.Label}"))
+                : "0 or 1 (no position list in the catalogue)";
+            return CommandResult.PreconditionFailed($"{row.Name} has no position {value} — choices: {choices}.");
         }
 
         var current = CurrentValue(name, out var stale);
@@ -174,7 +185,11 @@ public sealed class CockpitSwitchService : IHostedService, ICockpitSwitchControl
             Record(row, name, current.Value, value, "set");
             return CommandResult.Ok($"{row.Name}: {CockpitSwitchLogic.Label(values, current.Value)} → {CockpitSwitchLogic.Label(values, value)}.");
         }
-        catch (InvalidOperationException ex)
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
         {
             _logger.LogWarning(ex, "Cockpit switch {Id} set refused", row.Id);
             return CommandResult.Failed(ex.Message);
@@ -248,6 +263,7 @@ public sealed class CockpitSwitchService : IHostedService, ICockpitSwitchControl
             var catalog = _catalog.Snapshot();
             var rows = new List<CockpitSwitchRow>();
             var needed = new HashSet<string>(StringComparer.Ordinal);
+            var skipped = new HashSet<string>(StringComparer.Ordinal);
             foreach (var row in options.Rows)
             {
                 var name = row.DataRef.Trim();
@@ -258,6 +274,7 @@ public sealed class CockpitSwitchService : IHostedService, ICockpitSwitchControl
 
                 if (!name.StartsWith(SwitchFamily, StringComparison.Ordinal) || catalog.Find(name) is null)
                 {
+                    skipped.Add(name);
                     if (_warnedRows.Add(name))
                     {
                         _logger.LogWarning("Cockpit switch row {Id} names {DataRef}, which is not a catalogued system.switches.S_* switch — row skipped", row.Id, name);
@@ -276,6 +293,9 @@ public sealed class CockpitSwitchService : IHostedService, ICockpitSwitchControl
                     }
                 }
             }
+
+            // "Logged once" per spell: a row that becomes valid and later breaks again warns again.
+            _warnedRows.RemoveWhere(name => !skipped.Contains(name));
 
             foreach (var gone in _subscriptions.Keys.Where(k => !needed.Contains(k)).ToList())
             {
@@ -327,6 +347,8 @@ public sealed class CockpitSwitchService : IHostedService, ICockpitSwitchControl
 
     private IDataRefSubscription? Lookup(string name) => _subscriptions.TryGetValue(name, out var s) ? s : null;
 
+    /// <summary>Uninstalls the write-gate hook (only if it is still ours) and drops every
+    /// subscription. Safe to call twice; <see cref="StopAsync"/> calls it.</summary>
     public void Dispose()
     {
         _optionsChange?.Dispose();

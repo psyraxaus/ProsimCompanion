@@ -28,14 +28,18 @@ plugin and the command API — no FSUIPC, no second plugin.
   the rows need (`SubscribeDynamic`, Normal tier — the dynamic-subscribe guard test lists the
   file) and publishes `CockpitSwitchStateStore` (`id, value, position label, upperLit, lowerLit,
   stale`) on every push.
-- Installs `ProsimWriteGate.ConfiguredSwitchAllowed`: a name passes only while it is a row AND
-  catalogued AND the feature is on; the gate itself restricts the hook to `system.switches.S_`.
+- Installs `ProsimWriteGate.ConfiguredSwitchAllowed` (internal — only the Prosim assembly can
+  install a predicate): a name passes only while it is a row AND catalogued AND the feature is
+  on; the gate itself restricts the hook to `system.switches.S_`.
 - `cockpit.press {id, long?}`: Toggle → `WriteAsync(other of the first two values)`; Momentary
   → `PressMomentaryAsync` (the serialised press worker, `prosim.momentaryPress*` timings); Cycle
   → next value, long press previous, wrapping. `cockpit.set {id, value}` writes a catalogue
-  value. Outcomes: no row → `preconditionFailed` listing the ids; feature off → `unavailable`;
-  no live value / ProSim away → `unavailable`; gate or backend refusal → `failed`. Session event
-  `cockpit.press` (`id, dataRef, mode, from, to, source`).
+  value — for a switch the catalogue lists without values, 0 or 1 only (the Toggle pair).
+  Outcomes: no row → `preconditionFailed` listing the ids; feature off → `unavailable`;
+  no live value / ProSim away → `unavailable`; gate, backend or SDK refusal → `failed` (the seam
+  never throws). Session event `cockpit.press` (`id, dataRef, mode, from, to, source`; `mode` is
+  `toggle | momentary | cycle | cycleBack | set`, `cycleBack` only for a long press on a Cycle
+  row).
 - Pure rules in `Core/Aircraft/Switches/CockpitSwitchLogic.cs` (next value, face state, slug,
   hex check), unit-tested.
 
@@ -44,10 +48,11 @@ plugin and the command API — no FSUIPC, no second plugin.
 - `GET /api/status` → `switches: [{id, value, position, upperLit, lowerLit, stale}]` (null
   without the ProSim pillar, empty without rows).
 - `GET /api/controls` (same gate as the status feed) → `{ switchesEnabled, switches: [{id, name,
-  dataRef, look, pressMode, upperLegend, lowerLegend, upperColor, lowerColor, bezelColor,
-  positions: [{value, label}]}], viewsEnabled, views: [{name, button}] }` — configuration for
-  the key faces and the Property Inspector dropdowns; the plugin re-reads it every 30 s and when
-  a key's settings open.
+  look, pressMode, upperLegend, lowerLegend, upperColor, lowerColor, bezelColor,
+  showUnlitLegend, positions: [{value, label}]}], viewsEnabled, views: [{name, button}] }` —
+  configuration for the key faces and the Property Inspector dropdowns; the plugin re-reads it
+  every 30 s and when a key's settings open. No dataref on the wire in either direction
+  (review 2026-10-25): the key knows the row id only.
 
 ### Plugin (`streamdeck/src/actions/cockpit-switch-action.ts`, `rendering/cockpit-tiles.ts`)
 
@@ -65,8 +70,12 @@ Settings → Setup → **vJoy relay** (`inputRelay`): the app presses a button o
 joystick on the sim PC (`VJoyInputRelay` over `vJoyInterface.dll`, loaded lazily from the
 driver's folder, never shipped); ChasePlane sees a real controller button. View rows map a name
 to a button; the plugin's *Camera view* key (`camera-view-action.ts`) POSTs `input.pressView
-{name}`; `input.vjoyPress {button, holdMs?}` is the raw form. States on the Setup page: OFF /
-NO DRIVER / NO DEVICE / DEVICE BUSY / READY / FAILED; session event `input.vjoy`.
+{name}` — the only input command: a remote key names a configured view, never a raw button
+number (the raw `input.vjoyPress` was removed in the 2026-10-25 review; ADR-0015's rule applied
+to the relay). States on the Setup page: OFF / NO DRIVER / NO DEVICE / DEVICE BUSY / READY /
+FAILED, each with a translated detail line (`setup.inputRelay.detail.*`; the English form is the
+command reason); session event `input.vjoy`. Probes `cockpit-press` and `input-vjoy` watch both
+features' events.
 
 ## Seen live (2026-10-24, owner's sim PC via the ProSim gateway)
 

@@ -18,6 +18,19 @@ public sealed class InputRelayOptions : IOptionSection
 {
     public static string SectionName => "inputRelay";
 
+    /// <summary>vJoy's hard limit per device. The one place the bound lives — the command
+    /// handler, the relay and the Setup page's row editor all read it.</summary>
+    public const int MaxButton = 128;
+
+    /// <summary>vJoy supports device numbers 1–16.</summary>
+    public const int MaxDevice = 16;
+
+    /// <summary>Below ~20 ms ChasePlane/MSFS may not see the press at all.</summary>
+    public const int MinHoldMs = 20;
+
+    /// <summary>Above two seconds a stuck-looking button is a mistake, not a view change.</summary>
+    public const int MaxHoldMs = 2000;
+
     /// <summary>Master switch. While off, <c>input.*</c> commands answer <c>unavailable</c>
     /// and the DLL is never loaded.</summary>
     [OptionField(FieldKind.Bool, "setup.inputRelay.enable")]
@@ -39,8 +52,8 @@ public sealed class InputRelayOptions : IOptionSection
     public int HoldMs { get; set; } = 150;
 
     /// <summary>Named buttons — <c>input.pressView {"name":"wing"}</c> presses the button a
-    /// row maps, so a remote key names a view instead of a number. Edited as rows on the
-    /// Setup page; the raw <c>input.vjoyPress {"button":5}</c> needs no row.</summary>
+    /// row maps, so a remote key names a view instead of a number (ADR-0015: nothing arriving
+    /// over the network is a raw button number). Edited as rows on the Setup page.</summary>
     public List<InputViewButton> Views { get; set; } = [];
 }
 

@@ -31,6 +31,16 @@ export const Face = {
 	offline: "#5c636b",
 };
 
+/**
+ * Lamp colours when /api/controls carries none (the app's own defaults, CockpitSwitchRow):
+ * Airbus amber for the upper FAULT/AVAIL lamp, lamp white for the lower ON/OFF lamp and the
+ * active word of toggles, knobs and guarded switches.
+ */
+export const LampDefaults = {
+	upper: "#ffb000",
+	lower: "#f4f6f8",
+};
+
 export type Flash = "ok" | "bad" | undefined;
 
 function esc(s: string): string {
@@ -75,7 +85,7 @@ function plate(bezel: string | undefined, y = 44, h = 84): string {
 
 function lamp(y: number, h: number, legend: string, color: string, lit: boolean, showUnlit: boolean, fontSize = 21): string {
 	let out = `<rect x="30" y="${y}" width="84" height="${h}" rx="4" fill="${Face.lampOff}"/>`;
-	const c = safeColor(color, "#f4f6f8");
+	const c = safeColor(color, LampDefaults.lower);
 	if (lit) {
 		out += `<rect x="31.5" y="${y + 1.5}" width="81" height="${h - 3}" rx="4" fill="none" stroke="${c}" stroke-width="3"/>`;
 	}
@@ -135,7 +145,7 @@ export interface ToggleOptions {
 
 /** Two-position toggle: lever up or down, the active position word lit. */
 export function toggleTile(o: ToggleOptions): string {
-	const active = safeColor(o.activeColor, "#f4f6f8");
+	const active = safeColor(o.activeColor, LampDefaults.lower);
 	let svg = open(o.dim === true) + title(o.title) + plate(o.bezel);
 	svg += text(SIZE / 2, 62, 15, o.up ? active : Face.legendOff, o.labels[0].toUpperCase(), 1.5);
 	svg += text(SIZE / 2, 122, 15, o.up ? Face.legendOff : active, o.labels[1].toUpperCase(), 1.5);
@@ -161,7 +171,7 @@ export interface KnobOptions {
 
 /** Rotary selector: labels fan across the top, the pointer points at the current one. */
 export function knobTile(o: KnobOptions): string {
-	const active = safeColor(o.activeColor, "#f4f6f8");
+	const active = safeColor(o.activeColor, LampDefaults.lower);
 	const positions = o.positions.slice(0, 5);
 	const n = Math.max(positions.length, 2);
 	let svg = open(o.dim === true) + title(o.title) + plate(o.bezel);
@@ -204,7 +214,7 @@ export interface GuardedOptions {
 
 /** Guarded switch: red guard closed over the switch when off, lifted when on. */
 export function guardedTile(o: GuardedOptions): string {
-	const active = safeColor(o.activeColor, "#f4f6f8");
+	const active = safeColor(o.activeColor, LampDefaults.lower);
 	let svg = open(o.dim === true) + title(o.title) + plate(o.bezel);
 	if (!o.on) {
 		svg += `<rect x="32" y="54" width="80" height="66" rx="5" fill="${Face.guard}"/>`;

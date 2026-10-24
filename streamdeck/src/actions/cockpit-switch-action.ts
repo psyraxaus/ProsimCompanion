@@ -7,7 +7,7 @@ import streamDeck, {
 } from "@elgato/streamdeck";
 import { connection } from "../connection/connection-manager";
 import { ConnStatus, ControlsSwitchDto, StatusDto, SwitchStatusDto } from "../connection/types";
-import { blankTile, Flash, guardedTile, knobTile, korryTile, toggleTile } from "../rendering/cockpit-tiles";
+import { blankTile, Flash, guardedTile, knobTile, korryTile, LampDefaults, toggleTile } from "../rendering/cockpit-tiles";
 import { connLabel } from "../rendering/tiles";
 import { KeyTile, shorten, StatusAction } from "./base-status-action";
 
@@ -134,7 +134,7 @@ function pair(def: ControlsSwitchDto): [string, string] {
 
 function faceFor(def: ControlsSwitchDto, live: SwitchStatusDto | undefined, dim: boolean, flash: Flash, note?: string): string {
 	const bezel = def.bezelColor && def.bezelColor.length > 0 ? def.bezelColor : undefined;
-	const lower = def.lowerColor ?? "#f4f6f8";
+	const lower = def.lowerColor ?? LampDefaults.lower;
 	const showUnlit = def.showUnlitLegend !== false;
 	const positions = def.positions ?? [];
 	const value = live?.value ?? null;
@@ -164,7 +164,7 @@ function faceFor(def: ControlsSwitchDto, live: SwitchStatusDto | undefined, dim:
 			return korryTile({
 				title: def.name,
 				bezel,
-				upper: { legend: def.upperLegend ?? "", color: def.upperColor ?? "#ffb000", lit: live?.upperLit === true, showUnlit },
+				upper: { legend: def.upperLegend ?? "", color: def.upperColor ?? LampDefaults.upper, lit: live?.upperLit === true, showUnlit },
 				lower: { legend: def.lowerLegend ?? "", color: lower, lit: live?.lowerLit === true, showUnlit },
 				dim,
 				flash,

@@ -82,7 +82,7 @@
                     <option value="@CockpitPressMode.Momentary">@T["cockpit.pressOptions.momentary"]</option>
                     <option value="@CockpitPressMode.Cycle">@T["cockpit.pressOptions.cycle"]</option>
                 </select>
-                <input type="color" class="cockpit-swatch" value="@Swatch(row.LowerColor, "#f4f6f8")" @onchange="e => SetColor(c => row.LowerColor = c, e)" title="@T["cockpit.row.lowerColorHint"]" aria-label="@T["cockpit.row.lowerColor"]" />
+                <input type="color" class="cockpit-swatch" value="@Swatch(row.LowerColor, CockpitSwitchRow.DefaultLowerColor)" @onchange="e => SetColor(c => row.LowerColor = c, e)" title="@T["cockpit.row.lowerColorHint"]" aria-label="@T["cockpit.row.lowerColor"]" />
                 <input type="color" class="cockpit-swatch @(string.IsNullOrWhiteSpace(row.BezelColor) ? "cockpit-swatch-none" : "")" value="@Swatch(row.BezelColor, "#3b4046")" @onchange="e => SetColor(c => row.BezelColor = c, e)" title="@T["cockpit.row.bezelColorHint"]" aria-label="@T["cockpit.row.bezelColor"]" />
                 <span class="pill @StateTone(state)" title="@T["cockpit.row.stateHint"]">@StateLabel(state)</span>
                 <button type="button" class="btn secondary cockpit-more" title="@(open ? T["cockpit.row.less"].Value : T["cockpit.row.more"].Value)" aria-expanded="@(open ? "true" : "false")"
@@ -116,7 +116,7 @@
 
                     <label>@T["cockpit.row.upperColor"] <FieldHint Hint="@T["cockpit.row.upperColorHint"]" /></label>
                     <div style="display:flex; align-items:center; gap:8px;">
-                        <input type="color" class="cockpit-swatch" value="@Swatch(row.UpperColor, "#ffb000")" @onchange="e => SetColor(c => row.UpperColor = c, e)" aria-label="@T["cockpit.row.upperColor"]" disabled="@(row.Look != CockpitSwitchLook.Korry2)" />
+                        <input type="color" class="cockpit-swatch" value="@Swatch(row.UpperColor, CockpitSwitchRow.DefaultUpperColor)" @onchange="e => SetColor(c => row.UpperColor = c, e)" aria-label="@T["cockpit.row.upperColor"]" disabled="@(row.Look != CockpitSwitchLook.Korry2)" />
                         <input class="cell-input @(CockpitSwitchLogic.IsHexColor(row.UpperColor) ? "" : "invalid")" style="width:110px;" @bind="row.UpperColor" />
                         <span class="field-hint" style="margin:0;">@T["cockpit.row.lowerColor"]:</span>
                         <input class="cell-input @(CockpitSwitchLogic.IsHexColor(row.LowerColor) ? "" : "invalid")" style="width:110px;" @bind="row.LowerColor" />
@@ -307,7 +307,7 @@
             row.UpperIndicator = "";
             row.LowerIndicator = "";
             row.ShowUnlitLegend = false;
-            row.LowerColor = "#f4f6f8";
+            row.LowerColor = CockpitSwitchRow.DefaultLowerColor;
             row.BezelColor = colour;
         }
 

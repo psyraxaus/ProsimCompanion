@@ -26,10 +26,10 @@ loopback). Requires `commandApi.enabled: true`.
   `switches:[{id,value,position,upperLit,lowerLit,stale}]` (2026-10-24) is the live
   state of the configured cockpit switches — null without the ProSim pillar.
 - `GET /api/controls` — read on connect, every 30 s and when a key's Property Inspector
-  opens: `{ switchesEnabled, switches:[{id,name,dataRef,look,pressMode,upperLegend,
-  lowerLegend,upperColor,lowerColor,bezelColor,positions:[{value,label}]}],
+  opens: `{ switchesEnabled, switches:[{id,name,look,pressMode,upperLegend,
+  lowerLegend,upperColor,lowerColor,bezelColor,showUnlitLegend,positions:[{value,label}]}],
   viewsEnabled, views:[{name,button}] }` — the configuration the Cockpit Switch and
-  Camera View keys draw from (`cockpit-switches.md`).
+  Camera View keys draw from (`cockpit-switches.md`); no dataref names on the wire.
 - `POST /api/command/{name}` — optional JSON body; response `{outcome, reason}`
   with outcome `success|alreadySatisfied|phaseMismatch|preconditionFailed|
   failed|unavailable`. Command names used: `gsx.startDepartureServices`,

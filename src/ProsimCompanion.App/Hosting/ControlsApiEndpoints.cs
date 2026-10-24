@@ -14,11 +14,14 @@ namespace ProsimCompanion.App.Hosting;
 /// <summary>One catalogue position of a switch.</summary>
 public sealed record ControlsPosition(int Value, string Label);
 
-/// <summary>A configured cockpit switch as the Stream Deck key draws it.</summary>
+/// <summary>
+/// A configured cockpit switch as the Stream Deck key draws it. Deliberately WITHOUT the
+/// dataref (review 2026-10-25): the plugin addresses a row by <paramref name="Id"/> only, so
+/// the wire never carries a dataref name in either direction (ADR-0015).
+/// </summary>
 public sealed record ControlsSwitch(
     string Id,
     string Name,
-    string DataRef,
     CockpitSwitchLook Look,
     CockpitPressMode PressMode,
     string UpperLegend,
@@ -32,6 +35,8 @@ public sealed record ControlsSwitch(
 /// <summary>A vJoy relay view row.</summary>
 public sealed record ControlsView(string Name, int Button);
 
+/// <summary>The whole <c>GET /api/controls</c> payload: both features' master switches and
+/// their rows, so a key can say "switches off" instead of guessing from an empty list.</summary>
 public sealed record ControlsResponse(
     bool SwitchesEnabled,
     IReadOnlyList<ControlsSwitch> Switches,
@@ -52,6 +57,7 @@ public static class ControlsApiEndpoints
         Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) },
     };
 
+    /// <summary>Maps <c>GET /api/controls</c>. Called once from the composition root.</summary>
     public static void MapControlsApi(this IEndpointRouteBuilder endpoints)
     {
         ArgumentNullException.ThrowIfNull(endpoints);
@@ -93,13 +99,12 @@ public static class ControlsApiEndpoints
             .Select(r => new ControlsSwitch(
                 r.Id.Trim(),
                 string.IsNullOrWhiteSpace(r.Name) ? r.Id.Trim() : r.Name.Trim(),
-                r.DataRef.Trim(),
                 r.Look,
                 r.PressMode,
                 r.UpperLegend,
                 r.LowerLegend,
-                CockpitSwitchLogic.IsHexColor(r.UpperColor) ? r.UpperColor.Trim() : "#ffb000",
-                CockpitSwitchLogic.IsHexColor(r.LowerColor) ? r.LowerColor.Trim() : "#f4f6f8",
+                CockpitSwitchLogic.IsHexColor(r.UpperColor) ? r.UpperColor.Trim() : CockpitSwitchRow.DefaultUpperColor,
+                CockpitSwitchLogic.IsHexColor(r.LowerColor) ? r.LowerColor.Trim() : CockpitSwitchRow.DefaultLowerColor,
                 CockpitSwitchLogic.IsHexColor(r.BezelColor) ? r.BezelColor.Trim() : "",
                 catalog?.Find(r.DataRef)?.Values.Select(v => new ControlsPosition(v.Value, v.Label)).ToList() ?? [],
                 r.ShowUnlitLegend))

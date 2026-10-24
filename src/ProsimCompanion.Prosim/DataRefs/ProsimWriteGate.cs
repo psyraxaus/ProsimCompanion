@@ -142,9 +142,11 @@ public static class ProsimWriteGate
     /// a configured row AND a catalogued switch; the predicate is set by
     /// <c>CockpitSwitchService</c> at start and cleared on dispose. Null = no widening. The
     /// family check here is deliberate belt-and-braces: even a buggy predicate cannot open
-    /// anything outside <c>system.switches.S_</c>.
+    /// anything outside <c>system.switches.S_</c>. Internal on purpose (review 2026-10-25):
+    /// only this assembly — and the test project through InternalsVisibleTo — can install a
+    /// predicate, so "one implementer" is enforced by the compiler, not by convention.
     /// </summary>
-    public static Func<string, bool>? ConfiguredSwitchAllowed { get; set; }
+    internal static Func<string, bool>? ConfiguredSwitchAllowed { get; set; }
 
     private const string ConfiguredSwitchFamily = "system.switches.S_";
 

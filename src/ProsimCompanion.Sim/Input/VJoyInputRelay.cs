@@ -23,11 +23,20 @@ namespace ProsimCompanion.Sim.Input;
 /// dispose or when the settings change. No winmm/dinput anywhere — vJoy's DLL talks to its
 /// own driver (the 2026-10-11 crash rule).
 /// </para>
+/// <para>
+/// Every detail the Setup page shows travels as a language-pack text id plus arguments
+/// (<c>setup.inputRelay.detail.*</c>) beside its English form, which stays the command API's
+/// reason (review 2026-10-25: Sim-built English used to reach the GUI untranslated).
+/// </para>
 /// </summary>
 public sealed class VJoyInputRelay : IInputRelay, IDisposable
 {
+    /// <summary>Session event type of every relayed press (<c>device, button, holdMs, label,
+    /// source</c>; probe <c>input-vjoy</c>).</summary>
     public const string PressEvent = "input.vjoy";
+
     private const string DllName = "vJoyInterface.dll";
+    private const string DetailPrefix = "setup.inputRelay.detail.";
 
     private readonly IOptionsMonitor<InputRelayOptions> _options;
     private readonly JsonlEventLog _eventLog;
@@ -42,6 +51,7 @@ public sealed class VJoyInputRelay : IInputRelay, IDisposable
     private InputRelaySnapshot _snapshot = InputRelaySnapshot.Off;
     private int _settingsChanged;
 
+    /// <summary>Collaborators only; the DLL is not touched until the first press or Check.</summary>
     public VJoyInputRelay(
         IOptionsMonitor<InputRelayOptions> options,
         JsonlEventLog eventLog,
@@ -88,7 +98,7 @@ public sealed class VJoyInputRelay : IInputRelay, IDisposable
     public async Task<CommandResult> PressAsync(int button, int? holdMs, string? label, CancellationToken cancellationToken = default)
     {
         var options = _options.CurrentValue;
-        var hold = Math.Clamp(holdMs ?? options.HoldMs, 20, 2000);
+        var hold = Math.Clamp(holdMs ?? options.HoldMs, InputRelayOptions.MinHoldMs, InputRelayOptions.MaxHoldMs);
         label = string.IsNullOrWhiteSpace(label) ? "button " + button.ToString(CultureInfo.InvariantCulture) : label.Trim();
 
         await _press.WaitAsync(cancellationToken).ConfigureAwait(false);
@@ -114,7 +124,11 @@ public sealed class VJoyInputRelay : IInputRelay, IDisposable
             {
                 if (!_vjoy.SetButton(device, (byte)button, true))
                 {
-                    return Fail(options, FormattableString.Invariant($"vJoy refused to press button {button} on device {options.VJoyDevice}."));
+                    return Fail(
+                        FormattableString.Invariant($"vJoy refused to press button {button} on device {options.VJoyDevice}."),
+                        "pressRefused",
+                        Invariant(button),
+                        Invariant(options.VJoyDevice));
                 }
 
                 pressed = true;
@@ -148,7 +162,7 @@ public sealed class VJoyInputRelay : IInputRelay, IDisposable
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             _logger.LogWarning(ex, "vJoy relay press failed");
-            return Fail(options, "vJoy press failed: " + ex.Message);
+            return Fail("vJoy press failed: " + ex.Message, "pressFailed", ex.Message);
         }
         finally
         {
@@ -168,7 +182,7 @@ public sealed class VJoyInputRelay : IInputRelay, IDisposable
         if (!options.Enabled)
         {
             Unload();
-            return Publish(new InputRelaySnapshot(InputRelayState.Off, "The vJoy relay is off — Settings → Setup → vJoy relay.", 0, _snapshot.LastPressUtc, _snapshot.LastPressLabel));
+            return Publish(State(InputRelayState.Off, "The vJoy relay is off — Settings → Setup → vJoy relay.", "off"));
         }
 
         var path = ResolvePath(options.VJoyInterfacePath);
@@ -176,7 +190,7 @@ public sealed class VJoyInputRelay : IInputRelay, IDisposable
         {
             Unload();
             return Publish(State(InputRelayState.NotInstalled,
-                "vJoyInterface.dll not found — install the vJoy driver on this PC or enter the DLL path."));
+                "vJoyInterface.dll not found — install the vJoy driver on this PC or enter the DLL path.", "dllNotFound"));
         }
 
         if (_vjoy is null || !string.Equals(_loadedPath, path, StringComparison.OrdinalIgnoreCase))
@@ -190,22 +204,21 @@ public sealed class VJoyInputRelay : IInputRelay, IDisposable
             catch (Exception ex) when (ex is DllNotFoundException or BadImageFormatException or EntryPointNotFoundException)
             {
                 _logger.LogWarning(ex, "vJoyInterface.dll failed to load from {Path}", path);
-                return Publish(State(InputRelayState.NotInstalled,
-                    ex is BadImageFormatException
-                        ? "vJoyInterface.dll is the 32-bit DLL — point at the x64 folder."
-                        : "vJoyInterface.dll could not be loaded: " + ex.Message));
+                return Publish(ex is BadImageFormatException
+                    ? State(InputRelayState.NotInstalled, "vJoyInterface.dll is the 32-bit DLL — point at the x64 folder.", "dll32")
+                    : State(InputRelayState.NotInstalled, "vJoyInterface.dll could not be loaded: " + ex.Message, "dllLoadFailed", ex.Message));
             }
         }
 
         if (!_vjoy.DriverEnabled)
         {
-            return Publish(State(InputRelayState.NotInstalled, "The vJoy driver is not running (vJoyEnabled = false)."));
+            return Publish(State(InputRelayState.NotInstalled, "The vJoy driver is not running (vJoyEnabled = false).", "driverNotRunning"));
         }
 
-        var device = (uint)Math.Clamp(options.VJoyDevice, 1, 16);
+        var device = (uint)Math.Clamp(options.VJoyDevice, 1, InputRelayOptions.MaxDevice);
         if (_acquiredDevice == device)
         {
-            return Publish(State(InputRelayState.Ready, Ready(options, _vjoy.ButtonCount(device)), _vjoy.ButtonCount(device)));
+            return Publish(Ready(options, _vjoy.ButtonCount(device)));
         }
 
         ReleaseDevice();
@@ -214,16 +227,19 @@ public sealed class VJoyInputRelay : IInputRelay, IDisposable
             case VJoyInterface.DeviceStatus.Missing:
             case VJoyInterface.DeviceStatus.Unknown:
                 return Publish(State(InputRelayState.DeviceMissing,
-                    FormattableString.Invariant($"vJoy device {device} does not exist — create it in vJoyConf (one device with up to 128 buttons).")));
+                    FormattableString.Invariant($"vJoy device {device} does not exist — create it in vJoyConf (one device with up to {InputRelayOptions.MaxButton} buttons)."),
+                    "deviceMissing", Invariant(device)));
             case VJoyInterface.DeviceStatus.Busy:
                 return Publish(State(InputRelayState.DeviceBusy,
-                    FormattableString.Invariant($"vJoy device {device} is owned by another program — pick a free device number.")));
+                    FormattableString.Invariant($"vJoy device {device} is owned by another program — pick a free device number."),
+                    "deviceBusy", Invariant(device)));
         }
 
         if (!_vjoy.Acquire(device))
         {
             return Publish(State(InputRelayState.DeviceBusy,
-                FormattableString.Invariant($"vJoy device {device} could not be acquired.")));
+                FormattableString.Invariant($"vJoy device {device} could not be acquired."),
+                "acquireFailed", Invariant(device)));
         }
 
         _acquiredDevice = device;
@@ -232,22 +248,32 @@ public sealed class VJoyInputRelay : IInputRelay, IDisposable
         _logger.LogInformation(
             "vJoy relay ready: device {Device} acquired, {Buttons} buttons, driver {Version:X4}, {Path}",
             device, buttons, _vjoy.Version, path);
-        return Publish(State(InputRelayState.Ready, Ready(options, buttons), buttons));
+        return Publish(Ready(options, buttons));
     }
 
-    private static string Ready(InputRelayOptions options, int buttons) => FormattableString.Invariant(
-        $"vJoy device {options.VJoyDevice} acquired — {buttons} buttons.");
+    private InputRelaySnapshot Ready(InputRelayOptions options, int buttons) => State(
+        InputRelayState.Ready,
+        FormattableString.Invariant($"vJoy device {options.VJoyDevice} acquired — {buttons} buttons."),
+        "ready",
+        buttons,
+        Invariant(options.VJoyDevice),
+        Invariant(buttons));
 
-    private InputRelaySnapshot State(InputRelayState state, string detail, int buttons = 0) =>
-        new(state, detail, buttons, _snapshot.LastPressUtc, _snapshot.LastPressLabel);
+    private InputRelaySnapshot State(InputRelayState state, string detail, string detailName, params string[] args) =>
+        State(state, detail, detailName, 0, args);
 
-    private CommandResult Fail(InputRelayOptions options, string reason)
+    private InputRelaySnapshot State(InputRelayState state, string detail, string detailName, int buttons, params string[] args) =>
+        new(state, detail, buttons, _snapshot.LastPressUtc, _snapshot.LastPressLabel, DetailPrefix + detailName, args);
+
+    private CommandResult Fail(string reason, string detailName, params string[] args)
     {
-        Publish(State(InputRelayState.Failed, reason, _snapshot.ButtonCount));
+        Publish(State(InputRelayState.Failed, reason, detailName, _snapshot.ButtonCount, args));
         // Next press re-acquires from scratch: the usual cause is the driver or device going away.
         ReleaseDevice();
         return CommandResult.Failed(reason);
     }
+
+    private static string Invariant(long value) => value.ToString(CultureInfo.InvariantCulture);
 
     /// <summary>The configured path when it exists, else the driver's default folders.</summary>
     internal static string? ResolvePath(string? configured)
@@ -311,16 +337,27 @@ public sealed class VJoyInputRelay : IInputRelay, IDisposable
         return snapshot;
     }
 
+    /// <summary>
+    /// Releases the device and unloads the DLL — but only once no press is in flight. A press
+    /// that is still holding its button after three seconds keeps the module loaded (a leak at
+    /// shutdown) rather than having its native call land in freed code (review 2026-10-25).
+    /// </summary>
     public void Dispose()
     {
         _subscription?.Dispose();
-        _press.Wait(TimeSpan.FromSeconds(3));
+        if (!_press.Wait(TimeSpan.FromSeconds(3)))
+        {
+            _logger.LogWarning("vJoy relay: a press was still in flight at dispose — the DLL stays loaded until exit");
+            return;
+        }
+
         try
         {
             Unload();
         }
         finally
         {
+            _press.Release();
             _press.Dispose();
         }
     }

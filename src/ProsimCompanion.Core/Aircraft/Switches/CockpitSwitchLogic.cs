@@ -58,6 +58,45 @@ public static class CockpitSwitchLogic
         return values[next].Value;
     }
 
+    /// <summary>
+    /// The <c>mode</c> word the <c>cockpit.press</c> session event records: the press mode in
+    /// camelCase, and <c>cycleBack</c> only when a Cycle row was long-pressed. A Toggle or
+    /// Momentary key held past the plugin's long-press threshold still toggles / presses, so
+    /// the audit trail must say so (review 2026-10-25: every long press used to read cycleBack).
+    /// </summary>
+    public static string ModeLabel(CockpitPressMode mode, bool longPress) => mode switch
+    {
+        CockpitPressMode.Cycle when longPress => "cycleBack",
+        CockpitPressMode.Cycle => "cycle",
+        CockpitPressMode.Momentary => "momentary",
+        _ => "toggle",
+    };
+
+    /// <summary>
+    /// Whether <c>cockpit.set</c> may write <paramref name="value"/>: a value from the catalogue
+    /// list, or — for a switch the catalogue lists without values — 0 or 1, the same pair a
+    /// Toggle press moves between. Presses are bounded (ADR-0015); a list-less switch is no
+    /// exception.
+    /// </summary>
+    public static bool IsCatalogueValue(IReadOnlyList<SwitchValue> values, int value)
+    {
+        ArgumentNullException.ThrowIfNull(values);
+        if (values.Count == 0)
+        {
+            return value is 0 or 1;
+        }
+
+        foreach (var v in values)
+        {
+            if (v.Value == value)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     /// <summary>The catalogue label of a value ("Pushed", "NAV"), else the number.</summary>
     public static string Label(IReadOnlyList<SwitchValue> values, int value)
     {

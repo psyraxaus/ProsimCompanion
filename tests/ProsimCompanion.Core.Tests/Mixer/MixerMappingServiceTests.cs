@@ -177,6 +177,14 @@ public sealed class MixerMappingServiceTests
             var prosim = new FakeProsimDataRefs();
             var service = new MixerMappingService(host.Options, prosim, host.Host, host.Store, NullLogger<MixerMappingService>.Instance);
             await service.StartAsync(CancellationToken.None);
+
+            // .NET 10 runs ALL of BackgroundService.ExecuteAsync on a background thread, so
+            // StartAsync returns before the first Bind has subscribed the knobs (flaky under the
+            // full suite's load, 2026-10-25: Push threw KeyNotFound for the captain's VHF1 ref).
+            // Bind ends with PublishRows, so a row per mapping in the store proves the
+            // subscriptions exist.
+            var expected = options.Enabled ? options.Mappings.Count(m => m.Enabled && m.Channel.ExistsOn(m.Acp)) : 0;
+            await MixerClientTests.WaitUntilAsync(() => host.Store.Snapshot().Mappings.Count == expected);
             return new Fixture { HostFixture = host, Service = service, Prosim = prosim };
         }
 

@@ -61,7 +61,7 @@ for the DFD database), else the system drive.
 | `telemetryApi` | Settings → Advanced → Logs | read-only telemetry endpoints for post-flight verification |
 | `commandApi` | Settings → Setup | HTTP command API for the Stream Deck plugin (`enabled` checkbox, applies live; off by default; token-gated even on localhost — `requireTokenOnLoopback` is file-only) |
 | `inputRelay` | Settings → Setup | vJoy relay ([chapter 12](12-remote-streamdeck.md)): `enabled` (off), `vJoyInterfacePath` (empty = the driver's folder), `vJoyDevice` 1, advanced `holdMs` 150, `views[]` rows (name → vJoy button) for `input.pressView` |
-| `cockpitSwitches` | Settings → Cockpit Switches | Stream Deck keys for ProSim switches ([chapter 12](12-remote-streamdeck.md), ADR-0015): `enabled` (on), `rows[]` cards — `id`, `name`, `dataRef` (picked from ProSim's switch list, `system.switches.S_*` only), `look` korry2 / korry1 / toggle / knob / guarded, `pressMode` toggle / momentary / cycle, legends, optional `upperIndicator` / `lowerIndicator` lamps, `upperColor` / `lowerColor` / `bezelColor` hex |
+| `cockpitSwitches` | Settings → Cockpit Switches | Stream Deck keys for ProSim switches ([chapter 12](12-remote-streamdeck.md), ADR-0015): `enabled` (on), `rows[]`, one grid line each with a fold-out for the rare fields — `id`, `name`, `dataRef` (picked from ProSim's switch list, `system.switches.S_*` only), `look` korry2 / korry1 / toggle / knob / guarded, `pressMode` toggle / momentary / cycle, legends, optional `upperIndicator` / `lowerIndicator` lamps, `showUnlitLegend` (true = dim legend while dark, false = extinguished), `upperColor` / `lowerColor` / `bezelColor` hex |
 
 ## The `gsx` section
 
