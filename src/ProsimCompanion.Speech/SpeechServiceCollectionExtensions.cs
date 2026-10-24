@@ -53,6 +53,9 @@ public static class SpeechServiceCollectionExtensions
         // In-flight FO monitoring (issue #148), each behind its own sop.monitoring switch.
         services.AddStartupModule<Monitoring.FuelCheckMonitor>();
         services.AddVoiceFeature<Monitoring.FuelCheckMonitor>();
+        // Step-climb advice from the navlog's altitude per fix (issue #189), behind speech.stepClimbAdvice.
+        services.AddStartupModule<Monitoring.StepClimbAdvisor>();
+        services.AddVoiceFeature<Monitoring.StepClimbAdvisor>();
         services.AddSingleton<Core.Flight.IFuelCheckRequests>(p => p.GetRequiredService<Monitoring.FuelCheckMonitor>());
         // The captain's fuel decision at dispatch and "how long can we hold" (issue #183).
         services.AddStartupModule<Monitoring.FuelDecisionService>();

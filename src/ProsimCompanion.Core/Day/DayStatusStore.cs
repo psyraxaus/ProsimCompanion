@@ -22,10 +22,12 @@ public sealed record DayLegView(
 
 /// <summary>Everything the web Day page renders, plus the debrief's day-context line.
 /// <see cref="View"/> is null when no day exists (never started, or state file absent).</summary>
+/// <param name="Fdp">The FDP picture (issue #189); null with the warning off or no day.</param>
 public sealed record DaySnapshot(
     DayView? View,
     IReadOnlyList<DayLegView> Legs,
-    string? DebriefContextLine)
+    string? DebriefContextLine,
+    FdpStatus? Fdp = null)
 {
     public static DaySnapshot Empty { get; } = new(null, [], null);
 }

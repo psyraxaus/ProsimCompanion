@@ -38,6 +38,21 @@
       "arrival": "到着",
       "noData": "データなし。"
     },
+    "notams": {
+      "title": "NOTAMハイライト",
+      "count": "プランに {0} 件",
+      "noPlan": "フライトプランが読み込まれていません。",
+      "none": "このプランにNOTAMはありません（SimBriefはNOTAMオプションがオンのときだけ送ります）。",
+      "noHighlights": "両端に滑走路・誘導路・ILS・灯火・PAPI・スレッショルドのNOTAMはありません。全文はSimBriefブリーフィングにあります。",
+      "class": {
+        "runwayClosed": "滑走路閉鎖",
+        "taxiwayClosed": "誘導路閉鎖",
+        "ilsUnserviceable": "ILS 使用不可",
+        "lightingUnserviceable": "灯火",
+        "papi": "PAPI",
+        "displacedThreshold": "スレッショルド移設"
+      }
+    },
     "pushback": {
       "title": "プッシュバック方向",
       "aria": "プッシュバック方向",

@@ -414,7 +414,89 @@ public sealed class SimbriefImportService : ISimbriefImporter, IDisposable
             EstimatedEnroute = enrouteSeconds > 0 ? TimeSpan.FromSeconds(enrouteSeconds) : null,
             FetchedAtUtc = DateTimeOffset.UtcNow,
             Navlog = ParseNavlog(ofp["navlog"], Kg),
+            Notams = ParseNotams(ofp),
         };
+    }
+
+    /// <summary>The departure and destination NOTAMs (issue #189). SimBrief's JSON carries them in
+    /// three places: <c>origin.notam</c> and <c>destination.notam</c> (an object when there is one,
+    /// an array when several — the alternate node's polymorphism again; fields <c>location_icao</c>,
+    /// <c>date_effective</c> / <c>date_expire</c> as ISO-8601) and <c>notams.notamdrec</c> (FIR
+    /// records for every station on the plan; fields <c>icao_id</c>, <c>notam_effective_dtg</c> /
+    /// <c>notam_expire_dtg</c> as <c>yyyyMMddHHmm</c>). The FIR records are kept only for the two
+    /// stations; each id once. Settled against a live plan 2026-10-24 (EFHK→EKCH).</summary>
+    internal static IReadOnlyList<OfpNotam> ParseNotams(JsonNode? ofp)
+    {
+        if (ofp is null)
+        {
+            return [];
+        }
+
+        var origin = ReadString(ofp["origin"]?["icao_code"]) ?? "";
+        var destination = ReadString(ofp["destination"]?["icao_code"]) ?? "";
+        var result = new List<OfpNotam>();
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var node in Entries(ofp["origin"]?["notam"]).Concat(Entries(ofp["destination"]?["notam"])))
+        {
+            Add(node, ReadString(node["location_icao"]), ReadString(node["date_effective"]), ReadString(node["date_expire"]), Truthy(node["date_expire_is_estimated"]));
+        }
+
+        foreach (var node in Entries(ofp["notams"]?["notamdrec"]))
+        {
+            var icao = ReadString(node["icao_id"]);
+            if (icao is null || (!icao.Equals(origin, StringComparison.OrdinalIgnoreCase) && !icao.Equals(destination, StringComparison.OrdinalIgnoreCase)))
+            {
+                continue;
+            }
+
+            var expire = ReadString(node["notam_expire_dtg"]);
+            var estimated = ReadString(node["notam_expire_dtg_estimated"]);
+            Add(node, icao, ReadString(node["notam_effective_dtg"]), expire ?? estimated, expire is null && estimated is not null);
+        }
+
+        return result;
+
+        void Add(JsonNode node, string? icao, string? effective, string? expire, bool estimated)
+        {
+            var id = ReadString(node["notam_id"]);
+            if (string.IsNullOrWhiteSpace(id) || string.IsNullOrWhiteSpace(icao) || !seen.Add(id))
+            {
+                return;
+            }
+
+            result.Add(new OfpNotam(
+                id.Trim(), icao.Trim().ToUpperInvariant(), (ReadString(node["notam_qcode"]) ?? "").Trim(),
+                (ReadString(node["notam_text"]) ?? "").Trim(), NotamTime(effective), NotamTime(expire), estimated));
+        }
+
+        static IEnumerable<JsonObject> Entries(JsonNode? node) => node switch
+        {
+            JsonObject obj => [obj],
+            JsonArray arr => arr.OfType<JsonObject>(),
+            _ => [],
+        };
+
+        static bool Truthy(JsonNode? node)
+            => node is JsonValue v && (v.TryGetValue<string>(out var s) ? s is "1" or "true" : v.TryGetValue<int>(out var i) && i != 0);
+    }
+
+    /// <summary>"2026-10-11T10:25:00Z" or "202610111025" → UTC; PERM / empty / unparseable → null.</summary>
+    internal static DateTimeOffset? NotamTime(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value) || value.Equals("PERM", StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        var text = value.Trim();
+        if (text.Length == 12 && text.All(char.IsAsciiDigit)
+            && DateTimeOffset.TryParseExact(text, "yyyyMMddHHmm", CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var dtg))
+        {
+            return dtg;
+        }
+
+        return DateTimeOffset.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out var iso) ? iso : null;
     }
 
     /// <summary>The SimBrief alternate node is polymorphic: object, array of objects, or empty

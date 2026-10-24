@@ -38,6 +38,21 @@
       "arrival": "Llegada",
       "noData": "Sin datos."
     },
+    "notams": {
+      "title": "NOTAM destacados",
+      "count": "{0} en el plan",
+      "noPlan": "No hay plan de vuelo cargado.",
+      "none": "El plan no trae NOTAM (SimBrief solo los envía con su opción de NOTAM activada).",
+      "noHighlights": "Ningún NOTAM de pista, calle de rodaje, ILS, iluminación, PAPI o umbral en ninguno de los extremos — la lista completa sigue en tu briefing de SimBrief.",
+      "class": {
+        "runwayClosed": "PISTA CERRADA",
+        "taxiwayClosed": "TWY CERRADA",
+        "ilsUnserviceable": "ILS FUERA DE SERVICIO",
+        "lightingUnserviceable": "ILUMINACIÓN",
+        "papi": "PAPI",
+        "displacedThreshold": "UMBRAL DESPLAZADO"
+      }
+    },
     "pushback": {
       "title": "Dirección de pushback",
       "aria": "Dirección de pushback",

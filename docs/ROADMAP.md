@@ -943,6 +943,12 @@ Ten packages, one branch and one GitHub issue each, branched from `feature/remot
       "your range forty" / "ND to arc" by voice, the read-only ADIRS / FMGC cross-check, all behind
       the four-name `FoSideDutiesGate`. Probes `fo-baro-follow`, `fo-efis-command`,
       `fo-cross-check`. Unverified live; the first flight proves the baro value input.
+- [x] **Small wins** (#189, package 10, `feature/small-wins-nov`) — NOTAM highlights on the OFP
+      page from SimBrief's JSON (`OfpNotam` / `NotamHighlighter`), step-climb advice from the
+      navlog's altitude per fix (`StepClimbPlan` / `StepClimbAdvisor`, "request climb" with
+      `{stepLevel}`), the FDP warning against the EASA ORO.FTL.205 table as data
+      (`FtlTable` / `FdpCalculator`, Day page line + turnaround sentence). Probes
+      `notam-highlights`, `step-climb-advice`, `fdp-warning`. Unverified live.
 
 
 ## Open items (after the rc.5 batch, 2026-10-11)

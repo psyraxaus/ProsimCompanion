@@ -182,6 +182,10 @@
         "extra": "Erhöht den INIT-Block-Fuel um Holding-Minuten oder um Hunderte Kilo.",
         "holding": "Fuel über dem Ziel minus Alternate und Final Reserve, als Holding-Minuten."
       },
+      "stepClimb": {
+        "title": "Step Climb",
+        "next": "Der nächste geplante Step aus dem Navlog: Höhe, Fix und Entfernung. Der FO weist nahe dem Fix auch von selbst darauf hin."
+      },
       "grossErrorCheck": {
         "title": "Gross Error Check",
         "check": "Die Gewichte des Flugzeugs gegen das finale Loadsheet und die FMS-PERF-Einträge gegen die letzte Takeoff-Performance-Berechnung. Auch automatisch, sobald finales Loadsheet und V-Speeds vorliegen."

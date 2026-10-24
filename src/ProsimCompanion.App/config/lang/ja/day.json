@@ -16,6 +16,14 @@
     "legsCompleted": "{0} 完了",
     "block": "ブロック",
     "duty": "勤務",
+    "fdp": {
+      "title": "EASA ORO.FTL.205 基本上限（config/ftl-easa.json）に対する飛行勤務時間。参考値：順応、延長、分割勤務、休養は考慮しません。",
+      "label": "FDP",
+      "soFar": "{0} / 上限 {1} · 出頭 {2}Z · 次を含め {3} セクター",
+      "exceeds": "次のセクターは {0}Z に終わり、上限を {1} 超えます。",
+      "margin": "次のセクターの余裕 {0}。",
+      "caveat": "参考値 — 順応・延長は考慮外。"
+    },
     "schedule": "スケジュール",
     "behind": "遅れ",
     "ahead": "早め",

@@ -142,6 +142,17 @@ public sealed class SpeechOptions : IOptionSection
     [OptionField(FieldKind.Bool, "speechSettings.sterile.exemptCabin", DependsOn = "SterileEnabled")]
     public bool SterileExemptCabinReports { get; set; } = true;
 
+    /// <summary>Step-climb advice (issue #189): in the cruise, within <see cref="StepClimbLeadNm"/>
+    /// of a planned step with the aircraft below the planned level, the FO says once "planned step
+    /// to flight level … at {fix}, captain" and offers the ATC request when SayIntentions is on;
+    /// "when is our next step?" is answered any time. Read-and-speak only. Off by default.</summary>
+    [OptionField(FieldKind.Bool, "speechSettings.callouts.monitoring.stepClimb")]
+    public bool StepClimbAdvice { get; set; }
+
+    /// <summary>How far before the planned step fix the advice comes, nautical miles direct.</summary>
+    [OptionField(FieldKind.Number, "speechSettings.callouts.monitoring.stepClimbLead", Suffix = "nm", Min = "5", Max = "100", DependsOn = "StepClimbAdvice")]
+    public int StepClimbLeadNm { get; set; } = 20;
+
     /// <summary>The First Officer's voice across providers as <c>provider:id</c> (for example
     /// <c>google:en-AU-Chirp3-HD-Charon</c>), picked on the Voices page from every connected
     /// provider's list (owner, 2026-10-12). The named provider speaks the FO first; when it is

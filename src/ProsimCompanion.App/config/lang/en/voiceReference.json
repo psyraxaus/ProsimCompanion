@@ -182,6 +182,10 @@
         "extra": "Raises the INIT block fuel by minutes of holding or by hundreds of kilos.",
         "holding": "Fuel over the destination minus alternate and final reserve, as minutes of holding."
       },
+      "stepClimb": {
+        "title": "Step climb",
+        "next": "The next planned step from the navlog: level, fix and distance. The FO also advises it on its own near the fix."
+      },
       "grossErrorCheck": {
         "title": "Gross error check",
         "check": "The aircraft's weights against the final loadsheet and the FMS PERF entries against the last takeoff performance calculation. Also automatic once the final loadsheet and V-speeds are in."

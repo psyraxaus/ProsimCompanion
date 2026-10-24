@@ -70,6 +70,7 @@ public sealed class SayIntentionsService : IVoiceFeature, Core.Hosting.IStartupM
     private readonly PushbackChoiceStore? _pushback;
     private readonly GsxDiagnosticsStore? _gsx;
     private readonly SayIntentionsFrequencyMonitor? _frequencyMonitor;
+    private readonly StepClimbStore? _stepClimb; // {stepLevel} for "request climb" (issue #189)
     private readonly RadioClearGate _radioGate;
     private readonly CommsHandoverCore _handover = new();
     private readonly RunwayLookupCache _runwayCache = new();
@@ -125,7 +126,8 @@ public sealed class SayIntentionsService : IVoiceFeature, Core.Hosting.IStartupM
         PushbackChoiceStore? pushback = null,
         GsxDiagnosticsStore? gsx = null,
         SayIntentionsFrequencyMonitor? frequencyMonitor = null,
-        OfpStore? ofp = null)
+        OfpStore? ofp = null,
+        StepClimbStore? stepClimb = null)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(arbiter);
@@ -144,6 +146,7 @@ public sealed class SayIntentionsService : IVoiceFeature, Core.Hosting.IStartupM
         _pushback = pushback;
         _gsx = gsx;
         _frequencyMonitor = frequencyMonitor;
+        _stepClimb = stepClimb;
         _radioGate = new RadioClearGate(simVars, logger);
     }
 
@@ -420,7 +423,8 @@ public sealed class SayIntentionsService : IVoiceFeature, Core.Hosting.IStartupM
         // Issue #184: the diversion destination while one overlays the OFP; blank otherwise, so
         // the "request diversion to {diversion}" entry is dropped whole without one.
         var diversion = _ofp is { IsDiverted: true } ? _ofp.Current?.DestinationIcao : null;
-        return (new AtcRequestValues(flight.Callsign, gate, flight.DepartureRunway, flight.Airport, flight.Origin, diversion), standFrom);
+        var stepLevel = _stepClimb?.Snapshot().NextFlightLevel is { } fl ? fl.ToString(System.Globalization.CultureInfo.InvariantCulture) : null;
+        return (new AtcRequestValues(flight.Callsign, gate, flight.DepartureRunway, flight.Airport, flight.Origin, diversion, stepLevel), standFrom);
     }
 
     /// <summary>The departure stand as GSX knows it: the pushback advisor's resolved stand

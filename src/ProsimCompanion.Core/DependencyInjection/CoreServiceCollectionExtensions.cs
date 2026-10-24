@@ -205,6 +205,9 @@ public static class CoreServiceCollectionExtensions
         services.AddSingleton<CabinSecureQuestionStore>();
         services.AddSingleton<ICaptainsQuestionStore>(p => p.GetRequiredService<CabinSecureQuestionStore>());
         services.AddSingleton<PaPromptStore>();
+        // The next planned step climb (issue #189): written by the Speech advisor, read by the
+        // SayIntentions request filler's {stepLevel} token.
+        services.AddSingleton<StepClimbStore>();
         // Outbound event notifications (issue #151): one bounded queue + one background
         // sender; the signal source only ever writes to the queue, so no raiser waits.
         services.AddSingleton<Notifications.NotificationDispatcher>();

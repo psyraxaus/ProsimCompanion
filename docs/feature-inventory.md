@@ -176,6 +176,10 @@ through with a note if deliberately dropped. Sources: Prosim2GSX 0.9.0, ProsimIn
       captain's question over `delay-codes.json`, on-time performance in the Logbook and the
       day summary — #185, November 2026 batch package 6, Unverified live (new to this
       codebase; no predecessor had it)
+- [x] NOTAM highlights on the OFP page (from SimBrief's JSON), step-climb advice from the navlog
+      altitude per fix + "request climb" with the planned level, FDP warning against the EASA
+      ORO.FTL.205 table as data (Day page line + turnaround sentence) — #189, November 2026
+      batch package 10, Unverified live (new to this codebase)
 - [x] Tech log & MEL (persistent defects, A–D due dates, wear pool, web raise/rectify,
       voice brief + guided raise/rectify dialogues + post-abnormal offer; procedural hooks
       deferred)

@@ -16,6 +16,14 @@
     "legsCompleted": "{0} voltooid",
     "block": "Blok",
     "duty": "Dienst",
+    "fdp": {
+      "title": "Vliegdienstperiode tegen het EASA ORO.FTL.205-basismaximum (config/ftl-easa.json). Indicatief: acclimatisatie, verlengingen, gesplitste dienst en rust worden niet gemodelleerd.",
+      "label": "FDP",
+      "soFar": "{0} van max. {1} · melden {2}Z · {3} sector(en) met de volgende",
+      "exceeds": "De volgende sector zou eindigen om {0}Z — {1} over het maximum.",
+      "margin": "{0} marge op de volgende sector.",
+      "caveat": "Indicatief — zonder acclimatisatie of verlengingen."
+    },
     "schedule": "Schema",
     "behind": "achter",
     "ahead": "voor",

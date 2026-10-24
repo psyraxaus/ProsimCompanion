@@ -16,6 +16,14 @@
     "legsCompleted": "{0} completados",
     "block": "Bloque",
     "duty": "Servicio",
+    "fdp": {
+      "title": "Periodo de actividad de vuelo frente al máximo básico EASA ORO.FTL.205 (config/ftl-easa.json). Orientativo: no modela aclimatación, extensiones, actividad partida ni descanso.",
+      "label": "FDP",
+      "soFar": "{0} de {1} máx. · presentación {2}Z · {3} sector(es) con el siguiente",
+      "exceeds": "El siguiente sector terminaría a las {0}Z — {1} por encima del máximo.",
+      "margin": "{0} de margen en el siguiente sector.",
+      "caveat": "Orientativo — sin aclimatación ni extensiones."
+    },
     "schedule": "Horario",
     "behind": "con retraso",
     "ahead": "adelantado",

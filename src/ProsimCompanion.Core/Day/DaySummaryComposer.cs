@@ -108,6 +108,15 @@ public sealed class DaySummaryComposer : IDaySummaryComposer
         };
     }
 
+    /// <summary>The FO's one FDP line at the turnaround (issue #189), only when the next sector
+    /// would run past the table's maximum: "Flight duty check: the next sector would run to
+    /// 18:40 zulu — past the 11 hours 30 maximum for a 07:10 report with 4 sectors. Acclimatisation
+    /// and extensions are not counted."</summary>
+    public static string FdpWarningLine(DateTimeOffset projectedEndUtc, int maxFdpMinutes, DateTimeOffset reportUtc, int sectors)
+        => $"Flight duty check: the next sector would run to {projectedEndUtc:HH\\:mm} zulu — past the "
+            + $"{DayMath.FormatHoursMinutes(maxFdpMinutes)} maximum for a {reportUtc:HH\\:mm} report with {sectors} sector{DayMath.Plural(sectors)}. "
+            + "Acclimatisation and extensions are not counted.";
+
     /// <summary>The FO's spoken turnaround line at on-blocks: "That's leg {n} — {block}
     /// minute(s) block", the schedule delta when a scheduled on-blocks exists (null delay =
     /// nothing to compare), and the open tech-log count for the next sector.</summary>

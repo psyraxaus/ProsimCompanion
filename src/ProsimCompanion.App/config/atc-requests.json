@@ -49,6 +49,15 @@
       "isDeparture": false,
       "icao": "{callsign}, request diversion to {diversion}",
       "faa": "{callsign}, request diversion to {diversion}"
+    },
+    {
+      "//": "Step climb (issue #189): {stepLevel} is the planned level at the next navlog step as the FO's step-climb advisor last saw it; with no step ahead the clause is dropped and the request reads 'request climb'.",
+      "phrases": [ "request climb", "request step climb", "request higher" ],
+      "station": "Center",
+      "commType": "CENTER",
+      "isDeparture": false,
+      "icao": "{callsign}, request climb flight level {stepLevel}",
+      "faa": "Center, {callsign}, request climb flight level {stepLevel}"
     }
   ]
 }

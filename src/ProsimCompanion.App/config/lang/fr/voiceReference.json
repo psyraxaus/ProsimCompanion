@@ -182,6 +182,10 @@
         "extra": "Augmente le block INIT en minutes d'attente ou en centaines de kilos.",
         "holding": "Carburant à destination moins dégagement et réserve finale, en minutes d'attente."
       },
+      "stepClimb": {
+        "title": "Palier de montée",
+        "next": "Le prochain palier prévu au navlog : niveau, point et distance. Le FO le signale aussi de lui-même près du point."
+      },
       "grossErrorCheck": {
         "title": "Gross error check",
         "check": "Les masses de l'avion face au loadsheet final et les entrées PERF du FMS face au dernier calcul de performance décollage. Aussi automatique dès que le loadsheet final et les V-speeds sont saisis."

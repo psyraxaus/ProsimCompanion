@@ -59,6 +59,7 @@ public sealed partial class VoiceFeatureRosterTests
         // Issue #182: "wind check" / "runway condition", between the minima query and the company channel.
         (typeof(ProsimCompanion.Speech.Monitoring.WindLimitsVoiceFeature), 175),
         (typeof(ProsimCompanion.Speech.Company.CompanyChannelService), 180),
+        (typeof(ProsimCompanion.Speech.Monitoring.StepClimbAdvisor), 185), // "when is our next step?" (issue #189)
         (typeof(ProsimCompanion.Speech.Day.CompanyDayService), 190),
         (typeof(ProsimCompanion.Speech.SayIntentions.SayIntentionsService), 200),
         (typeof(GsxVoiceService), 210),

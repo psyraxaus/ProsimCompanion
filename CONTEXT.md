@@ -406,6 +406,25 @@ side goes to STD, the captain's QNH when it comes back or moves — a change hav
 seconds with the FO side still different. A mismatch that was there before the captain acted
 is left alone: the FO follows, it never leads, and no transition altitude is read.
 _Avoid_: baro sync, altimeter mirror (those would copy at once and lead)
+**NOTAM highlight**:
+A departure or destination NOTAM of one of six loud classes — runway closed, taxiway closed,
+ILS/LOC/GP unserviceable, lighting unserviceable, PAPI, displaced threshold — picked out of the
+plan's NOTAM list by its Q-code first and its E-line words second. Everything else the plan
+carries stays on the SimBrief briefing, not in the app.
+_Avoid_: NOTAM summary, critical NOTAM (the classes are the definition, not a severity)
+
+**Step point**:
+A navlog fix where the planned altitude rises by a step over the previous fix after the top of
+climb and holds at the next one. The FO advises it once within the lead distance while the
+aircraft is still below the planned level; the climb itself stays the captain's and ATC's.
+_Avoid_: step climb (that is the manoeuvre), cruise change
+
+**FDP**:
+The flight duty period as the app estimates it: from the report time (the rotation file's, else
+the first session start minus the report lead) to now, projected to the next leg's scheduled
+on-blocks, against the EASA basic maximum for the report hour (UTC) and the sector count
+including the next leg. Advisory — no acclimatisation, extension, split-duty or rest rule.
+_Avoid_: duty time (that is the Day page's duty figure, a different formula), legal FDP
 
 
 ### Web host

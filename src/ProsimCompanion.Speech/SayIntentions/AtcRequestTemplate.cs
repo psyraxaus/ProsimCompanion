@@ -11,7 +11,8 @@ namespace ProsimCompanion.Speech.SayIntentions;
 /// <param name="Origin">flight.json <c>flight_origin</c>.</param>
 /// <param name="Diversion">The diversion destination ICAO while one is declared (issue #184); blank otherwise, so a
 /// "request diversion to {diversion}" clause is dropped whole when there is none.</param>
-internal sealed record AtcRequestValues(string? Callsign, string? Gate, string? Runway, string? Airport, string? Origin, string? Diversion = null);
+/// <param name="StepLevel">The planned level at the next navlog step ("370") from the step-climb advisor (issue #189); null/empty = no step ahead.</param>
+internal sealed record AtcRequestValues(string? Callsign, string? Gate, string? Runway, string? Airport, string? Origin, string? Diversion = null, string? StepLevel = null);
 
 /// <summary>
 /// Fills an atc-requests.json template (<c>{callsign} {gate} {runway} {airport} {origin} {diversion}</c>).
@@ -89,6 +90,7 @@ internal static partial class AtcRequestTemplate
         "airport" => values.Airport?.Trim() ?? "",
         "origin" => values.Origin?.Trim() ?? "",
         "diversion" => values.Diversion?.Trim() ?? "",
+        "steplevel" => values.StepLevel?.Trim() ?? "",
         _ => null,
     };
 

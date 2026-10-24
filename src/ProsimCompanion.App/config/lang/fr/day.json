@@ -16,6 +16,14 @@
     "legsCompleted": "{0} terminées",
     "block": "Bloc",
     "duty": "Service",
+    "fdp": {
+      "title": "Temps de service de vol face au maximum de base EASA ORO.FTL.205 (config/ftl-easa.json). Indicatif : acclimatation, extensions, service fractionné et repos ne sont pas modélisés.",
+      "label": "TSV",
+      "soFar": "{0} sur {1} max · prise de service {2}Z · {3} étape(s) avec la suivante",
+      "exceeds": "L'étape suivante finirait à {0}Z — {1} au-delà du maximum.",
+      "margin": "{0} de marge sur l'étape suivante.",
+      "caveat": "Indicatif — sans acclimatation ni extensions."
+    },
     "schedule": "Horaire",
     "behind": "en retard",
     "ahead": "en avance",

@@ -603,6 +603,16 @@
           "label": "Margen posvuelo",
           "hint": "Minutos añadidos tras los últimos calzos para la cifra de servicio."
         },
+        "fdpWarning": {
+          "label": "Aviso de FDP",
+          "hint": "Una línea en la página del día y una frase en la escala cuando el siguiente sector superaría el máximo básico EASA para tu hora de presentación y número de sectores.",
+          "more": "Solo orientativo: no modela aclimatación, extensiones, actividad partida ni descanso. La tabla es config/ftl-easa.json."
+        },
+        "reportBefore": {
+          "label": "Presentación antes de la primera sesión",
+          "hint": "Minutos antes de la primera sesión del día en que se asume la presentación, si la rotación no la indica."
+        },
+        "fdpFileHint": "La tabla de máximos de FDP es ftl-easa.json en %LOCALAPPDATA%\\ProsimCompanion\\config — edítala según el esquema de tu operador.",
         "autoClose": {
           "label": "Cerrar automáticamente tras inactividad",
           "hint": "Cerrar una jornada abierta tras este tiempo inactiva en una escala. 0 = nunca."
@@ -1323,6 +1333,15 @@
           "label": "Colaciones",
           "hint": "Di 'altimeter one zero one three', 'V speeds one four one, one four four, one four seven', 'runway two seven right' o 'minimums two one zero' y el FO lo comprueba contra el avión.",
           "more": "El altímetro se comprueba contra tu ajuste baro, las velocidades V contra la página PERF del FMS, la pista contra el plan del FMS (salida antes del despegue, llegada después), los mínimos contra los que briefeaste. El FO responde 'checked' o el valor que lee."
+        },
+        "stepClimb": {
+          "label": "Aviso de step climb",
+          "hint": "En crucero, cerca de un step planificado del navlog, el FO dice una vez por step \"planned step to flight level … at {fix}, captain\". \"When is our next step?\" funciona en cualquier momento.",
+          "more": "Los steps salen de la altitud por punto del navlog de SimBrief. Con SayIntentions, el FO añade \"say request climb\" y \"request climb\" pide el nivel planificado."
+        },
+        "stepClimbLead": {
+          "label": "Antelación del aviso de step climb",
+          "hint": "A qué distancia antes del punto del step llega el aviso, distancia directa."
         },
         "altimeter": "Tolerancia de altímetro",
         "minimums": "Tolerancia de mínimos"

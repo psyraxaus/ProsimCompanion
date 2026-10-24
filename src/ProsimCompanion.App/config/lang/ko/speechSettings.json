@@ -603,6 +603,16 @@
           "label": "비행 후 가산",
           "hint": "근무 시간 산정을 위해 마지막 온블록 후 더하는 분."
         },
+        "fdpWarning": {
+          "label": "FDP 경고",
+          "hint": "다음 섹터가 출두 시각과 섹터 수에 대한 EASA 기본 최대치를 넘으면 데이 페이지에 한 줄, 턴어라운드에서 한 마디.",
+          "more": "참고용: 순응, 연장, 분할 근무, 휴식 규정은 반영하지 않습니다. 표는 config/ftl-easa.json입니다."
+        },
+        "reportBefore": {
+          "label": "첫 세션 전 출두",
+          "hint": "로테이션 파일에 출두 시각이 없을 때 그날 첫 세션 몇 분 전을 출두로 볼지."
+        },
+        "fdpFileHint": "FDP 최대치 표는 %LOCALAPPDATA%\\ProsimCompanion\\config 의 ftl-easa.json 입니다. 운항사 규정에 맞게 편집하세요.",
         "autoClose": {
           "label": "유휴 후 자동 종료",
           "hint": "턴어라운드 중 이만큼 유휴하면 열린 근무일을 닫습니다. 0 = 안 함."
@@ -1323,6 +1333,15 @@
           "label": "리드백",
           "hint": "'altimeter one zero one three', 'V speeds one four one, one four four, one four seven', 'runway two seven right' 또는 'minimums two one zero'라고 말하면 FO가 항공기와 대조합니다.",
           "more": "고도계는 당신의 기압 설정과, V 속도는 FMS PERF 페이지와, 활주로는 FMS 계획과(이륙 전은 출발, 이후는 도착), 미니멈은 브리핑한 값과 대조됩니다. FO는 'checked' 또는 읽은 값을 답합니다."
+        },
+        "stepClimb": {
+          "label": "스텝 클라임 조언",
+          "hint": "순항 중 내비로그의 계획 스텝에 가까워지면 FO가 스텝마다 한 번 \"planned step to flight level … at {fix}, captain\"이라고 말합니다. \"when is our next step?\"은 언제든 됩니다.",
+          "more": "스텝은 SimBrief 내비로그의 픽스별 고도에서 구합니다. SayIntentions가 켜져 있으면 FO가 \"say request climb\"를 덧붙이고 \"request climb\"가 계획 고도를 요청합니다."
+        },
+        "stepClimbLead": {
+          "label": "스텝 클라임 조언 선행 거리",
+          "hint": "스텝 픽스 몇 마일 전(직선 거리)에 조언할지."
         },
         "altimeter": "고도계 허용 오차",
         "minimums": "미니멈 허용 오차"

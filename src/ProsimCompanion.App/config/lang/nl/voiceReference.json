@@ -182,6 +182,10 @@
         "extra": "Verhoogt de INIT-blockbrandstof met holdingminuten of honderden kilo's.",
         "holding": "Brandstof boven de bestemming min alternate en final reserve, als holdingminuten."
       },
+      "stepClimb": {
+        "title": "Step climb",
+        "next": "De volgende geplande step uit de navlog: niveau, fix en afstand. De FO adviseert hem bij de fix ook uit zichzelf."
+      },
       "grossErrorCheck": {
         "title": "Gross error check",
         "check": "De gewichten van het vliegtuig tegenover de definitieve loadsheet en de FMS PERF-invoer tegenover de laatste takeoff-performanceberekening. Ook automatisch zodra de definitieve loadsheet en de V-speeds erin staan."

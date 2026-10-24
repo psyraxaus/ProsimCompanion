@@ -38,6 +38,21 @@
       "arrival": "도착",
       "noData": "데이터 없음."
     },
+    "notams": {
+      "title": "NOTAM 하이라이트",
+      "count": "계획에 {0}건",
+      "noPlan": "로드된 비행 계획이 없습니다.",
+      "none": "이 계획에는 NOTAM이 없습니다(SimBrief는 NOTAM 옵션이 켜져 있을 때만 보냅니다).",
+      "noHighlights": "양쪽 공항에 활주로·유도로·ILS·등화·PAPI·시단 NOTAM이 없습니다. 전체 목록은 SimBrief 브리핑에 있습니다.",
+      "class": {
+        "runwayClosed": "활주로 폐쇄",
+        "taxiwayClosed": "유도로 폐쇄",
+        "ilsUnserviceable": "ILS 사용 불가",
+        "lightingUnserviceable": "등화",
+        "papi": "PAPI",
+        "displacedThreshold": "시단 이설"
+      }
+    },
     "pushback": {
       "title": "푸시백 방향",
       "aria": "푸시백 방향",

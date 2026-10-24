@@ -182,6 +182,10 @@
         "extra": "Sube el block del INIT por minutos de espera o por cientos de kilos.",
         "holding": "Combustible sobre el destino menos alternativo y reserva final, en minutos de espera."
       },
+      "stepClimb": {
+        "title": "Step climb",
+        "next": "El siguiente step planificado del navlog: nivel, punto y distancia. El FO también lo avisa solo cerca del punto."
+      },
       "grossErrorCheck": {
         "title": "Gross error check",
         "check": "Los pesos del avión frente al loadsheet final y las entradas PERF del FMS frente al último cálculo de performance de despegue. También automático una vez cargados el loadsheet final y las V-speeds."
