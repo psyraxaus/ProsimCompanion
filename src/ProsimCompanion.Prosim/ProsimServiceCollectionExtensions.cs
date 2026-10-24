@@ -34,7 +34,7 @@ public static class ProsimServiceCollectionExtensions
 
         // Flight-data pillar (Phase 3): in-house loadsheets + ACARS + MCDU INIT B sync.
         services.AddSingleton<Acars.AcarsUplink>();
-        // The Core seam the Speech pillar's company channel sends through (issue #184).
+        // The Core seam the Speech pillar's company channel sends through (issues #184, #185).
         services.AddSingleton<Core.Aircraft.Acars.IAcarsUplink>(provider => provider.GetRequiredService<Acars.AcarsUplink>());
         services.AddSingleton<Loadsheet.FmsInitSyncService>();
         services.AddSingleton<Core.State.IFmsInitSync>(provider => provider.GetRequiredService<Loadsheet.FmsInitSyncService>());

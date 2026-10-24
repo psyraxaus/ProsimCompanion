@@ -78,6 +78,7 @@
     <Content Include="config\aircraft-states\*.json" CopyToOutputDirectory="PreserveNewest" />
     <!-- SayIntentions ATC request phrasebook (user-editable). -->
     <Content Include="config\atc-requests.json" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="config\delay-codes.json" CopyToOutputDirectory="PreserveNewest" />
     <!-- File-driven voice commands (Prosim2FO-compatible; user-editable, hot-reloaded). -->
     <Content Include="config\commands.json" CopyToOutputDirectory="PreserveNewest" />
     <!-- Acknowledgement phrase pools (Prosim2FO format; user-editable, hot-reloaded — the

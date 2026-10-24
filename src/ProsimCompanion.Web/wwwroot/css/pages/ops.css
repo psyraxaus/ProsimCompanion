@@ -119,7 +119,8 @@
 
 /* ---- Logbook page (issue #146): totals, touchdown-rate trend, sortable table, drawer ---- */
 
-.lb-figures { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.lb-figures { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+.lb-late { color: var(--warn, #d9822b); }
 
 .lb-trend { display: flex; flex-direction: column; gap: 8px; padding: 12px 14px; border-radius: var(--radius-md); }
 .lb-trend-note { font-size: 11px; color: var(--text-muted); }

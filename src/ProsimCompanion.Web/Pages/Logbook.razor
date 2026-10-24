@@ -52,6 +52,10 @@
                         <span class="label-caps">@T["logbook.figures.stableApproaches"]</span>
                         <span class="figure figure-lg">@LogbookPresentation.Percent(_totals.StabilizedRatePct)</span>
                     </div>
+                    <div class="ops-figure" title="@T["logbook.figures.otpTitle", _totals.OnTimeFlights, _totals.ScheduledFlights]">
+                        <span class="label-caps">@T["logbook.figures.otp"]</span>
+                        <span class="figure figure-lg">@LogbookPresentation.Percent(_totals.OnTimePct)</span>
+                    </div>
                     <div class="ops-figure" title="@T["logbook.figures.avgTouchdownTitle", _totals.MeasuredTouchdowns]">
                         <span class="label-caps">@T["logbook.figures.avgTouchdown"]</span>
                         <span class="figure figure-lg">@LogbookPresentation.Rate(_totals.AverageTouchdownVerticalSpeedFpm)<span class="figure-unit">FPM</span></span>
@@ -115,6 +119,7 @@
                                     @SortHeader(T["logbook.table.route"], LogbookSort.Route)
                                     @SortHeader(T["logbook.table.block"], LogbookSort.Block)
                                     @SortHeader(T["logbook.table.flight"], LogbookSort.Flight)
+                                    <th>@T["logbook.table.delay"]</th>
                                     @SortHeader(T["logbook.table.touchdownRate"], LogbookSort.TouchdownRate)
                                     @SortHeader(T["logbook.table.touchdownSpeed"], LogbookSort.TouchdownSpeed)
                                     @SortHeader(T["logbook.table.approach"], LogbookSort.Approach)
@@ -131,6 +136,7 @@
                                         <td class="mono">@LogbookPresentation.Route(flight)</td>
                                         <td class="mono">@LogbookPresentation.Minutes(flight.BlockMinutes)</td>
                                         <td class="mono">@LogbookPresentation.Minutes(flight.FlightMinutes)</td>
+                                        <td class="mono @(flight.OnTime == false ? "lb-late" : "")" title="@(flight.DelayCode is { } dc ? T["logbook.table.delayCodeTitle", dc].Value : null)">@LogbookPresentation.Delay(flight)</td>
                                         <td class="mono">
                                             @LogbookPresentation.Rate(flight.TouchdownVerticalSpeedFpm)
                                             @if (flight.Bounces is > 0)

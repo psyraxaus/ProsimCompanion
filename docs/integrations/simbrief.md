@@ -31,3 +31,12 @@
 - **No TAF in the OFP JSON** we fetch: the fuel decision reads the TAF from the weather chain
   (SayIntentions `getWX` `taf`, the ActiveSky snapshot's third `::` field) via
   `WxFacts.RawTaf`; the ProSim gateway METAR carries none.
+
+## Schedule times (issue #185)
+
+`times.sched_out` and `times.sched_in` are Unix seconds; both are imported as
+`OfpData.ScheduledOutUtc` / `ScheduledInUtc` (null when 0 or absent) and recorded on the
+`ofp.loaded` session event. `sched_out` drives the gate monitor's STD and, since package 6,
+the off-blocks punctuality verdict (`flight.punctuality`) and the delay-code question;
+`sched_in` is carried for the logbook only. A SimBrief plan filed without a schedule has both
+null and the flight is "unscheduled": no verdict, no question, a dash in the Logbook.

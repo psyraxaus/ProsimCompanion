@@ -319,6 +319,11 @@ else if (CurrentSection == "company")
         <OptionField Draft="_company" For="o => o.Chime" />
         <OptionField Draft="_company" For="o => o.CruiseMessages" />
         <OptionField Draft="_company" For="o => o.CruiseMessageProbability" />
+        <OptionField Draft="_company" For="o => o.MovementMessages" />
+        <OptionField Draft="_company" For="o => o.MovementMessagesSpoken" />
+        <OptionField Draft="_company" For="o => o.DelayCodes" />
+        <OptionField Draft="_company" For="o => o.DelayToleranceMinutes" />
+        <div class="field-hint" style="max-width:640px;">@T["speechSettings.company.delayCodesFile"]</div>
         <AdvancedFields>
             <OptionField Draft="_company" For="o => o.PersistLoadsheet" />
         </AdvancedFields>

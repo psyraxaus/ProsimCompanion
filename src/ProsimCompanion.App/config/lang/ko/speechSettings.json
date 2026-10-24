@@ -477,6 +477,25 @@
         "label": "순항 메시지 확률",
         "hint": "0.15는 약 일곱 비행 중 하나, 비행마다 한 번 정해짐."
       },
+      "movementMessages": {
+        "label": "무브먼트 메시지",
+        "hint": "이륙 시(ETA 포함 AD)와 블록 인 시(AA)에 ACARS MVT 메시지를 조종실로 보냅니다.",
+        "more": "로드시트 옆 RCVD MSGS 목록의 슬롯 06과 07에 들어갑니다. ProSim과 로드된 OFP가 필요합니다. 기본값은 꺼짐."
+      },
+      "movementMessagesSpoken": {
+        "label": "무브먼트 메시지 읽어주기",
+        "hint": "전송마다 FO가 \"movement message sent\"라고 말합니다."
+      },
+      "delayCodes": {
+        "label": "지연 코드",
+        "hint": "예정 시각에 허용치를 더한 시각보다 늦게 게이트를 떠나면 FO가 IATA 지연 코드를 묻습니다.",
+        "more": "번호(\"delay code one five\")나 사유(\"delay boarding\")로 답합니다. 5분 동안 답이 없으면 99(기타)를 기록합니다. 코드는 무브먼트 메시지, 디브리프, 로그북에 들어갑니다."
+      },
+      "delayTolerance": {
+        "label": "정시 허용치",
+        "hint": "예정 출발 후 정시로 간주하는 분. 항공사는 15를 씁니다."
+      },
+      "delayCodesFile": "코드 목록은 %LOCALAPPDATA%\\ProsimCompanion\\config 의 delay-codes.json 입니다. 항공사의 코드와 말할 단어를 추가하세요.",
       "persist": {
         "label": "말한 로드시트 저장",
         "hint": "세션 로그 옆에 *.loadsheet.txt로, 원본 EFB 로드시트와 함께 기록됩니다."

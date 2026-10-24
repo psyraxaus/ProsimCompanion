@@ -3347,6 +3347,66 @@
         "requires-human: the arrival briefing spoken after the pilot sets the new destination in the MCDU names the new airport and its runway; the GSX arrival gate is asked for at the new airport (the old stand request was cancelled); 'request diversion' goes out on SayIntentions with the new ICAO."
       ],
       "notes": "Package 5 of the November 2026 airline-ops batch (branch feature/diversion). Core DiversionStore overlays OfpStore (Planned vs Current, OfpDiversion.WithDiversion drops navlog / planned runway / landing fuel / alternate), FlightOptions (`flight.diversionEnabled`), FlightCommandHandlers + IDiversionControl, IAcarsUplink seam (Prosim AcarsUplink), DebriefFacts.Diverted/PlannedDestination/DiversionReason, LogbookFlight fields + CSV columns; Speech DiversionService (precedence 145) and the {diversion} ATC template value; the DiversionCard on the OFP page and Flight Status. The flight-state snapshot persists the effective (diverted) OFP, so after an in-flight restart the destination is right but the card is empty — accepted. Unverified live."
+    },
+    {
+      "id": "acars-movement-message",
+      "issue": 185,
+      "state": "open",
+      "kind": "assert-present",
+      "machine": {
+        "kind": "signature",
+        "source": "session",
+        "type": "acars.mvt",
+        "contains": "\"kind\":\"off\"",
+        "trigger": {
+          "source": "session",
+          "type": "flight-times",
+          "contains": "\"takeoffUtc\":\"2"
+        }
+      },
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "Only with company.enabled AND company.movementMessages = true (off by default), an OFP loaded. Trigger: the flight-times event whose takeoffUtc first turns non-null (the OFF edge).",
+        "assert-present (OFF): within one flight-times tick an acars.mvt event {kind off, slot 06, text, sent, acars} whose text is exactly 'MVT' / '{flt}/{dd}.{reg}.{dep}' / 'AD {HHMM out}/{HHMM off} EA {HHMM eta} {dest}' (one group per line; the EA clause absent only when no ETA existed — no progress ETA and no OFP enroute time) and, when a delay code stands this cycle, a fourth line 'DL {code}/{HHMM}'. The HHMM figures are the sim-clock stamps the flight-times event carries, never the wall clock. The log line 'Movement message Off: MVT … (sent True)' follows when ProSim was connected; sent false with acars true = the gateway refused (look for the AcarsUplink warning).",
+        "assert-present (IN): on the flight-times tick whose onBlocksUtc first turns non-null, an acars.mvt {kind in, slot 07} whose text is 'MVT' / '{flt}/{dd}.{reg}.{dest}' / 'AA {HHMM on}/{HHMM in}' [+ the same DL line].",
+        "assert-present (spoken, only with company.movementMessagesSpoken): the company channel's 'Company copies, movement message sent — airborne.' / '— on blocks.' after each uplink (through the company voice and chime like a cruise message); 'Movement message not sent — ACARS unavailable.' when the gateway refused.",
+        "assert-absent: an acars.mvt with slot 01 or 02 (the loadsheets') or 03 / 05 (LMC / diversion); a second OFF or IN message in one cycle (flags reset only with the flight cycle / an Empty flight-times snapshot); any acars.mvt while company.movementMessages was false; any aircraft write other than the uplink itself.",
+        "requires-human: the MCDU RCVD MSGS list shows two MOVEMENT entries after landing, no ACCEPT prompt on either, the AD/AA figures agree with the Logbook's stamps."
+      ],
+      "notes": "Package 6 of the November 2026 airline-ops batch (branch feature/acars-movement-messages). Core MovementMessageComposer (pure text), IAcarsUplink seam (Prosim AcarsUplink), Speech MovementMessageService over FlightTimesStore edges; the ETA is FlightProgressStore.EtaUtc else takeoff + OFP enroute. The registration is written without its hyphen (GEUYB) — the airline MVT convention. Unverified live."
+    },
+    {
+      "id": "delay-code-prompt",
+      "issue": 185,
+      "state": "open",
+      "kind": "assert-present",
+      "machine": {
+        "kind": "signature",
+        "source": "session",
+        "type": "delay-code-question",
+        "contains": "\"attempt\":1",
+        "trigger": {
+          "source": "session",
+          "type": "flight.punctuality",
+          "contains": "\"onTime\":false"
+        }
+      },
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "Always (company.enabled): on the flight-times tick whose offBlocksUtc first turns non-null, ONE flight.punctuality event {outUtc, scheduledOutUtc, delayMinutes, toleranceMinutes, onTime} — delayMinutes = out − OFP sched_out rounded to the minute (null and onTime null without an OFP STD), onTime = delayMinutes <= company.delayToleranceMinutes (15 by default). The log line 'Off blocks HH:mmZ against STD HH:mmZ: N min, late|on time'.",
+        "assert-present (late, company.delayCodes = true): a delay-code-question event {prompt \"We're N minutes late off blocks — delay code?\", attempt 1, options [the codes]} within seconds of the punctuality event (the dialogue needs gsx.voiceControlEnabled and a free microphone); the Captain's Questions card on Ground Services / the OFP page shows the question with one button per code ('15 Boarding').",
+        "assert-present (answer): speech.recognized with the number ('delay code one five', 'fifteen', '15') or an alias from delay-codes.json ('delay boarding', 'late passengers') → the FO's 'Delay code 1 5, Boarding.' read-back, delay-code-question {outcome answered, code}, then flight.delayCode {code, title, delayMinutes, source voice|web} and the FO's 'Delay code 1 5, Boarding, noted.'. The later acars.mvt texts carry 'DL 15/HHMM'; the debrief and the Logbook row carry the code.",
+        "assert-present (silence): no answer in 5 minutes → delay-code-question {outcome unanswered, fallback 99}, flight.delayCode {code 99, title Other, source timeout, note 'no answer to the delay-code question'} with NO spoken line; a 'your call' / 'leave it' hands the question back and leaves it standing until the TTL.",
+        "assert-absent: a delay-code-question while onTime was true or null; one while company.delayCodes was false; a second question in the same cycle (AnswerIsFinalForCycle); a flight.delayCode after a FlightCycleReset without a new punctuality event (the reset must not file 99 — the handler tells a reset from a withdrawal by the delay figure).",
+        "requires-human: the FO's question comes once, after the aircraft moved, not during the pushback hail; the Logbook's 'On time' figure and the Delay column ('+22 · 15') read right after the flight."
+      ],
+      "notes": "Package 6 of the November 2026 airline-ops batch. DelayCodeStore (pick-one captain's question, StandardTtl, Withdraws, final for cycle) + DelayCodePhrases table over the shared CaptainsQuestionDialogue; DelayCodeCatalog loads %LOCALAPPDATA%\\ProsimCompanion\\config\\delay-codes.json (seeded, keep-user-edits). The debrief extractor reads ofp.loaded.scheduledOutUtc / flight.punctuality / flight.delayCode; LogbookFlight gained ScheduledOutUtc, ScheduledInUtc, DelayCode, DelayMinutes, OnTime (5 CSV columns, old files load with nulls); the Logbook totals gained On time (%); the day summary counts sectors off blocks within 15 min. Unverified live."
     }
   ]
 }

@@ -22,7 +22,9 @@
       "stableApproaches": "安定進入",
       "stableTitle": "ゲートが判定した {1} 回の進入のうち {0} 回が安定",
       "avgTouchdown": "平均接地",
-      "avgTouchdownTitle": "接地レコーダーが計測した {0} 回の着陸の平均"
+      "avgTouchdownTitle": "接地レコーダーが計測した {0} 回の着陸の平均",
+      "otp": "定時",
+      "otpTitle": "予定出発 {1} 回のうち {0} 回が許容内にブロックアウト"
     },
     "trend": {
       "title": "接地率 · 直近 {0} 回の着陸",
@@ -38,6 +40,8 @@
       "block": "ブロック",
       "flight": "飛行",
       "touchdownRate": "T/D 率",
+      "delay": "遅延",
+      "delayCodeTitle": "IATA遅延コード {0}",
       "touchdownSpeed": "T/D 速度",
       "approach": "進入",
       "bounceTitle": "5 秒以内に接地が途切れて再接地",

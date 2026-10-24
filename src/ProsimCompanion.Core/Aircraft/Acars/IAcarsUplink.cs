@@ -1,8 +1,8 @@
 namespace ProsimCompanion.Core.Aircraft.Acars;
 
 /// <summary>
-/// Sends one ACARS uplink to the cockpit RCVD MSGS list (issue #184: the Speech pillar's
-/// company channel sends the diversion message through it). Implemented by the Prosim pillar;
+/// Sends one ACARS uplink to the cockpit RCVD MSGS list (issues #184 and #185: the Speech pillar's
+/// company channel sends the diversion and the movement messages through it). Implemented by the Prosim pillar;
 /// absent when ProSim is not composed in — callers degrade to the spoken channel alone.
 /// </summary>
 public interface IAcarsUplink

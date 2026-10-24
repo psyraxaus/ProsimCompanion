@@ -916,6 +916,17 @@ duties. New features default **off** and are **Unverified live** until a flight 
       `flight.diversionCancelled`, `company.diversion`; probe `flight-diversion`. **Unverified
       live** — the GSX gate chain's behaviour at the new airport and the restart case (the
       snapshot persists the effective OFP; the card is empty after a restart) in particular.
+Ten packages, one branch and one GitHub issue each, branched from `feature/remote-mixer-agents`
+(0.7.0-rc.12) because that branch was not yet on `main`. Every item is off by default and
+**Unverified live** until flown; details in `CHANGELOG.md` under *Unreleased*.
+
+- [x] **ACARS movement messages, delay codes and on-time performance** (#185, package 6,
+      `feature/acars-movement-messages`) — MVT AD/AA telex in RCVD MSGS slots 06/07, the
+      `flight.punctuality` verdict against the OFP STD, the delay-code captain's question over
+      `delay-codes.json` (99 on silence), DL line on the MVT, Logbook On time % + Delay column +
+      five CSV columns, day-summary OTP sentence. Probes `acars-movement-message`,
+      `delay-code-prompt`. Unverified live.
+
 
 ## Open items (after the rc.5 batch, 2026-10-11)
 

@@ -179,6 +179,11 @@ public static class CoreServiceCollectionExtensions
         services.AddSingleton<FuelDecisionStore>();
         services.AddSingleton<ICaptainsQuestionStore>(p => p.GetRequiredService<FuelDecisionStore>());
         services.AddSingleton<HoldingTimeStore>();
+        // "Delay code?" at a late off-blocks (issue #185): the movement service asks, the FO
+        // dialogue or the card answers; the IATA list is user-editable.
+        services.AddSingleton<DelayCodeStore>();
+        services.AddSingleton<ICaptainsQuestionStore>(p => p.GetRequiredService<DelayCodeStore>());
+        services.AddSingleton<Company.DelayCodeCatalog>();
         // The four captain's questions above share one store module (architecture review C2);
         // the ICaptainsQuestionStore registrations feed the FO dialogue, the web card and this
         // one TTL clock — the only thing that settles a question on silence (issue #166).

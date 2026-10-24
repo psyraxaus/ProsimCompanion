@@ -408,6 +408,9 @@ public sealed class SimbriefImportService : ISimbriefImporter, IDisposable
             ScheduledOutUtc = schedOut > 0
                 ? DateTimeOffset.FromUnixTimeSeconds((long)schedOut)
                 : null,
+            ScheduledInUtc = ReadDouble(ofp["times"]?["sched_in"]) is var schedIn && schedIn > 0
+                ? DateTimeOffset.FromUnixTimeSeconds((long)schedIn)
+                : null,
             EstimatedEnroute = enrouteSeconds > 0 ? TimeSpan.FromSeconds(enrouteSeconds) : null,
             FetchedAtUtc = DateTimeOffset.UtcNow,
             Navlog = ParseNavlog(ofp["navlog"], Kg),

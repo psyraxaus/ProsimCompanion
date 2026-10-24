@@ -22,7 +22,9 @@
       "stableApproaches": "Approches stables",
       "stableTitle": "{0} stables sur {1} approches jugées par les gates",
       "avgTouchdown": "Toucher moyen",
-      "avgTouchdownTitle": "Moyenne sur les {0} atterrissage(s) mesurés par l'enregistreur de toucher"
+      "avgTouchdownTitle": "Moyenne sur les {0} atterrissage(s) mesurés par l'enregistreur de toucher",
+      "otp": "À l'heure",
+      "otpTitle": "{0} des {1} départs prévus aux cales dans la tolérance"
     },
     "trend": {
       "title": "Taux au toucher · {0} dernier(s) atterrissage(s)",
@@ -38,6 +40,8 @@
       "block": "Bloc",
       "flight": "Vol",
       "touchdownRate": "Taux T/D",
+      "delay": "Retard",
+      "delayCodeTitle": "Code de retard IATA {0}",
       "touchdownSpeed": "Vitesse T/D",
       "approach": "Approche",
       "bounceTitle": "Contact sol perdu puis repris en moins de 5 secondes",

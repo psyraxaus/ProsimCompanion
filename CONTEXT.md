@@ -334,6 +334,29 @@ the aircraft and answers "checked" or corrects. A lead-in with no figure ("minim
 not a read-back; it belongs to the checklist or callout feature.
 _Avoid_: confirmation, challenge
 
+**Movement message**:
+The airline MVT telex the company receives at two flight edges — AD (airborne: out/off times
+and the EA, the estimated arrival) at take-off and AA (on/in times) on blocks — composed from
+the OFP identity and the flight-times tracker's sim-clock stamps and uplinked to the MCDU
+RCVD MSGS list in its own slots (06/07), never the loadsheets'. A DL line names the delay
+code once one stands. It is read-and-speak: the uplink is the only write.
+_Avoid_: OOOI report, ACARS status, position report
+
+**Delay code**:
+The two-digit IATA reason for a late departure, asked of the captain once per cycle as a
+pick-one captain's question when off-blocks is past the scheduled departure plus the on-time
+tolerance (15 min). The list is the user's `delay-codes.json` (code, title, spoken aliases);
+99 "other" is what silence files. It travels on the movement message, into the debrief facts
+and the logbook.
+_Avoid_: delay reason, late code
+
+**On-time tolerance**:
+The minutes after the scheduled departure that still count as on time (15 by default, the
+industry OTP rule). One figure drives the delay-code question, the Logbook's On time total
+and the day summary's sentence.
+_Avoid_: punctuality window, grace period
+
+
 ### Web host
 
 **Secure context**:

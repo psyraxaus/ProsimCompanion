@@ -22,7 +22,9 @@
       "stableApproaches": "Stable approaches",
       "stableTitle": "{0} stable of {1} approaches the gates judged",
       "avgTouchdown": "Avg touchdown",
-      "avgTouchdownTitle": "Average over the {0} landing(s) the touchdown recorder measured"
+      "avgTouchdownTitle": "Average over the {0} landing(s) the touchdown recorder measured",
+      "otp": "On time",
+      "otpTitle": "{0} of {1} scheduled departures off blocks within the tolerance"
     },
     "trend": {
       "title": "Touchdown rate · last {0} landing(s)",
@@ -38,6 +40,8 @@
       "block": "Block",
       "flight": "Flight",
       "touchdownRate": "T/D rate",
+      "delay": "Delay",
+      "delayCodeTitle": "IATA delay code {0}",
       "touchdownSpeed": "T/D speed",
       "approach": "Approach",
       "bounceTitle": "Ground contact lost and regained within 5 seconds",

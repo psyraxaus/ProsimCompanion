@@ -22,7 +22,9 @@
       "stableApproaches": "Stabile Anflüge",
       "stableTitle": "{0} stabil von {1} Anflügen, die die Gates bewertet haben",
       "avgTouchdown": "Ø Aufsetzen",
-      "avgTouchdownTitle": "Durchschnitt über die {0} Landung(en), die der Aufsetzrekorder gemessen hat"
+      "avgTouchdownTitle": "Durchschnitt über die {0} Landung(en), die der Aufsetzrekorder gemessen hat",
+      "otp": "Pünktlich",
+      "otpTitle": "{0} von {1} planmäßigen Abflügen innerhalb der Toleranz off blocks"
     },
     "trend": {
       "title": "Aufsetzrate · letzte {0} Landung(en)",
@@ -38,6 +40,8 @@
       "block": "Block",
       "flight": "Flug",
       "touchdownRate": "T/D-Rate",
+      "delay": "Verspätung",
+      "delayCodeTitle": "IATA-Verspätungscode {0}",
       "touchdownSpeed": "T/D-Speed",
       "approach": "Anflug",
       "bounceTitle": "Bodenkontakt innerhalb von 5 Sekunden verloren und wiedererlangt",

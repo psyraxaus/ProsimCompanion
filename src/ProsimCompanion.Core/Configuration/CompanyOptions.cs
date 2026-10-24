@@ -37,4 +37,26 @@ public sealed class CompanyOptions : IOptionSection
     /// <summary>Play the ACARS-style double-beep before company deliveries.</summary>
     [OptionField(FieldKind.Bool, "speechSettings.company.chime", DependsOn = "Enabled")]
     public bool Chime { get; set; } = true;
+
+    // ---- Movement messages and delay codes (issue #185) ----
+
+    /// <summary>Send the IATA movement messages (MVT) to the company at the OFF and IN edges:
+    /// AD out/off with the EA at takeoff, AA on/in at on-blocks, the DL code/minutes suffix when
+    /// a delay code is on record. Into the cockpit RCVD MSGS over ACARS when ProSim is there.</summary>
+    [OptionField(FieldKind.Bool, "speechSettings.company.movementMessages", DependsOn = "Enabled")]
+    public bool MovementMessages { get; set; }
+
+    /// <summary>Also say "company copies, movement message sent" when one goes out. Silent by default.</summary>
+    [OptionField(FieldKind.Bool, "speechSettings.company.movementMessagesSpoken", DependsOn = "Enabled; MovementMessages")]
+    public bool MovementMessagesSpoken { get; set; }
+
+    /// <summary>At off-blocks, when the aircraft is later than the schedule plus the tolerance,
+    /// the FO asks for the IATA delay code (pick one from delay-codes.json; a timeout records 99).</summary>
+    [OptionField(FieldKind.Bool, "speechSettings.company.delayCodes", DependsOn = "Enabled")]
+    public bool DelayCodes { get; set; }
+
+    /// <summary>Minutes past the scheduled departure before a flight counts as late — the
+    /// industry on-time-performance threshold (15).</summary>
+    [OptionField(FieldKind.Number, "speechSettings.company.delayTolerance", Suffix = "min", Min = "0", Max = "120", DependsOn = "Enabled")]
+    public int DelayToleranceMinutes { get; set; } = 15;
 }

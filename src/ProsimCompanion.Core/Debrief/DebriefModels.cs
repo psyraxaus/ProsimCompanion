@@ -58,7 +58,12 @@ public sealed record DebriefFacts(
     bool TakeoffUnknown = false,
     bool Diverted = false,
     string? PlannedDestination = null,
-    string? DiversionReason = null)
+    string? DiversionReason = null,
+    DateTimeOffset? ScheduledOutUtc = null,
+    DateTimeOffset? ScheduledInUtc = null,
+    string? DelayCode = null,
+    int? DelayMinutes = null,
+    bool? OnTime = null)
 {
     public static DebriefFacts Empty { get; } = new(
         null, null, null, null, [], 0, 0, 0, [],
