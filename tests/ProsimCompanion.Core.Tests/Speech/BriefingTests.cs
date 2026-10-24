@@ -253,6 +253,164 @@ public sealed class BriefingTests
         Assert.Empty(offending);
     }
 
+    // ---- Issue #180: the emergency half of the takeoff briefing and the go-around additions ----
+
+    private static EmergencyBriefFacts Emergency() => new(
+        Surface: Core.Weather.RunwaySurfaceState.Dry, Thunderstorms: false, MsaFt: 3500,
+        AccelerationAltitudeFt: 1500, ThrustReductionAltitudeFt: 1500, AltitudesAboveAirport: false,
+        EngineOutProcedure: EmergencyBriefFacts.DefaultEngineOutProcedure, EngineOutIsPublished: false,
+        ReturnRunway: "16R", ThrustMode: "FLEX 52", CeilingFt: null, IcingLikely: false, AirportElevationFt: 21);
+
+    [Fact]
+    public void EmergencySection_IsTheTailOfTheDeparture_AndAbsentWhenOff()
+    {
+        var clean = BriefingComposer.Template(Departure());
+        var facts = Departure() with { TechLogItems = [Defect("APU inoperative")], Emergency = Emergency() };
+
+        var text = BriefingComposer.Template(facts);
+        var tail = BriefingComposer.Sections(facts).Select(s => s.Key).SkipWhile(k => k != "tech-log").ToArray();
+
+        Assert.DoesNotContain("stop", clean, StringComparison.Ordinal);
+        Assert.StartsWith(clean, text, StringComparison.Ordinal);
+        Assert.Equal(["tech-log", "rto-split", "efato", "accel-alt", "msa", "return", "threats"], tail);
+        Assert.Contains(
+            "Below one hundred knots, we stop for any ECAM caution or master warning, engine failure, fire, or if the aircraft "
+            + "is unsafe to fly. Above one hundred knots, we stop only for engine failure, fire, or if the aircraft will not fly. "
+            + "Engine failure after V1: continue the takeoff, rotate at V R, climb at V2, positive climb gear up, at four hundred "
+            + "feet ECAM actions. Engine-out routing: straight ahead, runway heading, to the acceleration altitude. "
+            + "Acceleration altitude 1500 feet, thrust reduction 1500 feet. Minimum safe altitude 3500 feet. "
+            + "In case of return, YSSY runway 16R.", text, StringComparison.Ordinal);
+        // One open tech-log item is a threat of the day, named as a count — the tech-log clause
+        // before it carries the title.
+        Assert.EndsWith("Threats today: one open tech log item.", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void EmergencySection_OmitsUnknownFacts_AndSaysAboveTheAirportWithoutAnElevation()
+    {
+        var facts = Departure() with
+        {
+            Emergency = Emergency() with { MsaFt = null, ReturnRunway = null, AltitudesAboveAirport = true, AirportElevationFt = null },
+        };
+
+        var keys = BriefingComposer.Sections(facts).Select(s => s.Key).ToArray();
+        var text = BriefingComposer.Template(facts);
+
+        Assert.DoesNotContain("msa", keys);
+        Assert.DoesNotContain("return", keys);
+        Assert.Contains("Acceleration altitude 1500 feet above the airport, thrust reduction 1500 feet above the airport.", text, StringComparison.Ordinal);
+        Assert.EndsWith("No specific threats.", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void EmergencySection_SpeaksThePublishedEosid_AndTheReturnOnTheAirportName()
+    {
+        var facts = Departure() with
+        {
+            AirportName = "Sydney",
+            Emergency = Emergency() with { EngineOutProcedure = "heading one six three, climb to 1500 feet; left turn, direct SYD, climb to 3000 feet", EngineOutIsPublished = true },
+        };
+
+        var text = BriefingComposer.Template(facts);
+
+        Assert.Contains("Engine-out routing: heading one six three, climb to 1500 feet; left turn, direct SYD, climb to 3000 feet.", text, StringComparison.Ordinal);
+        Assert.Contains("In case of return, Sydney runway 16R.", text, StringComparison.Ordinal);
+        Assert.Contains("- Engine-out routing (published EOSID): heading one six three", BriefingComposer.FactBlock(facts), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ThreatList_ComposesEveryItemInFixedOrder_AndNothingWhenTheDayIsClean()
+    {
+        var facts = Departure() with
+        {
+            VisibilityM = 800,
+            TechLogItems = [Defect("APU inoperative"), Defect("Galley oven 2 inoperative")],
+        };
+        var emergency = Emergency() with
+        {
+            Surface = Core.Weather.RunwaySurfaceState.Wet, Thunderstorms = true, CeilingFt = 400, IcingLikely = true,
+            MsaFt = 9000, AirportElevationFt = 21,
+        };
+
+        var items = ThreatListBuilder.Build(facts, emergency);
+
+        Assert.Equal(
+        [
+            "wet runway", "thunderstorms in the vicinity", "low visibility, 800 metres", "low cloud, ceiling 400 feet",
+            "icing conditions, engine anti-ice", "2 open tech log items", "terrain, minimum safe altitude 9000 feet",
+        ], items);
+        Assert.Equal("contaminated runway", ThreatListBuilder.Build(Departure(), Emergency() with { Surface = Core.Weather.RunwaySurfaceState.Contaminated })[0]);
+        Assert.Empty(ThreatListBuilder.Build(Departure(), Emergency()));
+        // MSA 3500 over a 21 ft airport is no terrain threat; 9000 over 4500 is not either (margin 5000).
+        Assert.False(ThreatListBuilder.IsTerrainThreat(Emergency()));
+        Assert.False(ThreatListBuilder.IsTerrainThreat(Emergency() with { MsaFt = 9000, AirportElevationFt = 4500 }));
+        Assert.True(ThreatListBuilder.IsTerrainThreat(Emergency() with { MsaFt = 9600, AirportElevationFt = 4500 }));
+        Assert.EndsWith(
+            "Threats today: wet runway, thunderstorms in the vicinity, low visibility, 800 metres, low cloud, ceiling 400 feet, "
+            + "icing conditions, engine anti-ice, 2 open tech log items, and terrain, minimum safe altitude 9000 feet.",
+            BriefingComposer.Template(facts with { Emergency = emergency }), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void AllowedNumbers_IncludeEveryEmergencyAndGoAroundFigure()
+    {
+        var departure = Departure() with
+        {
+            Emergency = Emergency() with { CeilingFt = 400, EngineOutProcedure = "heading one six three, climb to 1600 feet; direct SYD, climb to 3000 feet", EngineOutIsPublished = true, AccelerationAltitudeFt = 1500, ThrustReductionAltitudeFt = 1800 },
+        };
+        var allowed = BriefingComposer.AllowedNumbers(departure);
+        foreach (var expected in new double[] { 100, 400, 1500, 1800, 3500, 21, 1600, 3000 })
+        {
+            Assert.Contains(expected, allowed);
+        }
+
+        // The model repeating the fixed phraseology ("one hundred knots", "four hundred feet") verifies.
+        var (offending, _) = BriefingComposer.VerifyNumbers(
+            "Below 100 knots we stop for anything; above 100 knots only for engine failure or fire. At 400 feet, ECAM actions. "
+            + "Acceleration altitude 1500 feet, thrust reduction 1800. MSA 3500 feet.", departure);
+        Assert.Empty(offending);
+
+        var arrival = Departure() with { IsDeparture = false, GoAround = new GoAroundBriefFacts(3000, 3500, ["climb to 600 feet", "left turn, direct SOSIJ, climb to 3000 feet"]) };
+        var arrivalAllowed = BriefingComposer.AllowedNumbers(arrival);
+        Assert.Contains(3000, arrivalAllowed);
+        Assert.Contains(3500, arrivalAllowed);
+        Assert.Contains(600, arrivalAllowed);
+    }
+
+    [Fact]
+    public void ArrivalGoAroundClauses_FollowTheMinima_AndUseTheRebriefLegWording()
+    {
+        var legs = new[] { "climb to 600 feet", "left turn, direct SOSIJ, climb to 3000 feet" };
+        var facts = Departure() with
+        {
+            IsDeparture = false, Approach = "I16RY", Minima = new ArrivalMinima(ArrivalMinimumKind.DecisionAltitude, 320),
+            GoAround = new GoAroundBriefFacts(3000, 3500, legs),
+        };
+
+        var keys = BriefingComposer.Sections(facts).Select(s => s.Key).SkipWhile(k => k != "minimums").ToArray();
+        var text = BriefingComposer.Template(facts);
+
+        Assert.Equal(["minimums", "missed-approach-altitude", "msa", "go-around"], keys);
+        Assert.EndsWith(
+            "Missed approach altitude 3000 feet. Minimum safe altitude 3500 feet. "
+            + "Go around: go around, flaps, positive climb gear up, navigation, climb to 600 feet; left turn, direct SOSIJ, climb to 3000 feet.",
+            text, StringComparison.Ordinal);
+        // The re-brief speaks "Missed approach. " + the same run, capitalised — one helper, one wording.
+        Assert.Equal("climb to 600 feet; left turn, direct SOSIJ, climb to 3000 feet", BriefingComposer.MissedApproachLegsText(legs));
+
+        var unpublished = BriefingComposer.Template(facts with { GoAround = new GoAroundBriefFacts(null, null, []) });
+        Assert.EndsWith("Minimums, decision altitude three two zero feet. Go around: go around, flaps, positive climb gear up, navigation, missed approach as published.", unpublished, StringComparison.Ordinal);
+        Assert.DoesNotContain("Go around", BriefingComposer.Template(facts with { GoAround = null }), StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(1500, 21.0, 1500)]
+    [InlineData(1500, 1340.0, 2800)]
+    [InlineData(1000, 1340.0, 2300)]
+    [InlineData(1500, null, 1500)]
+    public void BriefedAltitude_AddsTheElevationRoundedToTheHundred_OrStaysAal(int aal, double? elevation, int expected)
+        => Assert.Equal(expected, BriefingService.BriefedAltitude(aal, elevation));
+
     [Fact]
     public void ArrivalTechLogClause_UsesTheLandingWording()
     {

@@ -70,17 +70,21 @@ public sealed class DfdNavDataProvider
     /// <summary>DFD table/column names for one schema generation.</summary>
     private sealed record DfdSchema(
         string Name, string Header, string AiracColumn,
-        string Airports, string Runways, string Ils, string Sids, string Stars, string Iaps);
+        string Airports, string Runways, string Ils, string Sids, string Stars, string Iaps, string Msa);
 
     private static readonly DfdSchema NewSchema = new(
         "new", "tbl_hdr_header", "cycle",
         "tbl_pa_airports", "tbl_pg_runways", "tbl_pi_localizers_glideslopes",
-        "tbl_pd_sids", "tbl_pe_stars", "tbl_pf_iaps");
+        "tbl_pd_sids", "tbl_pe_stars", "tbl_pf_iaps", "tbl_ps_airport_msa");
 
     private static readonly DfdSchema LegacySchema = new(
         "legacy", "tbl_header", "current_airac",
         "tbl_airports", "tbl_runways", "tbl_localizers_glideslopes",
-        "tbl_sids", "tbl_stars", "tbl_iaps");
+        "tbl_sids", "tbl_stars", "tbl_iaps", "tbl_airport_msa");
+
+    /// <summary>ARINC 424 SID route type of an engine-out SID — the one value in the DFD's
+    /// SID table that marks the published engine-failure routing (issue #180).</summary>
+    public const string EngineOutSidRouteType = "0";
 
     private static readonly Regex ApproachIdPattern = new(@"^([A-Z])(\d{2})([LRC]?)(.*)$", RegexOptions.Compiled);
 
@@ -538,6 +542,138 @@ public sealed class DfdNavDataProvider
         {
             _logger.LogDebug(ex, "Missed-approach read failed for {Airport}/{Approach}", airport, approach);
             return none;
+        }
+    }
+
+    /// <summary>The airport's highest published MSA sector altitude, feet (issue #180) — from
+    /// the DFD airport-MSA table (<c>tbl_ps_airport_msa</c> / legacy <c>tbl_airport_msa</c>:
+    /// one row per MSA centre with up to five <c>sector_altitude_N</c> columns). The highest
+    /// sector is the conservative figure a briefing speaks; picking the sector by departure
+    /// bearing is a follow-up. Null without a DFD, without the table, or when the airport has
+    /// no MSA rows.</summary>
+    public double? AirportMsaFt(string? airport)
+    {
+        if (string.IsNullOrWhiteSpace(airport))
+        {
+            return null;
+        }
+
+        using var connection = Open();
+        if (connection is null)
+        {
+            return null;
+        }
+
+        try
+        {
+            var schema = DetectSchema(connection);
+            if (!TableExists(connection, schema.Msa))
+            {
+                return null;
+            }
+
+            using var cmd = connection.CreateCommand();
+            cmd.CommandText =
+                "SELECT sector_altitude_1, sector_altitude_2, sector_altitude_3, sector_altitude_4, sector_altitude_5 "
+                + $"FROM {schema.Msa} WHERE airport_identifier=@a";
+            cmd.Parameters.AddWithValue("@a", airport.Trim().ToUpperInvariant());
+            double? highest = null;
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+            {
+                for (var i = 0; i < reader.FieldCount; i++)
+                {
+                    if (reader.IsDBNull(i))
+                    {
+                        continue;
+                    }
+
+                    if (double.TryParse(Convert.ToString(reader.GetValue(i), CultureInfo.InvariantCulture),
+                            NumberStyles.Float, CultureInfo.InvariantCulture, out var value)
+                        && value > 0 && (highest is null || value > highest))
+                    {
+                        highest = value;
+                    }
+                }
+            }
+
+            return highest;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Airport MSA read failed for {Airport}", airport);
+            return null;
+        }
+    }
+
+    /// <summary>The published engine-out SID for a runway as spoken legs (issue #180): the SID
+    /// rows with <c>route_type</c> <see cref="EngineOutSidRouteType"/> whose runway transition
+    /// is this runway (or ALL / blank), first procedure found, sequence order, each leg in the
+    /// missed-approach leg wording. Empty without a DFD or when none is published — the
+    /// briefing then speaks the straight-ahead default.</summary>
+    public IReadOnlyList<string> EngineOutProcedure(string? airport, string? runway)
+    {
+        if (string.IsNullOrWhiteSpace(airport) || NormalizeRunway(runway) is not { } rw)
+        {
+            return [];
+        }
+
+        using var connection = Open();
+        if (connection is null)
+        {
+            return [];
+        }
+
+        try
+        {
+            var schema = DetectSchema(connection);
+            if (!TableExists(connection, schema.Sids))
+            {
+                return [];
+            }
+
+            var courseColumn = schema == NewSchema ? "course" : "magnetic_course";
+            using var cmd = connection.CreateCommand();
+            cmd.CommandText =
+                $"SELECT procedure_identifier, seqno, waypoint_identifier, path_termination, turn_direction, {courseColumn} AS course, altitude1 "
+                + $"FROM {schema.Sids} WHERE airport_identifier=@a AND route_type=@t "
+                + "AND (transition_identifier=@r OR transition_identifier='ALL' OR transition_identifier IS NULL OR transition_identifier='') "
+                + "ORDER BY procedure_identifier, seqno";
+            cmd.Parameters.AddWithValue("@a", airport.Trim().ToUpperInvariant());
+            cmd.Parameters.AddWithValue("@t", EngineOutSidRouteType);
+            cmd.Parameters.AddWithValue("@r", rw);
+
+            string? procedure = null;
+            var legs = new List<string>();
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+            {
+                var id = reader.IsDBNull(0) ? "" : reader.GetString(0);
+                procedure ??= id;
+                if (!string.Equals(id, procedure, StringComparison.Ordinal))
+                {
+                    break; // the first published EOSID only
+                }
+
+                legs.Add(DescribeLeg(
+                    reader.IsDBNull(3) ? "" : reader.GetString(3),
+                    reader.IsDBNull(2) ? null : reader.GetString(2),
+                    reader.IsDBNull(5) ? null : (int?)Math.Round(Convert.ToDouble(reader.GetValue(5), CultureInfo.InvariantCulture)),
+                    reader.IsDBNull(6) ? null : (int?)Math.Round(Convert.ToDouble(reader.GetValue(6), CultureInfo.InvariantCulture)),
+                    reader.IsDBNull(4) || reader.GetString(4).Length == 0 ? null : reader.GetString(4)[0]));
+            }
+
+            if (legs.Count > 0)
+            {
+                _logger.LogInformation("Engine-out SID {Airport}/{Runway}: {Procedure}, {Count} legs", airport, rw, procedure, legs.Count);
+            }
+
+            return legs;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Engine-out SID read failed for {Airport}/{Runway}", airport, runway);
+            return [];
         }
     }
 

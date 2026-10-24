@@ -102,6 +102,38 @@ public sealed class BriefingOptions : IOptionSection
     [OptionField(FieldKind.Number, "speechSettings.briefing.missed.hardCeiling", Suffix = "s", Min = "0", DependsOn = "MissedApproachRebriefEnabled", Advanced = true)]
     public int MissedApproachHardCeilingSeconds { get; set; } = 30;
 
+    // ---- Takeoff emergency brief, go-around brief and threats (issue #180, 2026-10-24) ----
+
+    /// <summary>Speak the emergency half of the takeoff briefing after the standard clauses:
+    /// the rejected-takeoff split, engine failure after V1 with the engine-out routing, the
+    /// acceleration and thrust-reduction altitudes, the MSA, the return intention and the
+    /// composed threats of the day. Off keeps the pre-#180 departure template byte-identical.</summary>
+    [OptionField(FieldKind.Bool, "speechSettings.briefing.emergency.takeoff")]
+    public bool TakeoffEmergencyBrief { get; set; }
+
+    /// <summary>Add the missed-approach altitude, the MSA and the go-around split to the
+    /// arrival briefing. Off keeps the pre-#180 arrival template byte-identical.</summary>
+    [OptionField(FieldKind.Bool, "speechSettings.briefing.emergency.arrival")]
+    public bool ArrivalGoAroundBrief { get; set; }
+
+    /// <summary>After the emergency section the FO asks "any other threats, captain?" — a
+    /// captain's question whose free-text answer is recorded with the briefing. Needs the
+    /// LAN transcription engine for free text; the closed-grammar engine times out to "no
+    /// further threats".</summary>
+    [OptionField(FieldKind.Bool, "speechSettings.briefing.emergency.askForThreats", DependsOn = "TakeoffEmergencyBrief")]
+    public bool AskForThreats { get; set; } = true;
+
+    /// <summary>Acceleration altitude above the aerodrome, feet. The takeoff performance
+    /// calculator carries no such figure, so this operator default is the only source; the
+    /// briefing adds the airport elevation (rounded to 100 ft) when the DFD knows it.</summary>
+    [OptionField(FieldKind.Number, "speechSettings.briefing.emergency.accelAlt", Suffix = "ft", Min = "400", DependsOn = "TakeoffEmergencyBrief", Advanced = true)]
+    public int AccelerationAltitudeFt { get; set; } = 1500;
+
+    /// <summary>Thrust reduction altitude above the aerodrome, feet (same source rule as the
+    /// acceleration altitude).</summary>
+    [OptionField(FieldKind.Number, "speechSettings.briefing.emergency.thrustReductionAlt", Suffix = "ft", Min = "400", DependsOn = "TakeoffEmergencyBrief", Advanced = true)]
+    public int ThrustReductionAltitudeFt { get; set; } = 1500;
+
     /// <summary>LEGACY (superseded 2026-10-08 by the <c>wakeOnLan.targets</c> list,
     /// <see cref="WakeTargetsOptions"/>): the single LLM-host magic packet. Still honoured at
     /// startup while enabled; the Setup page moves it into the list on its first visit and

@@ -922,6 +922,33 @@
           "hint": "Parle au plus tard à ce moment même si le train ne rentre jamais."
         }
       },
+      "emergency": {
+        "title": "Briefing urgence et menaces",
+        "hint": "La moitié urgence du briefing décollage et la moitié remise de gaz du briefing arrivée",
+        "takeoff": {
+          "label": "Briefing urgence décollage",
+          "hint": "Après les points standard, le FO brief le split rejected takeoff, la panne moteur après V1, l'altitude d'accélération, la MSA, le retour et les menaces du jour.",
+          "more": "Désactivé laisse le briefing départ exactement comme avant. Nécessite la DFD Navigraph pour la MSA et une EOSID publiée ; sans elle le FO brief tout droit au cap de piste."
+        },
+        "askForThreats": {
+          "label": "Demander d'autres menaces",
+          "hint": "Le FO termine par « any other threats, captain? » et note ta réponse.",
+          "more": "Le texte libre nécessite le serveur de transcription. Avec le moteur hors ligne la question expire en « no further threats »."
+        },
+        "arrival": {
+          "label": "Briefing remise de gaz à l'arrivée",
+          "hint": "Ajoute l'altitude d'approche interrompue, la MSA et le split remise de gaz au briefing arrivée."
+        },
+        "accelAlt": {
+          "label": "Altitude d'accélération",
+          "hint": "Au-dessus de l'aérodrome. Le FO ajoute l'altitude du terrain quand la DFD la connaît."
+        },
+        "thrustReductionAlt": {
+          "label": "Altitude de réduction de poussée",
+          "hint": "Au-dessus de l'aérodrome, même règle."
+        },
+        "sources": "L'état de piste et la menace givrage viennent du METAR, la MSA et le routage engine-out de la DFD Navigraph, FLEX/TOGA du FMS ou du dernier calcul Takeoff."
+      },
       "llm": {
         "title": "Stylisation LLM",
         "hint": "Un modèle de langage pour la prose du briefing et du débriefing",

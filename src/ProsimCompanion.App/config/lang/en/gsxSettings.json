@@ -366,6 +366,8 @@
       "lvarsValue": "state {0}, fluid type {1}"
     },
     "captainsQuestions": {
+      "threatsBriefed": "Threats briefed",
+      "noFurtherThreats": "No further threats",
       "title": "Captain's Questions",
       "hint": "Open questions from the First Officer — answer here, by voice, or on GSX's own menu",
       "none": "No question open.",

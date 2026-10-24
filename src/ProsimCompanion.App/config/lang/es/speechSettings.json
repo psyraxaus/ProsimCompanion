@@ -922,6 +922,33 @@
           "hint": "Habla como muy tarde a este tiempo aunque el tren nunca suba."
         }
       },
+      "emergency": {
+        "title": "Briefing de emergencia y amenazas",
+        "hint": "La mitad de emergencia del briefing de despegue y la mitad de go-around del briefing de llegada",
+        "takeoff": {
+          "label": "Briefing de emergencia del despegue",
+          "hint": "Tras los puntos estándar el FO brifea el split de rejected takeoff, fallo de motor tras V1, la altitud de aceleración, la MSA, el retorno y las amenazas del día.",
+          "more": "Apagado deja el briefing de salida exactamente como antes. Necesita la DFD de Navigraph para la MSA y una EOSID publicada; sin ella el FO brifea recto por el rumbo de pista."
+        },
+        "askForThreats": {
+          "label": "Preguntar por otras amenazas",
+          "hint": "El FO termina con \"any other threats, captain?\" y anota tu respuesta.",
+          "more": "El texto libre necesita el servidor de transcripción. Con el motor offline la pregunta expira a \"no further threats\"."
+        },
+        "arrival": {
+          "label": "Briefing de go-around en llegada",
+          "hint": "Añade la altitud de missed approach, la MSA y el split de go-around al briefing de llegada."
+        },
+        "accelAlt": {
+          "label": "Altitud de aceleración",
+          "hint": "Sobre el aeropuerto. El FO suma la elevación cuando la DFD la conoce."
+        },
+        "thrustReductionAlt": {
+          "label": "Altitud de reducción de empuje",
+          "hint": "Sobre el aeropuerto, misma regla."
+        },
+        "sources": "El estado de pista y la amenaza de engelamiento vienen del METAR, la MSA y la ruta engine-out de la DFD de Navigraph, FLEX/TOGA del FMS o del último cálculo de Takeoff."
+      },
       "llm": {
         "title": "Estilo LLM",
         "hint": "Un modelo de lenguaje para la prosa del briefing y del debriefing",

@@ -123,7 +123,9 @@ through with a note if deliberately dropped. Sources: Prosim2GSX 0.9.0, ProsimIn
       budget-enforced) → WinRT → SAPI5; intercom filter; prewarm cache
 - [x] Briefings (departure/arrival; Navigraph DFD facts; LLM-composed with number
       verification, streamed sentence by sentence since #147; interactive minimums capture
-      `MinimaCaptureDialogue` + the /speech card)
+      `MinimaCaptureDialogue` + the /speech card; emergency brief — RTO split, EFATO with the
+      DFD EOSID, acceleration/thrust-reduction altitudes, MSA, return, threat list — and the
+      "any other threats?" question, plus the arrival go-around clauses, #180, off by default)
 - [x] SayIntentions ATC requests + departure comms gating + radio management
       (standby-then-swap)
 - [x] SayIntentions wrong-frequency report (COM1 vs ATC's last "Contact … on …"; said once,

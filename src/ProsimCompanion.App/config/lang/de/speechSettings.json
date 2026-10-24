@@ -922,6 +922,33 @@
           "hint": "Spricht spätestens dann, auch wenn das Fahrwerk nie einfährt."
         }
       },
+      "emergency": {
+        "title": "Emergency-Briefing & Threats",
+        "hint": "Die Emergency-Hälfte des Takeoff-Briefings und die Go-around-Hälfte des Arrival-Briefings",
+        "takeoff": {
+          "label": "Takeoff-Emergency-Briefing",
+          "hint": "Nach den Standardpunkten brieft der FO den Rejected-Takeoff-Split, Triebwerksausfall nach V1, die Acceleration Altitude, die MSA, die Rückkehr und die Threats des Tages.",
+          "more": "Aus lässt das Departure-Briefing exakt wie bisher. Braucht die Navigraph-DFD für MSA und eine veröffentlichte EOSID; ohne sie brieft der FO geradeaus auf Runway Heading."
+        },
+        "askForThreats": {
+          "label": "Nach weiteren Threats fragen",
+          "hint": "Der FO schließt mit „any other threats, captain?“ und notiert deine Antwort.",
+          "more": "Freitext braucht den Transkriptionsserver. Mit der Offline-Engine läuft die Frage auf „no further threats“ aus."
+        },
+        "arrival": {
+          "label": "Arrival-Go-around-Briefing",
+          "hint": "Ergänzt Missed-Approach-Altitude, MSA und den Go-around-Split im Arrival-Briefing."
+        },
+        "accelAlt": {
+          "label": "Acceleration Altitude",
+          "hint": "Über dem Flugplatz. Der FO addiert die Platzhöhe, wenn die DFD sie kennt."
+        },
+        "thrustReductionAlt": {
+          "label": "Thrust Reduction Altitude",
+          "hint": "Über dem Flugplatz, gleiche Regel."
+        },
+        "sources": "Bahnzustand und Vereisungs-Threat kommen aus dem METAR, MSA und Engine-out-Routing aus der Navigraph-DFD, FLEX/TOGA aus dem FMS oder der letzten Takeoff-Berechnung."
+      },
       "llm": {
         "title": "LLM-Stilisierung",
         "hint": "Ein Sprachmodell für die Prosa von Briefing und Debriefing",

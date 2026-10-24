@@ -592,6 +592,17 @@ else if (CurrentSection == "briefing")
         </AdvancedFields>
     </Section>
 
+    <Section Title="@T["speechSettings.briefing.emergency.title"]" Hint="@T["speechSettings.briefing.emergency.hint"]">
+        <OptionField Draft="_briefing" For="o => o.TakeoffEmergencyBrief" />
+        <OptionField Draft="_briefing" For="o => o.AskForThreats" />
+        <OptionField Draft="_briefing" For="o => o.ArrivalGoAroundBrief" />
+        <AdvancedFields>
+            <OptionField Draft="_briefing" For="o => o.AccelerationAltitudeFt" />
+            <OptionField Draft="_briefing" For="o => o.ThrustReductionAltitudeFt" />
+        </AdvancedFields>
+        <div class="field-hint" style="max-width:640px;">@T["speechSettings.briefing.emergency.sources"]</div>
+    </Section>
+
     <Section Title="@T["speechSettings.briefing.llm.title"]" Hint="@T["speechSettings.briefing.llm.hint"]">
         <OptionField Draft="_briefing" For="o => o.LlmEnabled" />
         <OptionField Draft="_briefing" For="o => o.StreamLlm" />

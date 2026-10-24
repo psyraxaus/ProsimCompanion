@@ -922,6 +922,33 @@
           "hint": "기어가 올라가지 않아도 이 시간까지는 말합니다."
         }
       },
+      "emergency": {
+        "title": "비상 브리핑 및 위협",
+        "hint": "이륙 브리핑의 비상 부분과 도착 브리핑의 고어라운드 부분",
+        "takeoff": {
+          "label": "이륙 비상 브리핑",
+          "hint": "표준 항목 뒤에 FO가 리젤티드 테이크오프 분기, V1 이후 엔진 고장, 가속 고도, MSA, 복귀, 당일 위협을 브리핑합니다.",
+          "more": "꺼두면 출발 브리핑은 이전과 동일합니다. MSA와 공시된 EOSID에는 Navigraph DFD가 필요하며, 없으면 FO가 활주로 방위로 직진을 브리핑합니다."
+        },
+        "askForThreats": {
+          "label": "다른 위협 묻기",
+          "hint": "FO가 \"any other threats, captain?\"으로 마치고 답을 기록합니다.",
+          "more": "자유 발화에는 전사 서버가 필요합니다. 오프라인 엔진에서는 질문이 \"no further threats\"로 시간 초과됩니다."
+        },
+        "arrival": {
+          "label": "도착 고어라운드 브리핑",
+          "hint": "실패 접근 고도, MSA, 고어라운드 분기를 도착 브리핑에 추가합니다."
+        },
+        "accelAlt": {
+          "label": "가속 고도",
+          "hint": "공항 상공 높이. DFD가 표고를 알면 FO가 더합니다."
+        },
+        "thrustReductionAlt": {
+          "label": "추력 감소 고도",
+          "hint": "공항 상공 높이, 같은 규칙입니다."
+        },
+        "sources": "활주로 상태와 착빙 위협은 METAR에서, MSA와 엔진 아웃 경로는 Navigraph DFD에서, FLEX/TOGA는 FMS 또는 마지막 Takeoff 계산에서 가져옵니다."
+      },
       "llm": {
         "title": "LLM 스타일링",
         "hint": "브리핑과 디브리핑 문장을 위한 하나의 언어 모델",

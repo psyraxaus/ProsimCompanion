@@ -826,6 +826,34 @@ Owner requests and flight-test fixes after the batch. One line each; the full te
       hand-over by phase (legacy distance gate kept); SI stand fallback; event-flood dedupe.
       **Unverified live** — every item.
 
+## Phase 10 — November 2026 airline-ops batch
+
+Ten packages, one GitHub issue and one branch each, written against `feature/remote-mixer-agents`
+at 0.7.0-rc.12. The theme: what a line pilot does that the app did not yet model — the emergency
+half of the takeoff briefing, last-minute changes, wind and runway-condition limits, the fuel
+decision, a diversion, movement messages, turbulence and PAs, RTO/EFATO, the FO's own-side
+duties. New features default **off** and are **Unverified live** until a flight confirms them.
+
+- [x] **Threat-based takeoff briefing and approach-briefing additions** (#180,
+      `feature/takeoff-threat-briefing`): `EmergencyBriefFacts` / `GoAroundBriefFacts` on the
+      briefing fact record (null = switch off = template byte-identical); the departure tail
+      `rto-split` → `efato` → `accel-alt` → `msa` → `return` → `threats` from
+      `BriefingComposer.EmergencySections`, the arrival `missed-approach-altitude` → `msa` →
+      `go-around` after the minimums; pure `ThreatListBuilder` (surface, thunderstorms, low
+      visibility / ceiling, ground icing, tech-log count, terrain by MSA margin) and Core
+      `MetarConditions` (surface from precipitation, ground-icing predicate with the de-icing
+      policy's thresholds); DFD `AirportMsaFt` (highest published sector of
+      `tbl_ps_airport_msa` / `tbl_airport_msa`) and `EngineOutProcedure` (SID `route_type` 0,
+      runway transition, first procedure, missed-approach leg wording); `TakeoffPerfStore`
+      fallback for FLEX/TOGA and V-speeds; `briefing.accelerationAltitudeFt` /
+      `thrustReductionAltitudeFt` (1500 AAL, MSL when the elevation is known, rounded to 100 ft);
+      `ThreatsQuestionStore` (`briefingThreats`, free-text answer noted, #166 rules) +
+      `ThreatsQuestionPhrases` over the shared dialogue, raised only after the briefing's
+      utterance has played; `MissedApproachRebrief` speaks the legs through the shared
+      `MissedApproachLegsText`. Events `briefing.emergency`, `briefing.threats`; probe
+      `briefing-takeoff-emergency`. **Unverified live** — the DFD MSA / EOSID tables on a real
+      database and the free-text answer on the LAN engine in particular.
+
 ## Open items (after the rc.5 batch, 2026-10-11)
 
 Nothing on this roadmap is open as code. What remains:
