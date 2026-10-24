@@ -1,18 +1,22 @@
 import streamDeck from "@elgato/streamdeck";
 import { EventEmitter } from "node:events";
-import { ConnectionSettings, ConnStatus, DEFAULT_SETTINGS, PostResult, StatusDto } from "./types";
+import { ConnectionSettings, ConnStatus, ControlsDto, DEFAULT_SETTINGS, PostResult, StatusDto } from "./types";
 
 /** Normal poll cadence while the connection is healthy. */
 const POLL_INTERVAL_MS = 1_000;
 /** Failure backoff cap. */
 const MAX_BACKOFF_MS = 30_000;
+/** How old the cached /api/controls may be before the next status poll refreshes it. */
+const CONTROLS_MAX_AGE_MS = 30_000;
 
 /**
  * The single connection to a running ProsimCompanion instance. REST-only:
  * polls `GET /api/status` once a second while at least one key is visible
  * (actions call {@link retain}/{@link release} from willAppear/willDisappear),
- * and fires commands with `POST /api/command/{name}`. Every key reads from this
- * shared instance — no per-key pollers.
+ * fires commands with `POST /api/command/{name}`, and keeps the configured
+ * cockpit switches / camera views (`GET /api/controls`) cached for the keys and
+ * their Property Inspectors. Every key reads from this shared instance — no
+ * per-key pollers.
  *
  * Failure handling: transport errors back off exponentially (capped 30 s) and
  * surface as "connecting"; HTTP 401 surfaces as "reauth" (token rotated —
@@ -21,9 +25,10 @@ const MAX_BACKOFF_MS = 30_000;
  * the keys recover on their own once the server side is fixed.
  *
  * Events:
- *   "state"  (state: StatusDto)   — fired on every successful status poll
- *   "status" (status: ConnStatus) — fired on connection lifecycle changes
- *   "reauth" (reason: string)     — token rejected/rotated; re-pairing needed
+ *   "state"    (state: StatusDto)     — fired on every successful status poll
+ *   "status"   (status: ConnStatus)   — fired on connection lifecycle changes
+ *   "controls" (controls: ControlsDto) — fired when the configured switches/views changed
+ *   "reauth"   (reason: string)       — token rejected/rotated; re-pairing needed
  */
 export class ConnectionManager extends EventEmitter {
 	private settings: ConnectionSettings = { ...DEFAULT_SETTINGS };
@@ -34,6 +39,10 @@ export class ConnectionManager extends EventEmitter {
 	private timer?: ReturnType<typeof setTimeout>;
 	/** Guards against acting on responses from a poll loop we've already superseded. */
 	private generation = 0;
+	private controlsCache: ControlsDto | null = null;
+	private controlsJson = "";
+	private controlsAt = 0;
+	private controlsInFlight: Promise<ControlsDto | null> | null = null;
 
 	get currentState(): StatusDto {
 		return this.state;
@@ -41,6 +50,11 @@ export class ConnectionManager extends EventEmitter {
 
 	get connectionStatus(): ConnStatus {
 		return this.status;
+	}
+
+	/** The last /api/controls payload, or null before the first successful read. */
+	get controls(): ControlsDto | null {
+		return this.controlsCache;
 	}
 
 	get baseUrl(): string {
@@ -66,6 +80,7 @@ export class ConnectionManager extends EventEmitter {
 		}
 		if (changed) {
 			this.failures = 0;
+			this.controlsAt = 0;
 			this.restart();
 		}
 	}
@@ -182,6 +197,11 @@ export class ConnectionManager extends EventEmitter {
 		this.state = dto ?? {};
 		this.setStatus("connected");
 		this.emit("state", this.state);
+		// The configured switches/views change rarely; a stale-ish copy is fine, so refresh it
+		// in the background every CONTROLS_MAX_AGE_MS rather than on every poll.
+		if (Date.now() - this.controlsAt > CONTROLS_MAX_AGE_MS) {
+			void this.fetchControls();
+		}
 		this.schedule(gen, POLL_INTERVAL_MS);
 	}
 
@@ -198,6 +218,41 @@ export class ConnectionManager extends EventEmitter {
 			clearTimeout(this.timer);
 			this.timer = undefined;
 		}
+	}
+
+	// ── Controls (configured switches / views) ───────────────────────────────
+
+	/**
+	 * Read /api/controls now (deduplicated while a read is in flight). Emits "controls" when
+	 * the payload differs from the cached one. Never throws; null when unreachable.
+	 */
+	async fetchControls(): Promise<ControlsDto | null> {
+		if (!this.isConfigured) return null;
+		if (this.controlsInFlight) return this.controlsInFlight;
+		this.controlsInFlight = (async (): Promise<ControlsDto | null> => {
+			try {
+				const res = await fetch(`${this.baseUrl}/api/controls`, {
+					headers: { Authorization: `Bearer ${this.settings.token}` },
+					signal: AbortSignal.timeout(5_000),
+				});
+				if (!res.ok) return this.controlsCache;
+				const dto = (await res.json()) as ControlsDto;
+				const json = JSON.stringify(dto);
+				this.controlsAt = Date.now();
+				if (json !== this.controlsJson) {
+					this.controlsJson = json;
+					this.controlsCache = dto;
+					this.emit("controls", dto);
+				}
+				return dto;
+			} catch (err) {
+				streamDeck.logger.debug(`controls read failed: ${String(err)}`);
+				return this.controlsCache;
+			} finally {
+				this.controlsInFlight = null;
+			}
+		})();
+		return this.controlsInFlight;
 	}
 
 	// ── Commands ────────────────────────────────────────────────────────────

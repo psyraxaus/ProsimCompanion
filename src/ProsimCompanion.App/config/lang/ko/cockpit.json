@@ -1,0 +1,62 @@
+{
+  "cockpit": {
+    "pageTitle": "조종석 스위치 — ProsimCompanion",
+    "heading": "조종석 스위치",
+    "general": {
+      "title": "조종석 스위치",
+      "hint": "즉시 적용",
+      "intro": "Stream Deck이 누르고 표시할 수 있는 스위치입니다. 하드웨어가 없는 Korry 버튼, 토글 스위치, 노브 등. 각 행은 ProSim 스위치 하나를 지정하고, 앱이 직접 씁니다. 다른 것은 필요 없습니다."
+    },
+    "enable": { "label": "조종석 스위치", "hint": "Stream Deck 키가 아래 스위치를 누를 수 있게 합니다. 명령 API(설정 → 설정 마법사)가 필요합니다.", "more": "꺼짐: 키는 상태를 표시하지만 모든 누름은 거부됩니다." },
+    "row": {
+      "titleNumbered": "스위치 {0}",
+      "hint": "누르기는 저장된 행에 작용합니다",
+      "state": "실시간 상태",
+      "stateHint": "ProSim이 지금 이 스위치에 대해 보고하는 값. 켜짐은 키의 램프가 켜져 있다는 뜻입니다.",
+      "stateNone": "저장 안 됨",
+      "stateWaiting": "값 없음",
+      "stateStale": "PROSIM 끊김",
+      "pressNow": "누르기",
+      "remove": "제거",
+      "removeTitle": "이 스위치 제거",
+      "dataRef": {
+        "label": "ProSim 스위치",
+        "hint": "ProSim 자체 스위치 목록에서 고릅니다. 스위치(S_…)만 가능하며 회로 차단기는 제외됩니다.",
+        "more": "목록은 데이터레프 카탈로그에서 옵니다. ProSim이 실행 중이면 그 목록으로 대체됩니다.",
+        "pick": "— 스위치 선택 —",
+        "unknown": "{0}은(는) 스위치 목록에 없습니다. 다시 고르세요. 그때까지 이 행은 건너뜁니다.",
+        "positions": "위치: {0}",
+        "sourceLive": "{0}에 ProSim에서 목록을 읽었습니다.",
+        "sourceShipped": "포함된 카탈로그의 목록(ProSim 아직 연결 안 됨)."
+      },
+      "id": { "label": "키 ID", "hint": "키가 보내는 값: cockpit.press {\"id\":\"…\"}. 문자, 숫자, 밑줄. 스위치에서 자동 입력됩니다. 키를 만들기 전에 바꾸세요." },
+      "name": { "label": "키 제목", "hint": "키 면 상단의 글자. 예: LEAK MEAS B." },
+      "look": { "label": "모양", "hint": "키가 스위치를 그리는 방식." },
+      "press": { "label": "누르면", "hint": "토글은 처음 두 위치를 번갈아 바꿉니다. 모멘터리는 눌렀다 놓습니다(스프링 복귀 버튼). 순환은 모든 위치를 차례로 넘기고, 길게 누르면 뒤로 갑니다." },
+      "upperLegend": { "label": "위 글자", "hint": "위 램프의 글자(FAULT, AVAIL). 비우면 글자를 숨깁니다." },
+      "lowerLegend": { "label": "아래 글자", "hint": "아래 램프의 글자(OFF, ON)." },
+      "upperIndicator": { "label": "위 램프 출처", "hint": "system.indicators.I_… 데이터레프. 0이 아닌 동안 램프가 켜집니다. 비우면 위 램프는 켜지지 않습니다." },
+      "lowerIndicator": { "label": "아래 램프 출처", "hint": "system.indicators.I_… 데이터레프. 비우면 스위치가 눌린(0이 아닌) 동안 켜집니다." },
+      "colors": "색상",
+      "upperColor": "위 램프",
+      "upperColorHint": "FAULT는 황색, AVAIL은 녹색.",
+      "lowerColor": "아래 램프 / 활성",
+      "lowerColorHint": "OFF는 흰색, 선택된 ON은 파란색. 노브와 토글은 활성 위치에 이 색을 씁니다.",
+      "bezelColor": "베젤",
+      "bezelColorHint": "버튼 둘레의 링. 비우면 회색 베젤을 유지합니다. 누설 측정 밸브는 파랑, 초록, 노랑을 씁니다.",
+      "bezelNone": "회색",
+      "bezelClear": "회색"
+    },
+    "lookOptions": { "korry2": "Korry — 램프 2개", "korry1": "Korry — 램프 1개", "toggle": "토글 스위치", "knob": "로터리 노브", "guarded": "가드 스위치" },
+    "pressOptions": { "toggle": "토글", "momentary": "모멘터리 누름", "cycle": "위치 순환" },
+    "list": {
+      "title": "스위치 추가",
+      "hint": "스위치마다 카드 하나",
+      "none": "아직 스위치가 없습니다.",
+      "add": "스위치 추가",
+      "addLeakValves": "누설 측정 밸브 3개 추가",
+      "duplicate": "두 행이 ID \"{0}\"을(를) 공유합니다. 키는 첫 번째 행만 누릅니다.",
+      "commandsHint": "명령:"
+    }
+  }
+}

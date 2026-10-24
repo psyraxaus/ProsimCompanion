@@ -1,0 +1,67 @@
+<!doctype html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<link rel="stylesheet" href="pi-style.css" />
+	</head>
+	<body>
+		<div class="group">
+			<div class="title">Cockpit switch</div>
+			<label for="sw">Switch</label>
+			<select id="sw">
+				<option value="">— pick a switch —</option>
+			</select>
+			<div class="status" id="sw-hint">The list comes from ProsimCompanion → Settings → Cockpit Switches.</div>
+		</div>
+
+		<div id="connection"></div>
+
+		<script src="pi.js"></script>
+		<script src="pi-connection.js"></script>
+		<script>
+			renderConnectionForm(document.getElementById("connection"));
+			const sel = document.getElementById("sw");
+			const hint = document.getElementById("sw-hint");
+			let current = "";
+			let list = [];
+
+			function fill() {
+				sel.innerHTML = "";
+				sel.add(new Option("— pick a switch —", ""));
+				for (const s of list) {
+					sel.add(new Option(s.name + "  (" + s.id + ")", s.id));
+				}
+				if (current && !list.some(function (s) { return s.id === current; })) {
+					sel.add(new Option(current + "  (not in the app's list)", current));
+				}
+				sel.value = current;
+			}
+
+			function apply(s) {
+				current = (s && s.switchId) || "";
+				fill();
+			}
+
+			window.PI.onReady(function (s) {
+				apply(s);
+				window.PI.sendToPlugin({ event: "getControls" });
+			});
+			window.PI.onSettings(apply);
+			window.PI.onMessage(function (m) {
+				if (!m || m.event !== "controls") return;
+				list = m.switches || [];
+				fill();
+				hint.textContent = !m.connected
+					? "ProsimCompanion is not reachable — the list shows once it connects."
+					: list.length === 0
+						? "No switches yet: add rows on ProsimCompanion → Settings → Cockpit Switches, save, then reopen this."
+						: m.enabled
+							? list.length + " switch(es) from ProsimCompanion → Settings → Cockpit Switches."
+							: "Cockpit switches are switched off in ProsimCompanion — keys show state but presses are refused.";
+			});
+			sel.addEventListener("change", function () {
+				window.PI.setSettings({ switchId: sel.value });
+			});
+		</script>
+	</body>
+</html>

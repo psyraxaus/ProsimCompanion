@@ -2,7 +2,8 @@
  * Shared types for the ProsimCompanion connection layer.
  *
  * The wire contract is REST-only against ProsimCompanion's embedded web server:
- *   GET  /api/status          — polled snapshot of phase / connections / gsx / checklist
+ *   GET  /api/status          — polled snapshot of phase / connections / gsx / checklist / switches
+ *   GET  /api/controls        — the configured cockpit switches and camera views (settings, not state)
  *   POST /api/command/{name}  — semantic commands; response `{ outcome, reason }`
  * Property names are camelCase; enums ride as camelCase strings.
  */
@@ -77,6 +78,19 @@ export interface VoiceStatusDto {
 	paused?: boolean;
 }
 
+/**
+ * One entry of `switches[]` in /api/status (2026-10-24): the live inputs of a cockpit-switch
+ * key face. `value` is null before ProSim sent one; `stale` while ProSim is away.
+ */
+export interface SwitchStatusDto {
+	id?: string;
+	value?: number | null;
+	position?: string | null;
+	upperLit?: boolean;
+	lowerLit?: boolean;
+	stale?: boolean;
+}
+
 /** The whole /api/status payload. Every section is optional — degrade, not fail. */
 export interface StatusDto {
 	phase?: string;
@@ -84,6 +98,45 @@ export interface StatusDto {
 	gsx?: GsxStatusDto | null;
 	checklist?: ChecklistStatusDto | null;
 	voice?: VoiceStatusDto | null;
+	/** Null when the ProSim pillar never published; empty when no switch rows exist. */
+	switches?: SwitchStatusDto[] | null;
+}
+
+export type SwitchLook = "korry2" | "korry1" | "toggle" | "knob" | "guarded";
+export type SwitchPressMode = "toggle" | "momentary" | "cycle";
+
+export interface ControlsPositionDto {
+	value: number;
+	label: string;
+}
+
+/** One configured cockpit switch from /api/controls — how the key draws it. */
+export interface ControlsSwitchDto {
+	id: string;
+	name: string;
+	dataRef?: string;
+	look?: SwitchLook;
+	pressMode?: SwitchPressMode;
+	upperLegend?: string;
+	lowerLegend?: string;
+	upperColor?: string;
+	lowerColor?: string;
+	bezelColor?: string;
+	positions?: ControlsPositionDto[];
+}
+
+/** One vJoy relay view row from /api/controls. */
+export interface ControlsViewDto {
+	name: string;
+	button?: number;
+}
+
+/** The whole /api/controls payload. */
+export interface ControlsDto {
+	switchesEnabled?: boolean;
+	switches?: ControlsSwitchDto[];
+	viewsEnabled?: boolean;
+	views?: ControlsViewDto[];
 }
 
 /** Camel-case outcome enum returned by POST /api/command/{name}. */

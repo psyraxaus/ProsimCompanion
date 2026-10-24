@@ -1,5 +1,7 @@
 import streamDeck, { LogLevel } from "@elgato/streamdeck";
+import { CameraViewAction } from "./actions/camera-view-action";
 import { ChecklistAction } from "./actions/checklist-action";
+import { CockpitSwitchAction } from "./actions/cockpit-switch-action";
 import { ConnectionHealthAction } from "./actions/connection-health-action";
 import { FlightPhaseAction } from "./actions/flight-phase-action";
 import { GsxServiceAction } from "./actions/gsx-service-action";
@@ -17,6 +19,9 @@ streamDeck.actions.registerAction(new ChecklistAction());
 streamDeck.actions.registerAction(new FlightPhaseAction());
 streamDeck.actions.registerAction(new ConnectionHealthAction());
 streamDeck.actions.registerAction(new VoicePauseAction());
+// Cockpit switches + camera views (2026-10-24): the keys that replaced PilotsDeck for the owner.
+streamDeck.actions.registerAction(new CockpitSwitchAction());
+streamDeck.actions.registerAction(new CameraViewAction());
 
 // Connection settings live in Stream Deck *global* settings (shared by all keys).
 // Reconfigure whenever a Property Inspector saves them.

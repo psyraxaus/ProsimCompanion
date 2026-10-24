@@ -5,7 +5,8 @@
  * library / CDN) so it works offline on the sim PC and is independent of any
  * sdpi-components version. Exposes a tiny window.PI API the per-action HTML
  * pages use to bind fields to GLOBAL settings (host/port/token, shared by all
- * keys) and per-ACTION settings (the function dropdowns).
+ * keys) and per-ACTION settings (the function dropdowns), plus a two-way
+ * message channel to the plugin (the cockpit-switch and camera-view lists).
  */
 (function () {
 	let ws;
@@ -17,6 +18,7 @@
 	const readyCbs = [];
 	const globalCbs = [];
 	const settingsCbs = [];
+	const messageCbs = [];
 
 	function fire(cbs, arg) {
 		for (const cb of cbs) {
@@ -57,6 +59,8 @@
 			} else if (msg.event === "didReceiveSettings") {
 				settings = (msg.payload && msg.payload.settings) || {};
 				fire(settingsCbs, settings);
+			} else if (msg.event === "sendToPropertyInspector") {
+				fire(messageCbs, msg.payload || {});
 			}
 		};
 	};
@@ -70,6 +74,10 @@
 		},
 		onSettings: function (cb) {
 			settingsCbs.push(cb);
+		},
+		/** A payload the plugin sent with sendToPropertyInspector. */
+		onMessage: function (cb) {
+			messageCbs.push(cb);
 		},
 		getGlobal: function () {
 			return globalSettings;
@@ -87,6 +95,17 @@
 			settings = Object.assign({}, settings, patch);
 			if (ws && ws.readyState === 1) {
 				ws.send(JSON.stringify({ event: "setSettings", context: uuid, payload: settings }));
+			}
+		},
+		/** A payload for the plugin's onSendToPlugin handler. */
+		sendToPlugin: function (payload) {
+			if (ws && ws.readyState === 1) {
+				ws.send(JSON.stringify({
+					event: "sendToPlugin",
+					action: actionInfo && actionInfo.action,
+					context: uuid,
+					payload: payload || {},
+				}));
 			}
 		},
 	};

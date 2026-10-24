@@ -22,13 +22,21 @@ loopback). Requires `commandApi.enabled: true`.
   sections may be null; `paxRemaining` counts down during a deboard and is null
   otherwise; service `state` is `notAvailable|callable|requested|active|completed|skipped`;
   `voice` is null when the speech pillar is absent (`listening` = engine truth,
-  `paused` = the pilot's ear-off latch behind the Voice Pause key).
+  `paused` = the pilot's ear-off latch behind the Voice Pause key);
+  `switches:[{id,value,position,upperLit,lowerLit,stale}]` (2026-10-24) is the live
+  state of the configured cockpit switches — null without the ProSim pillar.
+- `GET /api/controls` — read on connect, every 30 s and when a key's Property Inspector
+  opens: `{ switchesEnabled, switches:[{id,name,dataRef,look,pressMode,upperLegend,
+  lowerLegend,upperColor,lowerColor,bezelColor,positions:[{value,label}]}],
+  viewsEnabled, views:[{name,button}] }` — the configuration the Cockpit Switch and
+  Camera View keys draw from (`cockpit-switches.md`).
 - `POST /api/command/{name}` — optional JSON body; response `{outcome, reason}`
   with outcome `success|alreadySatisfied|phaseMismatch|preconditionFailed|
   failed|unavailable`. Command names used: `gsx.startDepartureServices`,
   `gsx.forceNextService`, `gsx.request{Refuel,Catering,Boarding,Deboarding,
   Jetway,Stairs,Gpu,Deice,Pushback}`, `gsx.retract{Jetway,Stairs}`,
-  `checklists.advanceNext`, `checklists.restart`, `speech.toggleListening`.
+  `checklists.advanceNext`, `checklists.restart`, `speech.toggleListening`,
+  `cockpit.press {id, long}`, `input.pressView {name}`.
 - Error semantics the key states depend on: HTTP **401** → re-pair (token
   rotated), HTTP **404** on `/api/status` → command API disabled. Onboarding
   URL format is `http://{host}:{port}/?token={token}` (query string, not

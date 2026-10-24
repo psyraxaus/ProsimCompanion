@@ -31,6 +31,7 @@ kept there so a broken web configuration can always be repaired.
 | [Loudspeaker dial](08-loudspeaker-dial.md) | Headset sound on the cockpit speakers with the LOUD SPEAKER dial as their volume: the VoiceMeeter wiring (VBAN loop) and the mapping |
 | [Remote mixer](09-remote-mixer.md) | Voicemeeters on other PCs (the vPilot box, or one PC per pilot) driven from the cockpit through VoicemeeterBridge agents: setup on every PC, one agent block each, knob and REC-button mappings, the status card, the two-pilot-PC example |
 | [Two headsets](11-two-headsets.md) | The VoiceMeeter layout for two headsets with online ATC: one fader per strip or bus, a bus per headset, how to get INT on its own knob, why VHF2 cannot have its own bus |
+| [Stream Deck on another PC: cockpit switches and camera views](12-remote-streamdeck.md) | Running the plugin on a second PC; Cockpit Switch keys that press ProSim switches you have no hardware for (Korry buttons, toggles, knobs, drawn like the real overhead); Camera View keys that change ChasePlane views through the vJoy relay |
 
 ## Design principles (what to expect)
 

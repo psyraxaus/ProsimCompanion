@@ -46,12 +46,17 @@ public sealed record StatusChecklist(string Name, string Item, int Index, int Co
 /// the ENGINE truth (issue #61), <c>Paused</c> the pilot's "ear off" latch.</summary>
 public sealed record StatusVoice(bool Listening, bool Paused);
 
+/// <summary>Live state of one configured cockpit switch (2026-10-24) — the key face's inputs;
+/// the row's look, legends and colours come from <c>/api/controls</c>.</summary>
+public sealed record StatusSwitch(string Id, int? Value, string? Position, bool UpperLit, bool LowerLit, bool Stale);
+
 public sealed record StatusResponse(
     string Phase,
     StatusConnections Connections,
     StatusGsx? Gsx,
     StatusChecklist? Checklist,
-    StatusVoice? Voice = null);
+    StatusVoice? Voice = null,
+    IReadOnlyList<StatusSwitch>? Switches = null);
 
 /// <summary>
 /// Read-only <c>GET /api/status</c> for the Stream Deck plugin's live key faces: flight phase,
@@ -115,7 +120,8 @@ public static class StatusApiEndpoints
             services.GetService<GsxBoardingSync>()?.PaxTotal,
             services.GetService<GsxBoardingSync>()?.PaxRemaining,
             services.GetService<ChecklistService>()?.ActiveView(),
-            services.GetService<SpeechStatusStore>()?.Snapshot());
+            services.GetService<SpeechStatusStore>()?.Snapshot(),
+            services.GetService<CockpitSwitchStateStore>()?.Snapshot());
 
         return response;
     }
@@ -132,7 +138,8 @@ public static class StatusApiEndpoints
         int? paxTotal,
         int? paxRemaining,
         ChecklistView? checklist,
-        SpeechStatusSnapshot? speech = null)
+        SpeechStatusSnapshot? speech = null,
+        CockpitSwitchesSnapshot? switches = null)
     {
         ArgumentNullException.ThrowIfNull(connectionStates);
 
@@ -172,12 +179,19 @@ public static class StatusApiEndpoints
         // than a misleading "listening".
         StatusVoice? voice = speech is null ? null : new StatusVoice(speech.Listening, speech.ListeningPaused);
 
+        // Null when the ProSim pillar never published (no store); an empty list when there are
+        // no rows — the cockpit-switch key distinguishes "no such row" from "no pillar".
+        var switchStates = switches?.Switches
+            .Select(s => new StatusSwitch(s.Id, s.Value, s.Position, s.UpperLit, s.LowerLit, s.Stale))
+            .ToList();
+
         return new StatusResponse(
             JsonNamingPolicy.CamelCase.ConvertName((phase ?? FlightPhase.Unknown).ToString()),
             connections,
             gsx,
             checklistStatus,
-            voice);
+            voice,
+            switchStates);
     }
 
     private static bool IsConnected(

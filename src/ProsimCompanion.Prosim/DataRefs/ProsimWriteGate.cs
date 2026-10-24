@@ -136,6 +136,18 @@ public static class ProsimWriteGate
         "system.analog.R_COM",
     ];
 
+    /// <summary>
+    /// The cockpit-switch relay's hook (2026-10-24, ADR-0015): the ONE place the list widens at
+    /// runtime. A <c>system.switches.S_*</c> name passes when the installed predicate says it is
+    /// a configured row AND a catalogued switch; the predicate is set by
+    /// <c>CockpitSwitchService</c> at start and cleared on dispose. Null = no widening. The
+    /// family check here is deliberate belt-and-braces: even a buggy predicate cannot open
+    /// anything outside <c>system.switches.S_</c>.
+    /// </summary>
+    public static Func<string, bool>? ConfiguredSwitchAllowed { get; set; }
+
+    private const string ConfiguredSwitchFamily = "system.switches.S_";
+
     /// <summary>True when the dataref may be written by this application.</summary>
     public static bool IsAllowed(string name)
     {
@@ -155,6 +167,13 @@ public static class ProsimWriteGate
             {
                 return true;
             }
+        }
+
+        if (name.StartsWith(ConfiguredSwitchFamily, StringComparison.Ordinal)
+            && ConfiguredSwitchAllowed is { } configured
+            && configured(name))
+        {
+            return true;
         }
 
         return false;

@@ -111,6 +111,40 @@
 			]
 		},
 		{
+			"Name": "Cockpit Switch",
+			"UUID": "com.prosimcompanion.streamdeck.cockpitswitch",
+			"Icon": "imgs/actions/cockpitswitch/icon",
+			"Tooltip": "A ProSim cockpit switch as a Korry button, toggle or knob: shows its live state and presses it. Pick the switch (configured in ProsimCompanion → Settings → Cockpit Switches) in the Property Inspector. Hold for a long press on a rotary knob.",
+			"PropertyInspectorPath": "ui/cockpit-switch.html",
+			"Controllers": [
+				"Keypad"
+			],
+			"SupportedInMultiActions": true,
+			"States": [
+				{
+					"Image": "imgs/actions/cockpitswitch/icon",
+					"TitleAlignment": "bottom"
+				}
+			]
+		},
+		{
+			"Name": "Camera View",
+			"UUID": "com.prosimcompanion.streamdeck.cameraview",
+			"Icon": "imgs/actions/cameraview/icon",
+			"Tooltip": "Presses a vJoy button on the sim PC so a ChasePlane view bound to it changes. Pick the view (ProsimCompanion → Settings → Setup → vJoy relay) in the Property Inspector.",
+			"PropertyInspectorPath": "ui/camera-view.html",
+			"Controllers": [
+				"Keypad"
+			],
+			"SupportedInMultiActions": true,
+			"States": [
+				{
+					"Image": "imgs/actions/cameraview/icon",
+					"TitleAlignment": "bottom"
+				}
+			]
+		},
+		{
 			"Name": "Connection Health",
 			"UUID": "com.prosimcompanion.streamdeck.health",
 			"Icon": "imgs/actions/health/icon",

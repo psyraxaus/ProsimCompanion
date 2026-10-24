@@ -1,0 +1,62 @@
+{
+  "cockpit": {
+    "pageTitle": "Interrupteurs du cockpit — ProsimCompanion",
+    "heading": "Interrupteurs du cockpit",
+    "general": {
+      "title": "Interrupteurs du cockpit",
+      "hint": "Appliqué immédiatement",
+      "intro": "Les interrupteurs que le Stream Deck peut actionner et afficher : boutons Korry, interrupteurs à bascule et sélecteurs pour lesquels tu n'as pas de matériel. Chaque ligne nomme un interrupteur ProSim ; l'application l'écrit directement, rien d'autre n'est nécessaire."
+    },
+    "enable": { "label": "Interrupteurs du cockpit", "hint": "Permet aux touches du Stream Deck d'actionner les interrupteurs ci-dessous. Nécessite l'API de commandes (Réglages → Configuration).", "more": "Désactivé : les touches affichent l'état, mais chaque appui est refusé." },
+    "row": {
+      "titleNumbered": "Interrupteur {0}",
+      "hint": "Appuyer agit sur la ligne enregistrée",
+      "state": "État en direct",
+      "stateHint": "Ce que ProSim rapporte pour cet interrupteur en ce moment. Allumé signifie que le voyant de la touche est actif.",
+      "stateNone": "NON ENREGISTRÉ",
+      "stateWaiting": "PAS DE VALEUR",
+      "stateStale": "PROSIM ABSENT",
+      "pressNow": "Appuyer",
+      "remove": "Retirer",
+      "removeTitle": "Retirer cet interrupteur",
+      "dataRef": {
+        "label": "Interrupteur ProSim",
+        "hint": "Choisi dans la liste d'interrupteurs de ProSim. Interrupteurs seulement (S_…), pas de disjoncteurs.",
+        "more": "La liste vient du catalogue de datarefs ; un ProSim en marche la remplace par la sienne.",
+        "pick": "— choisir un interrupteur —",
+        "unknown": "{0} n'est pas dans la liste des interrupteurs — choisis-le à nouveau. La ligne est ignorée d'ici là.",
+        "positions": "Positions : {0}",
+        "sourceLive": "Liste lue depuis ProSim à {0}.",
+        "sourceShipped": "Liste du catalogue fourni (ProSim pas encore connecté)."
+      },
+      "id": { "label": "Id de touche", "hint": "Ce qu'une touche envoie : cockpit.press {\"id\":\"…\"}. Lettres, chiffres et tirets bas. Rempli depuis l'interrupteur ; change-le avant de créer des touches." },
+      "name": { "label": "Titre de la touche", "hint": "Le texte en haut de la touche, par exemple LEAK MEAS B." },
+      "look": { "label": "Apparence", "hint": "Comment la touche dessine l'interrupteur." },
+      "press": { "label": "L'appui fait", "hint": "Basculer alterne entre les deux premières positions. Fugitif appuie et relâche (boutons à rappel). Défiler parcourt toutes les positions ; un appui long recule." },
+      "upperLegend": { "label": "Légende supérieure", "hint": "Texte du voyant supérieur (FAULT, AVAIL). Vide masque le texte." },
+      "lowerLegend": { "label": "Légende inférieure", "hint": "Texte du voyant inférieur (OFF, ON)." },
+      "upperIndicator": { "label": "Voyant supérieur depuis", "hint": "Un dataref system.indicators.I_… ; le voyant est allumé tant qu'il n'est pas à zéro. Vide : le voyant supérieur ne s'allume jamais." },
+      "lowerIndicator": { "label": "Voyant inférieur depuis", "hint": "Un dataref system.indicators.I_…. Vide : allumé tant que l'interrupteur est enfoncé (différent de zéro)." },
+      "colors": "Couleurs",
+      "upperColor": "Voyant supérieur",
+      "upperColorHint": "Ambre pour FAULT, vert pour AVAIL.",
+      "lowerColor": "Voyant inférieur / actif",
+      "lowerColorHint": "Blanc pour OFF, bleu pour un ON sélectionné. Sélecteurs et bascules l'utilisent pour la position active.",
+      "bezelColor": "Collerette",
+      "bezelColorHint": "Anneau autour du bouton. Vide garde la collerette grise ; les vannes de fuite utilisent bleu, vert et jaune.",
+      "bezelNone": "gris",
+      "bezelClear": "Gris"
+    },
+    "lookOptions": { "korry2": "Korry — deux voyants", "korry1": "Korry — un voyant", "toggle": "Interrupteur à bascule", "knob": "Sélecteur rotatif", "guarded": "Interrupteur à capot" },
+    "pressOptions": { "toggle": "Basculer", "momentary": "Appui fugitif", "cycle": "Défiler les positions" },
+    "list": {
+      "title": "Ajouter des interrupteurs",
+      "hint": "Une carte par interrupteur",
+      "none": "Aucun interrupteur pour l'instant.",
+      "add": "Ajouter un interrupteur",
+      "addLeakValves": "Ajouter les trois vannes de mesure de fuite",
+      "duplicate": "Deux lignes partagent l'id \"{0}\" — une touche n'actionnerait que la première.",
+      "commandsHint": "Commandes :"
+    }
+  }
+}

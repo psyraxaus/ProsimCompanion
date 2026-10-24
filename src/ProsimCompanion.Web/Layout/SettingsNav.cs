@@ -98,6 +98,8 @@ public static class SettingsNav
         new("gsx", "Ground Services", "settings/gsx", GsxSections),
         new("speech", "Voice First Officer", "settings/speech", SpeechSections),
         new("audio", "Audio Control", "settings/audio", AudioSections),
+        // Cockpit switches (2026-10-24): the Stream Deck's Korry buttons, toggles and knobs.
+        new("cockpit", "Cockpit Switches", "settings/cockpit", []),
         new("app", "Display & Flight Data", "settings/app", []),
         new("appearance", "Appearance", "settings/appearance", []),
         new("notifications", "Notifications", "settings/notifications", []),

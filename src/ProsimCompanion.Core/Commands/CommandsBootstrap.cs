@@ -51,5 +51,7 @@ public static class CommandsBootstrap
             registry,
             services.GetService<IInputRelay>(),
             services.GetService<Microsoft.Extensions.Options.IOptionsMonitor<Configuration.InputRelayOptions>>());
+        // Cockpit switches (2026-10-24): the ProSim pillar implements the seam.
+        CockpitCommandHandlers.Register(registry, services.GetService<ICockpitSwitchControl>());
     }
 }

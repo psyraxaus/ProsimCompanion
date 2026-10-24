@@ -85,6 +85,7 @@
     },
     "nav": {
       "setup": "Einrichtung",
+      "cockpit": "Cockpit-Schalter",
       "gsx": "Bodendienste",
       "gsx.status": "Status",
       "gsx.doors": "Türen & Fluggastbrücke",

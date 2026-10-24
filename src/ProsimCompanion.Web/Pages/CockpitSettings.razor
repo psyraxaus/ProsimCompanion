@@ -1,0 +1,306 @@
+@page "/settings/cockpit"
+@layout SettingsLayout
+@using System.Globalization
+@using ProsimCompanion.Core.Aircraft.Switches
+@using ProsimCompanion.Web.Settings
+@inherits SettingsPageBase
+@inject IOptionsMonitor<CockpitSwitchesOptions> CockpitMonitor
+@inject SwitchCatalogStore SwitchList
+@inject CockpitSwitchStateStore SwitchStates
+@inject ICockpitSwitchControl Control
+@inject IStringLocalizer T
+
+@* Cockpit switches (2026-10-24, owner option A): one card per switch the Stream Deck may press
+   and show — picked from ProSim's own switch catalogue (shipped CSV, replaced by the live list
+   when ProSim connects), drawn as a Korry button, toggle or knob by the plugin. The row's
+   dataref is the ONLY thing that reaches the aircraft, and only through the write gate's
+   configured-row hook (ADR-0015). *@
+
+<PageTitle>@T["cockpit.pageTitle"]</PageTitle>
+<h1 class="sr-only">@T["cockpit.heading"]</h1>
+
+<Section Title="@T["cockpit.general.title"]" Hint="@T["cockpit.general.hint"]">
+    <OptionField Draft="_cockpit" For="o => o.Enabled" />
+    <div class="field-hint" style="max-width:640px;">@T["cockpit.general.intro"]</div>
+</Section>
+
+@for (var i = 0; i < _cockpit.Value.Rows.Count; i++)
+{
+    var index = i;
+    var row = _cockpit.Value.Rows[index];
+    var state = StateOf(row);
+    var entry = _switches.Find(row.DataRef);
+    <Section Title="@(string.IsNullOrWhiteSpace(row.Name) ? T["cockpit.row.titleNumbered", index + 1].Value : row.Name)" Hint="@T["cockpit.row.hint"]">
+        <div class="field" style="align-items:center;">
+            <label class="field-label">
+                @T["cockpit.row.state"]
+                <FieldHint Hint="@T["cockpit.row.stateHint"]" />
+            </label>
+            <div class="field-control" style="display:flex; align-items:center; gap:10px; justify-content:flex-end; flex-wrap:wrap;">
+                <span class="pill @StateTone(state)">@StateLabel(state)</span>
+                <span class="field-hint" style="margin:0;">@(_pressResults.TryGetValue(index, out var line) ? line : "")</span>
+                <button type="button" class="btn primary" style="padding:4px 12px;"
+                        disabled="@(_pressing || _cockpit.IsDirty || entry is null)"
+                        @onclick="() => PressAsync(index)">@T["cockpit.row.pressNow"]</button>
+                <button type="button" class="btn secondary" style="padding:4px 10px;" title="@T["cockpit.row.removeTitle"]"
+                        @onclick="() => _cockpit.Value.Rows.RemoveAt(index)">@T["cockpit.row.remove"]</button>
+            </div>
+        </div>
+
+        <GroupedSelectField Label="@T["cockpit.row.dataRef.label"]" Hint="@T["cockpit.row.dataRef.hint"]" More="@DataRefMore"
+                            Options="@PickLead" Groups="@PickGroups"
+                            Value="@(entry?.Name ?? "")" ValueChanged="name => OnPicked(row, name)" />
+        @if (entry is null && !string.IsNullOrWhiteSpace(row.DataRef))
+        {
+            <div class="field-hint field-hint-warn">@T["cockpit.row.dataRef.unknown", row.DataRef]</div>
+        }
+        else if (entry is { Values.Count: > 0 })
+        {
+            <div class="field-hint">@T["cockpit.row.dataRef.positions", string.Join(", ", entry.Values.Select(v => v.Value.ToString(CultureInfo.InvariantCulture) + " = " + v.Label))]</div>
+        }
+
+        <OptionField Item="row" ItemOf="_cockpit" For="r => r.Id" />
+        <OptionField Item="row" ItemOf="_cockpit" For="r => r.Name" />
+        <OptionField Item="row" ItemOf="_cockpit" For="r => r.Look" />
+        <OptionField Item="row" ItemOf="_cockpit" For="r => r.PressMode" />
+
+        @if (row.Look is CockpitSwitchLook.Korry2)
+        {
+            <OptionField Item="row" ItemOf="_cockpit" For="r => r.UpperLegend" />
+            <OptionField Item="row" ItemOf="_cockpit" For="r => r.UpperIndicator" />
+        }
+        @if (row.Look is CockpitSwitchLook.Korry2 or CockpitSwitchLook.Korry1)
+        {
+            <OptionField Item="row" ItemOf="_cockpit" For="r => r.LowerLegend" />
+            <OptionField Item="row" ItemOf="_cockpit" For="r => r.LowerIndicator" />
+        }
+
+        <div class="label-caps" style="margin:14px 0 6px;">@T["cockpit.row.colors"]</div>
+        @if (row.Look is CockpitSwitchLook.Korry2)
+        {
+            <div class="field" style="align-items:center;">
+                <label class="field-label">@T["cockpit.row.upperColor"] <FieldHint Hint="@T["cockpit.row.upperColorHint"]" /></label>
+                <div class="field-control" style="display:flex; align-items:center; gap:8px; justify-content:flex-end;">
+                    <input type="color" value="@Swatch(row.UpperColor, "#ffb000")" @onchange="e => SetColor(row, c => row.UpperColor = c, e)" aria-label="@T["cockpit.row.upperColor"]" />
+                    <input class="cell-input @(CockpitSwitchLogic.IsHexColor(row.UpperColor) ? "" : "invalid")" style="width:110px;" @bind="row.UpperColor" />
+                </div>
+            </div>
+        }
+        <div class="field" style="align-items:center;">
+            <label class="field-label">@T["cockpit.row.lowerColor"] <FieldHint Hint="@T["cockpit.row.lowerColorHint"]" /></label>
+            <div class="field-control" style="display:flex; align-items:center; gap:8px; justify-content:flex-end;">
+                <input type="color" value="@Swatch(row.LowerColor, "#f4f6f8")" @onchange="e => SetColor(row, c => row.LowerColor = c, e)" aria-label="@T["cockpit.row.lowerColor"]" />
+                <input class="cell-input @(CockpitSwitchLogic.IsHexColor(row.LowerColor) ? "" : "invalid")" style="width:110px;" @bind="row.LowerColor" />
+            </div>
+        </div>
+        <div class="field" style="align-items:center;">
+            <label class="field-label">@T["cockpit.row.bezelColor"] <FieldHint Hint="@T["cockpit.row.bezelColorHint"]" /></label>
+            <div class="field-control" style="display:flex; align-items:center; gap:8px; justify-content:flex-end;">
+                <input type="color" value="@Swatch(row.BezelColor, "#3b4046")" @onchange="e => SetColor(row, c => row.BezelColor = c, e)" aria-label="@T["cockpit.row.bezelColor"]" />
+                <input class="cell-input @(string.IsNullOrWhiteSpace(row.BezelColor) || CockpitSwitchLogic.IsHexColor(row.BezelColor) ? "" : "invalid")" style="width:110px;" placeholder="@T["cockpit.row.bezelNone"]" @bind="row.BezelColor" />
+                <button type="button" class="btn secondary" style="padding:3px 10px;" @onclick="() => row.BezelColor = string.Empty">@T["cockpit.row.bezelClear"]</button>
+            </div>
+        </div>
+    </Section>
+}
+
+<Section Title="@T["cockpit.list.title"]" Hint="@T["cockpit.list.hint"]">
+    @if (_cockpit.Value.Rows.Count == 0)
+    {
+        <div class="field-hint">@T["cockpit.list.none"]</div>
+    }
+    <div style="margin:8px 0 4px; display:flex; gap:10px; flex-wrap:wrap;">
+        <button type="button" class="btn primary" @onclick="AddRow">@T["cockpit.list.add"]</button>
+        <button type="button" class="btn secondary" @onclick="AddLeakValves">@T["cockpit.list.addLeakValves"]</button>
+    </div>
+    @foreach (var duplicate in DuplicateIds())
+    {
+        <div class="field-hint field-hint-warn" style="margin-top:8px;">@T["cockpit.list.duplicate", duplicate]</div>
+    }
+    <div class="field-hint" style="margin-top:8px; max-width:640px;">
+        @T["cockpit.list.commandsHint"] <code>cockpit.press {"id":"oh_hyd_lmv_blue"}</code>, <code>cockpit.set {"id":"…","value":1}</code>
+    </div>
+</Section>
+
+<datalist id="cockpit-indicators">
+    @foreach (var name in SwitchCatalog.ShippedIndicatorNames)
+    {
+        <option value="@name"></option>
+    }
+</datalist>
+
+<DirtyBar Visible="@BarVisible"
+          Message="@BarMessage"
+          Tone="BarTone"
+          OnSave="Save"
+          OnDiscard="Discard" />
+
+@code {
+    private OptionsDraft<CockpitSwitchesOptions> _cockpit = default!;
+    private SwitchCatalogSnapshot _switches = default!;
+    private CockpitSwitchesSnapshot _states = CockpitSwitchesSnapshot.Empty;
+    private readonly Dictionary<int, string> _pressResults = [];
+    private bool _pressing;
+
+    protected override void OnInitialized()
+    {
+        _cockpit = Draft(CockpitMonitor);
+        Watch(SwitchList, snapshot => _switches = snapshot);
+        Watch(SwitchStates, snapshot => _states = snapshot);
+    }
+
+    // ---- the catalogue picker (the smart-button picker's shape, GsxSettings) ----
+
+    private IReadOnlyList<(string, string)> PickLead => [("", T["cockpit.row.dataRef.pick"].Value)];
+
+    private IReadOnlyList<(string Label, IReadOnlyList<(string Value, string Label)> Options)> PickGroups
+    {
+        get
+        {
+            var groups = new List<(string, IReadOnlyList<(string, string)>)>();
+            foreach (var group in SwitchCatalog.GroupOrder)
+            {
+                // Switches only (the S_ family): circuit breakers stay out of the relay for now.
+                var rows = _switches.Switches
+                    .Where(s => s.Group == group && s.ShortName.StartsWith("S_", StringComparison.Ordinal))
+                    .Select(s => (s.Name, s.ShortName + " — " + s.Title))
+                    .ToList();
+                if (rows.Count > 0)
+                {
+                    groups.Add((T["gsxSettings.automation.switchGroups." + group].Value, rows));
+                }
+            }
+
+            return groups;
+        }
+    }
+
+    private string DataRefMore
+        => T["cockpit.row.dataRef.more"].Value + " "
+            + (_switches.Source == SwitchCatalogSource.Live && _switches.ReadAtUtc is { } readAt
+                ? T["cockpit.row.dataRef.sourceLive", readAt.ToLocalTime().ToString("HH:mm", CultureInfo.InvariantCulture)].Value
+                : T["cockpit.row.dataRef.sourceShipped"].Value);
+
+    /// <summary>A pick fills what the pilot would otherwise type: the id from the dataref, the
+    /// title from the catalogue, and a sensible look — a knob with three or more positions
+    /// cycles; everything else starts as a two-lamp Korry that toggles.</summary>
+    private void OnPicked(CockpitSwitchRow row, string name)
+    {
+        var previous = row.DataRef;
+        row.DataRef = name;
+        var entry = _switches.Find(name);
+        if (string.IsNullOrWhiteSpace(row.Id) || row.Id == CockpitSwitchLogic.SlugFor(previous))
+        {
+            row.Id = CockpitSwitchLogic.SlugFor(name);
+        }
+
+        if (entry is not null && string.IsNullOrWhiteSpace(row.Name))
+        {
+            row.Name = entry.Title.ToUpperInvariant();
+        }
+
+        if (entry is { Values.Count: > 2 })
+        {
+            row.Look = CockpitSwitchLook.Knob;
+            row.PressMode = CockpitPressMode.Cycle;
+        }
+
+        _cockpit.MarkEdited();
+    }
+
+    private void AddRow() => _cockpit.Value.Rows.Add(new CockpitSwitchRow());
+
+    /// <summary>The owner's three leak measurement valves in one click: blue / green / yellow
+    /// bezels, the lamp from the lower LED indicator, white OFF legend.</summary>
+    private void AddLeakValves()
+    {
+        foreach (var (colour, letter) in new[] { ("BLUE", "#5fb4ff"), ("GREEN", "#4fd18a"), ("YELLOW", "#f2cf4a") }.Select(p => (p.Item2, p.Item1)))
+        {
+            var dataRef = "system.switches.S_OH_HYD_LMV_" + letter;
+            if (_cockpit.Value.Rows.Any(r => string.Equals(r.DataRef, dataRef, StringComparison.OrdinalIgnoreCase)))
+            {
+                continue;
+            }
+
+            _cockpit.Value.Rows.Add(new CockpitSwitchRow
+            {
+                Id = CockpitSwitchLogic.SlugFor(dataRef),
+                Name = "LEAK MEAS " + letter[0],
+                DataRef = dataRef,
+                Look = CockpitSwitchLook.Korry2,
+                PressMode = CockpitPressMode.Toggle,
+                UpperLegend = "",
+                LowerLegend = "OFF",
+                LowerIndicator = "system.indicators.I_OH_HYD_LMV_" + letter + "_L",
+                BezelColor = colour,
+            });
+        }
+
+        _cockpit.MarkEdited();
+    }
+
+    private IEnumerable<string> DuplicateIds()
+        => _cockpit.Value.Rows
+            .Select(r => r.Id.Trim())
+            .Where(id => id.Length > 0)
+            .GroupBy(id => id, StringComparer.OrdinalIgnoreCase)
+            .Where(g => g.Count() > 1)
+            .Select(g => g.Key);
+
+    // ---- live state + the Press button (saved rows only, through the real seam) ----
+
+    private CockpitSwitchState? StateOf(CockpitSwitchRow row)
+        => _states.Switches.FirstOrDefault(s => string.Equals(s.Id, row.Id.Trim(), StringComparison.OrdinalIgnoreCase));
+
+    private string StateLabel(CockpitSwitchState? state) => state switch
+    {
+        null => T["cockpit.row.stateNone"].Value,
+        { Value: null } => T["cockpit.row.stateWaiting"].Value,
+        { Stale: true } => T["cockpit.row.stateStale"].Value,
+        { Position: { Length: > 0 } position } => position.ToUpperInvariant(),
+        { Value: { } value } => value.ToString(CultureInfo.InvariantCulture),
+    };
+
+    private static string StateTone(CockpitSwitchState? state) => state switch
+    {
+        null or { Value: null } => "tone-neutral",
+        { Stale: true } => "tone-warn",
+        { LowerLit: true } or { UpperLit: true } => "tone-ok",
+        _ => "tone-neutral",
+    };
+
+    private async Task PressAsync(int index)
+    {
+        if (index >= _cockpit.Value.Rows.Count)
+        {
+            return;
+        }
+
+        var row = _cockpit.Value.Rows[index];
+        _pressing = true;
+        try
+        {
+            var result = await Control.PressAsync(row.Id, longPress: false);
+            _pressResults[index] = result.Reason;
+        }
+        finally
+        {
+            _pressing = false;
+        }
+    }
+
+    // ---- colour swatches (hex text + native picker, kept in step) ----
+
+    private static string Swatch(string? value, string fallback)
+        => CockpitSwitchLogic.IsHexColor(value) && value!.Trim().Length == 7 ? value.Trim() : fallback;
+
+    private void SetColor(CockpitSwitchRow row, Action<string> assign, ChangeEventArgs e)
+    {
+        var picked = e.Value as string;
+        if (CockpitSwitchLogic.IsHexColor(picked))
+        {
+            assign(picked!.Trim());
+            _cockpit.MarkEdited();
+        }
+    }
+}

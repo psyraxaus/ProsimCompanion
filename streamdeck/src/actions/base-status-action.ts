@@ -24,8 +24,8 @@ export interface KeyTile {
  * Base for every action that reflects live state. Tracks the currently-visible
  * key instances (retaining the shared poller per visible key so it only runs
  * while at least one key can be seen), subscribes ONCE to the shared
- * connection's state/status/reauth events, and re-renders all visible keys on
- * any change. Subclasses implement `render` (and usually `onKeyDown`).
+ * connection's state/status/controls/reauth events, and re-renders all visible
+ * keys on any change. Subclasses implement `render` (and usually `onKeyDown`).
  */
 export abstract class StatusAction<TSettings extends JsonObject = JsonObject> extends SingletonAction<TSettings> {
 	private readonly visible = new Map<string, { tile: KeyTile; settings: TSettings }>();
@@ -45,6 +45,7 @@ export abstract class StatusAction<TSettings extends JsonObject = JsonObject> ex
 		const rerender = (): void => this.renderAll();
 		connection.on("state", rerender);
 		connection.on("status", rerender);
+		connection.on("controls", rerender);
 		connection.on("reauth", rerender);
 	}
 
@@ -81,6 +82,11 @@ export abstract class StatusAction<TSettings extends JsonObject = JsonObject> ex
 		}
 	}
 
+	/** The settings of one visible key, for a re-render of just that key. */
+	protected settingsOf(tileId: string): TSettings | undefined {
+		return this.visible.get(tileId)?.settings;
+	}
+
 	private async safeRender(tile: KeyTile, settings: TSettings): Promise<void> {
 		try {
 			await this.render(tile, settings, connection.currentState, connection.connectionStatus);
@@ -112,6 +118,6 @@ export async function showCommandResult(
 	}
 }
 
-function shorten(s: string, max = 22): string {
+export function shorten(s: string, max = 22): string {
 	return s.length > max ? s.slice(0, max - 1) + "…" : s;
 }

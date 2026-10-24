@@ -56,6 +56,10 @@ public static class CoreServiceCollectionExtensions
         // vJoy input relay (2026-10-24): remote keys press a vJoy button on the sim PC so
         // ChasePlane view changes can come from a second PC.
         services.AddOptionSection<InputRelayOptions>(configuration);
+        // Cockpit switches (2026-10-24): Stream Deck keys press catalogued ProSim switches; the
+        // state store lives in Core so the status feed and the page read it with ProSim absent.
+        services.AddOptionSection<CockpitSwitchesOptions>(configuration);
+        services.AddSingleton<State.CockpitSwitchStateStore>();
         services.AddOptionSection<TechLogOptions>(configuration);
         services.AddOptionSection<LogbookOptions>(configuration);
         services.AddOptionSection<DebriefOptions>(configuration);

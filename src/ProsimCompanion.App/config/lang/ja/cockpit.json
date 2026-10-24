@@ -1,0 +1,62 @@
+{
+  "cockpit": {
+    "pageTitle": "コックピットスイッチ — ProsimCompanion",
+    "heading": "コックピットスイッチ",
+    "general": {
+      "title": "コックピットスイッチ",
+      "hint": "すぐに反映",
+      "intro": "Stream Deck から押したり表示したりできるスイッチです。ハードウェアを持っていない Korry ボタン、トグルスイッチ、ノブなど。各行は ProSim のスイッチを 1 つ指定し、アプリが直接書き込みます。ほかに必要なものはありません。"
+    },
+    "enable": { "label": "コックピットスイッチ", "hint": "Stream Deck のキーで下のスイッチを押せるようにします。コマンド API（設定 → セットアップ）が必要です。", "more": "オフ: キーは状態を表示しますが、押下はすべて拒否されます。" },
+    "row": {
+      "titleNumbered": "スイッチ {0}",
+      "hint": "「押す」は保存済みの行に作用します",
+      "state": "現在の状態",
+      "stateHint": "ProSim がこのスイッチについて今報告している内容。点灯はキーのランプが点いていることを示します。",
+      "stateNone": "未保存",
+      "stateWaiting": "値なし",
+      "stateStale": "PROSIM 切断",
+      "pressNow": "押す",
+      "remove": "削除",
+      "removeTitle": "このスイッチを削除",
+      "dataRef": {
+        "label": "ProSim スイッチ",
+        "hint": "ProSim 自身のスイッチ一覧から選びます。スイッチ（S_…）のみ、サーキットブレーカーは対象外です。",
+        "more": "一覧はデータレフのカタログから取得します。ProSim が動いていれば、その一覧に置き換わります。",
+        "pick": "— スイッチを選択 —",
+        "unknown": "{0} はスイッチ一覧にありません。選び直してください。それまでこの行はスキップされます。",
+        "positions": "ポジション: {0}",
+        "sourceLive": "{0} に ProSim から一覧を読み込みました。",
+        "sourceShipped": "同梱カタログの一覧（ProSim 未接続）。"
+      },
+      "id": { "label": "キー ID", "hint": "キーが送る内容: cockpit.press {\"id\":\"…\"}。英数字とアンダースコア。スイッチから自動入力されます。キーを作る前に変更してください。" },
+      "name": { "label": "キータイトル", "hint": "キー面の上部に表示する文字。例: LEAK MEAS B。" },
+      "look": { "label": "見た目", "hint": "キーがスイッチをどう描くか。" },
+      "press": { "label": "押下の動作", "hint": "「トグル」は最初の 2 つのポジションを切り替えます。「モーメンタリ」は押して離します（戻りばね付きの押しボタン）。「サイクル」は全ポジションを順に進み、長押しで戻ります。" },
+      "upperLegend": { "label": "上段の文字", "hint": "上のランプの文字（FAULT、AVAIL）。空なら文字を表示しません。" },
+      "lowerLegend": { "label": "下段の文字", "hint": "下のランプの文字（OFF、ON）。" },
+      "upperIndicator": { "label": "上ランプの元", "hint": "system.indicators.I_… のデータレフ。0 以外の間、ランプが点灯します。空なら上ランプは点灯しません。" },
+      "lowerIndicator": { "label": "下ランプの元", "hint": "system.indicators.I_… のデータレフ。空なら、スイッチが押されている（0 以外）間に点灯します。" },
+      "colors": "色",
+      "upperColor": "上ランプ",
+      "upperColorHint": "FAULT はアンバー、AVAIL は緑。",
+      "lowerColor": "下ランプ / アクティブ",
+      "lowerColorHint": "OFF は白、選択中の ON は青。ノブとトグルはアクティブなポジションにこの色を使います。",
+      "bezelColor": "ベゼル",
+      "bezelColorHint": "ボタンの周りのリング。空ならグレーのベゼルのまま。リーク計測バルブは青・緑・黄を使います。",
+      "bezelNone": "グレー",
+      "bezelClear": "グレー"
+    },
+    "lookOptions": { "korry2": "Korry — ランプ 2 つ", "korry1": "Korry — ランプ 1 つ", "toggle": "トグルスイッチ", "knob": "ロータリーノブ", "guarded": "ガード付きスイッチ" },
+    "pressOptions": { "toggle": "トグル", "momentary": "モーメンタリ", "cycle": "ポジションをサイクル" },
+    "list": {
+      "title": "スイッチを追加",
+      "hint": "スイッチごとに 1 枚のカード",
+      "none": "スイッチはまだありません。",
+      "add": "スイッチを追加",
+      "addLeakValves": "リーク計測バルブ 3 つを追加",
+      "duplicate": "2 つの行が ID \"{0}\" を共有しています。キーは最初の行しか押しません。",
+      "commandsHint": "コマンド:"
+    }
+  }
+}

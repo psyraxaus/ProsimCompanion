@@ -76,6 +76,24 @@ public static partial class SwitchCatalog
 
     private const string ShippedResource = "ProsimCompanion.Core.Aircraft.Switches.Prosim_A322_Dataref.csv";
 
+    private static readonly Lazy<IReadOnlyList<string>> ShippedIndicators = new(() =>
+    {
+        using var stream = typeof(SwitchCatalog).Assembly.GetManifestResourceStream(ShippedResource)
+            ?? throw new InvalidOperationException($"Embedded resource {ShippedResource} is missing");
+        using var reader = new StreamReader(stream);
+        return ParseCsv(reader)
+            .Where(r => r.CanRead && r.Name.StartsWith(IndicatorPrefix, StringComparison.Ordinal))
+            .Select(r => r.Name)
+            .ToList();
+    });
+
+    /// <summary>The dataref namespace of the cockpit lamps (<c>I_OH_HYD_LMV_BLUE_L</c> …).</summary>
+    public const string IndicatorPrefix = "system.indicators.";
+
+    /// <summary>Every readable <c>system.indicators.*</c> name in the shipped CSV — the
+    /// suggestion list behind a cockpit-switch row's lamp fields (2026-10-24). Parsed once.</summary>
+    public static IReadOnlyList<string> ShippedIndicatorNames => ShippedIndicators.Value;
+
     /// <summary>Parses the CSV shipped inside the assembly.</summary>
     public static SwitchCatalogSnapshot LoadShipped()
     {

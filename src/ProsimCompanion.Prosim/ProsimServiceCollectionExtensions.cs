@@ -47,6 +47,11 @@ public static class ProsimServiceCollectionExtensions
         services.AddSingleton<Loadsheet.EfbResetService>();
         services.AddSingleton<Core.State.IEfbResetControl>(provider => provider.GetRequiredService<Loadsheet.EfbResetService>());
         services.AddHostedService<Loadsheet.FlightDataBootstrapService>();
+        // Cockpit switches (2026-10-24): push subscriptions per configured switch, direct SDK
+        // writes on a key press; installs the write-gate hook for its rows.
+        services.AddSingleton<Switches.CockpitSwitchService>();
+        services.AddSingleton<Core.State.ICockpitSwitchControl>(provider => provider.GetRequiredService<Switches.CockpitSwitchService>());
+        services.AddHostedService(provider => provider.GetRequiredService<Switches.CockpitSwitchService>());
 
         // W&B passenger SIMULATE tool (headless cabin loading; resolved optionally by the web UI).
         services.AddSingleton<Passengers.PassengerSimulationService>();

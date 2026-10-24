@@ -88,6 +88,12 @@ public sealed class OptionFieldCompletenessTests
         ["AudioAppMapping.*"] = "the CoreAudio mapping table",
         ["VoiceMeeterTargetMapping.*"] = "the VoiceMeeter mapping table",
         ["MixerMapping.*"] = "the remote mixer mapping table",
+        // Cockpit switches (2026-10-24): the dataref is picked from the catalogue dropdown, the
+        // three colours are swatch inputs — both custom controls on the Cockpit page's row cards.
+        ["CockpitSwitchRow.DataRef"] = "the catalogue picker on the Cockpit Switches page",
+        ["CockpitSwitchRow.UpperColor"] = "a colour swatch on the Cockpit Switches page",
+        ["CockpitSwitchRow.LowerColor"] = "a colour swatch on the Cockpit Switches page",
+        ["CockpitSwitchRow.BezelColor"] = "a colour swatch on the Cockpit Switches page",
         ["MixerAgentOptions.PanelStrips"] = "the per-agent status-panel tick boxes (#178)",
         ["MixerAgentOptions.PanelBuses"] = "the per-agent status-panel tick boxes (#178)",
         ["AircraftProfile.*"] = "the Aircraft Profiles page's own editor",

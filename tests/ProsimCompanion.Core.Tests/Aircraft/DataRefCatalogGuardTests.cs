@@ -39,6 +39,8 @@ public sealed class DataRefCatalogGuardTests
         @"src\ProsimCompanion.Speech\Briefings\ProcedureSource.cs",
         // #49: verify datarefs come from the user-editable commands.json.
         @"src\ProsimCompanion.Speech\Commands\ConfiguredVoiceCommands.cs",
+        // Cockpit switches (2026-10-24): rows name catalogued switches and their lamp indicators.
+        @"src\ProsimCompanion.Prosim\Switches\CockpitSwitchService.cs",
     ];
 
     [Fact]

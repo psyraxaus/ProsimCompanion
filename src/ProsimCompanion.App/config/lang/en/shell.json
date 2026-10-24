@@ -85,6 +85,7 @@
     },
     "nav": {
       "setup": "Setup",
+      "cockpit": "Cockpit Switches",
       "gsx": "Ground Services",
       "gsx.status": "Status",
       "gsx.doors": "Doors & Jetway",

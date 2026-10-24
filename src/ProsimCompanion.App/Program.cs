@@ -385,6 +385,8 @@ public static class Program
         // section; 404 while disabled). The status feed is what the Stream Deck plugin polls.
         web.MapCommandApi();
         web.MapStatusApi();
+        // Configured cockpit switches + camera views for the plugin's key settings (2026-10-24).
+        web.MapControlsApi();
 
         // Read-only telemetry feed for the flight-verification workflow (issue #94):
         // session event logs + log tails, on by default, 404 while disabled.

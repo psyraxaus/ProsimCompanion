@@ -1,0 +1,67 @@
+<!doctype html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<link rel="stylesheet" href="pi-style.css" />
+	</head>
+	<body>
+		<div class="group">
+			<div class="title">Camera view</div>
+			<label for="view">View</label>
+			<select id="view">
+				<option value="">— pick a view —</option>
+			</select>
+			<div class="status" id="view-hint">Views are the rows of ProsimCompanion → Settings → Setup → vJoy relay. ChasePlane must have each view bound to that vJoy button on the sim PC.</div>
+		</div>
+
+		<div id="connection"></div>
+
+		<script src="pi.js"></script>
+		<script src="pi-connection.js"></script>
+		<script>
+			renderConnectionForm(document.getElementById("connection"));
+			const sel = document.getElementById("view");
+			const hint = document.getElementById("view-hint");
+			let current = "";
+			let list = [];
+
+			function fill() {
+				sel.innerHTML = "";
+				sel.add(new Option("— pick a view —", ""));
+				for (const v of list) {
+					sel.add(new Option(v.name + "  (vJoy " + v.button + ")", v.name));
+				}
+				if (current && !list.some(function (v) { return v.name === current; })) {
+					sel.add(new Option(current + "  (not in the app's list)", current));
+				}
+				sel.value = current;
+			}
+
+			function apply(s) {
+				current = (s && s.view) || "";
+				fill();
+			}
+
+			window.PI.onReady(function (s) {
+				apply(s);
+				window.PI.sendToPlugin({ event: "getViews" });
+			});
+			window.PI.onSettings(apply);
+			window.PI.onMessage(function (m) {
+				if (!m || m.event !== "views") return;
+				list = m.views || [];
+				fill();
+				hint.textContent = !m.connected
+					? "ProsimCompanion is not reachable — the list shows once it connects."
+					: list.length === 0
+						? "No views yet: add rows on ProsimCompanion → Settings → Setup → vJoy relay, save, then reopen this."
+						: m.enabled
+							? list.length + " view(s). Each presses its vJoy button on the sim PC."
+							: "The vJoy relay is switched off in ProsimCompanion — presses are refused until it is on.";
+			});
+			sel.addEventListener("change", function () {
+				window.PI.setSettings({ view: sel.value });
+			});
+		</script>
+	</body>
+</html>

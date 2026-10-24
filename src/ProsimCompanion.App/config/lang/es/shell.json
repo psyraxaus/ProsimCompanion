@@ -85,6 +85,7 @@
     },
     "nav": {
       "setup": "Configuración",
+      "cockpit": "Interruptores de cabina",
       "gsx": "Servicios de tierra",
       "gsx.status": "Estado",
       "gsx.doors": "Puertas y pasarela",

@@ -1,0 +1,62 @@
+{
+  "cockpit": {
+    "pageTitle": "Cockpit Switches — ProsimCompanion",
+    "heading": "Cockpit Switches",
+    "general": {
+      "title": "Cockpit switches",
+      "hint": "Applies live",
+      "intro": "Switches the Stream Deck may press and show — Korry buttons, toggles and knobs you have no hardware for. Each row names one ProSim switch; the app writes it directly, nothing else is needed."
+    },
+    "enable": { "label": "Cockpit switches", "hint": "Lets Stream Deck keys press the switches below. Needs the Command API (Settings → Setup).", "more": "Off: the keys show the state but every press is refused." },
+    "row": {
+      "titleNumbered": "Switch {0}",
+      "hint": "Press works on the saved row",
+      "state": "Live state",
+      "stateHint": "What ProSim reports for this switch right now. Lit means the key's lamp is on.",
+      "stateNone": "NOT SAVED",
+      "stateWaiting": "NO VALUE",
+      "stateStale": "PROSIM AWAY",
+      "pressNow": "Press",
+      "remove": "Remove",
+      "removeTitle": "Remove this switch",
+      "dataRef": {
+        "label": "ProSim switch",
+        "hint": "Picked from ProSim's own switch list. Only switches (S_…), no circuit breakers.",
+        "more": "The list comes from the dataref catalogue; a live ProSim replaces it with its own.",
+        "pick": "— pick a switch —",
+        "unknown": "{0} is not in the switch list — pick it again. The row is skipped until then.",
+        "positions": "Positions: {0}",
+        "sourceLive": "List read from ProSim at {0}.",
+        "sourceShipped": "List from the shipped catalogue (ProSim not connected yet)."
+      },
+      "id": { "label": "Key id", "hint": "What a key sends: cockpit.press {\"id\":\"…\"}. Letters, digits and underscores. Filled in from the switch; change it before you build keys." },
+      "name": { "label": "Key title", "hint": "The text on top of the key face, for example LEAK MEAS B." },
+      "look": { "label": "Look", "hint": "How the key draws the switch." },
+      "press": { "label": "Press does", "hint": "Toggle flips between the first two positions. Momentary presses and releases (push buttons that spring back). Cycle steps through all positions; a long press steps back." },
+      "upperLegend": { "label": "Upper legend", "hint": "Text in the upper lamp (FAULT, AVAIL). Empty hides the text." },
+      "lowerLegend": { "label": "Lower legend", "hint": "Text in the lower lamp (OFF, ON)." },
+      "upperIndicator": { "label": "Upper lamp from", "hint": "A system.indicators.I_… dataref; the lamp is lit while it is not zero. Empty: the upper lamp never lights." },
+      "lowerIndicator": { "label": "Lower lamp from", "hint": "A system.indicators.I_… dataref. Empty: lit while the switch is pushed (not zero)." },
+      "colors": "Colours",
+      "upperColor": "Upper lamp",
+      "upperColorHint": "Amber for FAULT, green for AVAIL.",
+      "lowerColor": "Lower lamp / active",
+      "lowerColorHint": "White for OFF, blue for a selected ON. Knobs and toggles use it for the active position.",
+      "bezelColor": "Bezel",
+      "bezelColorHint": "Ring around the button. Empty keeps the grey bezel; the leak valves use blue, green and yellow.",
+      "bezelNone": "grey",
+      "bezelClear": "Grey"
+    },
+    "lookOptions": { "korry2": "Korry — two lamps", "korry1": "Korry — one lamp", "toggle": "Toggle switch", "knob": "Rotary knob", "guarded": "Guarded switch" },
+    "pressOptions": { "toggle": "Toggle", "momentary": "Momentary push", "cycle": "Cycle positions" },
+    "list": {
+      "title": "Add switches",
+      "hint": "One card per switch",
+      "none": "No switches yet.",
+      "add": "Add switch",
+      "addLeakValves": "Add the three leak measurement valves",
+      "duplicate": "Two rows share the id \"{0}\" — a key would press the first one only.",
+      "commandsHint": "Commands:"
+    }
+  }
+}

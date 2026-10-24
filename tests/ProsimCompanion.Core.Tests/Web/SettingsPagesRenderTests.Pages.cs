@@ -167,6 +167,53 @@ public sealed partial class SettingsPagesRenderTests
         Dump($"app-{fixture}", html);
     }
 
+    [Theory]
+    [InlineData("defaults")]
+    [InlineData("configured")]
+    public async Task CockpitSettings_Renders_WithoutLeakingTextIds(string fixture)
+    {
+        var configured = fixture == "configured";
+        var services = new ServiceCollection();
+        Options(services, new CockpitSwitchesOptions
+        {
+            Enabled = configured,
+            Rows = configured
+                ?
+                [
+                    new CockpitSwitchRow { Id = "oh_hyd_lmv_blue", Name = "LEAK MEAS B", DataRef = "system.switches.S_OH_HYD_LMV_BLUE", LowerIndicator = "system.indicators.I_OH_HYD_LMV_BLUE_L", BezelColor = "#5fb4ff" },
+                    new CockpitSwitchRow { Id = "oh_adirs_1", Name = "ADIRS 1", DataRef = "system.switches.S_OH_ADIRS_1", Look = CockpitSwitchLook.Knob, PressMode = CockpitPressMode.Cycle },
+                    new CockpitSwitchRow { Id = "ghost", Name = "Ghost", DataRef = "system.switches.S_NOT_IN_LIST" },
+                    new CockpitSwitchRow(),
+                ]
+                : [],
+        });
+        services.AddSingleton<SwitchCatalogStore>();
+        var states = new CockpitSwitchStateStore();
+        if (configured)
+        {
+            states.Update(_ => new CockpitSwitchesSnapshot(
+            [
+                new CockpitSwitchState("oh_hyd_lmv_blue", 1, "Pushed", false, true, false),
+                new CockpitSwitchState("oh_adirs_1", null, null, false, false, true),
+            ]));
+        }
+
+        services.AddSingleton(states);
+        services.AddSingleton(Mock.Of<ICockpitSwitchControl>());
+
+        var html = await RenderPageAsync<ProsimCompanion.Web.Pages.CockpitSettings>(services, "settings/cockpit", new Dictionary<string, object?>());
+
+        Assert.Contains("<section", html, StringComparison.Ordinal);
+        Assert.DoesNotMatch(LeakedTextId(), html);
+        if (configured)
+        {
+            Assert.Contains("LEAK MEAS B", html, StringComparison.Ordinal);
+            Assert.Contains("PUSHED", html, StringComparison.Ordinal);
+        }
+
+        Dump($"cockpit-{fixture}", html);
+    }
+
     [Fact]
     public async Task FlightPhaseSettings_Renders_WithoutLeakingTextIds()
     {

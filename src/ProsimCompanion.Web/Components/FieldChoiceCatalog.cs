@@ -88,6 +88,18 @@ public static class FieldChoiceCatalog
                 ("Nobody", T["gsxSettings.questions.crewOptions.nobody"].Value), ("Crew", T["gsxSettings.questions.crewOptions.crew"].Value),
                 ("Pilots", T["gsxSettings.questions.crewOptions.pilots"].Value), ("Both", T["gsxSettings.questions.crewOptions.both"].Value),
             ],
+            // Cockpit switches (2026-10-24): enum members by their camelCase JSON names.
+            ["cockpitLook"] = T =>
+            [
+                ("korry2", T["cockpit.lookOptions.korry2"].Value), ("korry1", T["cockpit.lookOptions.korry1"].Value),
+                ("toggle", T["cockpit.lookOptions.toggle"].Value), ("knob", T["cockpit.lookOptions.knob"].Value),
+                ("guarded", T["cockpit.lookOptions.guarded"].Value),
+            ],
+            ["cockpitPress"] = T =>
+            [
+                ("toggle", T["cockpit.pressOptions.toggle"].Value), ("momentary", T["cockpit.pressOptions.momentary"].Value),
+                ("cycle", T["cockpit.pressOptions.cycle"].Value),
+            ],
             ["groundPrepActivation"] = T =>
             [
                 ("auto", T["gsxSettings.automation.groundPrepOptions.auto"].Value), ("voice", T["gsxSettings.automation.groundPrepOptions.voice"].Value),
