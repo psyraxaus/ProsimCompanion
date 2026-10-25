@@ -126,7 +126,10 @@ capital and first-order seat; licensed [CC BY 4.0](https://creativecommons.org/l
 Say the checklist's start phrase (e.g. *"before start checklist"*). The FO reads each
 challenge and listens indefinitely for your response; wrong responses get an "are you sure?"
 and the FO never gives up — say **"skip"** to move past an item, **"say again"** to repeat,
-**"hold the checklist" / "resume"**, **"cancel checklist"** or **"restart checklist"**
+**"hold the checklist" / "resume"**, **"cancel checklist"** or **"restart checklist"**. Those words
+also count at the start or end of a longer transcript while a line waits ("… Celsius, skip" from
+the cabin PA with your "skip" at the end, 2026-10-25), and after 60 seconds of silence on an open
+line the FO reminds you once: *"Still waiting on Minimum, Captain — say the answer, or skip."*
 anytime. Items with a dataref condition verify against the aircraft; the visual runner on the
 Checklists page stays in sync. The flight-control check is fully monitored (your sweep is
 watched at 30 Hz, then the FO answers with the FO-side controls).

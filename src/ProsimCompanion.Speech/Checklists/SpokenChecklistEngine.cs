@@ -69,6 +69,9 @@ public sealed class SpokenChecklistEngine : Core.Hosting.IStartupModule, IDispos
     private CancellationTokenSource? _run;
     private TaskCompletionSource<EngineResponse>? _response;
     private ChecklistItemDefinition? _awaitingItem;
+
+    /// <summary>Silence on an open line before the FO reminds once (2026-10-25). Internal for tests.</summary>
+    internal static TimeSpan ReminderAfter { get; set; } = TimeSpan.FromSeconds(60);
     private CancellationTokenSource? _monitorSkip;
     private bool _started;
     private IDataRefSubscription<int>? _flapLever;
@@ -608,7 +611,29 @@ public sealed class SpokenChecklistEngine : Core.Hosting.IStartupModule, IDispos
             {
                 using (ct.Register(() => response.TrySetCanceled()))
                 {
-                    result = await response.Task.ConfigureAwait(false);
+                    // One reminder after a long silence (owner flight 2026-10-25: the Descent
+                    // checklist waited 17 min on "Minimum" after the cabin PA swallowed the
+                    // pilot's "skip"). Then the wait goes on as before — the FO never gives up.
+                    var reminded = false;
+                    while (true)
+                    {
+                        using var delayCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+                        var finished = await Task.WhenAny(response.Task, Task.Delay(ReminderAfter, delayCts.Token)).ConfigureAwait(false);
+                        if (finished == response.Task)
+                        {
+                            delayCts.Cancel();
+                            result = await response.Task.ConfigureAwait(false);
+                            break;
+                        }
+
+                        ct.ThrowIfCancellationRequested();
+                        if (!reminded)
+                        {
+                            reminded = true;
+                            _eventLog.Record("checklist.voice.reminder", new { item = item.Say, afterSeconds = (int)ReminderAfter.TotalSeconds });
+                            await SpeakTagged($"Still waiting on {item.Say}, Captain — say the answer, or skip.", "checklist.reminder").ConfigureAwait(false);
+                        }
+                    }
                 }
             }
             finally
