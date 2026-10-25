@@ -37,6 +37,10 @@ public sealed class PilotAnnouncementFeature : IVoiceFeature
         "antflex", "ant flex", "antflex srs runway navblue", "ant flex srs runway nav blue",
         "glideslap", "glide slop", "glideslap capture", "glide slop capture", "glideslap star", "glide slop star",
         "manual flight", "manual control", "continue",
+        // Owner request 2026-10-25: the visual calls on the approach ("Runway Insight" was the
+        // ASR junction that earned a did-you-mean on the EKCH→EFHK leg).
+        "runway in sight", "runway insight", "airfield in sight", "field in sight",
+        "approach lights in sight", "lights in sight", "runway",
     ];
 
     internal enum AnnouncementKind
@@ -45,6 +49,9 @@ public sealed class PilotAnnouncementFeature : IVoiceFeature
         CaptureFma,
         ManualFlight,
         Continue,
+
+        /// <summary>"Runway in sight" / "airfield in sight" / a bare "runway" on the approach.</summary>
+        RunwayInSight,
     }
 
     private readonly ISpeechArbiter _arbiter;
@@ -81,6 +88,7 @@ public sealed class PilotAnnouncementFeature : IVoiceFeature
                 "voiceReference.group.announcements.capture", "Checked.", [VoiceBadges.Phase]),
             new(["alt star", "altstar", "altitude star", "alt capture"], "voiceReference.group.announcements.altCapture", "Checked.", [VoiceBadges.Phase]),
             new(["manual flight", "manual control"], "voiceReference.group.announcements.manualFlight", "Manual flight."),
+            new(["runway in sight", "airfield in sight", "runway"], "voiceReference.group.announcements.runwayInSight", "Checked.", [VoiceBadges.Phase]),
             new(["continue"], "voiceReference.group.announcements.continue", "Continue.", [VoiceBadges.Phase]),
         ]),
     };
@@ -142,6 +150,16 @@ public sealed class PilotAnnouncementFeature : IVoiceFeature
             || normalized.Equals("manual control", StringComparison.Ordinal))
         {
             return AnnouncementKind.ManualFlight;
+        }
+
+        // Visual acquisition calls (owner request 2026-10-25) — descent and approach only, so
+        // "runway" keeps its ordinary meaning in a taxi instruction read-back elsewhere.
+        if (phase is FlightPhase.Descent or FlightPhase.Approach
+            && (normalized.Contains("in sight", StringComparison.Ordinal)
+                || normalized.Contains("insight", StringComparison.Ordinal)
+                || normalized.Equals("runway", StringComparison.Ordinal)))
+        {
+            return AnnouncementKind.RunwayInSight;
         }
 
         // Only the approach decision window — a bare "continue" during a held checklist never

@@ -127,7 +127,8 @@
         "capture": "Annonce de capture du localizer / glide.",
         "altCapture": "Annonce de capture d'altitude.",
         "manualFlight": "Annonce de vol manuel.",
-        "continue": "Ta décision aux minima."
+        "continue": "Ta décision aux minima.",
+        "runwayInSight": "Piste / terrain en vue en approche."
       },
       "mcduRead": {
         "title": "MCDU — lecture",

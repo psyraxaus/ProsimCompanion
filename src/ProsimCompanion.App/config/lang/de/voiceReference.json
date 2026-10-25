@@ -127,7 +127,8 @@
         "capture": "Localizer-/Glideslope-Capture-Call.",
         "altCapture": "Altitude-Capture-Call.",
         "manualFlight": "Ansage „manual flight“.",
-        "continue": "Deine Entscheidung an den Minimums."
+        "continue": "Deine Entscheidung an den Minimums.",
+        "runwayInSight": "Piste / Flugplatz in Sicht im Anflug."
       },
       "mcduRead": {
         "title": "MCDU — lesen",

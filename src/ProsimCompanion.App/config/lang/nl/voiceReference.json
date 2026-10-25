@@ -127,7 +127,8 @@
         "capture": "Localizer-/glideslope-capture-call.",
         "altCapture": "Altitude-capture-call.",
         "manualFlight": "Aankondiging van handmatig vliegen.",
-        "continue": "Je beslissing bij de minimums."
+        "continue": "Je beslissing bij de minimums.",
+        "runwayInSight": "Baan / vliegveld in zicht op de approach."
       },
       "mcduRead": {
         "title": "MCDU — lezen",

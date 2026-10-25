@@ -84,4 +84,21 @@ public sealed class PilotAnnouncementTests
         Assert.Contains("request Taxi checklist", UtteranceRouter.StartPhrases(definition));
         Assert.Contains("Taxi checklist", UtteranceRouter.StartPhrases(definition));
     }
+    // ---- owner request 2026-10-25: visual acquisition calls ----------------------------
+
+    [Theory]
+    [InlineData("runway in sight", FlightPhase.Approach)]
+    [InlineData("runway insight", FlightPhase.Approach)]
+    [InlineData("airfield in sight", FlightPhase.Descent)]
+    [InlineData("approach lights in sight", FlightPhase.Approach)]
+    [InlineData("runway", FlightPhase.Approach)]
+    public void RunwayInSight_OnTheApproach_IsAcknowledged(string normalized, FlightPhase phase)
+        => Assert.Equal(PilotAnnouncementFeature.AnnouncementKind.RunwayInSight, PilotAnnouncementFeature.Classify(normalized, phase));
+
+    [Theory]
+    [InlineData("runway", FlightPhase.TaxiOut)]
+    [InlineData("runway in sight", FlightPhase.Cruise)]
+    [InlineData("runway", FlightPhase.LandingRollout)]
+    public void RunwayWords_OutsideTheApproach_AreNotAnnouncements(string normalized, FlightPhase phase)
+        => Assert.Null(PilotAnnouncementFeature.Classify(normalized, phase));
 }

@@ -127,7 +127,8 @@
         "capture": "Llamada de captura de localizador / senda.",
         "altCapture": "Llamada de captura de altitud.",
         "manualFlight": "Anuncio de vuelo manual.",
-        "continue": "Tu decisión en mínimos."
+        "continue": "Tu decisión en mínimos.",
+        "runwayInSight": "Pista / aeródromo a la vista en la aproximación."
       },
       "mcduRead": {
         "title": "MCDU — leer",

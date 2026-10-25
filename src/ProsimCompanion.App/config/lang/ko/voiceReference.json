@@ -127,7 +127,8 @@
         "capture": "로컬라이저 / 글라이드슬로프 캡처 콜입니다.",
         "altCapture": "고도 캡처 콜입니다.",
         "manualFlight": "수동 비행 선언입니다.",
-        "continue": "최저치에서의 결정입니다."
+        "continue": "최저치에서의 결정입니다.",
+        "runwayInSight": "접근 중 활주로/비행장 시인 콜."
       },
       "mcduRead": {
         "title": "MCDU — 읽기",

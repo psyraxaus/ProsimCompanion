@@ -127,7 +127,8 @@
         "capture": "ローカライザー / グライドスロープ捕捉のコールです。",
         "altCapture": "高度捕捉のコールです。",
         "manualFlight": "マニュアルフライトの宣言です。",
-        "continue": "ミニマムでのあなたの判断です。"
+        "continue": "ミニマムでのあなたの判断です。",
+        "runwayInSight": "アプローチ中の滑走路／飛行場視認コール。"
       },
       "mcduRead": {
         "title": "MCDU — 読み上げ",

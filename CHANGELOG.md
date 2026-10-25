@@ -13,6 +13,8 @@ On `feature/radios-tile-and-courtesies`, 2026-10-25 (owner requests of that day)
 - Fixed: **Region Facts went silent while the mic pill read PAUSED** (owner report 2026-10-25). The pause latch stops the FO listening, not talking: a due fact is now spoken with the mic muted. Sterile cockpit and "quiet please" still hold it.
 - Fixed: **the purser's cruise call waited while the mic pill read PAUSED** (owner report 2026-10-25). Same rule: the latch is about listening; the purser calls when due and an unanswered call times out as before.
 - Fixed: **"tune the ILS" set the frequency but not the ident** (owner report 2026-10-25: 109.10 shown, no HL). The FO now enters the IDENT first — the FMGC then shows ident, frequency and fills the course from its database — and falls back to the frequency only when the scratchpad answers NOT IN DATA BASE (cleared automatically). The confirmation names the ident when it shows; events carry `entered: ident|freq`.
+- Added: **"runway in sight" / "airfield in sight" / "runway" acknowledged on the approach** (owner request 2026-10-25; "Runway Insight" earned a did-you-mean on the EKCH→EFHK leg). Flight-mode calls group in the Voice Reference, seven packs.
+- Fixed: **"request climb" with no step ahead transmitted the bare callsign** (2026-10-25 flight, 03:44Z: "Finnair-niner-six-two"). The template now keeps "request climb" as its own clause; only "flight level …" is dropped. Shipped atc-requests.json — a user-edited copy keeps its own text.
 
 ## 0.8.0-rc.8
 
