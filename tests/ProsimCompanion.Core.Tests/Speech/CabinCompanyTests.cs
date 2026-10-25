@@ -302,15 +302,16 @@ public sealed class CabinCrewCoreTests
         => Assert.Equal(expected, CabinCrewCore.CruiseQueryDelay(new CabinOptions { CruiseQueryDelayMinutes = minutes }, roll));
 
     [Fact]
-    public void CruiseQuery_WaitsOutTheVoicePauseLatch_NeverCancels()
+    public void CruiseQuery_IsNotHeldByTheVoicePauseLatch()
     {
+        // Owner report 2026-10-25: the purser never called while the mic pill read PAUSED.
         var core = new CabinCrewCore();
         var options = new CabinOptions { CruiseQuery = true, CruiseQueryDelayMinutes = 10 };
         core.Evaluate(Cruise(0), options, () => 0.5);
 
-        Assert.Equal(CabinAction.None, core.Evaluate(Cruise(600, paused: true), options, NeverRoll));
-        Assert.Equal(CabinAction.None, core.Evaluate(Cruise(900, paused: true), options, NeverRoll));
-        Assert.Equal(CabinAction.CruiseQuery, core.Evaluate(Cruise(901), options, NeverRoll));
+        Assert.Equal(CabinAction.None, core.Evaluate(Cruise(599, paused: true), options, NeverRoll));
+        Assert.Equal(CabinAction.CruiseQuery, core.Evaluate(Cruise(600, paused: true), options, NeverRoll));
+        Assert.Equal(CabinAction.None, core.Evaluate(Cruise(901), options, NeverRoll));
     }
 
     [Fact]

@@ -33,8 +33,8 @@ public enum CabinAction
 /// bogus startup Approach classification fired "secure for landing" at the gate).
 /// <paramref name="PaxOnBoard"/> scales the cabin-secure wait (issue #134); <paramref name="NowUtc"/>
 /// is the tick's clock so the timer is testable without waiting — default means "use the
-/// wall clock". <paramref name="VoicePaused"/> is the pilot's "ear off" latch: the cruise
-/// query waits it out rather than calling a flight deck that cannot answer.</summary>
+/// wall clock". <paramref name="VoicePaused"/> is the pilot's "ear off" latch — carried for the
+/// event payload; since 2026-10-25 it no longer holds the cruise query.</summary>
 public sealed record CabinTickSample(
     FlightPhase Phase,
     bool DoorsClosed,
@@ -256,9 +256,9 @@ public sealed class CabinCrewCore
                 _cruiseQueryDueAtUtc = now.AddSeconds(CruiseQueryDelaySeconds);
             }
 
-            // The ear-off latch holds the call, never cancels it: the purser calls on the
-            // first cruise tick after the pilot can hear and answer again.
-            if (now >= _cruiseQueryDueAtUtc && !sample.VoicePaused)
+            // The ear-off latch does NOT hold the call (owner report 2026-10-25): the latch stops
+            // the FO listening, not the crew calling — an unanswered call times out as usual.
+            if (now >= _cruiseQueryDueAtUtc)
             {
                 _cruiseQueryDone = true;
                 return CabinAction.CruiseQuery;
