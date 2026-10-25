@@ -42,7 +42,7 @@
       },
       "engineFlap": {
         "label": "Antworten auf Triebwerk- & Klappenrufe",
-        "hint": "Der FO antwortet auf deine Rufe zu Triebwerkstart und Klappen.",
+        "hint": "Der FO antwortet auf deine Rufe zu Triebwerkstart, Klappen und Enteisung.",
         "more": "Klappenrufe werden gegen die Placard-Geschwindigkeiten geprüft. Nur verbal: der FO bewegt nie die Hebel."
       },
       "engineStart": {

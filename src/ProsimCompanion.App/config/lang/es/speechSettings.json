@@ -42,7 +42,7 @@
       },
       "engineFlap": {
         "label": "Respuestas a llamadas de motor y flaps",
-        "hint": "El FO responde a tus llamadas de arranque de motor y de flaps.",
+        "hint": "El FO responde a tus llamadas de arranque de motor, de flaps y de antihielo.",
         "more": "Las llamadas de flaps se comprueban contra las velocidades del placard. Solo verbal: el FO nunca mueve las palancas."
       },
       "engineStart": {

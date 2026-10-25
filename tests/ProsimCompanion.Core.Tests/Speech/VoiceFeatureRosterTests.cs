@@ -45,6 +45,7 @@ public sealed partial class VoiceFeatureRosterTests
         (typeof(ProsimCompanion.Speech.FoSide.FmgcCrossCheckService), 66),
         (typeof(ProsimCompanion.Speech.Commands.ConfiguredVoiceCommands), 70),
         (typeof(ProsimCompanion.Speech.Callouts.EngineFlapCallFeature), 80),
+        (typeof(ProsimCompanion.Speech.Callouts.AntiIceCallFeature), 85), // "engine anti-ice on" checked against the overhead (2026-10-25)
         (typeof(ProsimCompanion.Speech.Callouts.GearCallFeature), 90),
         (typeof(ProsimCompanion.Speech.Callouts.ChronoCallFeature), 100),
         (typeof(ProsimCompanion.Speech.Callouts.PilotAnnouncementFeature), 110),

@@ -107,6 +107,11 @@
         "flapsCheck": "Controle van de placard-snelheid.",
         "flapsUp": "Bevestiging van het intrekken van de flaps."
       },
+      "antiIce": {
+        "title": "Anti-ice calls",
+        "engine": "Bevestigd en gecontroleerd tegen beide engine anti-ice schakelaars — een afwijkende schakelaar wordt genoemd.",
+        "wing": "Bevestigd en gecontroleerd tegen de wing anti-ice schakelaar."
+      },
       "gear": {
         "title": "Landingsgestel",
         "up": "De FO beweegt de hendel — geweigerd aan de grond of boven de intreklimiet.",

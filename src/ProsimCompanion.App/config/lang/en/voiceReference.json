@@ -107,6 +107,11 @@
         "flapsCheck": "Placard speed check.",
         "flapsUp": "Flap retraction acknowledgement."
       },
+      "antiIce": {
+        "title": "Anti-ice calls",
+        "engine": "Acknowledged and checked against both engine anti-ice switches — a switch that disagrees is named.",
+        "wing": "Acknowledged and checked against the wing anti-ice switch."
+      },
       "gear": {
         "title": "Gear",
         "up": "The FO moves the lever — refused on the ground or above the retraction limit.",

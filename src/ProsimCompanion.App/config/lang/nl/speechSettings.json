@@ -42,7 +42,7 @@
       },
       "engineFlap": {
         "label": "Antwoorden op motor- & flapcalls",
-        "hint": "De FO antwoordt op je calls voor motorstart en flaps.",
+        "hint": "De FO antwoordt op je calls voor motorstart, flaps en anti-ice.",
         "more": "Flapcalls worden getoetst aan de placardsnelheden. Alleen verbaal: de FO beweegt nooit de hendels."
       },
       "engineStart": {

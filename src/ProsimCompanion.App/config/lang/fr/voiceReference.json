@@ -107,6 +107,11 @@
         "flapsCheck": "Vérification de la vitesse placard.",
         "flapsUp": "Acquittement de la rentrée des volets."
       },
+      "antiIce": {
+        "title": "Appels antigivrage",
+        "engine": "Confirmé et vérifié sur les deux interrupteurs antigivrage moteur — un interrupteur en désaccord est nommé.",
+        "wing": "Confirmé et vérifié sur l’interrupteur antigivrage voilure."
+      },
       "gear": {
         "title": "Train",
         "up": "L'OPL manœuvre le levier — refusé au sol ou au-dessus de la limite de rentrée.",

@@ -3792,6 +3792,35 @@
         "requires-human: the tile showed ON FREQUENCY / WRONG FREQUENCY correctly against the SayIntentions window during preflight; the chips tuned the right station; the /monitor board line matched the tile."
       ],
       "notes": "Core RadioStore + Com1PanelService (push read model, standby→verify→swap tune); Speech SayIntentionsFrequencyMonitor publishes the assignment, the local airport's comms list (15 min) and the last ATC line; Web FlightStatusPresentation.Radios. Unverified live."
+    },
+    {
+      "id": "anti-ice-call",
+      "issue": 0,
+      "state": "open",
+      "kind": "assert-present",
+      "machine": {
+        "kind": "required-fields",
+        "type": "crewcall.answered",
+        "where": { "system": "Engine" },
+        "fields": [
+          "utterance",
+          "response",
+          "said",
+          "engine1",
+          "engine2"
+        ]
+      },
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "Owner request 2026-10-25 (no issue). Trigger = the pilot says engine anti-ice on / off or wing anti-ice on / off with speech.engineFlapCallouts on.",
+        "assert-present: a crewcall.answered {system: Engine|Wing, said: on|off, engine1, engine2, wing, response} within a few seconds of the utterance, and the FO spoke the response (speech.spoken with tag crewCall). response ends in checked when the switches agree with the call; names engine one / engine two / both engines / it when one disagrees; is the bare acknowledgement only when the switch values are null (ProSim gone).",
+        "assert-absent: the same utterance reaching voice.unmatched or a say-again (did-not-catch) — that was the defect.",
+        "requires-human: the switch values in the event match the overhead at that moment."
+      ],
+      "notes": "AntiIceCallFeature (precedence 85, shares the engine & flap switch) + pure AntiIceCallDecider; switches S_OH_PNEUMATIC_ENG1/2_ANTI_ICE and _WING_ANTI_ICE (0 Normal, 1 Pushed = on). Unverified live."
     }
   ]
 }

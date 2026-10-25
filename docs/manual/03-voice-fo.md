@@ -131,6 +131,11 @@ anytime. Items with a dataref condition verify against the aircraft; the visual 
 Checklists page stays in sync. The flight-control check is fully monitored (your sweep is
 watched at 30 Hz, then the FO answers with the FO-side controls).
 
+**Anti-ice calls** (part of **Engine & flap call responses**): say *"engine anti-ice on"* (or
+off, or *"wing anti-ice on"*) after the threat brief's "icing conditions, engine anti-ice"
+and the FO checks the overhead switches — *"Engine anti-ice on, checked."*, or *"… I show
+engine two off."* when a switch disagrees. Verbal only.
+
 **Read through lines already set** (Settings → Voice First Officer → General, off by
 default): a verify line whose switch is already in the expected position when the FO reaches
 it is spoken with its answer in one breath — *"Flaps, retracted."* — and completed without

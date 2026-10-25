@@ -107,6 +107,11 @@
         "flapsCheck": "Prüfung der Placard-Speed.",
         "flapsUp": "Bestätigung des Klappeneinfahrens."
       },
+      "antiIce": {
+        "title": "Enteisungs-Rufe",
+        "engine": "Bestätigt und gegen beide Triebwerks-Enteisungsschalter geprüft — ein abweichender Schalter wird genannt.",
+        "wing": "Bestätigt und gegen den Flügel-Enteisungsschalter geprüft."
+      },
       "gear": {
         "title": "Fahrwerk",
         "up": "Der FO bewegt den Hebel — verweigert am Boden oder über dem Einfahrlimit.",

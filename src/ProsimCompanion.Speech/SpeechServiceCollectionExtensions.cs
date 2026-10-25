@@ -109,6 +109,7 @@ public static class SpeechServiceCollectionExtensions
         services.AddSingleton<Commands.SpokenTokenSource>();
         services.AddVoiceFeature<Commands.ConfiguredVoiceCommands>();
         services.AddVoiceFeature<Callouts.EngineFlapCallFeature>();
+        services.AddVoiceFeature<Callouts.AntiIceCallFeature>(); // anti-ice calls checked against the overhead (2026-10-25)
         services.AddVoiceFeature<Callouts.GearCallFeature>();
         // "Takeoff" chrono (issue #126): a startup module so the touchdown edge is wired even
         // before the first utterance.

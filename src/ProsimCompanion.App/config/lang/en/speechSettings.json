@@ -42,7 +42,7 @@
       },
       "engineFlap": {
         "label": "Engine & flap call responses",
-        "hint": "The FO answers your engine start and flap calls.",
+        "hint": "The FO answers your engine start, flap and anti-ice calls.",
         "more": "Flap calls are checked against the placard speeds. Verbal only: the FO never moves the levers."
       },
       "engineStart": {

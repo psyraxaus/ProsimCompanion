@@ -107,6 +107,11 @@
         "flapsCheck": "Comprobación de la velocidad del placard.",
         "flapsUp": "Confirmación de la retracción de flaps."
       },
+      "antiIce": {
+        "title": "Llamadas antihielo",
+        "engine": "Confirmada y comprobada contra los dos interruptores antihielo de motor; se nombra el que no coincide.",
+        "wing": "Confirmada y comprobada contra el interruptor antihielo de ala."
+      },
       "gear": {
         "title": "Tren",
         "up": "El FO mueve la palanca — rechazado en tierra o por encima del límite de retracción.",

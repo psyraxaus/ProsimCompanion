@@ -42,7 +42,7 @@
       },
       "engineFlap": {
         "label": "Réponses aux appels moteurs et volets",
-        "hint": "Le copilote répond à tes appels de démarrage moteur et de volets.",
+        "hint": "Le copilote répond à tes appels de démarrage moteur, de volets et d’antigivrage.",
         "more": "Les appels de volets sont vérifiés contre les vitesses du placard. Verbal seulement : le copilote ne touche jamais aux manettes."
       },
       "engineStart": {
