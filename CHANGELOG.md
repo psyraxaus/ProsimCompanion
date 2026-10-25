@@ -1,8 +1,8 @@
 # Changelog
 
-## Unreleased
+## 0.8.0-rc.9
 
-On `feature/radios-tile-and-courtesies`, 2026-10-25 (owner requests of that day). Not yet flown.
+Local build for the owner's sim test, 2026-10-25, on `feature/radios-tile-and-courtesies` (14 commits over rc.8). Everything below is unverified live.
 
 - Added: **Radios tile** on Flight Status (second tile by default; drag it like the others) and a one-line mirror on the `/monitor` board: COM1 active and standby from ProSim beside the frequency SayIntentions ATC expects, with ON FREQUENCY / WRONG FREQUENCY / NO ASSIGNMENT / SAYINTENTIONS OFF / PROSIM OFFLINE verdicts, a **Tune** button when the two differ, the local airport's stations (getWX comms list) as tap-to-tune chips and the last ATC line. Tuning is ProSim datarefs, standby then swap (`radio.tile-tune` event, probe `radios-tile`). The SayIntentions polls now run at the gate too; the spoken wrong-frequency report and hand-over readouts keep their pushback→taxi-in gate. Seven language packs.
 - Changed: **please / thank you no longer cost a "did you mean"** — courtesy words at the start or end of a command ("run the departure briefing please", "could you set flaps one") are dropped before matching. A courtesy inside a phrase stays; a bare "thank you" is still absorbed by the hallucination filter. Voice Reference footer hint.
