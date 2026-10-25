@@ -5,6 +5,7 @@
 @using ProsimCompanion.Core.Configuration
 @using ProsimCompanion.Core.Flight
 @using ProsimCompanion.Core.Profiles
+@using ProsimCompanion.Core.Radios
 @using ProsimCompanion.Core.Weather
 @using Microsoft.JSInterop
 @inherits StoreObserverComponent
@@ -28,6 +29,8 @@
 @inject HoldingTimeStore Holding
 @inject TurbulenceStore Turbulence
 @inject PaPromptStore PaPrompts
+@inject RadioStore Radios
+@inject IRadioTuner Tuner
 @inject IProsimDataRefs DataRefs
 @inject DisplayUnitService Units
 @inject IOptionsMonitor<FlightStatusOptions> FlightStatusOptionsMonitor
@@ -225,6 +228,77 @@
         @* The diversion for this flight (issue #184), under the hero while one is declared or
            the feature is on. *@
         <DiversionCard />
+        break;
+
+        case FlightStatusTiles.Radios:
+        // Radios tile (owner request 2026-10-25): COM1 against the frequency SayIntentions ATC
+        // expects, so the pilot never has to bring the SayIntentions window forward in
+        // preflight. The stations are the local airport's getWX comms list; every chip and the
+        // Tune button go through the Core tuner — ProSim datarefs, standby then swap.
+        var radios = FlightStatusPresentation.Radios(_radio, _weather.Local.Icao.Length > 0 ? _weather.Local.Icao : _ofp?.OriginIcao);
+        <section class="section fs-radios @radios.StateClass">
+            <div class="fs-radios-head">
+                <span class="label-caps fs-radios-title"><AppIcon Name="radio-tower" Size="14" /> @T["flightStatus.radios.label"]</span>
+                <span class="figure fs-radios-state @radios.StateClass">@T[radios.StateTextId]</span>
+            </div>
+            <div class="fs-radios-body">
+                <div class="fs-radios-com">
+                    <span class="label-caps">@T["flightStatus.radios.com1"] · @T["flightStatus.radios.active"]</span>
+                    <span class="figure fs-radios-freq @(radios.Com1Live ? null : "muted")">@radios.Active</span>
+                    <span class="label-caps fs-radios-standby">@T["flightStatus.radios.standby"] <span class="figure">@radios.Standby</span></span>
+                </div>
+                <div class="fs-radios-atc">
+                    <span class="label-caps">@T["flightStatus.radios.atcExpects"]</span>
+                    @if (radios.AssignedFrequency is { } assignedFrequency)
+                    {
+                        <span class="figure fs-radios-freq">@assignedFrequency</span>
+                        <span class="fs-radios-station">@radios.AssignedStation @if (radios.AssignedSince is { } assignedSince) { <span class="muted">@Text(assignedSince)</span> }</span>
+                        @if (radios.CanTuneAssigned)
+                        {
+                            <button type="button" class="btn primary fs-radios-tune" disabled="@_tuning"
+                                    @onclick='() => TuneCom1(radios.AssignedKhz, "assigned")'
+                                    title="@T["flightStatus.radios.tuneTitle", assignedFrequency]">@T["flightStatus.radios.tune"]</button>
+                        }
+                    }
+                    else
+                    {
+                        <span class="fs-radios-missing">@T[radios.HintTextId ?? "flightStatus.radios.noAssignment"]</span>
+                    }
+                </div>
+            </div>
+            @if (radios.Stations.Count > 0)
+            {
+                <div class="fs-radios-stations">
+                    <span class="label-caps">@T["flightStatus.radios.stations", radios.StationsIcao]</span>
+                    <div class="fs-radios-chips">
+                        @foreach (var chip in radios.Stations)
+                        {
+                            <button type="button" class="fs-radios-chip @(chip.IsActive ? "active" : null) @(chip.IsAssigned ? "assigned" : null)"
+                                    disabled="@(_tuning || !radios.Com1Live)" @onclick='() => TuneCom1(chip.Khz, "station")'
+                                    title="@T["flightStatus.radios.tuneTitle", chip.Frequency]">
+                                <span class="fs-radios-chip-name">@chip.Label</span>
+                                <span class="figure">@chip.Frequency</span>
+                            </button>
+                        }
+                    </div>
+                </div>
+            }
+            @if (radios.LastAtcLine is { } lastAtcLine)
+            {
+                <div class="fs-radios-last">
+                    <span class="label-caps">@T["flightStatus.radios.lastAtc"]</span>
+                    <span>@lastAtcLine</span>
+                    @if (radios.LastAtcSince is { } lastAtcSince)
+                    {
+                        <span class="muted">@Text(lastAtcSince)</span>
+                    }
+                </div>
+            }
+            @if (_tuneNoteTextId is { } tuneNote)
+            {
+                <div class="fs-radios-note" role="status">@T[tuneNote, RadioFrequency.Format(_tuneNoteKhz)]</div>
+            }
+        </section>
         break;
 
         case FlightStatusTiles.Sequence:
@@ -425,6 +499,47 @@
         }
     }
 
+    // ── Radios tile (owner request 2026-10-25) ───────────────────────────────────────
+    private RadioSnapshot _radio = RadioSnapshot.Empty;
+    private bool _tuning;
+    private string? _tuneNoteTextId;
+    private int _tuneNoteKhz;
+    private Timer? _tuneNoteTimer;
+
+    /// <summary>A chip or the Tune button: COM1 standby-then-swap through the Core tuner.
+    /// The outcome shows under the tile for eight seconds, like the fuel-confirm note.</summary>
+    private async Task TuneCom1(int khz, string reason)
+    {
+        if (_tuning)
+        {
+            return;
+        }
+
+        _tuning = true;
+        try
+        {
+            var outcome = await Tuner.TuneCom1Async(khz, reason);
+            _tuneNoteKhz = khz;
+            _tuneNoteTextId = outcome switch
+            {
+                RadioTuneOutcome.Tuned => "flightStatus.radios.tuned",
+                RadioTuneOutcome.NotConnected => "flightStatus.radios.tuneNotConnected",
+                RadioTuneOutcome.Unverified => "flightStatus.radios.tuneUnverified",
+                _ => "flightStatus.radios.tuneFailed",
+            };
+            _tuneNoteTimer?.Dispose();
+            _tuneNoteTimer = new Timer(_ => _ = InvokeAsync(() =>
+            {
+                _tuneNoteTextId = null;
+                StateHasChanged();
+            }), null, 8000, Timeout.Infinite);
+        }
+        finally
+        {
+            _tuning = false;
+        }
+    }
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         // The grid exists in the DOM only after the first render; the drag handlers follow
@@ -523,6 +638,7 @@
             var outcome = await ServiceControl.TryCallAsync(GsxServiceAction.ConfirmFuel);
             _confirmFuelNote = outcome.Detail;
             _confirmFuelNoteTimer?.Dispose();
+        _tuneNoteTimer?.Dispose();
             _confirmFuelNoteTimer = new Timer(_ => _ = InvokeAsync(() =>
             {
                 _confirmFuelNote = null;
@@ -727,6 +843,7 @@
         Watch(Holding, estimate => _holding = estimate);
         Watch(Turbulence, snapshot => _ride = snapshot);
         Watch(PaPrompts, snapshot => _pa = snapshot);
+        Watch(Radios, snapshot => _radio = snapshot);
 
         _tileOrder = FlightStatusTiles.Normalize(FlightStatusOptionsMonitor.CurrentValue.TileOrder);
         _tileOrderChange = FlightStatusOptionsMonitor.OnChange(options =>

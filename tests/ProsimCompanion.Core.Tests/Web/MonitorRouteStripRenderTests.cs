@@ -73,6 +73,7 @@ public sealed class MonitorRouteStripRenderTests : IDisposable
         services.AddSingleton(new GsxDiagnosticsStore());
         services.AddSingleton(new GateStatusStore());
         services.AddSingleton(new HeroWeatherStore());
+        services.AddSingleton(new ProsimCompanion.Core.Radios.RadioStore());
         services.AddSingleton(times);
         services.AddSingleton(_progress);
         services.AddSingleton(ofp);

@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+On `feature/radios-tile-and-courtesies`, 2026-10-25 (owner requests of that day). Not yet flown.
+
+- Added: **Radios tile** on Flight Status (second tile by default; drag it like the others) and a one-line mirror on the `/monitor` board: COM1 active and standby from ProSim beside the frequency SayIntentions ATC expects, with ON FREQUENCY / WRONG FREQUENCY / NO ASSIGNMENT / SAYINTENTIONS OFF / PROSIM OFFLINE verdicts, a **Tune** button when the two differ, the local airport's stations (getWX comms list) as tap-to-tune chips and the last ATC line. Tuning is ProSim datarefs, standby then swap (`radio.tile-tune` event, probe `radios-tile`). The SayIntentions polls now run at the gate too; the spoken wrong-frequency report and hand-over readouts keep their pushback→taxi-in gate. Seven language packs.
+- Changed: **please / thank you no longer cost a "did you mean"** — courtesy words at the start or end of a command ("run the departure briefing please", "could you set flaps one") are dropped before matching. A courtesy inside a phrase stays; a bare "thank you" is still absorbed by the hallucination filter. Voice Reference footer hint.
+- Added: **Answer thank you** (Voice First Officer → General, off by default): the FO says "You're welcome, Captain" (three wordings) to a bare thank you / thanks / cheers within 20 s of its last word or action, never in a sterile moment, never on a low-confidence transcript — "Thank you." is Whisper's silence hallucination (#120). Outside the gate a bare courtesy is absorbed in silence, so "cheers" never earns a "say again".
+
 ## 0.8.0-rc.8
 
 First public build of the 0.8.0 line, 2026-10-25: everything from 0.7.0-rc.11 to 0.8.0-rc.7 (the architecture deepening, the remote mixer agents, the ten November airline-ops packages, the cockpit switches and the vJoy relay) merged to `main`. No code change over rc.7.

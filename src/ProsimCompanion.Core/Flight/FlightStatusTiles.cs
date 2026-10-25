@@ -10,6 +10,7 @@ namespace ProsimCompanion.Core.Flight;
 public static class FlightStatusTiles
 {
     public const string Hero = "hero";
+    public const string Radios = "radios";
     public const string Sequence = "sequence";
     public const string Sim = "sim";
     public const string App = "app";
@@ -18,7 +19,7 @@ public static class FlightStatusTiles
 
     /// <summary>The tiles in their default order — the layout the page had before it became
     /// movable, so an empty setting changes nothing.</summary>
-    public static IReadOnlyList<string> DefaultOrder { get; } = [Hero, Sequence, Sim, App, Gsx, Services];
+    public static IReadOnlyList<string> DefaultOrder { get; } = [Hero, Radios, Sequence, Sim, App, Gsx, Services];
 
     /// <summary>The saved order folded into a complete one: known ids in their saved order
     /// (first occurrence wins, case-insensitive), then every tile not named, in default

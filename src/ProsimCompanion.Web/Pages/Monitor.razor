@@ -7,6 +7,7 @@
 @using ProsimCompanion.Core.Boarding
 @using ProsimCompanion.Core.Flight
 @using ProsimCompanion.Core.Gate
+@using ProsimCompanion.Core.Radios
 @using ProsimCompanion.Core.Theming
 @using ProsimCompanion.Core.Weather
 @inherits StoreObserverComponent
@@ -14,6 +15,7 @@
 @inject IGsxDepartureControl DepartureControl
 @inject GsxDiagnosticsStore Diagnostics
 @inject GateStatusStore GateStatus
+@inject RadioStore Radios
 @inject HeroWeatherStore HeroWeather
 @inject FlightTimesStore FlightTimes
 @inject FlightProgressStore FlightProgress
@@ -67,6 +69,21 @@
         </div>
 
         <span class="label-caps mon-gate-label">@GateLabel <span class="figure mon-gate-id">@GateValue</span></span>
+        @* Radios line (owner request 2026-10-25): COM1 against what SayIntentions ATC expects, same store as the Flight Status tile. *@
+        @if (_radio.Com1Live || _radio.Assigned is not null)
+        {
+            <span class="label-caps mon-radios">
+                @T["monitor.radios.com1"] <span class="figure">@RadioFrequency.Format(_radio.Com1Live ? _radio.Com1ActiveKhz : 0)</span>
+                @if (_radio.Assigned is { } assigned)
+                {
+                    <span class="mon-radios-sep">·</span> @T["monitor.radios.atc"] @assigned.Station <span class="figure">@RadioFrequency.Format(assigned.Khz)</span>
+                    @if (_radio.OnAssignedFrequency is { } onFrequency)
+                    {
+                        <span class="mon-radios-state @(onFrequency ? "ok" : "warn")">@T[onFrequency ? "monitor.radios.onFreq" : "monitor.radios.wrongFreq"]</span>
+                    }
+                }
+            </span>
+        }
 
         <div class="mon-state @StateTone">
             @if (StateTone is "boarding")
@@ -233,6 +250,7 @@
 
 @code {
     private GateStatusSnapshot _gate = GateStatusSnapshot.Empty;
+    private RadioSnapshot _radio = RadioSnapshot.Empty;
     private HeroWeatherSnapshot _weather = HeroWeatherSnapshot.Empty;
     private GsxDiagnosticsSnapshot _gsx = GsxDiagnosticsSnapshot.Empty;
     private FlightTimesSnapshot _times = FlightTimesSnapshot.Empty;
@@ -516,6 +534,7 @@
     protected override void OnInitialized()
     {
         Watch(GateStatus, s => _gate = s);
+        Watch(Radios, s => _radio = s);
         Watch(HeroWeather, s => _weather = s);
         Watch(Diagnostics, s => _gsx = s);
         Watch(FlightTimes, s => _times = s);

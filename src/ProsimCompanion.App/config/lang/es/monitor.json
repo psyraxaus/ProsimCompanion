@@ -13,6 +13,12 @@
     "noFlightPlan": "Sin plan de vuelo",
     "diverted": "DESVÍO — era {0}",
     "fetchOfp": "Obtén un OFP en la página INIT",
+    "radios": {
+      "com1": "COM1",
+      "atc": "ATC",
+      "onFreq": "EN FREC",
+      "wrongFreq": "FREC INCORRECTA"
+    },
     "gateLabel": {
       "gate": "Puerta",
       "cruise": "Crucero",

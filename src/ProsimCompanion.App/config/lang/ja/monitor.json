@@ -13,6 +13,12 @@
     "noFlightPlan": "フライトプランなし",
     "diverted": "ダイバート — 元は {0}",
     "fetchOfp": "INIT ページで OFP を取得してください",
+    "radios": {
+      "com1": "COM1",
+      "atc": "ATC",
+      "onFreq": "周波数一致",
+      "wrongFreq": "周波数不一致"
+    },
     "gateLabel": {
       "gate": "ゲート",
       "cruise": "巡航",

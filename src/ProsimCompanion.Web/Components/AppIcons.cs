@@ -50,5 +50,7 @@ public static class AppIcons
         ["circle-check"] = "<circle cx=\"12\" cy=\"12\" r=\"10\"/><path d=\"m9 12 2 2 4-4\"/>",
         ["check"] = "<path d=\"M20 6 9 17l-5-5\"/>",
         ["external-link"] = "<path d=\"M15 3h6v6\"/><path d=\"M10 14 21 3\"/><path d=\"M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6\"/>",
+        // Radios tile (owner request 2026-10-25).
+        ["radio-tower"] = "<path d=\"M4.9 16.1C1 12.2 1 5.8 4.9 1.9\"/><path d=\"M7.8 4.7a6.14 6.14 0 0 0-.8 7.5\"/><circle cx=\"12\" cy=\"9\" r=\"2\"/><path d=\"M16.2 4.8c2 2 2.01 5.2 0 7.2\"/><path d=\"M19.1 1.9a9.9 9.9 0 0 1 0 14.1\"/><path d=\"M9.5 18h5\"/><path d=\"m8 22 4-11 4 11\"/>",
     };
 }

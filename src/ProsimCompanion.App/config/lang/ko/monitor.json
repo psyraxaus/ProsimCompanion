@@ -13,6 +13,12 @@
     "noFlightPlan": "비행 계획 없음",
     "diverted": "회항 — 원래 {0}",
     "fetchOfp": "INIT 페이지에서 OFP를 가져오세요",
+    "radios": {
+      "com1": "COM1",
+      "atc": "ATC",
+      "onFreq": "주파수 일치",
+      "wrongFreq": "주파수 불일치"
+    },
     "gateLabel": {
       "gate": "게이트",
       "cruise": "순항",

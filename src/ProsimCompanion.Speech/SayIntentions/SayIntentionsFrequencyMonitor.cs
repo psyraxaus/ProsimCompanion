@@ -62,6 +62,15 @@ public sealed class SayIntentionsFrequencyMonitor : Core.Hosting.IStartupModule,
     private AssignedFrequency? _announcedAssignment;
     private bool _historySeeded;
 
+    // Radios tile (owner request 2026-10-25): optional so the monitor still builds without it.
+    private readonly Core.Radios.RadioStore? _radioStore;
+    private readonly Core.Aircraft.Ofp.OfpStore? _ofp;
+    private static readonly TimeSpan StationsRefresh = TimeSpan.FromMinutes(15);
+    private bool _voiceWanted;
+    private string _stationsIcao = "";
+    private DateTimeOffset _stationsFetchedUtc = DateTimeOffset.MinValue;
+    private long _lastAtcLineId;
+
     /// <summary>One ATC → pilot transmission on COM1 from the comms history, with its hand-off
     /// when the text carries one. Raised on the monitor's tick thread for every entry newer
     /// than the last poll — never for the backlog of the first poll. The comms hand-over
@@ -77,7 +86,9 @@ public sealed class SayIntentionsFrequencyMonitor : Core.Hosting.IStartupModule,
         IFlightPhaseSource flight,
         ISpeechArbiter arbiter,
         JsonlEventLog eventLog,
-        ILogger<SayIntentionsFrequencyMonitor> logger)
+        ILogger<SayIntentionsFrequencyMonitor> logger,
+        Core.Radios.RadioStore? radioStore = null,
+        Core.Aircraft.Ofp.OfpStore? ofp = null)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(dataRefs);
@@ -92,6 +103,8 @@ public sealed class SayIntentionsFrequencyMonitor : Core.Hosting.IStartupModule,
         _arbiter = arbiter;
         _eventLog = eventLog;
         _logger = logger;
+        _radioStore = radioStore;
+        _ofp = ofp;
     }
 
     public void Start()
@@ -148,21 +161,28 @@ public sealed class SayIntentionsFrequencyMonitor : Core.Hosting.IStartupModule,
         try
         {
             var options = _options.CurrentValue;
-            // Flight-live gate (issue #114): ProSim pushes plausible data with no MSFS session.
-            // The history poll also serves the comms hand-over (issue #171), so it runs while
-            // either feature is on; the advisory itself stays behind its own switch.
-            var historyWanted = options.FrequencyMonitorEnabled || options.CommsHandover.Enabled;
-            if (!options.Enabled || !historyWanted
-                || !_flight.IsLive || !IsWatchedPhase(_flight.CurrentPhase))
+            var apiKey = options.Enabled ? ResolveSapiCredential(options) : null;
+            if (apiKey is null)
             {
                 _watch.Reset();
+                _radioStore?.Update(s => s.SayIntentionsOn || s.Assigned is not null
+                    ? s with { SayIntentionsOn = false, Assigned = null }
+                    : s);
                 return;
             }
 
-            var apiKey = options.ApiKeySource.Equals("manual", StringComparison.OrdinalIgnoreCase)
-                ? (string.IsNullOrWhiteSpace(options.ManualApiKey) ? null : options.ManualApiKey)
-                : FlightJsonFile.TryReadApiKey();
-            if (apiKey is null)
+            _radioStore?.Update(s => s.SayIntentionsOn ? s : s with { SayIntentionsOn = true });
+
+            // Flight-live gate (issue #114): ProSim pushes plausible data with no MSFS session,
+            // so the SPOKEN features run only pushback→taxi-in on a live flight. The Radios
+            // tile (owner request 2026-10-25) reads the same polls at the gate and without a
+            // session — that is exactly where the pilot wants to see which frequency ATC is on.
+            // The history poll also serves the comms hand-over (issue #171), so it runs while
+            // either voice feature is on; the advisory itself stays behind its own switch.
+            var watched = _flight.IsLive && IsWatchedPhase(_flight.CurrentPhase);
+            var historyWanted = options.FrequencyMonitorEnabled || options.CommsHandover.Enabled;
+            _voiceWanted = watched && historyWanted;
+            if (!_voiceWanted && _radioStore is null)
             {
                 _watch.Reset();
                 return;
@@ -181,20 +201,28 @@ public sealed class SayIntentionsFrequencyMonitor : Core.Hosting.IStartupModule,
                 await PollCorrectFrequencyAsync(apiKey, _shutdown.Token).ConfigureAwait(false);
             }
 
+            if (_radioStore is not null)
+            {
+                await PollStationsIfDueAsync(apiKey, now, _shutdown.Token).ConfigureAwait(false);
+            }
+
             now = DateTimeOffset.UtcNow;
             var assigned = now - _lastHistoryOkUtc <= HistoryFreshness ? _tracker.Current : null;
             NoteAssignment(assigned);
+            PublishAssignment(assigned, now);
+
+            if (!_voiceWanted || !options.FrequencyMonitorEnabled)
+            {
+                _watch.Reset();
+                return;
+            }
 
             // A stale subscription means ProSim is gone — never judge a held-over frequency.
             var com1Khz = _com1Active is { IsStale: false, RawValue: not null } com1
                 ? (int)Math.Round(com1.Value)
                 : 0;
             var wait = TimeSpan.FromSeconds(Math.Max(10, options.FrequencyMonitorWaitSeconds));
-            if (!options.FrequencyMonitorEnabled)
-            {
-                _watch.Reset();
-            }
-            else if (_watch.Step(now, assigned, com1Khz, wait) is { } advisory)
+            if (_watch.Step(now, assigned, com1Khz, wait) is { } advisory)
             {
                 Speak(advisory);
             }
@@ -210,6 +238,90 @@ public sealed class SayIntentionsFrequencyMonitor : Core.Hosting.IStartupModule,
         {
             Interlocked.Exchange(ref _ticking, 0);
         }
+    }
+
+    private static string? ResolveSapiCredential(SayIntentionsOptions options)
+        => options.ApiKeySource.Equals("manual", StringComparison.OrdinalIgnoreCase)
+            ? (string.IsNullOrWhiteSpace(options.ManualApiKey) ? null : options.ManualApiKey)
+            : FlightJsonFile.TryReadApiKey();
+
+    /// <summary>The airport whose station list the Radios tile shows: the OFP origin until
+    /// the descent, the destination from then on (the hero weather cards' rule).</summary>
+    internal static string LocalIcao(FlightPhase phase, string? origin, string? destination)
+    {
+        var orig = origin?.Trim().ToUpperInvariant() ?? "";
+        var dest = destination?.Trim().ToUpperInvariant() ?? "";
+        var arriving = phase is FlightPhase.Descent or FlightPhase.Approach
+            or FlightPhase.LandingRollout or FlightPhase.TaxiIn or FlightPhase.Shutdown;
+        return arriving ? (dest.Length > 0 ? dest : orig) : (orig.Length > 0 ? orig : dest);
+    }
+
+    /// <summary>getWX with_comms=1 for the local airport — on an airport change and every
+    /// 15 min; the stamp is set before the call so a failing airport is not asked every tick.</summary>
+    private async Task PollStationsIfDueAsync(string apiKey, DateTimeOffset now, CancellationToken cancellationToken)
+    {
+        var ofp = _ofp?.Current;
+        var icao = LocalIcao(_flight.CurrentPhase, ofp?.OriginIcao, ofp?.DestinationIcao);
+        if (icao.Length == 0 || (icao == _stationsIcao && now - _stationsFetchedUtc < StationsRefresh))
+        {
+            return;
+        }
+
+        _stationsIcao = icao;
+        _stationsFetchedUtc = now;
+        try
+        {
+            using var response = await Http.GetAsync(
+                $"{ApiBase}/getWX?api_key={Uri.EscapeDataString(apiKey)}&icao={Uri.EscapeDataString(icao)}&with_comms=1",
+                cancellationToken).ConfigureAwait(false);
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogDebug("SayIntentions getWX (comms) HTTP {Status} for {Icao}", (int)response.StatusCode, icao);
+                return;
+            }
+
+            var stations = SayIntentionsComms.Parse(await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false));
+            _logger.LogDebug("SayIntentions station list for {Icao}: {Count} station(s)", icao, stations.Count);
+            var fetched = DateTimeOffset.UtcNow;
+            _radioStore?.Update(s =>
+            {
+                // Keep at most the two OFP airports: the other one stays, this one is replaced.
+                var kept = s.Airports.Where(a => !a.Icao.Equals(icao, StringComparison.OrdinalIgnoreCase)).TakeLast(1);
+                return s with { Airports = [.. kept, new Core.Radios.AirportStations(icao, stations, fetched)] };
+            });
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "SayIntentions getWX (comms) failed for {Icao}", icao);
+        }
+    }
+
+    /// <summary>The Radios tile's "ATC expects" line; the since-stamp survives polls that repeat
+    /// the same assignment.</summary>
+    private void PublishAssignment(AssignedFrequency? assigned, DateTimeOffset now)
+    {
+        _radioStore?.Update(s =>
+        {
+            if (assigned is null)
+            {
+                return s.Assigned is null ? s : s with { Assigned = null };
+            }
+
+            if (s.Assigned is { } current && current.Khz == assigned.Khz
+                && string.Equals(current.Station, assigned.Station, StringComparison.Ordinal))
+            {
+                return s;
+            }
+
+            var source = assigned.Source == AssignedFrequencySource.Handoff
+                ? Core.Radios.RadioAssignmentSource.Handoff
+                : Core.Radios.RadioAssignmentSource.CorrectFrequency;
+            return s with { Assigned = new Core.Radios.RadioAssignment(assigned.Station, assigned.Khz, source, now) };
+        });
     }
 
     private async Task PollHistoryAsync(string apiKey, CancellationToken cancellationToken)
@@ -233,10 +345,11 @@ public sealed class SayIntentionsFrequencyMonitor : Core.Hosting.IStartupModule,
             var sinceId = _tracker.LastId;
             _tracker.ApplyHistory(flightId, entries);
             _lastHistoryOkUtc = DateTimeOffset.UtcNow;
+            PublishLastAtcLine(entries);
 
             // The first poll of a session returns the flight's whole backlog — seed only.
             // A new SayIntentions flight resets the tracker's id, which re-seeds.
-            if (_historySeeded && _tracker.LastId > sinceId)
+            if (_voiceWanted && _historySeeded && _tracker.LastId > sinceId)
             {
                 RaiseTransmissions(entries, sinceId);
             }
@@ -251,6 +364,36 @@ public sealed class SayIntentionsFrequencyMonitor : Core.Hosting.IStartupModule,
         {
             _logger.LogDebug(ex, "SayIntentions getCommsHistory failed");
         }
+    }
+
+    /// <summary>The newest ATC → pilot COM1 line for the Radios tile (the seed backlog included).</summary>
+    private void PublishLastAtcLine(IReadOnlyList<CommEntry> entries)
+    {
+        if (_radioStore is null)
+        {
+            return;
+        }
+
+        CommEntry? last = null;
+        foreach (var entry in entries)
+        {
+            if (entry.Channel.Equals("COM1", StringComparison.OrdinalIgnoreCase)
+                && !string.IsNullOrWhiteSpace(entry.OutgoingEnglish ?? entry.Outgoing)
+                && (last is null || entry.Id > last.Id))
+            {
+                last = entry;
+            }
+        }
+
+        if (last is null || last.Id == _lastAtcLineId)
+        {
+            return;
+        }
+
+        _lastAtcLineId = last.Id;
+        var text = (string.IsNullOrWhiteSpace(last.OutgoingEnglish) ? last.Outgoing : last.OutgoingEnglish)!.Trim();
+        var seen = DateTimeOffset.UtcNow;
+        _radioStore.Update(s => s with { LastAtcLine = text, LastAtcAtUtc = seen });
     }
 
     /// <summary>Hands every new COM1 ATC transmission (id above <paramref name="sinceId"/>, in

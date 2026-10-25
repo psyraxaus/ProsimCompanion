@@ -3763,6 +3763,35 @@
         "requires-human: with a rotation file whose last leg lands past the table maximum for the report hour, the warning appears at the previous turnaround and not before."
       ],
       "notes": "Package 10 of the November 2026 airline-ops batch. Core FtlTable (table as data, 13 bands × 9 sector columns, the shipped file equals the default and a test pins it), FdpCalculator (pure, clock in), FdpStatus on DaySnapshot via CompanyDayEngine.FdpConfiguration; DaySummaryComposer.FdpWarningLine; CompanyDayService loads ftl-easa.json at start. Report times are UTC — no acclimatisation model, no extensions, split duty or rest rules. Unverified live."
+    },
+    {
+      "id": "radios-tile",
+      "issue": 0,
+      "state": "open",
+      "kind": "assert-present",
+      "machine": {
+        "kind": "required-fields",
+        "type": "radio.tile-tune",
+        "fields": [
+          "khz",
+          "fromKhz",
+          "reason",
+          "outcome"
+        ]
+      },
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "Owner request 2026-10-25 (no issue): the Flight Status Radios tile. Trigger = the SayIntentions pillar on with an API key; the tile then reads the frequency monitor polls at the gate as well.",
+        "assert-present: a 'sayintentions.frequency-assigned' {station, khz, source} BEFORE pushback (source 'CorrectFrequency', Ground) — the polls no longer wait for the watched phases; the log line 'SayIntentions assigned frequency <khz> kHz (<station>, CorrectFrequency)' matches.",
+        "assert-present when the pilot pressed Tune or a station chip: a 'radio.tile-tune' {khz, fromKhz, reason: assigned|station, outcome} with the log line 'Radios tile: COM1 tune to <khz> kHz (<reason>) -> <outcome>'; outcome Tuned, and the next COM1 reading equals khz. Unverified/Failed = quote it; NotConnected while ProSim was up = a bug.",
+        "assert-absent: a spoken wrong-frequency advisory ('Captain, we should be on …') or a 'sayintentions.atc-readout' while at the gate — the tile polls must not have opened the voice gates (IsWatchedPhase still rules the speech).",
+        "watch: the log line 'SayIntentions station list for <ICAO>: <n> station(s)' — n = 0 on every airport means the getWX comms shape differs from the three the parser reads (root, one level down, inside airports[]); quote the body shape from a manual call. Whether callsign exists is unverified.",
+        "requires-human: the tile showed ON FREQUENCY / WRONG FREQUENCY correctly against the SayIntentions window during preflight; the chips tuned the right station; the /monitor board line matched the tile."
+      ],
+      "notes": "Core RadioStore + Com1PanelService (push read model, standby→verify→swap tune); Speech SayIntentionsFrequencyMonitor publishes the assignment, the local airport's comms list (15 min) and the last ATC line; Web FlightStatusPresentation.Radios. Unverified live."
     }
   ]
 }

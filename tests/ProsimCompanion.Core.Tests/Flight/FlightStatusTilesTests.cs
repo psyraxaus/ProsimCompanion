@@ -20,7 +20,7 @@ public sealed class FlightStatusTilesTests
     {
         var order = FlightStatusTiles.Normalize(["services", "hero"]);
 
-        Assert.Equal(["services", "hero", "sequence", "sim", "app", "gsx"], order);
+        Assert.Equal(["services", "hero", "radios", "sequence", "sim", "app", "gsx"], order);
     }
 
     [Fact]
@@ -28,24 +28,24 @@ public sealed class FlightStatusTilesTests
     {
         var order = FlightStatusTiles.Normalize(["GSX", "weather", "gsx", "Sim"]);
 
-        Assert.Equal(["gsx", "sim", "hero", "sequence", "app", "services"], order);
+        Assert.Equal(["gsx", "sim", "hero", "radios", "sequence", "app", "services"], order);
     }
 
     [Fact]
     public void IsDefault_TrueForEmptyAndForTheDefaultSpelledOut()
     {
         Assert.True(FlightStatusTiles.IsDefault([]));
-        Assert.True(FlightStatusTiles.IsDefault(["hero", "sequence", "sim", "app", "gsx", "services"]));
+        Assert.True(FlightStatusTiles.IsDefault(["hero", "radios", "sequence", "sim", "app", "gsx", "services"]));
         Assert.False(FlightStatusTiles.IsDefault(["sequence", "hero"]));
     }
 
     [Fact]
     public void Swap_TradesTheTwoTiles_NothingElseMoves()
     {
-        Assert.Equal(["hero", "gsx", "sim", "app", "sequence", "services"],
+        Assert.Equal(["hero", "radios", "gsx", "sim", "app", "sequence", "services"],
             FlightStatusTiles.Swap(FlightStatusTiles.DefaultOrder, "gsx", "sequence"));
         // The same drop the other way round gives the same result.
-        Assert.Equal(["hero", "gsx", "sim", "app", "sequence", "services"],
+        Assert.Equal(["hero", "radios", "gsx", "sim", "app", "sequence", "services"],
             FlightStatusTiles.Swap(FlightStatusTiles.DefaultOrder, "sequence", "GSX"));
     }
 
@@ -60,9 +60,9 @@ public sealed class FlightStatusTilesTests
     [Fact]
     public void Shift_SwapsWithTheNeighbour_AndStopsAtTheEnds()
     {
-        Assert.Equal(["hero", "sim", "sequence", "app", "gsx", "services"],
+        Assert.Equal(["hero", "radios", "sim", "sequence", "app", "gsx", "services"],
             FlightStatusTiles.Shift(FlightStatusTiles.DefaultOrder, "sim", -1));
-        Assert.Equal(["hero", "sequence", "app", "sim", "gsx", "services"],
+        Assert.Equal(["hero", "radios", "sequence", "app", "sim", "gsx", "services"],
             FlightStatusTiles.Shift(FlightStatusTiles.DefaultOrder, "sim", +1));
         Assert.Equal(FlightStatusTiles.DefaultOrder, FlightStatusTiles.Shift(FlightStatusTiles.DefaultOrder, "hero", -1));
         Assert.Equal(FlightStatusTiles.DefaultOrder, FlightStatusTiles.Shift(FlightStatusTiles.DefaultOrder, "services", +1));

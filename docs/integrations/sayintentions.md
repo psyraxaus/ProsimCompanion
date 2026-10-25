@@ -83,6 +83,33 @@ Not yet seen live: hand-off wording on arrival and in FAA phraseology, `since_id
 station) — neither of those two is read today (`SIAI_COM1_RECEIVING` / `SIAI_RADIO_PTT` are,
 for the radio-clear gate).
 
+## Radios tile (owner request 2026-10-25)
+
+The Flight Status **Radios** tile (and a one-line mirror on the `/monitor` board) shows COM1
+active/standby from ProSim (`system.analog.R_COM1_ACTIVE` / `_STANDBY`, push read model, Core
+`Com1PanelService`) beside the frequency SayIntentions ATC expects, so the pilot never has to
+bring the SayIntentions window forward. The data path is `Core.Radios.RadioStore`, written by:
+
+- `SayIntentionsFrequencyMonitor` — the same hand-off / `correct_frequency` tracker as the
+  wrong-frequency report. For the tile the polls (getCommsHistory 20 s, getCurrentFrequencies
+  30 s until the first hand-off) run whenever the SayIntentions pillar is on and an API key is
+  found — at the gate and without a live MSFS session too. The SPOKEN features keep their
+  gates: the advisory and the comms hand-over readouts still fire only pushback→taxi-in on a
+  live flight (`_voiceWanted`). Side effect: `sayintentions.frequency-assigned` is now also
+  logged at the gate (SI names Ground from the moment the flight is filed).
+- The station list: `getWX?icao=<local>&with_comms=1` for the local airport (OFP origin until
+  Descent, destination from then on — the hero weather rule), on an airport change and every
+  15 min; `comms[]` entries `{type, freq, callsign?}` at the root, one level down or inside
+  `airports[]` (`SayIntentionsComms.Parse`). **Unverified live** which of the three shapes the
+  API returns and whether `callsign` exists — the predecessor only read `type` and `freq`.
+- The last ATC → pilot COM1 line from the history poll (the seed backlog included).
+
+The tile's Tune button and the station chips call `IRadioTuner.TuneCom1Async` (Core): write
+standby, verify (twice), then swap active/standby — never the SayIntentions `setFreq` call,
+which writes the active frequency directly. Session event `radio.tile-tune` {khz, fromKhz,
+reason: assigned|station, outcome: Tuned|NotConnected|OutOfBand|Failed|Unverified}. Probe
+`radios-tile`.
+
 ## Push-to-talk from a ProSim switch (2026-10-10, opt-in)
 
 `sayIntentions.pttSource` (default `none`; `captainSidestick`, `foSidestick`, `captainHandMic`,

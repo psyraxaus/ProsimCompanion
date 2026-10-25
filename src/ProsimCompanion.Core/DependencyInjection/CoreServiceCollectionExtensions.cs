@@ -120,6 +120,13 @@ public static class CoreServiceCollectionExtensions
         services.AddStartupModule<Weather.HeroWeatherService>();
         services.AddSingleton<Boarding.GateStatusStore>();
         services.AddStartupModule<Boarding.GateMonitorService>();
+        // Radios tile (owner request 2026-10-25): COM1 from the push read model, the
+        // SayIntentions assignment from the Speech pillar; the tune is dataref standby-then-swap.
+        services.AddSingleton<Radios.RadioStore>();
+        services.AddSingleton<Radios.Com1PanelService>();
+        services.AddSingleton<Radios.IRadioTuner>(p => p.GetRequiredService<Radios.Com1PanelService>());
+        services.AddSingleton(new Hosting.StartupModuleRegistration(
+            nameof(Radios.Com1PanelService), p => p.GetRequiredService<Radios.Com1PanelService>()));
         // Fuel log (#154): plan vs actual per navlog fix for the Fuel Log page, and the FO's
         // spoken fuel checks kept for the same page.
         services.AddSingleton<Flight.FuelLogStore>();

@@ -247,3 +247,11 @@
 @media (prefers-reduced-motion: reduce) {
   .mon-state-dot, .mon-lamp.active, .mon-step.active .mon-step-mark { animation: none; }
 }
+
+/* ---- Radios line (owner request 2026-10-25) ---- */
+.mon-radios { display: inline-flex; align-items: baseline; gap: 10px; margin-top: 6px; color: var(--text-secondary); }
+.mon-radios .figure { font-size: 20px; font-variant-numeric: tabular-nums; }
+.mon-radios-sep { color: var(--text-muted); }
+.mon-radios-state { padding: 2px 8px; border-radius: 999px; border: 1px solid var(--border); font-size: 11px; letter-spacing: 0.08em; }
+.mon-radios-state.ok { color: var(--success); border-color: color-mix(in srgb, var(--success) 45%, transparent); }
+.mon-radios-state.warn { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 55%, transparent); }

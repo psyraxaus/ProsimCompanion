@@ -13,6 +13,12 @@
     "noFlightPlan": "Kein Flugplan",
     "diverted": "DIVERSION — war {0}",
     "fetchOfp": "Hole einen OFP auf der INIT-Seite",
+    "radios": {
+      "com1": "COM1",
+      "atc": "ATC",
+      "onFreq": "AUF FREQ",
+      "wrongFreq": "FALSCHE FREQ"
+    },
     "gateLabel": {
       "gate": "Gate",
       "cruise": "Reiseflug",

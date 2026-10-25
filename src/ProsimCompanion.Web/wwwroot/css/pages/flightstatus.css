@@ -541,3 +541,62 @@
   .fs-gate-state { justify-self: start; }
   .fs-gate-right { align-items: flex-start; text-align: left; }
 }
+
+/* ---- Radios tile (owner request 2026-10-25): COM1 against what SayIntentions ATC expects ---- */
+
+.fs-radios { display: flex; flex-direction: column; gap: 12px; padding: 14px 16px; transition: border-color 300ms ease; }
+.fs-radios.mismatch { border-color: color-mix(in srgb, var(--danger) 45%, transparent); }
+.fs-radios.match { border-color: color-mix(in srgb, var(--success) 35%, transparent); }
+.fs-radios-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.fs-radios-title { display: inline-flex; align-items: center; gap: 6px; }
+.fs-radios-title .icon { width: 14px; height: 14px; }
+.fs-radios-state { font-size: 14px; letter-spacing: 0.08em; white-space: nowrap; }
+.fs-radios-state.match { color: var(--success); }
+.fs-radios-state.mismatch { color: var(--danger); text-shadow: 0 0 8px color-mix(in srgb, var(--danger) 50%, transparent); }
+.fs-radios-state.unknown, .fs-radios-state.off { color: var(--text-muted); }
+
+.fs-radios-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+.fs-radios-com, .fs-radios-atc { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.fs-radios-freq { font-size: 30px; letter-spacing: 0.04em; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.fs-radios-freq.muted { color: var(--text-muted); }
+.fs-radios.mismatch .fs-radios-atc .fs-radios-freq { color: var(--danger); }
+.fs-radios.match .fs-radios-atc .fs-radios-freq { color: var(--success); }
+.fs-radios-standby { font-size: 11px; color: var(--text-secondary); }
+.fs-radios-standby .figure { font-size: 13px; color: var(--text-secondary); }
+.fs-radios-station { font-size: 12px; color: var(--text-secondary); }
+.fs-radios-station .muted { color: var(--text-muted); }
+.fs-radios-missing { font-size: 12px; font-style: italic; color: var(--text-muted); }
+.fs-radios-tune { align-self: flex-start; margin-top: 4px; padding: 4px 12px; font-size: 12px; }
+
+.fs-radios-stations { display: flex; flex-direction: column; gap: 6px; }
+.fs-radios-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.fs-radios-chip {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  padding: 5px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-secondary);
+  font: inherit;
+  cursor: pointer;
+  transition: border-color 200ms ease, background 200ms ease;
+}
+.fs-radios-chip:hover:not(:disabled) { border-color: var(--accent); background: rgba(255, 255, 255, 0.08); }
+.fs-radios-chip:disabled { cursor: default; opacity: 0.6; }
+.fs-radios-chip .figure { font-size: 13px; font-variant-numeric: tabular-nums; }
+.fs-radios-chip-name { font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; }
+.fs-radios-chip.active { border-color: var(--accent); color: var(--text-primary); }
+.fs-radios-chip.active .figure { color: var(--accent-readable, var(--accent)); }
+.fs-radios-chip.assigned { border-color: color-mix(in srgb, var(--accent-gold) 60%, transparent); }
+.fs-radios-chip.assigned .fs-radios-chip-name { color: var(--accent-gold); }
+
+.fs-radios-last { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; font-size: 12px; color: var(--text-secondary); }
+.fs-radios-last .muted { color: var(--text-muted); font-size: 11px; }
+.fs-radios-note { font-size: 12px; color: var(--accent-readable, var(--accent)); }
+
+@media (max-width: 540px) {
+  .fs-radios-body { grid-template-columns: minmax(0, 1fr); }
+}

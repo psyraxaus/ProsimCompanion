@@ -13,6 +13,12 @@
     "noFlightPlan": "Aucun plan de vol",
     "diverted": "DÉROUTEMENT — était {0}",
     "fetchOfp": "Récupérez un OFP sur la page INIT",
+    "radios": {
+      "com1": "COM1",
+      "atc": "ATC",
+      "onFreq": "SUR FRÉQ",
+      "wrongFreq": "MAUVAISE FRÉQ"
+    },
     "gateLabel": {
       "gate": "Porte",
       "cruise": "Croisière",

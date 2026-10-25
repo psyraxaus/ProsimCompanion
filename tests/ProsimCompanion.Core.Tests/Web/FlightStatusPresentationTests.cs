@@ -699,16 +699,16 @@ public sealed class FlightStatusPresentationTests
     [Fact]
     public void TileOrder_DefaultIsHeroSequenceSimAppGsxServices_AndADropSwapsTwoTiles()
     {
-        Assert.Equal([FlightStatusTiles.Hero, FlightStatusTiles.Sequence, FlightStatusTiles.Sim, FlightStatusTiles.App, FlightStatusTiles.Gsx, FlightStatusTiles.Services],
+        Assert.Equal([FlightStatusTiles.Hero, FlightStatusTiles.Radios, FlightStatusTiles.Sequence, FlightStatusTiles.Sim, FlightStatusTiles.App, FlightStatusTiles.Gsx, FlightStatusTiles.Services],
             FlightStatusTiles.DefaultOrder);
         Assert.True(FlightStatusTiles.IsDefault([]));
 
         // A drop trades the two tiles' places and nothing else moves (owner decision 2026-10-07).
-        Assert.Equal(["sim", "sequence", "hero", "app", "gsx", "services"], FlightStatusTiles.Swap(FlightStatusTiles.DefaultOrder, "sim", "hero"));
+        Assert.Equal(["sim", "radios", "sequence", "hero", "app", "gsx", "services"], FlightStatusTiles.Swap(FlightStatusTiles.DefaultOrder, "sim", "hero"));
         // The arrows move one place.
-        Assert.Equal(["sequence", "hero", "sim", "app", "gsx", "services"], FlightStatusTiles.Shift(FlightStatusTiles.DefaultOrder, "hero", +1));
+        Assert.Equal(["radios", "hero", "sequence", "sim", "app", "gsx", "services"], FlightStatusTiles.Shift(FlightStatusTiles.DefaultOrder, "hero", +1));
         // A partial or stale saved list still shows every tile.
-        Assert.Equal(["gsx", "hero", "sequence", "sim", "app", "services"], FlightStatusTiles.Normalize(["GSX", "unknown", "gsx"]));
+        Assert.Equal(["gsx", "hero", "radios", "sequence", "sim", "app", "services"], FlightStatusTiles.Normalize(["GSX", "unknown", "gsx"]));
     }
 
     [Fact]

@@ -13,6 +13,12 @@
     "noFlightPlan": "Geen vluchtplan",
     "diverted": "UITWIJKING — was {0}",
     "fetchOfp": "Haal een OFP op via de INIT-pagina",
+    "radios": {
+      "com1": "COM1",
+      "atc": "ATC",
+      "onFreq": "OP FREQ",
+      "wrongFreq": "VERKEERDE FREQ"
+    },
     "gateLabel": {
       "gate": "Gate",
       "cruise": "Cruise",

@@ -2,6 +2,7 @@ using System.Globalization;
 using ProsimCompanion.Core.Aircraft.Ofp;
 using ProsimCompanion.Core.Boarding;
 using ProsimCompanion.Core.Flight;
+using ProsimCompanion.Core.Radios;
 using ProsimCompanion.Core.State;
 using ProsimCompanion.Core.Weather;
 
@@ -97,6 +98,32 @@ public sealed record GateStripView(
     bool StdSoon,
     int ProgressPercent,
     string FillWidth);
+
+/// <summary>One tap-to-tune station on the Radios tile (owner request 2026-10-25).</summary>
+/// <param name="Type">SayIntentions' station type ("GROUND").</param>
+/// <param name="Label">The callsign when known, else the type as a word ("Ground").</param>
+/// <param name="IsActive">COM1 active is on this frequency.</param>
+/// <param name="IsAssigned">This is the frequency ATC expects.</param>
+public sealed record RadioStationChip(string Type, string Label, int Khz, string Frequency, bool IsActive, bool IsAssigned);
+
+/// <summary>The Radios tile: COM1 against what SayIntentions ATC expects, plus the local
+/// airport's stations. <see cref="StateClass"/> is one of off / unknown / match / mismatch.</summary>
+public sealed record RadiosTileView(
+    string Active,
+    string Standby,
+    bool Com1Live,
+    string? AssignedStation,
+    string? AssignedFrequency,
+    int AssignedKhz,
+    DisplayText? AssignedSince,
+    string StateClass,
+    string StateTextId,
+    string? HintTextId,
+    bool CanTuneAssigned,
+    string StationsIcao,
+    IReadOnlyList<RadioStationChip> Stations,
+    string? LastAtcLine,
+    DisplayText? LastAtcSince);
 
 /// <summary>The refuel row's confirmation pill (2026-09-19 SOP): the confirmed figure and
 /// the "when / by whom" hover title, present only once the crew has confirmed.</summary>
@@ -714,5 +741,71 @@ public static class FlightStatusPresentation
         var connected = ServiceView(gsx, serviceId)?.Stage is GsxServiceStage.Active or GsxServiceStage.Completed;
         return StatusRow.Pill(id, labelTextId, connected ? "tone-ok" : "tone-neutral",
             connected ? DisplayText.Id("flightStatus.services.connected") : null);
+    }
+    // ── Radios tile (owner request 2026-10-25) ───────────────────────────────────────
+
+    /// <summary>The tile from the radio store: COM1, what ATC expects, the verdict class and
+    /// the local airport's tap-to-tune stations. The verdict never claims "wrong" without
+    /// both sides known: no SayIntentions, no assignment or no ProSim each have their own word.</summary>
+    public static RadiosTileView Radios(RadioSnapshot radio, string? localIcao)
+    {
+        ArgumentNullException.ThrowIfNull(radio);
+
+        var assigned = radio.Assigned;
+        var (stateClass, stateTextId, hintTextId) = (radio.SayIntentionsOn, assigned, radio.OnAssignedFrequency) switch
+        {
+            (false, _, _) => ("off", "flightStatus.radios.off", "flightStatus.radios.offHint"),
+            (true, null, _) => ("unknown", "flightStatus.radios.unknown", "flightStatus.radios.noAssignment"),
+            (true, not null, null) => ("unknown", "flightStatus.radios.noProsim", null),
+            (true, not null, true) => ("match", "flightStatus.radios.match", null),
+            (true, not null, false) => ("mismatch", "flightStatus.radios.mismatch", null),
+        };
+
+        var stations = radio.StationsFor(localIcao);
+        var chips = new List<RadioStationChip>();
+        if (stations is not null)
+        {
+            foreach (var station in stations.Stations)
+            {
+                if (chips.Any(c => c.Khz == station.Khz))
+                {
+                    continue; // the same frequency twice (CLEARANCE and DELIVERY) is one chip
+                }
+
+                chips.Add(new RadioStationChip(
+                    station.Type,
+                    station.Callsign.Length > 0 ? station.Callsign : TitleCase(station.Type),
+                    station.Khz,
+                    RadioFrequency.Format(station.Khz),
+                    IsActive: radio.Com1Live && station.Khz == radio.Com1ActiveKhz,
+                    IsAssigned: assigned is not null && station.Khz == assigned.Khz));
+            }
+        }
+
+        return new RadiosTileView(
+            Active: radio.Com1Live ? RadioFrequency.Format(radio.Com1ActiveKhz) : RadioFrequency.Format(0),
+            Standby: radio.Com1Live ? RadioFrequency.Format(radio.Com1StandbyKhz) : RadioFrequency.Format(0),
+            Com1Live: radio.Com1Live,
+            AssignedStation: assigned is null ? null : TitleCase(assigned.Station),
+            AssignedFrequency: assigned is null ? null : RadioFrequency.Format(assigned.Khz),
+            AssignedKhz: assigned?.Khz ?? 0,
+            AssignedSince: assigned is null ? null : DisplayText.Id("flightStatus.radios.since", $"{assigned.SinceUtc:HH:mm}Z"),
+            StateClass: stateClass,
+            StateTextId: stateTextId,
+            HintTextId: hintTextId,
+            CanTuneAssigned: assigned is not null && radio.Com1Live && radio.OnAssignedFrequency == false,
+            StationsIcao: stations?.Icao ?? "",
+            Stations: chips,
+            LastAtcLine: radio.LastAtcLine.Length > 0 ? radio.LastAtcLine : null,
+            LastAtcSince: radio.LastAtcAtUtc is { } at ? DisplayText.Id("flightStatus.radios.since", $"{at:HH:mm}Z") : null);
+    }
+
+    /// <summary>"GROUND" → "Ground"; a mixed-case station name ("Tallinn Control") is kept.</summary>
+    private static string TitleCase(string station)
+    {
+        var trimmed = station.Trim();
+        return trimmed.Length > 1 && trimmed.All(c => !char.IsLetter(c) || char.IsUpper(c))
+            ? CultureInfo.InvariantCulture.TextInfo.ToTitleCase(trimmed.ToLowerInvariant())
+            : trimmed;
     }
 }
