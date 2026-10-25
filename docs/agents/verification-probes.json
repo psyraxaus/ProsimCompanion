@@ -3851,6 +3851,34 @@
         "requires-human: ATC accepted each read-back and moved on (no 'say again' / repeat from SI ATC); the arrival check-in wording sounded right (descent / approach / taxi-in forms were never heard from the copilot — composed from the climb pattern); the push approval read-back ('Push and start approved. Face North-East.') is acceptable or should be dropped like the copilot does."
       ],
       "notes": "FoRadiosService (Speech): SIAI_COPILOT=0 re-asserted every 2 min; ReadbackComposer / CheckInComposer / ClearedLevelParser / RadioSpeech pure with tests pinned to the owner's 2026-10-25 EKCH→EFHK copilot transcript; RadioClearGate before every sayAs; the monitor polls every foRadios.pollSeconds (4) while on. Measured 2026-10-25: a new ATC line is in getCommsHistory 1–4 s after its stamp; sayAs is silent on the SI side. Unverified live."
+    },
+    {
+      "id": "radnav-ident-first",
+      "issue": 0,
+      "state": "open",
+      "kind": "assert-present",
+      "machine": {
+        "kind": "required-fields",
+        "type": "mcdu.radnav.tuned",
+        "fields": [
+          "freq",
+          "ident",
+          "entered",
+          "identShown"
+        ]
+      },
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "Owner report 2026-10-25: 'tune the ILS' set 109.10 but the RAD NAV page never showed HL. Trigger = a 'mcdu.radnav.announce' with a non-null ident.",
+        "assert-present: the following 'mcdu.radnav.tuned' has entered 'ident' and identShown true — the FO typed the ident and the page shows it (and the course). entered 'freq' with a preceding 'mcdu.radnav.ident-refused' {ident, scratchpad} is the documented fallback (ProSim's nav data lacks the ident): quote the scratchpad text; identShown false on that path means ProSim did not resolve the ident from the frequency either — report it, not a bug here.",
+        "assert-absent: 'mcdu.radnav.unable' {reason: 'verify-failed'} after an ident entry whose scratchpad was empty — a layout change on the RAD NAV page.",
+        "watch: more than two CLEAR presses between the refusal and the frequency entry (mcdu.key events) — the scratchpad did not clear as expected.",
+        "requires-human: the RAD NAV page showed ident, frequency and course after the call."
+      ],
+      "notes": "McduRadNavTuner: ident first (TypeAsync(ident) → LSK3L → IdentTook), CLEAR until the scratchpad is empty, then the old frequency path. Unverified live."
     }
   ]
 }

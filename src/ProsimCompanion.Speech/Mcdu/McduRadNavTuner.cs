@@ -229,35 +229,71 @@ public sealed class McduRadNavTuner : IVoiceFeature, IDisposable
                 return;
             }
 
-            // Type the frequency into the scratchpad (TypeAsync verifies it landed there).
-            if (!await _actuator.TypeAsync(frequency, token).ConfigureAwait(false))
+            // IDENT first (owner report 2026-10-25: typing 109.10 tuned the frequency but the
+            // page never showed HL — nor the course the FMGC fills in from its database only
+            // when the ident is entered). "NOT IN DATA BASE" in the scratchpad, or the ident
+            // still sitting there, means ProSim's nav data has no such ident here: CLEAR the
+            // scratchpad and fall back to the frequency, as before.
+            var entered = "freq";
+            McduPage? settled = null;
+            if (ident is not null && await _actuator.TypeAsync(ident, token).ConfigureAwait(false))
             {
-                Speak("Unable — the frequency didn't enter correctly.");
-                _eventLog.Record("mcdu.radnav.unable", new { reason = "type-mismatch", freq = frequency });
-                return;
+                await _actuator.PressLskAsync(IlsFreqRow, right: false, token).ConfigureAwait(false);
+                settled = await _actuator.WaitSettledAsync(token).ConfigureAwait(false);
+                if (IdentTook(settled, ident))
+                {
+                    entered = "ident";
+                }
+                else
+                {
+                    _eventLog.Record("mcdu.radnav.ident-refused", new { ident, scratchpad = settled.Scratchpad });
+                    _logger.LogInformation("RAD NAV: ident {Ident} refused (scratchpad \"{Scratchpad}\") — falling back to {Freq}",
+                        ident, settled.Scratchpad, frequency);
+                    for (var clears = 0; clears < 8 && settled.Scratchpad.Trim().Length > 0; clears++)
+                    {
+                        await _actuator.PressKeyAsync("CLEAR", token).ConfigureAwait(false);
+                        settled = await _actuator.WaitSettledAsync(token).ConfigureAwait(false);
+                    }
+                }
             }
 
-            // Select the ILS/FREQ field, then read the page back to confirm: still on RAD NAV,
-            // the frequency (or ident — ProSim swaps in the ident once tuned) shows in a row,
-            // and the scratchpad no longer holds the typed frequency.
-            await _actuator.PressLskAsync(IlsFreqRow, right: false, token).ConfigureAwait(false);
-            var settled = await _actuator.WaitSettledAsync(token).ConfigureAwait(false);
+            if (entered == "freq")
+            {
+                // Type the frequency into the scratchpad (TypeAsync verifies it landed there).
+                if (!await _actuator.TypeAsync(frequency, token).ConfigureAwait(false))
+                {
+                    Speak("Unable — the frequency didn't enter correctly.");
+                    _eventLog.Record("mcdu.radnav.unable", new { reason = "type-mismatch", freq = frequency });
+                    return;
+                }
 
+                // Select the ILS/FREQ field, then read the page back to confirm: still on RAD NAV,
+                // the frequency (or ident) shows in a row, and the scratchpad no longer holds the
+                // typed frequency.
+                await _actuator.PressLskAsync(IlsFreqRow, right: false, token).ConfigureAwait(false);
+                settled = await _actuator.WaitSettledAsync(token).ConfigureAwait(false);
+            }
+
+            settled ??= await _actuator.WaitSettledAsync(token).ConfigureAwait(false);
             var onPage = settled.Title.Contains(RadNavTitle, StringComparison.OrdinalIgnoreCase);
             var shows = RowsContain(settled, frequency) || (ident is not null && RowsContain(settled, ident));
             var cleared = !settled.Scratchpad.Replace(" ", "")
-                .Contains(frequency.Replace(" ", ""), StringComparison.OrdinalIgnoreCase);
+                .Contains(frequency.Replace(" ", ""), StringComparison.OrdinalIgnoreCase)
+                && (ident is null || !settled.Scratchpad.Contains(ident, StringComparison.OrdinalIgnoreCase));
 
             if (onPage && shows && cleared)
             {
-                Speak($"ILS tuned, {McduSpeech.SpeakFrequency(frequency)}.");
-                _eventLog.Record("mcdu.radnav.tuned", new { freq = frequency, ident });
+                var identShown = ident is not null && RowsContain(settled, ident);
+                Speak(identShown
+                    ? $"ILS tuned, {McduSpeech.SpeakLetters(ident!)}, {McduSpeech.SpeakFrequency(frequency)}."
+                    : $"ILS tuned, {McduSpeech.SpeakFrequency(frequency)}.");
+                _eventLog.Record("mcdu.radnav.tuned", new { freq = frequency, ident, entered, identShown });
             }
             else
             {
                 Speak("Unable — check the radio nav page.");
                 _eventLog.Record("mcdu.radnav.unable",
-                    new { reason = "verify-failed", freq = frequency, title = settled.Title, onPage, shows, cleared });
+                    new { reason = "verify-failed", freq = frequency, ident, entered, title = settled.Title, onPage, shows, cleared });
             }
         }
         catch (OperationCanceledException)
@@ -287,6 +323,20 @@ public sealed class McduRadNavTuner : IVoiceFeature, IDisposable
 
     /// <summary>True when any row's data contains <paramref name="text"/> ignoring spaces —
     /// pure, so the verification rule is testable without a box.</summary>
+    /// <summary>The ident entry took: it shows in a row and the scratchpad neither refuses it
+    /// ("NOT IN DATA BASE", "FORMAT ERROR", "NOT ALLOWED") nor still holds it.</summary>
+    internal static bool IdentTook(McduPage page, string ident)
+    {
+        ArgumentNullException.ThrowIfNull(page);
+        ArgumentNullException.ThrowIfNull(ident);
+        var scratch = page.Scratchpad.Trim();
+        var refused = scratch.Contains("NOT IN DATA", StringComparison.OrdinalIgnoreCase)
+            || scratch.Contains("FORMAT ERROR", StringComparison.OrdinalIgnoreCase)
+            || scratch.Contains("NOT ALLOWED", StringComparison.OrdinalIgnoreCase)
+            || scratch.Equals(ident, StringComparison.OrdinalIgnoreCase);
+        return !refused && RowsContain(page, ident);
+    }
+
     public static bool RowsContain(McduPage page, string text)
     {
         ArgumentNullException.ThrowIfNull(page);

@@ -234,6 +234,22 @@ public sealed class McduVoiceTests
         Assert.False(McduRadNavTuner.RowsContain(page, "109.10"));
     }
 
+    [Fact]
+    public void IdentTook_WhenTheRowShowsIt_AndTheScratchpadDoesNotRefuse()
+    {
+        // Owner report 2026-10-25: typing 109.10 never showed HL; the ident is entered first now.
+        var took = McduDisplayParser.Parse(
+            "<root><title>wRADIO NAV</title><line>wILS/FREQ</line><line>gHL/ 109.10</line><scratchpad></scratchpad></root>");
+        var notInDb = McduDisplayParser.Parse(
+            "<root><title>wRADIO NAV</title><line>wILS/FREQ</line><line>g[ ]/[ ]</line><scratchpad>wNOT IN DATA BASE</scratchpad></root>");
+        var stillTyped = McduDisplayParser.Parse(
+            "<root><title>wRADIO NAV</title><line>wILS/FREQ</line><line>gHL/ 109.10</line><scratchpad>wHL</scratchpad></root>");
+
+        Assert.True(McduRadNavTuner.IdentTook(took, "HL"));
+        Assert.False(McduRadNavTuner.IdentTook(notInDb, "HL"));
+        Assert.False(McduRadNavTuner.IdentTook(stillTyped, "HL"));
+    }
+
     // ---- reader dispatch + degraded mode (Moq'd dataref seam) ----
 
     [Fact]

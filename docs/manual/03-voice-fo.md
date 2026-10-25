@@ -263,6 +263,11 @@ the MCDU RCVD MSGS and answers *ROGER DIVERSION, HANDLING ARRANGED LIRN, CALL ON
 
 ## Briefings, radios, FCU
 
+*"Tune the ILS"* enters the **ident** first (HL), so the RAD NAV page shows ident, frequency and
+the course the FMGC fills in from its database; only when ProSim answers NOT IN DATA BASE does
+the FO clear the scratchpad and enter the frequency instead (owner report 2026-10-25: 109.10
+without HL).
+
 ### FO works the radios (SayIntentions)
 
 Settings → Voice First Officer → SayIntentions → **FO works the radios** (off by default). The
@@ -428,8 +433,8 @@ the cabin know about the ride."*; anything else *"Copied, thank you."*; silence 
 worries, we'll check back later."* All five lines are editable under Cabin Wording. The
 reply is only ever acknowledged — it is never read as a command and never reaches the
 aircraft. A free answer needs the LAN speech server; the offline Windows engine listens for
-a short list of likely replies instead. The call waits while the mic pill reads PAUSED or
-another dialogue has the microphone (a hail, the tech log), a running spoken checklist holds
+a short list of likely replies instead. The call waits while another dialogue has the
+microphone (a hail, the tech log), a running spoken checklist holds
 and resumes around the window, and if the descent begins first there is no call that flight.
 The VOICE drawer's Cabin tab shows the replies it understands.
 
