@@ -33,6 +33,8 @@ firewall and that LAN access is on. *re-pair* means the token was changed — pa
 
 Settings → **Cockpit Switches** on the sim PC's web UI.
 
+![Cockpit Switches settings page with the three leak measurement valves](../img/cockpit-switches.png)
+
 1. Press **Add the three leak measurement valves** if you want them: three lines appear (or
    existing ones are reset to the preset) — blue / green / yellow bezels, the lamp follows the
    button itself (no aircraft power needed) the way the real OFF light does: a lit **OFF** in

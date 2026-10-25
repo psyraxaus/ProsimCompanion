@@ -73,6 +73,15 @@ flight pages, live figures on glass instrument cards, and a Solari split-flap cl
 - **SayIntentions, both ways** — your arrival gate goes to SayIntentions ATC, and (opt-in)
   the gate ATC assigns comes back as the GSX arrival gate; the FO waits for a quiet
   frequency before transmitting
+- **Airline-ops additions** (0.8.0, each off by default): a **wind row** on the Takeoff and
+  Landing pages judging head/tail and crosswind components (gust included) against your
+  aircraft limits, with a runway-condition strip (Dry / Wet / RWYCC) remembered for the
+  flight; the **fuel decision at dispatch** from the destination TAF and SimBrief's fuel
+  breakdown, and "how long can we hold"; a **diversion workflow** ("divert to the alternate")
+  that re-points the whole app — OFP, GSX arrival gate, ACARS, logbook, debrief — at the new
+  destination; **last-minute changes** against the final loadsheet once boarding completes
+  (revised final or captain's authority); **NOTAM highlights** on the OFP page, **step-climb
+  advice** from the navlog and an **FDP warning** against the EASA flight-time table
 
 ![Flight Monitor](docs/img/flight-monitor.png)
 
@@ -109,6 +118,16 @@ flight pages, live figures on glass instrument cards, and a Solari split-flap cl
   voice dialogues, pilot logbook with a **Logbook page** (totals, sortable flights, touchdown
   rate and bounces per landing, a trend chart, CSV export), spoken post-flight debrief,
   multi-leg company day mode
+- **The emergency half of a line pilot's day** (0.8.0, each off by default): a
+  **threat-based takeoff emergency brief** closing the departure briefing (the rejected-takeoff
+  split, the engine-out routing, acceleration altitude, MSA, return, the departure's NOTAM
+  threats) with go-around clauses in the arrival briefing; a **rejected takeoff** on the
+  captain's "stop" or the levers at idle, and the **engine failure after V1** drill that repeats
+  the briefed engine-out routing; **turbulence detection** with seat-belt advice, the purser's
+  "secure the cabin?" question and **captain's PA prompts** with a script card; **FO-side
+  duties** — the FO sets their own altimeter and ND and cross-checks the ADIRS and the FMGC;
+  **ACARS movement messages** (the MVT AD/AA telex), delay codes and on-time performance in
+  the logbook
 - TTS chain (Kokoro local neural → ElevenLabs → Google Chirp HD → Windows voices) with caching
   and an intercom filter; LAN faster-whisper or offline recognition; PTT on keyboard or joystick.
   ElevenLabs: bring your own key; the default MP3 output works on the Free plan (no commercial
@@ -133,15 +152,22 @@ flight pages, live figures on glass instrument cards, and a Solari split-flap cl
 - The cockpit **LOUD SPEAKER** dial is a mapping channel too: with a small VoiceMeeter loop
   it puts the headset sound on the cockpit speakers at the dial's level — step-by-step in
   [chapter 8](docs/manual/08-loudspeaker-dial.md)
-- **Remote mixer**: a Voicemeeter on *another* PC (the vPilot box) through the
-  VoicemeeterBridge agent ([releases](https://github.com/psyraxaus/VoicemeeterBridge/releases)) — knobs and REC latches onto its strip/bus gains and mutes, a
-  status card with mute buttons — step by step in
-  [chapter 9](docs/manual/09-remote-mixer.md)
+- **Remote mixer**: Voicemeeters on *other* PCs (the vPilot box, or one PC per pilot) through
+  VoicemeeterBridge agents ([releases](https://github.com/psyraxaus/VoicemeeterBridge/releases))
+  — one agent block per PC, knobs and REC latches onto their strip/bus gains and mutes, a
+  status card with mute buttons, and a warning when two knobs drive the same fader — step by
+  step in [chapter 9](docs/manual/09-remote-mixer.md); the two-headset VoiceMeeter layout in
+  [chapter 11](docs/manual/11-two-headsets.md)
 
 ### Integrations & platform
 - SayIntentions (spoken ATC requests, gate push, weather/CPDLC, the FO's wrong-frequency
-  report), ActiveSky weather chain,
-  Elgato Stream Deck plugin, opt-in HTTP command/status API
+  report), ActiveSky weather chain, opt-in HTTP command/status API
+- **Elgato Stream Deck plugin**, on the sim PC or any PC on your LAN: status, checklist and
+  voice keys, plus **Cockpit Switch** keys that press ProSim switches you have no hardware
+  for — Korry push buttons, toggles, knobs and guarded switches drawn like the real overhead,
+  lamps lit from the aircraft — and **Camera View** keys that change ChasePlane views through
+  a vJoy button on the sim PC; the switches are picked from ProSim's own list on the
+  **Cockpit Switches** settings page — [chapter 12](docs/manual/12-remote-streamdeck.md)
 - EFB-style web UI (ADR-0011): icon sidebar, glass instrument cards, split-flap clock,
   bundled fonts and icons (works offline), 13 airline/basic themes on the Appearance settings page
   plus user JSON themes and your own theme and airline logos (never shipped — you upload them
@@ -155,6 +181,7 @@ flight pages, live figures on glass instrument cards, and a Solari split-flap cl
   automatically on first run**
 
 ![Performance](docs/img/performance.png)
+![Cockpit Switches](docs/img/cockpit-switches.png)
 
 ## Getting started
 

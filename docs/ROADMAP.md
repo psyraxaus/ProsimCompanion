@@ -951,6 +951,26 @@ Ten packages, one branch and one GitHub issue each, branched from `feature/remot
       `notam-highlights`, `step-climb-advice`, `fdp-warning`. Unverified live.
 
 
+## Phase 11 — Cockpit switches and the vJoy relay (ADR-0015)
+
+A Stream Deck on another PC asks the app for the things only the sim PC can do. Built on
+`feature/cockpit-switches` on top of the November batch (0.8.0-rc.3 … rc.7; two-axis review
+in rc.6, leak-valve lamp correction in rc.7), merged to `main` at 0.8.0-rc.8. **Unverified
+live** until a flight confirms it.
+
+- [x] **Cockpit switches** — Settings → Cockpit Switches: one row per `system.switches.S_*`
+      dataref from ProSim's own catalogue (look, press mode, legends, lamp datarefs, colours,
+      `showUnlitLegend`, `lowerLitAtZero`), the leak-measurement-valve preset, commands
+      `cockpit.press` / `cockpit.set` (row ids only), `GET /api/controls`, `switches[]` on
+      `/api/status`, the `ProsimWriteGate.ConfiguredSwitchAllowed` hook bounded to configured +
+      catalogued `S_` names. Plugin **Cockpit Switch** key with Korry / toggle / knob / guarded
+      faces. Probe `cockpit-press`. Unverified live.
+- [x] **vJoy relay** — `inputRelay` (Settings → Setup), `VJoyInputRelay` in Sim,
+      `input.pressView {name}` over named view rows, the Setup card with Check / Press; plugin
+      **Camera View** key. Probe `input-vjoy` (watch). Unverified live.
+- [x] Manual chapter 12, integration note `docs/integrations/cockpit-switches.md`, seven
+      language packs.
+
 ## Open items (after the rc.5 batch, 2026-10-11)
 
 Nothing on this roadmap is open as code. What remains:
