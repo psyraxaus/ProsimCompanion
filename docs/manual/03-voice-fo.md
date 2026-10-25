@@ -138,6 +138,13 @@ waiting for you. You still hear every line, so the run never sounds as if it jum
 that need a read-back (numbers, the takeoff flap config), lines whose dataref ProSim has not
 yet reported, and every line without a dataref condition still wait for your reply.
 
+**Answer thank you** (Settings → Voice First Officer → General, off by default): say *"thank
+you"*, *"thanks"* or *"cheers"* within 20 seconds of the FO's last word or action and it answers
+*"You're welcome, Captain."* (three wordings, in turn). Never on the takeoff roll, in the initial
+climb or on the rollout, and never for a transcript the speech engine was unsure of. The switch
+is off by default because Whisper writes *"Thank you."* for a breath (issue #120) — a bare
+courtesy outside the window is absorbed in silence, never a "say again".
+
 A `confirmCallout` in your checklist file may carry a live value: `{fuel}` (or
 `{fuelQuantity}`), `{altimeter}`, `{qnh}`, `{v1}`, `{vr}`, `{v2}`, `{flex}`, `{runway}`,
 `{flightLevel}`, `{takeoffConfig}`. A brace word the app does not know is left out, never read

@@ -55,6 +55,11 @@
         "hint": "A checklist line whose switch is already correct is spoken with its answer and completed. No reply needed.",
         "more": "The FO says the line and the answer in one breath, e.g. \"Flaps, retracted.\" Lines that need a read-back (numbers, flap config), lines with no live value from ProSim, and lines without a dataref still wait for your reply. Off: every line waits for you."
       },
+      "answerCourtesies": {
+        "label": "Answer thank you",
+        "hint": "The FO says “You’re welcome, Captain” when you thank it right after it did something.",
+        "more": "Only within 20 seconds of the FO’s last word or action, never on the takeoff roll, in the initial climb or on the rollout, and never for a low-confidence transcript. Whisper writes “Thank you.” for a breath — that is why this is off by default."
+      },
       "pacing": {
         "title": "Human Pacing",
         "hint": "Button presses at a human tempo",

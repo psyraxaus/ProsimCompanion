@@ -55,6 +55,11 @@
         "hint": "Eine Checklistenzeile, deren Schalter schon richtig steht, wird mit ihrer Antwort gesprochen und abgeschlossen. Keine Antwort nötig.",
         "more": "Der FO sagt Zeile und Antwort in einem Atemzug, z. B. \"Flaps, retracted.\" Zeilen mit Readback (Zahlen, Flap-Konfiguration), Zeilen ohne Live-Wert aus ProSim und Zeilen ohne Dataref warten weiter auf deine Antwort. Aus: jede Zeile wartet auf dich."
       },
+      "answerCourtesies": {
+        "label": "Auf Danke antworten",
+        "hint": "Der FO sagt „Gern geschehen, Captain“, wenn du dich direkt nach einer Aktion bedankst.",
+        "more": "Nur innerhalb von 20 Sekunden nach dem letzten Wort oder der letzten Aktion des FO, nie beim Startlauf, im Anfangssteigflug oder beim Ausrollen, und nie bei einem unsicheren Transkript. Whisper schreibt „Thank you.“ für einen Atemzug — darum ist das standardmäßig aus."
+      },
       "pacing": {
         "title": "Menschliches Tempo",
         "hint": "Tastendrücke in menschlichem Tempo",

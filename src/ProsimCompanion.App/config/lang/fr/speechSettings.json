@@ -55,6 +55,11 @@
         "hint": "Une ligne de checklist dont l'interrupteur est déjà correct est lue avec sa réponse et validée. Aucune réponse nécessaire.",
         "more": "Le copilote dit la ligne et la réponse d'un trait, p. ex. \"Flaps, retracted.\" Les lignes à relire (nombres, configuration volets), les lignes sans valeur en direct de ProSim et les lignes sans dataref attendent toujours ta réponse. Désactivé : chaque ligne attend ta réponse."
       },
+      "answerCourtesies": {
+        "label": "Répondre à merci",
+        "hint": "L’OPL dit « Je vous en prie, Commandant » quand tu le remercies juste après une action.",
+        "more": "Seulement dans les 20 secondes après le dernier mot ou la dernière action de l’OPL, jamais au roulage de décollage, en montée initiale ou au roulage à l’atterrissage, et jamais sur une transcription peu fiable. Whisper écrit « Thank you. » pour une respiration — c’est pourquoi c’est désactivé par défaut."
+      },
       "pacing": {
         "title": "Rythme humain",
         "hint": "Des appuis sur les boutons à un tempo humain",

@@ -89,6 +89,14 @@ public sealed class UtteranceRouter : IDisposable
     private readonly IOptionsMonitor<SpeechOptions>? _options;
     // Optional: what the FO is waiting to hear, for the self-echo guard (issue #172).
     private readonly ExpectedReplyStore? _expectedReplies;
+
+    /// <summary>Clock for the courtesy window (owner request 2026-10-25) — injectable for tests.</summary>
+    private readonly TimeProvider _time;
+
+    /// <summary>When the FO last spoke or acted on a command — a "thank you" inside
+    /// <see cref="CourtesyReplyCore.ReplyWindow"/> of it is about that, anything later is a breath.</summary>
+    private DateTimeOffset? _lastFoActivityUtc;
+    private int _courtesyReplies;
     private IChecklistRoutingHost? _host;
     private bool _started;
     private bool _llmOfflineAdvisoryGiven; // once per session (issue #66)
@@ -109,7 +117,8 @@ public sealed class UtteranceRouter : IDisposable
         IFreeFormQuestionHandler? questions = null,
         UnmatchedUtteranceTracker? unmatched = null,
         IOptionsMonitor<SpeechOptions>? options = null,
-        ExpectedReplyStore? expectedReplies = null)
+        ExpectedReplyStore? expectedReplies = null,
+        TimeProvider? time = null)
     {
         ArgumentNullException.ThrowIfNull(interpreter);
         ArgumentNullException.ThrowIfNull(checklists);
@@ -139,6 +148,7 @@ public sealed class UtteranceRouter : IDisposable
         _unmatched = unmatched;
         _options = options;
         _expectedReplies = expectedReplies;
+        _time = time ?? TimeProvider.System;
     }
 
     /// <summary>Attaches the checklist run loop; called by the engine before Start. The open
@@ -174,6 +184,7 @@ public sealed class UtteranceRouter : IDisposable
         _started = true;
         _recognition.Accepted += OnRecognized;
         _recognition.Rejected += OnRejected;
+        _arbiter.Observed += OnArbiterEvent;
         // A dialogue that borrowed the mic BEFORE this Start (bootstrap ordering — the
         // dialogue services start earlier) captured window-closed and would close our idle
         // window on release; re-assert it after every release instead (issue #61).
@@ -190,6 +201,7 @@ public sealed class UtteranceRouter : IDisposable
 
         _recognition.Accepted -= OnRecognized;
         _recognition.Rejected -= OnRejected;
+        _arbiter.Observed -= OnArbiterEvent;
         _micOwnership.Released -= OnMicReleased;
     }
 
@@ -299,6 +311,15 @@ public sealed class UtteranceRouter : IDisposable
             "ASR heard \"{Heard}\" (conf {Confidence:F2}, acoustic {Acoustic}, noSpeech {NoSpeech}) -> {Decision} \"{Matched}\" (score {Score:F2})",
             e.Text, e.Confidence, e.AcousticConfidence, e.NoSpeechProb,
             interpretation.Kind, interpretation.Text, interpretation.Score);
+
+        // A bare courtesy (owner request 2026-10-25): answered inside the reply window when the
+        // switch is on, otherwise absorbed — never a "say again" for "cheers".
+        if (!responsePending && awaiting is null
+            && interpretation.Kind is InterpretKind.Hallucination or InterpretKind.Reject
+            && TryAnswerCourtesy(e))
+        {
+            return;
+        }
 
         switch (interpretation.Kind)
         {
@@ -472,6 +493,7 @@ public sealed class UtteranceRouter : IDisposable
     /// still works while a checklist line is pending.</summary>
     private void RouteText(IChecklistRoutingHost host, string text, ChecklistItemDefinition? awaiting, string? rawText = null, double score = 1.0)
     {
+        _lastFoActivityUtc = _time.GetUtcNow();
         if (awaiting is not null && host.IsAcceptedAnswer(awaiting, text))
         {
             host.Complete(RoutedResponseKind.Phrase, text);
@@ -632,6 +654,48 @@ public sealed class UtteranceRouter : IDisposable
     /// <summary>No "did you mean …?" here: the takeoff roll, initial climb and landing rollout
     /// whatever the height, and airborne below <c>speech.clarifierMinAglFt</c> on the radio
     /// altimeter (issue #177). Without a phase source (bare router) never sterile.</summary>
+    /// <summary>The FO's own words count as activity for the courtesy window — a "thank you"
+    /// right after a briefing is about the briefing. Its own "you're welcome" does not extend it.</summary>
+    private void OnArbiterEvent(SpeechArbiterEvent e)
+    {
+        if (e.Kind is SpeechEventKind.Spoken or SpeechEventKind.Segment
+            && !string.Equals(e.Tag, CourtesyTag, StringComparison.Ordinal))
+        {
+            _lastFoActivityUtc = _time.GetUtcNow();
+        }
+    }
+
+    private const string CourtesyTag = "courtesy";
+
+    /// <summary>True when the words were a bare courtesy and have been dealt with (answered or
+    /// absorbed). The gate is <see cref="CourtesyReplyCore"/>; this only speaks and logs.</summary>
+    private bool TryAnswerCourtesy(RecognizedEventArgs e)
+    {
+        var (decision, reason) = CourtesyReplyCore.Decide(
+            CommandMatcher.Normalize(e.Text),
+            _options?.CurrentValue.AnswerCourtesies ?? false,
+            e.AcousticConfidence,
+            _time.GetUtcNow(),
+            _lastFoActivityUtc,
+            IsSterileForClarifier());
+        switch (decision)
+        {
+            case CourtesyDecision.NotCourtesy:
+                return false;
+
+            case CourtesyDecision.Reply:
+                var text = CourtesyReplyCore.ReplyText(_courtesyReplies++);
+                _logger.LogInformation("Courtesy \"{Heard}\" answered: {Reply}", e.Text, text);
+                _ = _arbiter.EnqueueAsync(new SpeechRequest(
+                    text, SpeechPriority.Normal, Ttl: TimeSpan.FromSeconds(10), Tag: CourtesyTag));
+                return true;
+
+            default:
+                _logger.LogDebug("Courtesy \"{Heard}\" absorbed ({Reason})", e.Text, reason);
+                return true;
+        }
+    }
+
     private bool IsSterileForClarifier()
     {
         if (_flightPhase is null)

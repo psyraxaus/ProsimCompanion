@@ -116,6 +116,13 @@ public sealed class SpeechOptions : IOptionSection
     [OptionField(FieldKind.Bool, "speechSettings.general.localOnly")]
     public bool LocalOnly { get; set; }
 
+    /// <summary>The FO answers a bare "thank you" / "thanks" with "You're welcome, Captain" —
+    /// only within 20 s of its last word or action, never in a sterile moment, never on a
+    /// low-confidence transcript. Off by default: "Thank you." is Whisper's classic silence
+    /// hallucination (issue #120) and must not be answered from a breath.</summary>
+    [OptionField(FieldKind.Bool, "speechSettings.general.answerCourtesies")]
+    public bool AnswerCourtesies { get; set; }
+
     // ---- Sterile cockpit (predecessor defaults; lived in the SOP profile in Prosim2FO —
     //      moves there if/when ProsimCompanion grows SOP profiles) ----
 

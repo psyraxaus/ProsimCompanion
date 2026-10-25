@@ -645,4 +645,70 @@ public sealed class UtteranceRouterTests
         Assert.Equal(0, _unmatched.Snapshot().Total);
         Assert.Single(_arbiter.Requests);
     }
+
+    // ---- owner request 2026-10-25: "you're welcome" behind its gate -------------------------
+
+    private bool CourtesyAnswered => _arbiter.Requests.Any(r => r.Tag == "courtesy");
+
+    [Fact]
+    public void ThankYou_RightAfterACommand_WithTheSwitchOn_IsAnswered()
+    {
+        var lever = new ScriptedFeature("gear up");
+        using var router = CreateRouter(null, new SpeechOptions { AnswerCourtesies = true }, lever);
+
+        _window.Hear("gear up");
+        _window.Hear("Thank you.");
+
+        Assert.Equal(["gear up"], lever.Handled);
+        var reply = Assert.Single(_arbiter.Requests, r => r.Tag == "courtesy");
+        Assert.Equal("You're welcome, Captain.", reply.Text);
+        Assert.Empty(_unmatched.Snapshot().Recent);
+    }
+
+    [Fact]
+    public void ThankYou_WithTheSwitchOff_StaysSilent()
+    {
+        var lever = new ScriptedFeature("gear up");
+        using var router = CreateRouter(lever);
+
+        _window.Hear("gear up");
+        _window.Hear("Thank you.");
+
+        Assert.False(CourtesyAnswered);
+        Assert.DoesNotContain(_arbiter.Requests, r => r.Tag == "did-not-catch");
+    }
+
+    [Fact]
+    public void ThankYou_WithNothingRecent_TheCruiseBreath_StaysSilent()
+    {
+        using var router = CreateRouter(null, new SpeechOptions { AnswerCourtesies = true }, new ScriptedFeature("gear up"));
+
+        _window.Hear("Thank you.");
+
+        Assert.False(CourtesyAnswered);
+        Assert.Empty(_arbiter.Requests);
+    }
+
+    [Fact]
+    public void Cheers_IsNeverASayAgain_EvenSwitchedOff()
+    {
+        using var router = CreateRouter(new ScriptedFeature("gear up"));
+
+        _window.Hear("Cheers.");
+
+        Assert.Empty(_arbiter.Requests);
+    }
+
+    [Fact]
+    public void ThankYou_InTheInitialClimb_StaysSilent()
+    {
+        var lever = new ScriptedFeature("gear up");
+        using var router = CreateRouter(null, new SpeechOptions { AnswerCourtesies = true }, lever);
+        _phases.SetPhase(FlightPhase.InitialClimb);
+
+        _window.Hear("gear up");
+        _window.Hear("Thank you.");
+
+        Assert.False(CourtesyAnswered);
+    }
 }

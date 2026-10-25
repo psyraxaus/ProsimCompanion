@@ -55,6 +55,11 @@
         "hint": "Een checklistregel waarvan de schakelaar al goed staat, wordt met het antwoord uitgesproken en afgerond. Geen antwoord nodig.",
         "more": "De FO zegt regel en antwoord in één adem, bijv. \"Flaps, retracted.\" Regels met een readback (getallen, flapconfiguratie), regels zonder live waarde uit ProSim en regels zonder dataref wachten nog op jouw antwoord. Uit: elke regel wacht op jou."
       },
+      "answerCourtesies": {
+        "label": "Antwoorden op dank je",
+        "hint": "De FO zegt “Graag gedaan, Captain” als je hem bedankt direct na een actie.",
+        "more": "Alleen binnen 20 seconden na het laatste woord of de laatste actie van de FO, nooit tijdens de startrol, de eerste klim of het uitrollen, en nooit bij een onzekere transcriptie. Whisper schrijft “Thank you.” bij een ademhaling — daarom staat dit standaard uit."
+      },
       "pacing": {
         "title": "Menselijk tempo",
         "hint": "Knopdrukken in een menselijk tempo",
