@@ -31,6 +31,7 @@
     "footer": {
       "sayBefore": "Say",
       "sayAfter": "any time",
+      "courtesy": "Please and thank you are fine — the FO ignores them when matching your words.",
       "edit": "Edit phrases · commands.json",
       "editTitle": "Your own phrases live in commands.json (user config folder)"
     },

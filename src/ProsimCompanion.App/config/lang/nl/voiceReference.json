@@ -31,6 +31,7 @@
     "footer": {
       "sayBefore": "Zeg",
       "sayAfter": "wanneer je wilt",
+      "courtesy": "Please en thank you mogen — de FO negeert ze bij het herkennen van je woorden.",
       "edit": "Zinnen bewerken · commands.json",
       "editTitle": "Je eigen zinnen staan in commands.json (gebruikersconfiguratiemap)"
     },

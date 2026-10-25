@@ -31,6 +31,7 @@
     "footer": {
       "sayBefore": "Sage jederzeit",
       "sayAfter": "",
+      "courtesy": "Bitte und danke sind in Ordnung — der FO ignoriert sie beim Abgleich deiner Worte.",
       "edit": "Phrasen bearbeiten · commands.json",
       "editTitle": "Deine eigenen Phrasen liegen in commands.json (Benutzer-Konfigurationsordner)"
     },

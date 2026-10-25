@@ -31,6 +31,7 @@
     "footer": {
       "sayBefore": "Dis",
       "sayAfter": "à tout moment",
+      "courtesy": "S’il te plaît et merci sont permis — l’OPL les ignore pour reconnaître tes mots.",
       "edit": "Modifier les phrases · commands.json",
       "editTitle": "Tes propres phrases sont dans commands.json (dossier de configuration utilisateur)"
     },

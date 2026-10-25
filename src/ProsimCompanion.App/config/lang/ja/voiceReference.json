@@ -31,6 +31,7 @@
     "footer": {
       "sayBefore": "いつでも言えます:",
       "sayAfter": "",
+      "courtesy": "「please」や「thank you」を付けても問題ありません。FO は照合時にそれらを無視します。",
       "edit": "フレーズを編集 · commands.json",
       "editTitle": "自分のフレーズは commands.json（ユーザー設定フォルダー）にあります"
     },

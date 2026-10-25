@@ -82,9 +82,14 @@ public sealed class UtteranceInterpreter
             return new InterpretResult(InterpretKind.Hallucination, rawText, 0);
         }
 
+        // Politeness at the edges is not part of the command (owner report 2026-10-25: "run
+        // the departure briefing please" scored 0.79 and earned a "did you mean"). Stripped
+        // AFTER the hallucination check — a bare "thank you" must still be absorbed whole —
+        // and never down to nothing.
+        var normalized = CourtesyWords.Strip(normalizedEarly);
+
         // Exact match accepts the spoken-digit form too ("flaps 1" == "flaps one", #119):
         // whisper chooses the written form freely and the pilot said the same thing.
-        var normalized = normalizedEarly;
         var digitsSpoken = CommandMatcher.SpeakSingleDigits(normalized);
         foreach (var phrase in vocabulary)
         {
@@ -97,7 +102,7 @@ public sealed class UtteranceInterpreter
             }
         }
 
-        var snap = CommandMatcher.Snap(rawText,
+        var snap = CommandMatcher.Snap(normalized,
             [.. vocabulary.Where(v => v != NumberGrammar.Sentinel)], options.SnappingThreshold);
         if (snap is not null)
         {

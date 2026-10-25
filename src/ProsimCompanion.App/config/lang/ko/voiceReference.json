@@ -31,6 +31,7 @@
     "footer": {
       "sayBefore": "언제든지 말할 수 있음:",
       "sayAfter": "",
+      "courtesy": "「please」나 「thank you」를 붙여도 됩니다. FO는 문구를 맞출 때 이를 무시합니다.",
       "edit": "문구 편집 · commands.json",
       "editTitle": "나만의 문구는 commands.json(사용자 설정 폴더)에 있습니다"
     },

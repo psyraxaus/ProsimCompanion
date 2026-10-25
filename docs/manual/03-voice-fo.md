@@ -12,6 +12,9 @@
   climb, on the rollout or airborne below 1,000 ft radio height (**No 'did you mean' below**,
   advanced): there an FMA read or capture call that nearly matched is simply acknowledged and
   anything else is let go without a word.
+- **Please and thank you are fine.** Courtesy words at the start or end of what you say
+  ("please run the departure briefing", "gear up please", "… thanks") are dropped before
+  matching, so they never cost a "did you mean". A courtesy word inside a phrase stays.
 - The FO ignores the microphone while it speaks and drops a transcript that repeats what it
   said in the last 15 seconds (**Own-words window**, advanced) — your answer to a "did you
   mean" and the open checklist line's reply are never dropped.
