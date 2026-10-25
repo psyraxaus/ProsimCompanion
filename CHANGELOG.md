@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.8.0-rc.8
+
+First public build of the 0.8.0 line, 2026-10-25: everything from 0.7.0-rc.11 to 0.8.0-rc.7 (the architecture deepening, the remote mixer agents, the ten November airline-ops packages, the cockpit switches and the vJoy relay) merged to `main`. No code change over rc.7.
+
+- Docs: the README and the manual describe every feature since 0.7.0-rc.10 — the November batch (threat-based takeoff brief, last-minute changes, wind limits and runway condition, fuel decision, diversion, movement messages, turbulence and PAs, RTO/EFATO, FO-side duties, NOTAM highlights / step climb / FDP), the remote mixer agents with the two-headset chapter, and the Cockpit Switches page with chapter 12; the roadmap gains Phase 11 for ADR-0015.
+- Docs: every screenshot retaken at 0.8.0-rc.8; new `docs/img/cockpit-switches.png` (Settings → Cockpit Switches with the three leak measurement valves) in the README and chapter 12; the Remote Mixer shots show the agent blocks.
+- Still **not verified live**: everything from 0.7.0-rc.11 to 0.8.0-rc.7 awaits the owner's sim flight — see the roadmap's "Unverified live" markers.
+
 ## 0.8.0-rc.7
 
 Local build for the owner's sim test, 2026-10-25, on top of rc.6.
