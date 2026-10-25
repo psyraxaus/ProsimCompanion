@@ -27,7 +27,7 @@ public sealed class SayIntentionsFrequencyMonitor : Core.Hosting.IStartupModule,
 {
     /// <summary>One ATC → pilot line on COM1 (English text when SayIntentions gives it, else
     /// the spoken form) with the hand-off it carries, if any.</summary>
-    internal sealed record AtcTransmission(long Id, string Text, AssignedFrequency? Handoff);
+    internal sealed record AtcTransmission(long Id, string Text, AssignedFrequency? Handoff, string? Station = null);
 
     private const string ApiBase = "https://apipri.sayintentions.ai/sapi";
     private const int TickMs = 5000;
@@ -181,7 +181,10 @@ public sealed class SayIntentionsFrequencyMonitor : Core.Hosting.IStartupModule,
             // either voice feature is on; the advisory itself stays behind its own switch.
             var watched = _flight.IsLive && IsWatchedPhase(_flight.CurrentPhase);
             var historyWanted = options.FrequencyMonitorEnabled || options.CommsHandover.Enabled;
-            _voiceWanted = watched && historyWanted;
+            // The FO working the radios (owner request 2026-10-25) needs every ATC line, fast,
+            // at the gate too; the hand-over readouts stay behind the flight-live gate.
+            var foRadios = options.FoRadios.Enabled;
+            _voiceWanted = (watched && historyWanted) || foRadios;
             if (!_voiceWanted && _radioStore is null)
             {
                 _watch.Reset();
@@ -189,7 +192,10 @@ public sealed class SayIntentionsFrequencyMonitor : Core.Hosting.IStartupModule,
             }
 
             var now = DateTimeOffset.UtcNow;
-            if (now - _lastHistoryPollUtc >= HistoryPollInterval)
+            var historyInterval = foRadios
+                ? TimeSpan.FromSeconds(Math.Clamp(options.FoRadios.PollSeconds, 3, 20))
+                : HistoryPollInterval;
+            if (now - _lastHistoryPollUtc >= historyInterval)
             {
                 _lastHistoryPollUtc = now;
                 await PollHistoryAsync(apiKey, _shutdown.Token).ConfigureAwait(false);
@@ -240,7 +246,7 @@ public sealed class SayIntentionsFrequencyMonitor : Core.Hosting.IStartupModule,
         }
     }
 
-    private static string? ResolveSapiCredential(SayIntentionsOptions options)
+    internal static string? ResolveSapiCredential(SayIntentionsOptions options)
         => options.ApiKeySource.Equals("manual", StringComparison.OrdinalIgnoreCase)
             ? (string.IsNullOrWhiteSpace(options.ManualApiKey) ? null : options.ManualApiKey)
             : FlightJsonFile.TryReadApiKey();
@@ -422,7 +428,7 @@ public sealed class SayIntentionsFrequencyMonitor : Core.Hosting.IStartupModule,
             var handoff = HandoffParser.Parse(entry.Outgoing) ?? HandoffParser.Parse(entry.OutgoingEnglish);
             try
             {
-                handler(new AtcTransmission(entry.Id, text.Trim(), handoff));
+                handler(new AtcTransmission(entry.Id, text.Trim(), handoff, entry.StationName));
             }
             catch (Exception ex)
             {

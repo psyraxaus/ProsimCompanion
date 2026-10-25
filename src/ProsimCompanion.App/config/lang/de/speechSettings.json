@@ -800,6 +800,31 @@
           "hint": "Gesprochen nach 'I have the radios'."
         }
       },
+      "foRadios": {
+        "title": "FO bedient den Funk",
+        "hint": "Eine Stimme am Funk: der FO liest zurück, rastet und meldet sich statt des SayIntentions-Copiloten",
+        "enabled": {
+          "label": "FO bedient den Funk",
+          "hint": "Der SayIntentions-Copilot wird abgeschaltet. Der FO liest jede ATC-Anweisung mit eigener Stimme zurück und sendet sie an ATC.",
+          "more": "Nach dem Muster des Copiloten: „Climb FL140.“, „Contacting Tower on 119.355.“, dann „Good evening, Finnair 962, climbing through FL180 for FL210 on KEMA5C.“ Sage „I have the radios“, um ATC selbst zu antworten, und „you have the radios“, um zurückzugeben. Die Funkübergabe oben wird ignoriert, solange dies an ist. Noch nicht im Flug geprüft."
+        },
+        "tune": {
+          "label": "COM1 bei Übergabe rasten",
+          "hint": "Bei „contact Tower on 119.355“ stellt der FO die Frequenz: erst Standby, dann tauschen. ProSim-Datarefs, nie ein Schalter."
+        },
+        "checkIn": {
+          "label": "Auf neuer Frequenz melden",
+          "hint": "Nach der Übergabe meldet sich der FO bei der neuen Station mit Höhe, freigegebener Höhe und SID oder STAR."
+        },
+        "poll": {
+          "label": "ATC-Abfrage",
+          "hint": "Wie oft der FO nach einer neuen ATC-Zeile sucht. Eine Zeile erscheint 1 bis 4 Sekunden nach dem Funkspruch."
+        },
+        "checkInDelay": {
+          "label": "Verzögerung der Meldung",
+          "hint": "Sekunden zwischen dem Zurücklesen der Übergabe und der Meldung."
+        }
+      },
       "weather": {
         "title": "SayIntentions-Wetter",
         "hint": "ATIS, METAR, TAF und CPDLC. Braucht nur den API-Schlüssel",

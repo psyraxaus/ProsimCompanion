@@ -800,6 +800,31 @@
           "hint": "Spoken after 'I have the radios'."
         }
       },
+      "foRadios": {
+        "title": "FO works the radios",
+        "hint": "One voice on the radio: the FO reads back, tunes and checks in instead of the SayIntentions copilot",
+        "enabled": {
+          "label": "FO works the radios",
+          "hint": "The SayIntentions copilot is switched off. The FO reads every ATC instruction back, in its own voice, and sends it to ATC.",
+          "more": "Shaped on the copilot’s own calls: “Climb FL140.”, “Contacting Tower on 119.355.”, then “Good evening, Finnair 962, climbing through FL180 for FL210 on KEMA5C.” Say “I have the radios” to answer ATC yourself and “you have the radios” to hand back. The comms hand-over above is ignored while this is on. Not yet verified in flight."
+        },
+        "tune": {
+          "label": "Tune COM1 on a hand-off",
+          "hint": "On “contact Tower on 119.355” the FO sets the frequency: standby first, then swap. ProSim datarefs, never a switch."
+        },
+        "checkIn": {
+          "label": "Check in on the new frequency",
+          "hint": "After the hand-off the FO calls the new station with your level, the cleared level and the SID or STAR."
+        },
+        "poll": {
+          "label": "ATC poll",
+          "hint": "How often the FO looks for a new ATC line. A line appears 1 to 4 seconds after ATC speaks."
+        },
+        "checkInDelay": {
+          "label": "Check-in delay",
+          "hint": "Seconds between the hand-off read-back and the check-in call."
+        }
+      },
       "weather": {
         "title": "SayIntentions Weather",
         "hint": "ATIS, METAR, TAF and CPDLC. Needs only the API key",

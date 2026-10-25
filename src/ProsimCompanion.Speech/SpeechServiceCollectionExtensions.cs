@@ -161,6 +161,8 @@ public static class SpeechServiceCollectionExtensions
         services.AddVoiceFeature<SayIntentions.SayIntentionsService>();
         // Wrong-frequency report: COM1 against the frequency SayIntentions ATC last assigned.
         services.AddStartupModule<SayIntentions.SayIntentionsFrequencyMonitor>();
+        // The FO works the radios (owner request 2026-10-25): read-backs, hand-off tune, check-in.
+        services.AddStartupModule<SayIntentions.FoRadiosService>();
         // PTT relay (2026-10-10): a ProSim push-to-talk switch keys the SI control LVAR.
         services.AddStartupModule<SayIntentions.SayIntentionsPttRelay>();
         // Weather/CPDLC pulls are on-demand only (web Weather page) — no bootstrap Start,

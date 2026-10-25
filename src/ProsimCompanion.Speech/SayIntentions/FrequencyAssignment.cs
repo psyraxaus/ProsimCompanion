@@ -21,7 +21,7 @@ internal enum AssignedFrequencySource
 internal sealed record AssignedFrequency(int Khz, string Station, AssignedFrequencySource Source);
 
 /// <summary>One getCommsHistory entry, reduced to what the frequency watch reads.</summary>
-internal sealed record CommEntry(long Id, string Channel, string? Outgoing, string? OutgoingEnglish);
+internal sealed record CommEntry(long Id, string Channel, string? Outgoing, string? OutgoingEnglish, string? StationName = null);
 
 /// <summary>
 /// Reads ATC hand-off instructions out of SayIntentions comms-history text. Live capture
@@ -128,7 +128,8 @@ internal static class CommHistory
                     id,
                     Str(node["channel"]) ?? "",
                     Str(node["outgoing_message"]),
-                    Str(node["outgoing_message_english"])));
+                    Str(node["outgoing_message_english"]),
+                    Str(node["station_name"])));
             }
 
             return (flightId, entries);

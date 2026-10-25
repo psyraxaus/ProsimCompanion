@@ -448,6 +448,14 @@ else if (CurrentSection == "sayIntentions")
         <OptionField Draft="_sayIntentions" For="o => o.CommsHandover.CaptainLine" />
     </Section>
 
+    <Section Title="@T["speechSettings.sayIntentions.foRadios.title"]" Hint="@T["speechSettings.sayIntentions.foRadios.hint"]">
+        <OptionField Draft="_sayIntentions" For="o => o.FoRadios.Enabled" />
+        <OptionField Draft="_sayIntentions" For="o => o.FoRadios.TuneOnHandoff" />
+        <OptionField Draft="_sayIntentions" For="o => o.FoRadios.CheckIn" />
+        <OptionField Draft="_sayIntentions" For="o => o.FoRadios.PollSeconds" />
+        <OptionField Draft="_sayIntentions" For="o => o.FoRadios.CheckInDelaySeconds" />
+    </Section>
+
     <Section Title="@T["speechSettings.sayIntentions.weather.title"]" Hint="@T["speechSettings.sayIntentions.weather.hint"]">
         <OptionField Draft="_sayIntentions" For="o => o.WeatherEnabled" />
         <AdvancedFields>

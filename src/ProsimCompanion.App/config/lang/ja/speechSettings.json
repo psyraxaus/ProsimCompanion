@@ -800,6 +800,31 @@
           "hint": "'I have the radios' の後に発話。"
         }
       },
+      "foRadios": {
+        "title": "FO が無線を担当",
+        "hint": "無線は一つの声で: SayIntentions のコパイロットの代わりに FO がリードバック、周波数設定、チェックインを行います",
+        "enabled": {
+          "label": "FO が無線を担当",
+          "hint": "SayIntentions のコパイロットをオフにします。FO がすべての ATC 指示を自分の声でリードバックし、ATC に送信します。",
+          "more": "コパイロット自身のコールを手本にしています: 「Climb FL140.」「Contacting Tower on 119.355.」、続いて「Good evening, Finnair 962, climbing through FL180 for FL210 on KEMA5C.」。自分で ATC に応答するには「I have the radios」、戻すには「you have the radios」と言います。これがオンの間、上のコムズ引き継ぎは無視されます。飛行での検証はまだです。"
+        },
+        "tune": {
+          "label": "引き継ぎ時に COM1 を設定",
+          "hint": "「contact Tower on 119.355」で FO が周波数を設定します: まずスタンバイ、次に入れ替え。ProSim データリファレンスのみで、スイッチは触りません。"
+        },
+        "checkIn": {
+          "label": "新しい周波数でチェックイン",
+          "hint": "引き継ぎ後、FO は現在高度、許可高度、SID または STAR を添えて新しい局を呼びます。"
+        },
+        "poll": {
+          "label": "ATC ポーリング",
+          "hint": "FO が新しい ATC 行を探す間隔。行は ATC の発話から 1〜4 秒後に現れます。"
+        },
+        "checkInDelay": {
+          "label": "チェックイン遅延",
+          "hint": "引き継ぎのリードバックからチェックインコールまでの秒数。"
+        }
+      },
       "weather": {
         "title": "SayIntentions 気象",
         "hint": "ATIS、METAR、TAF、CPDLC。API キーだけで使えます",

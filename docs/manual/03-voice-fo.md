@@ -263,6 +263,20 @@ the MCDU RCVD MSGS and answers *ROGER DIVERSION, HANDLING ARRANGED LIRN, CALL ON
 
 ## Briefings, radios, FCU
 
+### FO works the radios (SayIntentions)
+
+Settings → Voice First Officer → SayIntentions → **FO works the radios** (off by default). The
+SayIntentions copilot is switched off and your FO does its job in one voice: every ATC
+instruction is read back the copilot's way (*"Climb FL140."*, *"Contacting Tower on
+119.355."*), COM1 is tuned on a hand-off (standby first, then swap), and eight seconds later the
+FO checks in on the new frequency: *"Good evening, Finnair 962, climbing through FL180 for FL210
+on KEMA5C."* — the greeting from the sim's local clock, the level from ProSim, the cleared level
+from ATC's last instruction, the SID or STAR from SayIntentions. Your own calls (clearance, push,
+taxi, takeoff requests) stay the voice requests below. Say *"I have the radios"* to answer ATC
+yourself and *"you have the radios"* to hand back. Leave **FO speaks the transmission** on: ATC
+hears the text, SayIntentions itself stays silent, so you hear each call once, in the FO voice.
+The comms hand-over by phase is ignored while this is on.
+
 The briefing opens with the greeting for the **sim's local time at the aircraft** ("Good
 afternoon, Captain" at a 16:35 sim clock, whatever the real-world time): the time of day
 comes from MSFS, not from the PC clock, and when MSFS is not running the FO opens with

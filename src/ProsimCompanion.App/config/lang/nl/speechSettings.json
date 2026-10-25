@@ -800,6 +800,31 @@
           "hint": "Uitgesproken na 'I have the radios'."
         }
       },
+      "foRadios": {
+        "title": "FO bedient de radio",
+        "hint": "Eén stem op de radio: de FO leest terug, stemt af en meldt zich in plaats van de SayIntentions-copiloot",
+        "enabled": {
+          "label": "FO bedient de radio",
+          "hint": "De SayIntentions-copiloot gaat uit. De FO leest elke ATC-instructie terug met zijn eigen stem en stuurt die naar ATC.",
+          "more": "Naar het voorbeeld van de copiloot zelf: “Climb FL140.”, “Contacting Tower on 119.355.”, dan “Good evening, Finnair 962, climbing through FL180 for FL210 on KEMA5C.” Zeg “I have the radios” om zelf ATC te beantwoorden en “you have the radios” om terug te geven. De comms-overdracht hierboven wordt genegeerd zolang dit aan staat. Nog niet in de vlucht gecontroleerd."
+        },
+        "tune": {
+          "label": "COM1 afstemmen bij overdracht",
+          "hint": "Bij “contact Tower on 119.355” zet de FO de frequentie: eerst standby, dan wisselen. ProSim-datarefs, nooit een schakelaar."
+        },
+        "checkIn": {
+          "label": "Melden op de nieuwe frequentie",
+          "hint": "Na de overdracht roept de FO het nieuwe station met jouw hoogte, de vrijgegeven hoogte en de SID of STAR."
+        },
+        "poll": {
+          "label": "ATC-poll",
+          "hint": "Hoe vaak de FO naar een nieuwe ATC-regel kijkt. Een regel verschijnt 1 tot 4 seconden nadat ATC spreekt."
+        },
+        "checkInDelay": {
+          "label": "Meldvertraging",
+          "hint": "Seconden tussen het teruglezen van de overdracht en de meldoproep."
+        }
+      },
       "weather": {
         "title": "SayIntentions-weer",
         "hint": "ATIS, METAR, TAF en CPDLC. Heeft alleen de API-sleutel nodig",

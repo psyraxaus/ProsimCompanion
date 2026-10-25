@@ -83,6 +83,46 @@ Not yet seen live: hand-off wording on arrival and in FAA phraseology, `since_id
 station) — neither of those two is read today (`SIAI_COM1_RECEIVING` / `SIAI_RADIO_PTT` are,
 for the radio-clear gate).
 
+## FO works the radios (owner request 2026-10-25, opt-in)
+
+`sayIntentions.foRadios.enabled` (default off; Voice First Officer → SayIntentions → "FO works
+the radios"). `FoRadiosService` holds the SI copilot off (`SIAI_COPILOT` = 0, re-asserted every
+2 min — SI resets it per flight; every other `SIAI_COPILOT` write in `SayIntentionsService` is
+forced to 0 while the switch is on, and the comms hand-over by phase, its readouts and the
+legacy departure gate are inert) and answers every ATC COM1 line the frequency monitor raises:
+
+- **Read-back** (`ReadbackComposer`, pure, tests pinned to the copilot's own 2026-10-25
+  transcript): the instruction minus callsign, the station's self-identification, "Identified",
+  greetings ("Hej", "God kvall", "Have a good evening") and the winds; "Flight-level-140" → FL140
+  (leading zero dropped, FL070 → FL70), "hold-short-of" → "hold short of", "A1" → "Alpha-one".
+  Nothing left ("Identified. Good evening") = no transmission. A hand-off ("Contact X on Y") →
+  "Contacting X on Y." No callsign on read-backs — exactly the copilot's habit.
+- **Tune** on a hand-off through the Core `IRadioTuner` (standby → verify → swap) when
+  `tuneOnHandoff`; a failed tune is spoken ("Could not tune …, Captain — the radios are yours").
+- **Check-in** `checkInDelaySeconds` (8) later (`CheckInComposer`): "Good evening, Finnair-niner-
+  six-two, climbing through 2,500 on KEMA5C." / "… climbing through FL180 for FL210 on KEMA5C." /
+  "… maintaining FL370." (copilot wording, verified in the transcript); descent / approach mirror
+  it with the STAR and "inbound runway 15"; TaxiOut "taxiing to holding point runway 22R";
+  TaxiIn "runway 15 vacated, request taxi to stand B16" — the arrival forms are **unverified**
+  (no arrival in the transcript). The greeting is the sim's local time of day (`ISimLocalTime`),
+  the cleared level the last "climb/descend/maintain …" ATC said (`ClearedLevelParser`), the
+  level FL from 10,000 ft, feet below; skipped when the pilot took the radios or ATC handed us on
+  again meanwhile.
+- Every transmission: `RadioClearGate` wait → FO voice (`foSpeaksTransmission`; `RadioSpeech`
+  spells FL / frequencies / runways / squawk digit by digit) → sayAs. Serialised. Events
+  `sayintentions.readback` {atc, kind: readback|handoff|none, transmit, spoken, radioWaitMs,
+  radioBusyAtTx, sent}, `sayintentions.checkin` {station, khz, transmit, …},
+  `sayintentions.fo-radios` {owner} on the voice override. Probe `si-fo-radios`.
+- Timing basis (measured live 2026-10-25): a new ATC line is in `getCommsHistory` 1–4 s after
+  its stamp; the copilot answered in 3 s. The monitor polls every `pollSeconds` (4, floor 3)
+  while the switch is on, at the gate too; sayAs is silent on the SI side (owner heard the FO
+  once, in the FO voice, with `foSpeaksTransmission` on).
+- Pilot-initiated calls (clearance, push, taxi, takeoff requests) stay the voice requests above.
+  "I have the radios" parks the FO (the captain answers ATC himself); "you have the radios"
+  wakes it. Unverified live: ATC accepting every sayAs read-back, the arrival check-in shapes,
+  and the push approval read-back (the copilot did NOT read "Push and start approved" back; the
+  composer does).
+
 ## Radios tile (owner request 2026-10-25)
 
 The Flight Status **Radios** tile (and a one-line mirror on the `/monitor` board) shows COM1

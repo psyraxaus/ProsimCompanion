@@ -39,6 +39,10 @@ public sealed class SayIntentionsOptions : IOptionSection
     /// <summary>Comms hand-over by flight phase (issue #171).</summary>
     public CommsHandoverOptions CommsHandover { get; set; } = new();
 
+    /// <summary>The FO works the radios instead of the SayIntentions copilot (owner request
+    /// 2026-10-25): read-backs, hand-off tuning and check-ins in the FO's own voice.</summary>
+    public FoRadiosOptions FoRadios { get; set; } = new();
+
     /// <summary>"icao" or "faa" request phraseology.</summary>
     [OptionField(FieldKind.Select, "speechSettings.sayIntentions.phraseology", Choices = "phraseology", DependsOn = "Enabled", Normalize = FieldNormalization.TrimLower)]
     public string Phraseology { get; set; } = "icao";
@@ -192,4 +196,38 @@ public sealed class CommsHandoverOptions
     /// <summary>The FO's line when the captain takes the radios by voice.</summary>
     [OptionField(FieldKind.Text, "speechSettings.sayIntentions.handover.captainLine", DependsOn = "../Enabled; Enabled")]
     public string CaptainLine { get; set; } = "Your radios.";
+}
+
+/// <summary>
+/// The FO works the radios (owner request 2026-10-25): with the SayIntentions copilot switched
+/// off (<c>SIAI_COPILOT</c> = 0) the FO reads every ATC instruction back through sayAs, in
+/// its own voice, tunes COM1 on a hand-off and checks in on the new frequency with the SID /
+/// STAR — the copilot's own pattern from the 2026-10-25 transcript. While this is on, the comms
+/// hand-over by flight phase and the legacy departure gate are inert; "I have the radios" /
+/// "you have the radios" still flip who answers. Off by default — unverified live.
+/// </summary>
+public sealed class FoRadiosOptions
+{
+    /// <summary>Master switch.</summary>
+    [OptionField(FieldKind.Bool, "speechSettings.sayIntentions.foRadios.enabled", DependsOn = "../Enabled")]
+    public bool Enabled { get; set; }
+
+    /// <summary>Comms-history poll while the FO works the radios. A new ATC line is in the
+    /// history 1–4 s after ATC speaks (measured 2026-10-25); the copilot answered in 3 s.</summary>
+    [OptionField(FieldKind.Number, "speechSettings.sayIntentions.foRadios.poll", Suffix = "s", Min = "3", Max = "20", Step = "1", DependsOn = "../Enabled; Enabled", Advanced = true)]
+    public int PollSeconds { get; set; } = 4;
+
+    /// <summary>Tune COM1 (standby then swap, ProSim datarefs) on ATC's "contact … on …".</summary>
+    [OptionField(FieldKind.Bool, "speechSettings.sayIntentions.foRadios.tune", DependsOn = "../Enabled; Enabled")]
+    public bool TuneOnHandoff { get; set; } = true;
+
+    /// <summary>Call the new station after a hand-off ("Good evening, Finnair 962, climbing
+    /// through FL180 for FL210 on KEMA5C").</summary>
+    [OptionField(FieldKind.Bool, "speechSettings.sayIntentions.foRadios.checkIn", DependsOn = "../Enabled; Enabled")]
+    public bool CheckIn { get; set; } = true;
+
+    /// <summary>Seconds between the hand-off read-back and the check-in — the frequency change
+    /// and a breath.</summary>
+    [OptionField(FieldKind.Number, "speechSettings.sayIntentions.foRadios.checkInDelay", Suffix = "s", Min = "3", Max = "30", Step = "1", DependsOn = "../Enabled; Enabled; CheckIn", Advanced = true)]
+    public int CheckInDelaySeconds { get; set; } = 8;
 }

@@ -3821,6 +3821,36 @@
         "requires-human: the switch values in the event match the overhead at that moment."
       ],
       "notes": "AntiIceCallFeature (precedence 85, shares the engine & flap switch) + pure AntiIceCallDecider; switches S_OH_PNEUMATIC_ENG1/2_ANTI_ICE and _WING_ANTI_ICE (0 Normal, 1 Pushed = on). Unverified live."
+    },
+    {
+      "id": "si-fo-radios",
+      "issue": 0,
+      "state": "open",
+      "kind": "assert-present",
+      "machine": {
+        "kind": "required-fields",
+        "type": "sayintentions.readback",
+        "fields": [
+          "payload.atc",
+          "payload.kind",
+          "payload.transmit",
+          "spoken",
+          "sent"
+        ]
+      },
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "Owner request 2026-10-25 (no issue): the FO works the radios instead of the SayIntentions copilot. Trigger = sayIntentions.foRadios.enabled true with the pillar on and an API key; with it off the probe is not-exercised.",
+        "assert-present: for every ATC COM1 line in the SayIntentions transcript that carries an instruction, a 'sayintentions.readback' {payload.atc, payload.kind: readback|handoff, payload.transmit, spoken, sent: true} within pollSeconds + 3 s of ATC's stamp, and the log line 'FO radios sayintentions.readback: \"<transmit>\"'. Compare transmit with what the SI copilot would have said (the 2026-10-25 transcript shapes: 'Climb FL140.', 'Contacting Tower on 119.355.', 'Runway 22R, cleared for takeoff.'). A check-in reply ('Identified. Good evening') must yield kind 'none' and NO transmission.",
+        "assert-present after each handoff read-back: a 'radio.tile-tune' {reason: 'handoff', khz, outcome: 'Tuned'} then, checkInDelaySeconds later, a 'sayintentions.checkin' {payload.station, payload.khz, payload.transmit} whose transmit opens with the greeting for the SIM local time (not the PC clock) and ends with the SID/STAR in climb/descent or 'maintaining FL…' in cruise; absent when the pilot had said 'I have the radios' (sayintentions.fo-radios {owner: captain}) or a second hand-off arrived inside the delay.",
+        "assert-absent: any 'sayintentions.comms' or 'sayintentions.atc-readout' event while the switch is on (the hand-over by phase and its readouts must be inert); any setVar of SIAI_COPILOT to 1 is not logged — check instead that the SI copilot never spoke in the SayIntentions transcript after the flight became active.",
+        "watch: 'sent: false' on a readback (sayAs HTTP failure) and 'radioBusyAtTx: true' (transmitted into a busy frequency after the 8 s cap); either repeated = a timing problem to report.",
+        "requires-human: ATC accepted each read-back and moved on (no 'say again' / repeat from SI ATC); the arrival check-in wording sounded right (descent / approach / taxi-in forms were never heard from the copilot — composed from the climb pattern); the push approval read-back ('Push and start approved. Face North-East.') is acceptable or should be dropped like the copilot does."
+      ],
+      "notes": "FoRadiosService (Speech): SIAI_COPILOT=0 re-asserted every 2 min; ReadbackComposer / CheckInComposer / ClearedLevelParser / RadioSpeech pure with tests pinned to the owner's 2026-10-25 EKCH→EFHK copilot transcript; RadioClearGate before every sayAs; the monitor polls every foRadios.pollSeconds (4) while on. Measured 2026-10-25: a new ATC line is in getCommsHistory 1–4 s after its stamp; sayAs is silent on the SI side. Unverified live."
     }
   ]
 }

@@ -800,6 +800,31 @@
           "hint": "Dite après 'I have the radios'."
         }
       },
+      "foRadios": {
+        "title": "L’OPL tient la radio",
+        "hint": "Une seule voix à la radio : l’OPL collationne, règle la fréquence et se présente à la place du copilote SayIntentions",
+        "enabled": {
+          "label": "L’OPL tient la radio",
+          "hint": "Le copilote SayIntentions est coupé. L’OPL collationne chaque instruction ATC de sa propre voix et l’envoie à l’ATC.",
+          "more": "Sur le modèle des appels du copilote : « Climb FL140. », « Contacting Tower on 119.355. », puis « Good evening, Finnair 962, climbing through FL180 for FL210 on KEMA5C. » Dis « I have the radios » pour répondre toi-même à l’ATC et « you have the radios » pour rendre la radio. Le transfert des communications ci-dessus est ignoré tant que ceci est actif. Pas encore vérifié en vol."
+        },
+        "tune": {
+          "label": "Régler COM1 au transfert",
+          "hint": "Sur « contact Tower on 119.355 » l’OPL affiche la fréquence : standby d’abord, puis bascule. Datarefs ProSim, jamais un bouton."
+        },
+        "checkIn": {
+          "label": "Se présenter sur la nouvelle fréquence",
+          "hint": "Après le transfert l’OPL appelle la nouvelle station avec ton niveau, le niveau autorisé et la SID ou la STAR."
+        },
+        "poll": {
+          "label": "Interrogation ATC",
+          "hint": "Fréquence à laquelle l’OPL cherche une nouvelle ligne ATC. Une ligne apparaît 1 à 4 secondes après la parole de l’ATC."
+        },
+        "checkInDelay": {
+          "label": "Délai de présentation",
+          "hint": "Secondes entre le collationnement du transfert et l’appel de présentation."
+        }
+      },
       "weather": {
         "title": "Météo SayIntentions",
         "hint": "ATIS, METAR, TAF et CPDLC. N'exige que la clé API",

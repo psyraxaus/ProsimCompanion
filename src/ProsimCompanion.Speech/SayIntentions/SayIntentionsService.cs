@@ -70,6 +70,11 @@ public sealed class SayIntentionsService : IVoiceFeature, Core.Hosting.IStartupM
     private readonly PushbackChoiceStore? _pushback;
     private readonly GsxDiagnosticsStore? _gsx;
     private readonly SayIntentionsFrequencyMonitor? _frequencyMonitor;
+
+    /// <summary>The FO working the radios (owner request 2026-10-25): while its switch is on the
+    /// hand-over by phase, the legacy gate and the readouts here are inert and SIAI_COPILOT is
+    /// always written 0; the voice override flips its owner instead.</summary>
+    private readonly FoRadiosService? _foRadios;
     private readonly StepClimbStore? _stepClimb; // {stepLevel} for "request climb" (issue #189)
     private readonly RadioClearGate _radioGate;
     private readonly CommsHandoverCore _handover = new();
@@ -127,7 +132,8 @@ public sealed class SayIntentionsService : IVoiceFeature, Core.Hosting.IStartupM
         GsxDiagnosticsStore? gsx = null,
         SayIntentionsFrequencyMonitor? frequencyMonitor = null,
         OfpStore? ofp = null,
-        StepClimbStore? stepClimb = null)
+        StepClimbStore? stepClimb = null,
+        FoRadiosService? foRadios = null)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(arbiter);
@@ -146,6 +152,7 @@ public sealed class SayIntentionsService : IVoiceFeature, Core.Hosting.IStartupM
         _pushback = pushback;
         _gsx = gsx;
         _frequencyMonitor = frequencyMonitor;
+        _foRadios = foRadios;
         _stepClimb = stepClimb;
         _radioGate = new RadioClearGate(simVars, logger);
     }
@@ -290,6 +297,21 @@ public sealed class SayIntentionsService : IVoiceFeature, Core.Hosting.IStartupM
         else
         {
             return false;
+        }
+
+        if (options.FoRadios.Enabled && _foRadios is not null)
+        {
+            // The FO works the radios: the override parks or wakes the FO; the SI copilot stays off.
+            var captain = wanted == CommsOwner.Captain;
+            if (_foRadios.CaptainOwns == captain)
+            {
+                _ = _arbiter.SpeakAsync(captain ? "The radios are already yours." : "I already have the radios.", SpeechPriority.Normal);
+                return true;
+            }
+
+            _foRadios.SetCaptainOwns(captain);
+            _ = _arbiter.SpeakAsync(captain ? "Your radios, Captain." : "I have the radios.", SpeechPriority.Normal);
+            return true;
         }
 
         FlightContext flight;
@@ -470,7 +492,7 @@ public sealed class SayIntentionsService : IVoiceFeature, Core.Hosting.IStartupM
                 "SayIntentionsAI", "flight.json");
             var flight = ReadFlightJson(path);
             var handover = options.CommsHandover;
-            var legacyGate = options.DepartureGatingEnabled && !handover.Enabled;
+            var legacyGate = options.DepartureGatingEnabled && !handover.Enabled && !options.FoRadios.Enabled;
 
             bool becameActive;
             bool gateTripped;
@@ -594,7 +616,7 @@ public sealed class SayIntentionsService : IVoiceFeature, Core.Hosting.IStartupM
         {
             var options = _options.CurrentValue;
             var handover = options.CommsHandover;
-            if (!options.Enabled || !handover.Enabled)
+            if (!options.Enabled || !handover.Enabled || options.FoRadios.Enabled)
             {
                 return;
             }
@@ -666,6 +688,12 @@ public sealed class SayIntentionsService : IVoiceFeature, Core.Hosting.IStartupM
     /// — the next edge corrects it.</summary>
     private async Task ApplyHandoverAsync(CommsHandoverDecision decision, FlightContext flight, SayIntentionsOptions options)
     {
+        if (options.FoRadios.Enabled)
+        {
+            _logger.LogDebug("Comms hand-over {Trigger} skipped — the FO works the radios", decision.Trigger);
+            return;
+        }
+
         var handover = options.CommsHandover;
         var line = decision.Owner == CommsOwner.Copilot
             ? handover.CopilotLine
@@ -930,6 +958,11 @@ public sealed class SayIntentionsService : IVoiceFeature, Core.Hosting.IStartupM
 
     private async Task SetVarAsync(string apiKey, string name, string value)
     {
+        if (name == "SIAI_COPILOT" && _options.CurrentValue.FoRadios.Enabled)
+        {
+            value = "0"; // the FO works the radios — the SI copilot never comes back on
+        }
+
         using var response = await Http.GetAsync(
             $"{ApiBase}/setVar?api_key={Uri.EscapeDataString(apiKey)}&var={Uri.EscapeDataString(name)}&value={Uri.EscapeDataString(value)}&category=L")
             .ConfigureAwait(false);

@@ -800,6 +800,31 @@
           "hint": "Dicha tras 'I have the radios'."
         }
       },
+      "foRadios": {
+        "title": "El FO maneja las radios",
+        "hint": "Una sola voz en la radio: el FO colaciona, sintoniza y se presenta en lugar del copiloto de SayIntentions",
+        "enabled": {
+          "label": "El FO maneja las radios",
+          "hint": "El copiloto de SayIntentions se apaga. El FO colaciona cada instrucción de ATC con su propia voz y la envía a ATC.",
+          "more": "Según las llamadas del propio copiloto: «Climb FL140.», «Contacting Tower on 119.355.», luego «Good evening, Finnair 962, climbing through FL180 for FL210 on KEMA5C.» Di «I have the radios» para responder tú a ATC y «you have the radios» para devolverlas. El traspaso de comunicaciones de arriba se ignora mientras esto está activo. Aún no verificado en vuelo."
+        },
+        "tune": {
+          "label": "Sintonizar COM1 en un traspaso",
+          "hint": "Con «contact Tower on 119.355» el FO pone la frecuencia: primero standby, luego el cambio. Datarefs de ProSim, nunca un interruptor."
+        },
+        "checkIn": {
+          "label": "Presentarse en la nueva frecuencia",
+          "hint": "Tras el traspaso el FO llama a la nueva estación con tu nivel, el nivel autorizado y la SID o STAR."
+        },
+        "poll": {
+          "label": "Sondeo de ATC",
+          "hint": "Cada cuánto el FO busca una nueva línea de ATC. Una línea aparece 1 a 4 segundos después de que ATC hable."
+        },
+        "checkInDelay": {
+          "label": "Retardo de presentación",
+          "hint": "Segundos entre la colación del traspaso y la llamada de presentación."
+        }
+      },
       "weather": {
         "title": "Meteorología de SayIntentions",
         "hint": "ATIS, METAR, TAF y CPDLC. Solo necesita la clave API",
