@@ -760,7 +760,7 @@
         },
         "holdingDistance": {
           "label": "Distancia del punto de espera",
-          "hint": "Cuán cerca del umbral de pista cuenta como punto de espera."
+          "hint": "Cuán cerca de la pista cuenta como punto de espera — medido al punto más cercano de la pista, así también cuenta una salida por intersección."
         },
         "tuneTower": {
           "label": "Sintonizar Torre en el punto de espera",

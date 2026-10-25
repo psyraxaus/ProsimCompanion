@@ -839,7 +839,9 @@ public sealed class SayIntentionsService : IVoiceFeature, Core.Hosting.IStartupM
             return null;
         }
 
-        return GreatCircle.DistanceNm(position, _departureThreshold.Threshold);
+        // The runway as a strip, not its threshold (2026-10-25 EKCH 22R: holding short at
+        // intersection A1, ~1 nm from the threshold, never tripped the 0.3 nm rule).
+        return Core.Airports.RunwayGeometryDistance.DistanceToRunwayNm(_departureThreshold, position);
     }
 
     // ---- Legacy departure gate ----

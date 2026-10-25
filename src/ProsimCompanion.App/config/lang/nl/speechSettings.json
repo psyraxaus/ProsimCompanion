@@ -760,7 +760,7 @@
         },
         "holdingDistance": {
           "label": "Wachtpuntafstand",
-          "hint": "Hoe dicht bij de baandrempel als wachtpunt telt."
+          "hint": "Hoe dicht bij de baan als wachtpunt telt — gemeten tot het dichtstbijzijnde punt van de baan, zodat een intersectievertrek ook telt."
         },
         "tuneTower": {
           "label": "Tower afstemmen bij het wachtpunt",

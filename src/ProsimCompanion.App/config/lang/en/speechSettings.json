@@ -760,7 +760,7 @@
         },
         "holdingDistance": {
           "label": "Holding point distance",
-          "hint": "How close to the runway threshold counts as the holding point."
+          "hint": "How close to the runway counts as the holding point — measured to the nearest point of the runway, so an intersection departure counts too."
         },
         "tuneTower": {
           "label": "Tune Tower at the holding point",

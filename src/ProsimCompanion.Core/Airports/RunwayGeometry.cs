@@ -15,6 +15,40 @@ namespace ProsimCompanion.Core.Airports;
 /// <param name="Source">Which tier answered ("gateway", "dfd").</param>
 public sealed record RunwayGeometry(string Icao, string Ident, GeoPoint Threshold, double? TrueHeadingDeg, int? LengthFt, string Source);
 
+/// <summary>Distances to a runway as a strip, not a point (owner flight 2026-10-25, EKCH 22R:
+/// the aircraft held short at intersection A1, about 1 nm from the threshold, so the 0.3 nm
+/// "holding point" rule never tripped and the SI copilot kept the radios).</summary>
+public static class RunwayGeometryDistance
+{
+    /// <summary>Nautical miles from <paramref name="point"/> to the nearest point of the runway
+    /// centreline between its two ends. With no heading or length the threshold alone is the
+    /// runway (the pre-2026-10-25 rule).</summary>
+    public static double DistanceToRunwayNm(this RunwayGeometry runway, GeoPoint point)
+    {
+        ArgumentNullException.ThrowIfNull(runway);
+
+        if (runway.TrueHeadingDeg is not { } heading || runway.LengthFt is not { } lengthFt || lengthFt <= 0)
+        {
+            return Core.Flight.GreatCircle.DistanceNm(point, runway.Threshold);
+        }
+
+        var lengthNm = lengthFt / 6076.12;
+        var farEnd = Core.Flight.GreatCircle.Destination(runway.Threshold, heading, lengthNm);
+        var (along, cross) = Core.Flight.GreatCircle.AlongCrossTrackNm(runway.Threshold, farEnd, point);
+        if (along <= 0)
+        {
+            return Core.Flight.GreatCircle.DistanceNm(point, runway.Threshold);
+        }
+
+        if (along >= lengthNm)
+        {
+            return Core.Flight.GreatCircle.DistanceNm(point, farEnd);
+        }
+
+        return Math.Abs(cross);
+    }
+}
+
 /// <summary>
 /// The departure airport + runway as currently planned, for the pushback advisor: the FMS
 /// plan when the Speech pillar is composed in (its briefing procedure source reads the MCDU

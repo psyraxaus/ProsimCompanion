@@ -760,7 +760,7 @@
         },
         "holdingDistance": {
           "label": "Haltepunkt-Entfernung",
-          "hint": "Wie nah an der Pistenschwelle als Haltepunkt gilt."
+          "hint": "Wie nah an der Piste als Haltepunkt gilt — gemessen zum nächsten Punkt der Piste, damit auch ein Intersection-Start zählt."
         },
         "tuneTower": {
           "label": "Tower am Haltepunkt rasten",

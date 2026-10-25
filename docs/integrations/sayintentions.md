@@ -222,7 +222,7 @@ legacy gate is ignored; the voice takeoff request no longer hands the radios bac
 |---|---|---|---|
 | (a) gate | new active SI flight on the ground | 1 | "I have the radios." |
 | (b) taxi | copilot owns; new COM1 ATC lines from `getCommsHistory` | — | "Taxi clearance: …" / "ATC handed us to Tower, one one niner decimal seven." |
-| (c) holding point | TaxiOut and ≤ `holdingPointDistanceNm` (0.3) from the threshold, once per taxi | 0, Tower tuned via setFreq when known | "Comms are yours, Captain — call the takeoff request when ready." |
+| (c) holding point | TaxiOut and ≤ `holdingPointDistanceNm` (0.3) from the RUNWAY STRIP (nearest point between the two ends — since 2026-10-25; the threshold alone missed the EKCH 22R intersection departure at A1, ~1 nm down the runway), once per taxi | 0, Tower tuned via setFreq when known | "Comms are yours, Captain — call the takeoff request when ready." |
 | (d) climb | Climb phase edge (Cruise edge as the safety net when Climb was skipped) | 1 | "I have the radios." |
 | (e) cruise/descent | copilot owns; hand-offs announced, wrong-frequency report as before | — | |
 | (f) approach | Approach phase edge, or the first Tower hand-off heard in Descent | 0 | "Comms are yours for the landing, Captain." |

@@ -43,6 +43,24 @@ public static class GreatCircle
             ToDegrees(Math.Atan2(y, x)));
     }
 
+    /// <summary>The point <paramref name="distanceNm"/> from <paramref name="from"/> along the
+    /// true bearing <paramref name="bearingDeg"/> — a runway's far end from its threshold,
+    /// heading and length (the holding-point rule, 2026-10-25).</summary>
+    public static GeoPoint Destination(GeoPoint from, double bearingDeg, double distanceNm)
+    {
+        var d = distanceNm / EarthRadiusNm;
+        var brg = ToRadians(bearingDeg);
+        var lat1 = ToRadians(from.LatitudeDeg);
+        var lon1 = ToRadians(from.LongitudeDeg);
+        var lat2 = Math.Asin((Math.Sin(lat1) * Math.Cos(d)) + (Math.Cos(lat1) * Math.Sin(d) * Math.Cos(brg)));
+        var lon2 = lon1 + Math.Atan2(
+            Math.Sin(brg) * Math.Sin(d) * Math.Cos(lat1),
+            Math.Cos(d) - (Math.Sin(lat1) * Math.Sin(lat2)));
+        var lonDeg = ToDegrees(lon2);
+        lonDeg = ((lonDeg + 540) % 360) - 180;
+        return new GeoPoint(ToDegrees(lat2), lonDeg);
+    }
+
     /// <summary>
     /// Where <paramref name="point"/> sits relative to the great circle
     /// <paramref name="from"/> → <paramref name="to"/>: the distance along it from

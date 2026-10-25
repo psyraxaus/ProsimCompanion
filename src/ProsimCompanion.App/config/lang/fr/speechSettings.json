@@ -760,7 +760,7 @@
         },
         "holdingDistance": {
           "label": "Distance du point d'attente",
-          "hint": "À quelle distance du seuil de piste on compte comme au point d'attente."
+          "hint": "À quelle distance de la piste on compte comme au point d’attente — mesurée au point le plus proche de la piste, donc un décollage par intersection compte aussi."
         },
         "tuneTower": {
           "label": "Afficher la Tour au point d'attente",
