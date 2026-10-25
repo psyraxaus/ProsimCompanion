@@ -3035,7 +3035,7 @@
       ],
       "checks": [
         "Only with sayIntentions.commsHandover.enabled = true (off by default; the legacy departureGatingEnabled gate is then ignored). Trigger = a SayIntentions flight active while the phase engine runs a departure.",
-        "assert-present: a 'sayintentions.comms' {owner:'copilot', trigger:'flight-active'} on the ground when the flight became active, then {owner:'captain', trigger:'holding-point', phase:'TaxiOut'} before the TakeoffRoll edge, then {owner:'copilot', trigger:'climb'} at the Climb edge (or trigger 'cruise' when the Climb edge was skipped); each with the matching log line 'Comms hand-over: <Owner> has the radios (<trigger>, <phase>)'. The SIAI_COPILOT setVar is not logged — the FO line in 'text' and the SI client's copilot state are the evidence.",
+        "assert-present: a 'sayintentions.comms' {owner:'copilot', trigger:'flight-active'} on the ground when the flight became active, then {owner:'captain', trigger:'holding-point', phase:'TaxiOut'} before the TakeoffRoll edge (since 2026-10-25 the distance is to the runway STRIP — an intersection departure such as EKCH 22R via A1, ~1 nm from the threshold, must fire too; the 2026-10-25 flight did not and the SI copilot made the takeoff call), then {owner:'copilot', trigger:'climb'} at the Climb edge (or trigger 'cruise' when the Climb edge was skipped); each with the matching log line 'Comms hand-over: <Owner> has the radios (<trigger>, <phase>)'. The SIAI_COPILOT setVar is not logged — the FO line in 'text' and the SI client's copilot state are the evidence.",
         "assert-present on arrival: {owner:'captain', trigger:'approach'} at the Approach edge OR {trigger:'tower-handoff', phase:'Descent'} earlier (then the Approach edge is silent), and {owner:'copilot', trigger:'taxi-in'} at the TaxiIn edge.",
         "assert-absent: two 'sayintentions.comms' events with the same trigger inside one phase (duplicates); a 'holding-point' event outside TaxiOut; any 'sayintentions.departureGate' event while the hand-over is on (legacy path must be inert).",
         "assert-present when the holding point never fired: the log line 'Comms hand-over: departure runway <ICAO> <RWY> threshold unknown — no holding-point hand-over' explains it (no runway geometry from the gateway or the DFD); otherwise quote the distance evidence (flight-sample positions against the threshold).",
@@ -3879,6 +3879,32 @@
         "requires-human: the RAD NAV page showed ident, frequency and course after the call."
       ],
       "notes": "McduRadNavTuner: ident first (TypeAsync(ident) → LSK3L → IdentTook), CLEAR until the scratchpad is empty, then the old frequency path. Unverified live."
+    },
+    {
+      "id": "checklist-control-word-edge",
+      "issue": 0,
+      "state": "open",
+      "kind": "assert-present",
+      "machine": {
+        "kind": "required-fields",
+        "type": "checklist.voice.reminder",
+        "fields": [
+          "item",
+          "afterSeconds"
+        ]
+      },
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "Owner flight 2026-10-25 (Descent checklist, 'Minimum' open 04:12:52–04:29:37Z): the pilot's 'skip' arrived glued to cabin-PA audio ('… 80 degrees Celsius, skip,') and was lost; nothing reminded him. Two behaviours: a control word at the EDGE of a longer transcript routes while a line waits, and one reminder after 60 s of silence on an open line.",
+        "assert-present (edge word): whenever a voice.unmatched of reason 'not-an-answer' with context 'checklist: <line>' has normalized text that STARTS or ENDS with skip / skip item / say again / hold the checklist / cancel (the) checklist / resume checklist / restart checklist, the log instead holds 'Checklist control word \"<word>\" taken from the edge of \"<heard>\"' and the checklist.voice.item for that line reads the word's outcome (result 'skipped' for skip). Such a voice.unmatched without that log line = fail.",
+        "assert-present (reminder): a line open for more than 60 s with no accepted answer records 'checklist.voice.reminder' {item, afterSeconds: 60} ONCE followed by speech 'Still waiting on <item>, Captain — say the answer, or skip.' (tag checklist.reminder); a second reminder for the same line = fail; a reminder while a hold was active = fail.",
+        "assert-absent: an edge-word route from 'continue', 'repeat' or 'standby' inside a longer transcript (deliberately whole-utterance only); any reminder on a line that was answered inside 60 s.",
+        "requires-human: the reminder did not step on the pilot's own words (the arbiter queues it; check the asr.utterance stamps around it)."
+      ],
+      "notes": "ChecklistControlWords.AtEdge (pure) hooked in UtteranceRouter.RouteUtterance before interpretation while awaiting/responsePending; SpokenChecklistEngine.AwaitAcceptedAsync Task.WhenAny loop with ReminderAfter = 60 s (internal static). Unverified live."
     }
   ]
 }

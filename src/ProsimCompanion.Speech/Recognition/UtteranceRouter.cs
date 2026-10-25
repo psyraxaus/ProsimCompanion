@@ -301,6 +301,19 @@ public sealed class UtteranceRouter : IDisposable
             }
         }
 
+        // A control word glued to other speech while a checklist line waits (2026-10-25 EKCH→EFHK:
+        // "… 80 degrees Celsius, skip," — the cabin PA plus the pilot's "skip"). The accepted
+        // answer still wins when the whole transcript is one.
+        if ((awaiting is not null || responsePending)
+            && (awaiting is null || !host.IsAcceptedAnswer(awaiting, e.Text))
+            && ChecklistControlWords.AtEdge(CommandMatcher.Normalize(e.Text)) is { } controlWord)
+        {
+            _logger.LogInformation("Checklist control word \"{Word}\" taken from the edge of \"{Heard}\"", controlWord, e.Text);
+            _unmatched?.Record(e.Text, 1.0, ContextOf(host), UnmatchedReason.Reject, suppressed: true);
+            RouteText(host, controlWord, awaiting, e.Text, 1.0);
+            return;
+        }
+
         var grammar = ScopeForChecklistStart(e.Text, BuildRouteVocabulary(awaiting), awaiting is not null);
         var interpretation = _interpreter.Interpret(
             e.Text, grammar, new InterpretContext(awaiting is not null, e.AcousticConfidence, e.NoSpeechProb));
