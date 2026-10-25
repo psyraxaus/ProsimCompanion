@@ -37,7 +37,8 @@ public sealed record BriefingFacts(
     IReadOnlyList<Core.TechLog.TechLogDefect>? TechLogItems = null,
     EmergencyBriefFacts? Emergency = null,
     GoAroundBriefFacts? GoAround = null,
-    Core.Weather.WindLimitVerdict? WindLimits = null);
+    Core.Weather.WindLimitVerdict? WindLimits = null,
+    string? TimeOfDay = null);
 
 /// <summary>The facts of the emergency half of a takeoff briefing (issue #180). Present only
 /// while <c>briefing.takeoffEmergencyBrief</c> is on — null keeps the departure template
@@ -113,6 +114,11 @@ public static class BriefingComposer
     /// that identify it in other wording — see <see cref="Core.Speech.NarrationSection"/>. A
     /// streamed LLM briefing that is cut short is finished with exactly the clauses the pilot
     /// has not heard yet. The clause texts and their order are the template, unchanged.</summary>
+    /// <summary>"Good afternoon, Captain. Departure briefing." when the sim's local time of day
+    /// is known, the bare header otherwise — never a guessed greeting (owner report 2026-10-25).</summary>
+    internal static string Opening(BriefingFacts f, string header)
+        => f.TimeOfDay is { Length: > 0 } word ? $"Good {word}, Captain. {header}" : header;
+
     public static IReadOnlyList<Core.Speech.NarrationSection> Sections(BriefingFacts f)
     {
         ArgumentNullException.ThrowIfNull(f);
@@ -120,7 +126,7 @@ public static class BriefingComposer
         var s = new List<Core.Speech.NarrationSection>();
         if (f.IsDeparture)
         {
-            s.Add(new("header", "Departure briefing.") { IsOpening = true });
+            s.Add(new("header", Opening(f, "Departure briefing.")) { IsOpening = true });
             if (f.Airport is { } airport)
             {
                 s.Add(new("airport", $"Departing {f.AirportName ?? airport}.") { AnyOf = Names(f.AirportName, airport) });
@@ -160,7 +166,7 @@ public static class BriefingComposer
         }
         else
         {
-            s.Add(new("header", "Arrival briefing.") { IsOpening = true });
+            s.Add(new("header", Opening(f, "Arrival briefing.")) { IsOpening = true });
             if (f.Airport is { } airport)
             {
                 s.Add(new("airport", $"Arriving {f.AirportName ?? airport}.") { AnyOf = Names(f.AirportName, airport) });
@@ -550,7 +556,10 @@ public static class BriefingComposer
             + "wind direction and runway numbers digit by digit (e.g. 'heading one six three', 'one "
             + "one eight decimal one zero', 'runway one six right'); read altitudes, distances and "
             + "speeds normally. Speak single letters as their NATO phonetic words: 'information "
-            + "Mike' (never 'information M'), 'VOLA three Victor' (never 'VOLA3V').";
+            + "Mike' (never 'information M'), 'VOLA three Victor' (never 'VOLA3V')."
+            + " Open with the greeting that matches the 'Time of day at the aircraft' fact ('Good "
+            + "afternoon, Captain.'); when that fact is absent open with 'Captain,' and use no "
+            + "time-of-day greeting at all — never guess morning or evening.";
 
     /// <summary>Builds the fact block ("- Label: value" lines, blanks omitted).</summary>
     public static string FactBlock(BriefingFacts f)
@@ -570,6 +579,9 @@ public static class BriefingComposer
 
         // Identifiers/letters are handed to the LLM pre-formatted for speech (issue #68) —
         // asking the model to phoneticize "VOLA3V" itself proved unreliable.
+        // The sim's LOCAL time of day as a word only — a clock figure would invite the model
+        // to read it out, and the narrator's number lock would then reject the sentence.
+        Line("Time of day at the aircraft", f.TimeOfDay);
         Line("Airport", f.AirportName is { } name ? $"{name} ({f.Airport})" : f.Airport);
         Line("Runway", f.Runway);
         Line("SID", Core.Speech.NatoPhonetics.SpeakIdentifier(f.Sid));

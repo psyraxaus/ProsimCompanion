@@ -1042,6 +1042,10 @@ public static class ProsimDataRefNames
         /// <summary>True while the user is walking around as an avatar (MSFS 2024).</summary>
         public static readonly SimVarRef<bool> IsAvatar = new("IS AVATAR", "Bool", DataRefTier.Normal, false);
 
+        /// <summary>Seconds since local midnight at the aircraft — the FO's time-of-day greeting
+        /// (owner report 2026-10-25: "good morning" at sim 16:35). MSFS SimVar, not an L:var.</summary>
+        public static readonly SimVarRef<double> LocalTimeSeconds = new("LOCAL TIME", "seconds", DataRefTier.Infrequent, 0.0);
+
         public const string Eng1Combustion = "ENG COMBUSTION:1";
         public const string Eng2Combustion = "ENG COMBUSTION:2";
         public const string DoorPointFwd = "INTERACTIVE POINT OPEN:8";

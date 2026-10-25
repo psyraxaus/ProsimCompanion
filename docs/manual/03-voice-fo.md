@@ -258,6 +258,11 @@ the MCDU RCVD MSGS and answers *ROGER DIVERSION, HANDLING ARRANGED LIRN, CALL ON
 
 ## Briefings, radios, FCU
 
+The briefing opens with the greeting for the **sim's local time at the aircraft** ("Good
+afternoon, Captain" at a 16:35 sim clock, whatever the real-world time): the time of day
+comes from MSFS, not from the PC clock, and when MSFS is not running the FO opens with
+"Captain," and no time-of-day greeting at all.
+
 - *"Brief the departure"* / *"brief the arrival"* — composed from the FMS plan, Navigraph
   DFD procedures, live weather and your minima. With an LLM configured the wording is
   natural and the FO starts speaking after the model's first sentence, not after the whole

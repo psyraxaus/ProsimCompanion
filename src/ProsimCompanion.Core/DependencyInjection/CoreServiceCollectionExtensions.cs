@@ -334,6 +334,9 @@ public static class CoreServiceCollectionExtensions
         // follow the sim's day, falling back to real UTC when the sim clock is not live.
         services.AddSingleton<Aircraft.SimClock>();
         services.AddSingleton<Aircraft.ISimClock>(p => p.GetRequiredService<Aircraft.SimClock>());
+        // Local time of day at the aircraft (MSFS LOCAL TIME) for the FO's greeting (2026-10-25).
+        services.AddSingleton<Aircraft.SimLocalTime>();
+        services.AddSingleton<Aircraft.ISimLocalTime>(p => p.GetRequiredService<Aircraft.SimLocalTime>());
         // Arrival-gate workflow: Confirm queues, cruise auto-fires to GSX + SayIntentions
         // ATC, Send Now fires immediately. Both targets come from other pillars (Gsx and
         // Speech) and resolve as optional so a composition without them still starts.

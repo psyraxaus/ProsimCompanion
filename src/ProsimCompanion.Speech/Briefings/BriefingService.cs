@@ -60,6 +60,7 @@ public sealed class BriefingService : IVoiceFeature, IDisposable
     private readonly JsonlEventLog _eventLog;
     private readonly ILogger<BriefingService> _logger;
     private readonly Persona.PersonaService? _persona;
+    private readonly Core.Aircraft.ISimLocalTime? _localTime;
 
     // Streamed LLM speech (issue #147). Optional: hand-built instances (tests, tools)
     // without one simply keep the whole-reply path.
@@ -118,7 +119,8 @@ public sealed class BriefingService : IVoiceFeature, IDisposable
         IOptionsMonitor<SopOptions>? sop = null,
         IOptionsMonitor<AircraftLimitsOptions>? aircraftLimits = null,
         RunwayConditionStore? runwayCondition = null,
-        Core.Aircraft.Ofp.OfpStore? ofp = null)
+        Core.Aircraft.Ofp.OfpStore? ofp = null,
+        Core.Aircraft.ISimLocalTime? localTime = null)
     {
         _persona = persona;
         _narrator = narrator;
@@ -130,6 +132,7 @@ public sealed class BriefingService : IVoiceFeature, IDisposable
         _aircraftLimits = aircraftLimits;
         _runwayCondition = runwayCondition;
         _ofp = ofp;
+        _localTime = localTime;
         ArgumentNullException.ThrowIfNull(spokenText);
         _spokenText = spokenText;
         ArgumentNullException.ThrowIfNull(options);
@@ -433,7 +436,8 @@ public sealed class BriefingService : IVoiceFeature, IDisposable
             TechLogItems: ConsultTechLog(departure),
             Emergency: departure && options.TakeoffEmergencyBrief ? BuildEmergencyFacts(ids, nav, wx, flexTemp, perf, options) : null,
             GoAround: !departure && options.ArrivalGoAroundBrief ? BuildGoAroundFacts(ids) : null,
-            WindLimits: WindLimitsFor(departure, nav, wx));
+            WindLimits: WindLimitsFor(departure, nav, wx),
+            TimeOfDay: _localTime?.LocalTimeOfDay is { } localTime ? Core.Aircraft.TimeOfDayGreeting.Word(localTime) : null);
     }
 
     /// <summary>The emergency half's facts (issue #180). Every source is optional: no DFD = no
