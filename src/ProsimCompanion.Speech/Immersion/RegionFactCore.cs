@@ -6,7 +6,9 @@ namespace ProsimCompanion.Speech.Immersion;
 
 /// <summary>One scheduler tick's inputs — sampled by the shell, judged by the core.</summary>
 /// <param name="Live">The flight-live gate (issue #114): ProSim pushes plausible data with no MSFS session.</param>
-/// <param name="VoicePaused">The pilot's "ear off" latch — the FO keeps quiet too.</param>
+/// <param name="VoicePaused">The pilot's "ear off" latch. Kept for the event payload only: since
+/// 2026-10-25 (owner report) a muted mic no longer silences the facts — the latch stops the FO
+/// LISTENING, not talking; sterile and "quiet please" still do.</param>
 /// <param name="Sterile">The sterile-cockpit rule's verdict for this phase/altitude (never in the cruise, but explicit).</param>
 /// <param name="Quiet">"Quiet please" has been said this session (the arbiter would drop a Low item anyway; no lookup is spent).</param>
 public sealed record RegionFactTick(
@@ -141,7 +143,7 @@ public sealed class RegionFactCore
         }
 
         if (!options.Enabled || !tick.Live || tick.Phase != FlightPhase.Cruise || _cruiseSince is null
-            || tick.VoicePaused || tick.Sterile || tick.Quiet
+            || tick.Sterile || tick.Quiet
             || CountThisFlight >= Math.Max(0, options.MaxPerFlight)
             || _nextDueUtc is not { } due || tick.NowUtc < due)
         {

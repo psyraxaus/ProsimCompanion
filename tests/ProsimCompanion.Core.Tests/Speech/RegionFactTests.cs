@@ -65,12 +65,22 @@ public sealed class RegionFactCoreTests
         core.IsDue(Cruise(0), options, Mid);
 
         Assert.False(core.IsDue(Cruise(30, live: false), options, Mid));
-        Assert.False(core.IsDue(Cruise(30, paused: true), options, Mid));
         Assert.False(core.IsDue(Cruise(30, sterile: true), options, Mid));
         Assert.False(core.IsDue(Cruise(30, quiet: true), options, Mid));
         Assert.False(core.IsDue(Cruise(30) with { Phase = FlightPhase.Climb }, options, Mid));   // step climb
         Assert.False(core.IsDue(Cruise(30), new RegionFactsOptions { Enabled = false }, Mid));
         Assert.True(core.IsDue(Cruise(31), options, Mid));
+    }
+
+    [Fact]
+    public void MutedMic_DoesNotHoldTheFact()
+    {
+        // Owner report 2026-10-25: the PAUSED latch stops the FO listening, not talking.
+        var core = new RegionFactCore();
+        var options = On();
+        core.IsDue(Cruise(0), options, Mid);
+
+        Assert.True(core.IsDue(Cruise(31, paused: true), options, Mid));
     }
 
     [Fact]
@@ -431,10 +441,6 @@ public sealed class RegionFactServiceTests : IDisposable
         var service = Service();
         service.ProcessTick(T0);
 
-        _status.Update(s => s with { ListeningPaused = true });
-        Assert.Null(service.ProcessTick(T0.AddMinutes(10)));
-        _status.Update(s => s with { ListeningPaused = false });
-
         _phases.SetLive(false);
         Assert.Null(service.ProcessTick(T0.AddMinutes(11)));
         _phases.SetLive(true);
@@ -443,6 +449,17 @@ public sealed class RegionFactServiceTests : IDisposable
         Assert.Null(service.ProcessTick(T0.AddMinutes(12)));
         _quiet.Reset();
 
+        Assert.Equal("TL", service.ProcessTick(T0.AddMinutes(13)));
+    }
+
+    [Fact]
+    public void MutedMic_StillGetsTheFact()
+    {
+        // Owner report 2026-10-25: the facts were silent whenever the mic pill read PAUSED.
+        var service = Service();
+        service.ProcessTick(T0);
+
+        _status.Update(s => s with { ListeningPaused = true });
         Assert.Equal("TL", service.ProcessTick(T0.AddMinutes(13)));
     }
 

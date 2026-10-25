@@ -111,8 +111,8 @@ off) and otherwise from the curated file
 `%LOCALAPPDATA%\ProsimCompanion\config\region-facts.json` — edit it to add your own, keyed
 by country code (`"FR"`, `"GB"`) or `"sea:North Sea"`, one array of sentences per key; your
 edits survive updates. Never the same region twice in a flight, at most **Facts per flight**
-(four) per leg, and silent outside the cruise, while the flight is not live, while the mic
-pill reads PAUSED, in the sterile cockpit, after *"quiet please"*, and over water the atlas
+(four) per leg, and silent outside the cruise, while the flight is not live, in the sterile
+cockpit, after *"quiet please"*, and over water the atlas
 does not name. With the FO persona on, a curated fact is spoken in the persona's voice with
 every figure locked.
 

@@ -373,10 +373,11 @@ public sealed class RegionFactService : Core.Hosting.IStartupModule, IDisposable
     }
 
     /// <summary>Low priority: chatter the quiet rule may drop and any callout pre-empts;
-    /// valid only while still in the cruise with the pilot's ear on.</summary>
+    /// valid only while still in the cruise — a muted mic (the PAUSED latch) does not
+    /// cancel it since 2026-10-25: the latch is about listening, not talking.</summary>
     private SpeechRequest Header() => new(
         "Region fact", SpeechPriority.Low, SpokenTtl,
-        IsStillValid: () => _flight.CurrentPhase == FlightPhase.Cruise && !_status.Snapshot().ListeningPaused,
+        IsStillValid: () => _flight.CurrentPhase == FlightPhase.Cruise,
         Tag: Tag);
 
     private void RecordSkip(RegionFactSkip skip, string? key, string? name, GeoPoint? position)
