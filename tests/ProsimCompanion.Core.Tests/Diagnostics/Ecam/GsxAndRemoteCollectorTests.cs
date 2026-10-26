@@ -133,7 +133,10 @@ public sealed class GsxAndRemoteCollectorTests
 
         var (page, cautions, _) = CollectorTestSupport.Run(collector, T0);
         Assert.Equal(DiagState.Normal, page.Nodes["mixer_1"].State);
-        Assert.Equal("POTATO", page.Nodes["mixer_1"].Detail);
+        Assert.Equal("POTATO 3.1", page.Nodes["mixer_1"].Detail);
+        Assert.Equal("POTATO 3.1", page.Readout("mixer_1_vm"));
+        Assert.Equal("1 CH", page.Readout("mixer_1_ch"));
+        Assert.Equal("10.0.1.30:5088", page.Readout("mixer_2_endpoint"));
         Assert.Equal(DiagState.Caution, page.Nodes["mixer_2"].State);
         Assert.Equal("LOST 0 S", page.Nodes["mixer_2"].Detail);
         Assert.Equal(EcamTokens.On, page.Nodes["ch_1"].Value);

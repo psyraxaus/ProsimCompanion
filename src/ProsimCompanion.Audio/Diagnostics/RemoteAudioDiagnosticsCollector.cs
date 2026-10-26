@@ -55,7 +55,7 @@ public sealed class RemoteAudioDiagnosticsCollector : IDiagnosticsCollector
             var id = $"mixer_{i + 1}";
             var (state, value, detail) = agent.State switch
             {
-                MixerConnectionState.Connected => (DiagState.Normal, agent.Name.ToUpperInvariant(), agent.Voicemeeter.Kind?.ToUpperInvariant() ?? EcamTokens.Conn),
+                MixerConnectionState.Connected => (DiagState.Normal, agent.Name.ToUpperInvariant(), VoicemeeterText(agent) ?? EcamTokens.Conn),
                 MixerConnectionState.Connecting => (DiagState.Caution, agent.Name.ToUpperInvariant(), "CONNECTING"),
                 MixerConnectionState.Disconnected => (DiagState.Caution, agent.Name.ToUpperInvariant(), $"{EcamTokens.Lost} {LostFor(agent.Name, now)} S"),
                 _ => (DiagState.NotApplicable, agent.Name.ToUpperInvariant(), agent.LastError?.ToUpperInvariant() ?? EcamTokens.Off),
@@ -67,6 +67,11 @@ public sealed class RemoteAudioDiagnosticsCollector : IDiagnosticsCollector
 
             page.Node(id, state, value, detail);
             page.Readout(id + "_endpoint", agent.Endpoint);
+            // The box's second line: which Voicemeeter answered and how many channels ride on it.
+            page.Readout(id + "_vm", VoicemeeterText(agent));
+            var channels = mappings.Count(m => string.Equals(
+                string.IsNullOrWhiteSpace(m.Agent) ? snap.Agents[0].Name : m.Agent, agent.Name, StringComparison.OrdinalIgnoreCase));
+            page.Readout(id + "_ch", channels > 0 ? $"{channels} CH" : null);
             states.Add(new($"MIXER {i + 1}", state));
             if (agent.State == MixerConnectionState.Disconnected)
             {
@@ -128,6 +133,20 @@ public sealed class RemoteAudioDiagnosticsCollector : IDiagnosticsCollector
         }
 
         return (int)(now - since).TotalSeconds;
+    }
+
+    /// <summary>"POTATO 3.1.1.8" from the agent's Voicemeeter report; null before it reported.</summary>
+    public static string? VoicemeeterText(MixerAgentStatus agent)
+    {
+        ArgumentNullException.ThrowIfNull(agent);
+        var kind = agent.Voicemeeter.Kind?.Trim();
+        if (string.IsNullOrEmpty(kind))
+        {
+            return null;
+        }
+
+        var version = agent.Voicemeeter.Version?.Trim();
+        return string.IsNullOrEmpty(version) ? kind.ToUpperInvariant() : $"{kind.ToUpperInvariant()} {version}";
     }
 
     /// <summary>The short column heading for a channel.</summary>

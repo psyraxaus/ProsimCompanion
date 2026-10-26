@@ -66,8 +66,10 @@ public sealed class EcamPagesRenderTests
                 p.Node("display_1", DiagState.Normal, "CHROME · DESKTOP", "/BRIEFING");
                 p.Readout("display_1_ms", "6").Readout("listen", "0.0.0.0:5320").Readout("tls", "ON").Readout("memo_clients", "2");
                 p.Node("streamdeck", DiagState.Caution, "42 S", "PLUGIN 1.4.0");
-                p.Node("mixer_1", DiagState.Normal, "VOICEMEETER", "POTATO");
+                p.Node("mixer_1", DiagState.Normal, "VOICEMEETER", "POTATO 3.1");
+                p.Readout("mixer_1_vm", "POTATO 3.1").Readout("mixer_1_ch", "2 CH").Readout("mixer_1_endpoint", "10.0.1.21:5088");
                 p.Node("mixer_2", DiagState.Caution, "MAC MINI", "LOST 42 S");
+                p.Readout("mixer_2_endpoint", "10.0.1.30:5088");
                 p.Node("ch_1", DiagState.Normal, "ON", "-12 dB");
                 p.Readout("ch_1_label", "VHF1").Readout("ch_1_device", "STRIP 0 · VOICEMEETER");
                 p.CautionLine("MIXER AGENT 2 LOST · PA MUTED");
@@ -285,6 +287,48 @@ public sealed class EcamPagesRenderTests
         Assert.Contains("sel-active", html, StringComparison.Ordinal);
         Assert.Contains("id=\"ecam-stage\"", html, StringComparison.Ordinal);
         Assert.DoesNotContain("diagnostics.pageTitle", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A320Anchors_LieInsideTheDrawing_AndOnTheRightSurfaces()
+    {
+        foreach (var (name, point) in A320Anchors.All)
+        {
+            Assert.InRange(point.X, 0, A320TopView.ViewBoxWidth);
+            Assert.InRange(point.Y, 0, A320TopView.ViewBoxHeight);
+        }
+
+        // Doors sit between the fuselage lines; the refuel panel is outboard of the fuselage on
+        // the right wing (the wing spans x 910–1581, y 565–997 in the trace).
+        foreach (var door in new[] { A320Anchors.Door1L, A320Anchors.Door4L })
+        {
+            Assert.InRange(door.X, A320TopView.FuselageLeft, A320TopView.FuselageLeft + 40);
+        }
+
+        foreach (var door in new[] { A320Anchors.Door1R, A320Anchors.Door4R })
+        {
+            Assert.InRange(door.X, A320TopView.FuselageRight - 40, A320TopView.FuselageRight);
+        }
+
+        Assert.InRange(A320Anchors.RefuelPanel.X, 910, 1581);
+        Assert.InRange(A320Anchors.RefuelPanel.Y, 565, 997);
+        Assert.True(A320Anchors.NoseTip.Y < A320Anchors.GpuReceptacle.Y && A320Anchors.GpuReceptacle.Y < A320Anchors.Door1R.Y);
+    }
+
+    [Fact]
+    public async Task RemotePage_OneBoxPerMixerAgent_WithVoicemeeterAndChannels()
+    {
+        var html = Flat(await RenderAsync<EcamRemotePage>(new Dictionary<string, object?> { ["Snap"] = Populated() }));
+
+        Assert.Contains("agent-box st-normal", html, StringComparison.Ordinal);
+        Assert.Contains("VOICEMEETER · CONN", html, StringComparison.Ordinal);
+        Assert.Contains("POTATO 3.1 · 2 CH", html, StringComparison.Ordinal);
+        Assert.Contains("agent-box st-caution", html, StringComparison.Ordinal);
+        Assert.Contains("MAC MINI · LOST 42 S", html, StringComparison.Ordinal);
+        Assert.Contains("10.0.1.30:5088", html, StringComparison.Ordinal);
+        Assert.Contains("LISTEN", html, StringComparison.Ordinal);
+        Assert.Contains("· TLS", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("class=\"abs sq", html, StringComparison.Ordinal);
     }
 
     private static async Task<string> RenderByType(Type page, DiagnosticsSnapshot snap)

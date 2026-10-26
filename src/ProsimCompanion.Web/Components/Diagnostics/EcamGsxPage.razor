@@ -41,8 +41,9 @@
         ("REFUEL", refuel, 1),
         ("DEICE", deice, 2),
     };
-    var toLeftEdge = FuselageLeftX - BoxRight;
-    var toRightEdge = RightBoxLeft - FuselageRightX;
+    // Door connectors run onto the door itself (its centre column) and end with a dot.
+    var toLeftEdge = DoorLeftX - BoxRight;
+    var toRightEdge = RightBoxLeft - DoorRightX;
 }
 <div class="abs ecam-title" style="left:40px;top:14px">GSX</div>
 
@@ -83,16 +84,18 @@
 @* BOARDING ties to JETWAY (always) and JETWAY to STAIRS (when stairs are in use): short
    vertical links in the gap between the stacked boxes. *@
 <EcamLink State="@DiagStates.Worse(boarding.State, jetway.State)" Left="@(ColumnMidX - 6)" Top="@(RowTop(0) + RowHeight)" Length="@(RowPitch - RowHeight)" Vertical="true" Arrow="false" />
-@* JETWAY → door 1L (elbow up to the door row). *@
+@* JETWAY → door 1L (elbow up to the door row, dot on the door). *@
 <EcamLink State="@jetway.State" Left="@BoxRight" Top="@(Door1LY - 6)" Width="@(toLeftEdge + 2)" Height="@(RowMid(1) - Door1LY + 12)"
           Points="@($"0,{RowMid(1) - Door1LY + 6} 26,{RowMid(1) - Door1LY + 6} 26,6 {toLeftEdge},6")" Arrow="false" />
+<div class="abs link-dot @EcamPresentation.StateClass(jetway.State)" style="left:@(DoorLeftX - 4)px;top:@(Door1LY - 4)px"></div>
 
 @if (stairsInUse)
 {
     <EcamLink State="@DiagStates.Worse(boarding.State, stairs.State)" Left="@(ColumnMidX - 6)" Top="@(RowTop(1) + RowHeight)" Length="@(RowPitch - RowHeight)" Vertical="true" Arrow="false" />
-    @* STAIRS → door 4L (elbow down to the aft door row). *@
+    @* STAIRS → door 4L (elbow down to the aft door row, dot on the door). *@
     <EcamLink State="@stairs.State" Left="@BoxRight" Top="@(RowMid(2) - 6)" Width="@(toLeftEdge + 2)" Height="@(Door4LY - RowMid(2) + 12)"
               Points="@($"0,6 26,6 26,{Door4LY - RowMid(2) + 6} {toLeftEdge},{Door4LY - RowMid(2) + 6}")" Arrow="false" />
+    <div class="abs link-dot @EcamPresentation.StateClass(stairs.State)" style="left:@(DoorLeftX - 4)px;top:@(Door4LY - 4)px"></div>
 }
 
 @* PUSHBACK and GPU above the nose: the tug at the nose tip, the ground-power cable on the
@@ -125,17 +128,22 @@
 @* CATERING → door 1R (top) or door 4R (bottom, with an elbow up to the door row). *@
 @if (cateringAft)
 {
-    <EcamLink State="@catering.State" Left="@FuselageRightX" Top="@(Door4RY - 6)" Width="@(toRightEdge + 2)" Height="@(RowMid(3) - Door4RY + 12)"
+    <EcamLink State="@catering.State" Left="@DoorRightX" Top="@(Door4RY - 6)" Width="@(toRightEdge + 2)" Height="@(RowMid(3) - Door4RY + 12)"
               Points="@($"{toRightEdge},{RowMid(3) - Door4RY + 6} 40,{RowMid(3) - Door4RY + 6} 40,6 0,6")" Arrow="false" />
+    <div class="abs link-dot @EcamPresentation.StateClass(catering.State)" style="left:@(DoorRightX - 4)px;top:@(Door4RY - 4)px"></div>
 }
 else
 {
-    <EcamLink State="@catering.State" Left="@FuselageRightX" Top="@(Door1RY - 6)" Length="@toRightEdge" Arrow="false" />
+    <EcamLink State="@catering.State" Left="@DoorRightX" Top="@(Door1RY - 6)" Length="@toRightEdge" Arrow="false" />
+    <div class="abs link-dot @EcamPresentation.StateClass(catering.State)" style="left:@(DoorRightX - 4)px;top:@(Door1RY - 4)px"></div>
 }
 
-@* REFUEL → the right wing (the refuel panel sits under it). *@
+@* REFUEL → the centre of the right wing just behind the engine (owner, 2026-10-27): a short
+   drop beside the box, then one straight run at wing height that ends on the wing with a dot,
+   so the eye reads the dot, not a bend, as the point. *@
 <EcamLink State="@refuel.State" Left="@WingRightX" Top="@(RowMid(1) - 6)" Width="@(RightBoxLeft - WingRightX + 2)" Height="@(WingY - RowMid(1) + 12)"
-          Points="@($"{RightBoxLeft - WingRightX},6 60,6 60,{WingY - RowMid(1) + 6} 0,{WingY - RowMid(1) + 6}")" Arrow="false" />
+          Points="@($"{RightBoxLeft - WingRightX},6 {RightBoxLeft - WingRightX - 14},6 {RightBoxLeft - WingRightX - 14},{WingY - RowMid(1) + 6} 0,{WingY - RowMid(1) + 6}")" Arrow="false" />
+<div class="abs link-dot @EcamPresentation.StateClass(refuel.State)" style="left:@(WingRightX - 4)px;top:@(WingY - 4)px"></div>
 
 <div class="abs hline" style="left:14px;top:420px;width:692px"></div>
 @{
@@ -208,34 +216,36 @@ else
     private static int HullY(int drawingY) => HullTop + (int)Math.Round(drawingY * HullScale);
     private static int HullX(int drawingX) => HullLeft + (int)Math.Round(drawingX * HullScale);
 
-    // Where the connectors land, measured in the traced drawing's own units (the door
-    // openings are closed rings in the trace: forward pair centred at y 235, aft pair at
-    // y 1342; cockpit glazing ends at y 141; the right nacelle sits at x ≈ 1073 with the wing
-    // chord behind it around y 890).
-    private static readonly int Door1LY = HullY(235);
-    private static readonly int Door1RY = HullY(235);
-    private static readonly int Door4LY = HullY(1342);
-    private static readonly int Door4RY = HullY(1342);
-    private static readonly int NoseX = HullX(819);
-    private static readonly int GpuY = HullY(172);
-    private static readonly int WingRightX = HullX(1073);
-    private static readonly int WingY = HullY(890);
+    // Where the connectors land: the anchor table (A320Anchors, drawing units) scaled into the
+    // hull box, so every line follows the drawing at any window size.
+    private static readonly int Door1LY = HullY(A320Anchors.Door1L.Y);
+    private static readonly int Door1RY = HullY(A320Anchors.Door1R.Y);
+    private static readonly int Door4LY = HullY(A320Anchors.Door4L.Y);
+    private static readonly int Door4RY = HullY(A320Anchors.Door4R.Y);
+    private static readonly int DoorLeftX = HullX(A320Anchors.Door1L.X);
+    private static readonly int DoorRightX = HullX(A320Anchors.Door1R.X);
+    private static readonly int NoseX = HullX(A320Anchors.NoseTip.X);
+    private static readonly int GpuY = HullY(A320Anchors.GpuReceptacle.Y);
+    private static readonly int WingRightX = HullX(A320Anchors.RefuelPanel.X);
+    private static readonly int WingY = HullY(A320Anchors.RefuelPanel.Y);
 
     // Marker positions on the hull (stage px): (readout id, label, x, y, label on the left?).
     // The y values are the drawing's door positions in its own units.
     private static readonly (string Id, string Label, int X, int Y, bool LabelLeft)[] Doors =
     [
-        ("door_1l", "1L", FuselageLeftX - 8, HullY(228), true),
-        ("door_1r", "1R", FuselageRightX, HullY(228), false),
-        ("door_2l", "2L", FuselageLeftX - 8, HullY(820), true),
-        ("door_2r", "2R", FuselageRightX, HullY(820), false),
-        ("door_3l", "3L", FuselageLeftX - 8, HullY(900), true),
-        ("door_3r", "3R", FuselageRightX, HullY(900), false),
-        ("door_4l", "4L", FuselageLeftX - 8, HullY(1335), true),
-        ("door_4r", "4R", FuselageRightX, HullY(1335), false),
-        ("door_fwd_cgo", "FWD CGO", FuselageRightX, HullY(470), false),
-        ("door_aft_cgo", "AFT CGO", FuselageRightX, HullY(1180), false),
-        ("door_bulk", "BULK", FuselageRightX, HullY(1400), false),
+        // The four doors the drawing has: markers sit exactly on its rectangles. The rest sit
+        // on the fuselage line (left markers hang outside it, right ones inside).
+        ("door_1l", "1L", HullX(A320Anchors.Door1LRect.X), HullY(A320Anchors.Door1LRect.Y), true),
+        ("door_1r", "1R", HullX(A320Anchors.Door1RRect.X), HullY(A320Anchors.Door1RRect.Y), false),
+        ("door_2l", "2L", HullX(A320Anchors.Door2L.X) - 7, HullY(A320Anchors.Door2L.Y), true),
+        ("door_2r", "2R", HullX(A320Anchors.Door2R.X), HullY(A320Anchors.Door2R.Y), false),
+        ("door_3l", "3L", HullX(A320Anchors.Door3L.X) - 7, HullY(A320Anchors.Door3L.Y), true),
+        ("door_3r", "3R", HullX(A320Anchors.Door3R.X), HullY(A320Anchors.Door3R.Y), false),
+        ("door_4l", "4L", HullX(A320Anchors.Door4LRect.X), HullY(A320Anchors.Door4LRect.Y), true),
+        ("door_4r", "4R", HullX(A320Anchors.Door4RRect.X), HullY(A320Anchors.Door4RRect.Y), false),
+        ("door_fwd_cgo", "FWD CGO", HullX(A320Anchors.CargoForward.X), HullY(A320Anchors.CargoForward.Y), false),
+        ("door_aft_cgo", "AFT CGO", HullX(A320Anchors.CargoAft.X), HullY(A320Anchors.CargoAft.Y), false),
+        ("door_bulk", "BULK", HullX(A320Anchors.CargoBulk.X), HullY(A320Anchors.CargoBulk.Y), false),
     ];
 
     private static string FormatBar(double value, DiagGauge gauge)

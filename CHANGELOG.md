@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.8.0-rc.13
+
+Local build for the owner's sim test, 2026-10-27, on `feature/ecam-diagnostics` (one change over rc.12). Unverified live.
+
+- Changed: **GSX refuel line** ends with a dot on the centre of the right wing just behind the engine (mid-chord, measured on the drawing), reached by one straight run at wing height (owner, 2026-10-27).
+- Fixed: **GSX door lines end on the doors** (owner report 2026-10-27 on rc.12: they stopped at the fuselage line, short of the door): the jetway, stairs and catering lines now run onto the door rectangle and end with a dot; the open-door markers sit exactly on the drawing's door rectangles.
+- Changed: **REMOTE mixer agents are boxes** (owner request 2026-10-27): one box per remote Voicemeeter agent, like the Stream Deck box — name and `CONN` / `LOST nn S` on the first line, the Voicemeeter kind and version plus the channels it drives on the second (`POTATO 3.1.1.8 · 2 CH`); text wraps inside the box. The old single-agent setup shows as "Mixer PC"; name it under Settings → Audio Control → Remote mixer agents.
+
 ## 0.8.0-rc.12
 
 Local build for the owner's sim test, 2026-10-27, on `feature/ecam-diagnostics` (one fix over rc.11). Unverified live.
