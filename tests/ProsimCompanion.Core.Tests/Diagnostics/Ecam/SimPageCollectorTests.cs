@@ -106,8 +106,10 @@ public sealed class SimPageCollectorTests : IAsyncDisposable
         Assert.Equal(1, _dataRefs.Count);
         Assert.Equal(1, _dataRefs.Stale);   // registered, nothing arrived yet
 
+        // The push lands on the dispatcher task: wait for both the stale flag and the rate hit
+        // (under a full-suite load the task can take a moment to be scheduled).
         _dataRefs.UpdateFromPush("aircraft.test", 1.0);
-        SpinWait.SpinUntil(() => _dataRefs.Stale == 0, TimeSpan.FromSeconds(2));
+        SpinWait.SpinUntil(() => _dataRefs.Stale == 0 && _rates[RateNames.Datarefs].PerSecond > 0, TimeSpan.FromSeconds(10));
         Assert.Equal(0, _dataRefs.Stale);
         Assert.True(_rates[RateNames.Datarefs].PerSecond > 0);
     }

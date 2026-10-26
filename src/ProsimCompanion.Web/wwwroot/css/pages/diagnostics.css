@@ -129,6 +129,9 @@
 .svc-box .svc-val { font-size: 15px; margin-top: 4px; color: var(--st); }
 .svc-box .svc-detail { font-size: 11px; margin-top: 3px; color: var(--st); white-space: nowrap; overflow: hidden; }
 .svc-box.right-side { text-align: right; }
+.svc-box.top-box { width: 112px; height: 50px; padding: 3px 8px; }
+.svc-box.top-box .svc-val { margin-top: 2px; }
+.svc-box.top-box .svc-detail { margin-top: 1px; }
 /* The traced three-view: every stroke of the drawing is a thin closed ring, filled and stroked
    in green so the lines stay visible at the 0.18 scale the page draws it at. */
 .hull .hull-path { fill: var(--ecam-green); fill-rule: evenodd; stroke: var(--ecam-green); stroke-width: 2.5; stroke-linejoin: round; }

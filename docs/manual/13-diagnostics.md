@@ -74,10 +74,10 @@ strip or bus it drives.
 ## GSX
 
 The aircraft from above with its doors (an amber marker is an open door) and the ground
-services around it, each box wired to where that service meets the aircraft: on the left,
-**boarding** at the top (tied to the jetway, and to the stairs when they are in use), the
-**jetway** to door 1L, **GPU** and **pushback** sharing one line to the nose, the **stairs**
-to the hull; on the right, **catering** beside the service door your GSX profile uses (1R at
+services around it, each box wired to where that service meets the aircraft: above the nose,
+**pushback** (the tug at the nose tip) and **GPU** (the cable on the forward right fuselage);
+on the left, **boarding** at the top (tied to the jetway, and to the stairs when they are in
+use), the **jetway** to door 1L, the **stairs** to door 4L; on the right, **catering** beside the service door your GSX profile uses (1R at
 the top, or 4R at the bottom: set it under Settings → Ground Services → Doors → Catering
 door), **refuel** to the right wing and **de-icing**. Each box shows the GSX stage (`AVAIL`,
 `REQ`, `CONN`, `PROG`, `DONE`, or `- - -` when not required) with a detail line. The three

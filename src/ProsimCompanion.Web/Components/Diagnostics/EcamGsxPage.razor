@@ -26,16 +26,23 @@
 
     // Column rows: five on the left (BOARDING, JETWAY, GPU, STAIRS, PUSHBACK), the right
     // column uses the same rows (CATERING at row 0 or 4, REFUEL row 1, DEICE row 2).
-    var leftBoxes = new[] { ("BOARDING", boarding), ("JETWAY", jetway), ("GPU", gpu), ("STAIRS", stairs), ("PUSHBACK", pushback) };
+    // Left column: BOARDING over JETWAY over STAIRS, tied by short vertical links. PUSHBACK and
+    // GPU sit above the nose, where the tug and the ground-power cable really meet the aircraft
+    // (owner mark-up 2026-10-27).
+    // STAIRS is hidden altogether when GSX says the stand does not use them (owner request
+    // 2026-10-27); it still shows as amber XX while nothing is known.
+    var stairsInUse = stairs.State != DiagState.NotApplicable;
+    var leftBoxes = stairsInUse
+        ? new[] { ("BOARDING", boarding), ("JETWAY", jetway), ("STAIRS", stairs) }
+        : new[] { ("BOARDING", boarding), ("JETWAY", jetway) };
     var rightBoxes = new (string Label, DiagNode Node, int Row)[]
     {
-        ("CATERING", catering, cateringAft ? 4 : 0),
+        ("CATERING", catering, cateringAft ? 3 : 0),
         ("REFUEL", refuel, 1),
         ("DEICE", deice, 2),
     };
     var toLeftEdge = FuselageLeftX - BoxRight;
     var toRightEdge = RightBoxLeft - FuselageRightX;
-    var trunkState = DiagStates.Worse(gpu.State, pushback.State);
 }
 <div class="abs ecam-title" style="left:40px;top:14px">GSX</div>
 
@@ -73,29 +80,37 @@
     </div>
 }
 
-@* BOARDING ties to JETWAY (always) and down to STAIRS (when stairs are in use) along a trunk
-   outside the column, with a stub into each box. *@
-<EcamLink State="@DiagStates.Worse(boarding.State, jetway.State)" Left="@(OuterTrunkX - 6)" Top="@(RowMid(0) - 6)" Length="@(BoxLeft - OuterTrunkX + 6)" Arrow="false" />
-<EcamLink State="@DiagStates.Worse(boarding.State, jetway.State)" Left="@(OuterTrunkX - 6)" Top="@RowMid(0)" Length="@(RowMid(1) - RowMid(0))" Vertical="true" Arrow="false" />
-<EcamLink State="@DiagStates.Worse(boarding.State, jetway.State)" Left="@(OuterTrunkX - 6)" Top="@(RowMid(1) - 6)" Length="@(BoxLeft - OuterTrunkX + 6)" Arrow="false" />
-@if (stairs.State != DiagState.NotApplicable)
-{
-    <EcamLink State="@DiagStates.Worse(boarding.State, stairs.State)" Left="@(OuterTrunkX - 6)" Top="@RowMid(1)" Length="@(RowMid(3) - RowMid(1))" Vertical="true" Arrow="false" />
-    <EcamLink State="@DiagStates.Worse(boarding.State, stairs.State)" Left="@(OuterTrunkX - 6)" Top="@(RowMid(3) - 6)" Length="@(BoxLeft - OuterTrunkX + 6)" Arrow="false" />
-}
-
+@* BOARDING ties to JETWAY (always) and JETWAY to STAIRS (when stairs are in use): short
+   vertical links in the gap between the stacked boxes. *@
+<EcamLink State="@DiagStates.Worse(boarding.State, jetway.State)" Left="@(ColumnMidX - 6)" Top="@(RowTop(0) + RowHeight)" Length="@(RowPitch - RowHeight)" Vertical="true" Arrow="false" />
 @* JETWAY → door 1L (elbow up to the door row). *@
 <EcamLink State="@jetway.State" Left="@BoxRight" Top="@(Door1LY - 6)" Width="@(toLeftEdge + 2)" Height="@(RowMid(1) - Door1LY + 12)"
           Points="@($"0,{RowMid(1) - Door1LY + 6} 26,{RowMid(1) - Door1LY + 6} 26,6 {toLeftEdge},6")" Arrow="false" />
 
-@* STAIRS → the hull at its own row. *@
-<EcamLink State="@stairs.State" Left="@BoxRight" Top="@(RowMid(3) - 6)" Length="@toLeftEdge" Arrow="false" />
+@if (stairsInUse)
+{
+    <EcamLink State="@DiagStates.Worse(boarding.State, stairs.State)" Left="@(ColumnMidX - 6)" Top="@(RowTop(1) + RowHeight)" Length="@(RowPitch - RowHeight)" Vertical="true" Arrow="false" />
+    @* STAIRS → door 4L (elbow down to the aft door row). *@
+    <EcamLink State="@stairs.State" Left="@BoxRight" Top="@(RowMid(2) - 6)" Width="@(toLeftEdge + 2)" Height="@(Door4LY - RowMid(2) + 12)"
+              Points="@($"0,6 26,6 26,{Door4LY - RowMid(2) + 6} {toLeftEdge},{Door4LY - RowMid(2) + 6}")" Arrow="false" />
+}
 
-@* GPU and PUSHBACK share one trunk that ends at the nose. *@
-<EcamLink State="@gpu.State" Left="@BoxRight" Top="@(RowMid(2) - 6)" Length="@(InnerTrunkX - BoxRight)" Arrow="false" />
-<EcamLink State="@pushback.State" Left="@BoxRight" Top="@(RowMid(4) - 6)" Length="@(InnerTrunkX - BoxRight)" Arrow="false" />
-<EcamLink State="@trunkState" Left="@(InnerTrunkX - 6)" Top="@NoseY" Length="@(RowMid(4) - NoseY)" Vertical="true" Arrow="false" />
-<EcamLink State="@trunkState" Left="@(InnerTrunkX - 6)" Top="@(NoseY - 6)" Length="@(FuselageLeftX - InnerTrunkX + 6)" Arrow="false" />
+@* PUSHBACK and GPU above the nose: the tug at the nose tip, the ground-power cable on the
+   right side of the forward fuselage. *@
+<div class="abs svc-box top-box @EcamPresentation.StateClass(pushback.State)" style="left:@(PushBoxLeft)px;top:@(TopBoxTop)px">
+    <div class="svc-title">PUSHBACK</div>
+    <div class="svc-val">@pushback.Value</div>
+    <div class="svc-detail">@(pushback.Detail ?? "")</div>
+</div>
+<div class="abs svc-box top-box @EcamPresentation.StateClass(gpu.State)" style="left:@(GpuBoxLeft)px;top:@(TopBoxTop)px">
+    <div class="svc-title">GPU</div>
+    <div class="svc-val">@gpu.Value</div>
+    <div class="svc-detail">@(gpu.Detail ?? "")</div>
+</div>
+<EcamLink State="@pushback.State" Left="@(PushBoxLeft + TopBoxWidth)" Top="@(TopBoxTop + TopBoxHeight / 2 - 6)" Width="@(NoseX - PushBoxLeft - TopBoxWidth + 8)" Height="@(HullTop - TopBoxTop - TopBoxHeight / 2 + 8)"
+          Points="@($"0,6 {NoseX - PushBoxLeft - TopBoxWidth},6 {NoseX - PushBoxLeft - TopBoxWidth},{HullTop - TopBoxTop - TopBoxHeight / 2 + 6}")" Arrow="false" />
+<EcamLink State="@gpu.State" Left="@FuselageRightX" Top="@(TopBoxTop + TopBoxHeight)" Width="@(GpuBoxLeft + TopBoxWidth / 2 - FuselageRightX + 8)" Height="@(GpuY - TopBoxTop - TopBoxHeight + 8)"
+          Points="@($"{GpuBoxLeft + TopBoxWidth / 2 - FuselageRightX},0 {GpuBoxLeft + TopBoxWidth / 2 - FuselageRightX},{GpuY - TopBoxTop - TopBoxHeight} 0,{GpuY - TopBoxTop - TopBoxHeight}")" Arrow="false" />
 
 @* ---- right column ---- *@
 @foreach (var (label, node, row) in rightBoxes)
@@ -110,8 +125,8 @@
 @* CATERING → door 1R (top) or door 4R (bottom, with an elbow up to the door row). *@
 @if (cateringAft)
 {
-    <EcamLink State="@catering.State" Left="@FuselageRightX" Top="@(Door4RY - 6)" Width="@(toRightEdge + 2)" Height="@(RowMid(4) - Door4RY + 12)"
-              Points="@($"{toRightEdge},{RowMid(4) - Door4RY + 6} 40,{RowMid(4) - Door4RY + 6} 40,6 0,6")" Arrow="false" />
+    <EcamLink State="@catering.State" Left="@FuselageRightX" Top="@(Door4RY - 6)" Width="@(toRightEdge + 2)" Height="@(RowMid(3) - Door4RY + 12)"
+              Points="@($"{toRightEdge},{RowMid(3) - Door4RY + 6} 40,{RowMid(3) - Door4RY + 6} 40,6 0,6")" Arrow="false" />
 }
 else
 {
@@ -161,22 +176,27 @@ else
     // The traced drawing fitted between the service boxes: 294 px wide (its wingspan), which
     // the 1593:1713 aspect makes 316 px tall, centred on the stage's x = 360.
     private const int HullLeft = 213;
-    private const int HullTop = 56;
+    private const int HullTop = 70;
     private const int HullWidth = 294;
     private const int HullHeight = 316;
     private const double HullScale = HullWidth / (double)A320TopView.ViewBoxWidth;
 
-    // Service-box columns: 160 px boxes, five rows of 68 px from y = 56.
+    // Service-box columns: 160 px boxes, rows of 84 px from y = 56 (a 24 px gap carries the
+    // vertical ties between stacked boxes).
     private const int BoxLeft = 14;
     private const int BoxRight = BoxLeft + 160;
     private const int RightBoxLeft = 546;
-    private const int RowPitch = 68;
+    private const int RowPitch = 84;
     private const int RowHeight = 60;
     private const int FirstRowTop = 56;
+    private const int ColumnMidX = BoxLeft + 80;
 
-    // The BOARDING tie runs outside the left column; the GPU/PUSHBACK trunk between it and the hull.
-    private const int OuterTrunkX = 7;
-    private const int InnerTrunkX = 236;
+    // The two boxes above the nose.
+    private const int TopBoxTop = 8;
+    private const int TopBoxWidth = 112;
+    private const int TopBoxHeight = 50;
+    private const int PushBoxLeft = 236;
+    private const int GpuBoxLeft = 384;
 
     private static int RowTop(int row) => FirstRowTop + row * RowPitch;
     private static int RowMid(int row) => RowTop(row) + RowHeight / 2;
@@ -191,8 +211,10 @@ else
     // Where the connectors land: door rows, the nose, the right wing's refuel panel.
     private static readonly int Door1LY = HullY(215);
     private static readonly int Door1RY = HullY(215);
+    private static readonly int Door4LY = HullY(1310);
     private static readonly int Door4RY = HullY(1310);
-    private static readonly int NoseY = HullY(330);
+    private static readonly int NoseX = HullX(819);
+    private static readonly int GpuY = HullY(185);
     private static readonly int WingRightX = HullX(1180);
     private static readonly int WingY = HullY(820);
 

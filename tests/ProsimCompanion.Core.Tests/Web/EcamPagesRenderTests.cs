@@ -77,6 +77,7 @@ public sealed class EcamPagesRenderTests
                 p.Node("jetway", DiagState.Normal, "CONN", "DOOR 1L");
                 p.Node("catering", DiagState.Caution, "REQ", "WAIT 02:14");
                 p.NotApplicable("stairs", "NOT REQ");
+                p.NotApplicable("deice", "NOT REQ");
                 p.Readout("door_1l", "OPEN").Readout("door_fwd_cgo", "CLSD");
                 p.Gauge("pax", 112, 0, 174, 175, 175, "PAX");
                 p.Gauge("fuel", 7.9, 0, 9.2, 9.3, 9.3, "T");
@@ -170,16 +171,23 @@ public sealed class EcamPagesRenderTests
     public async Task GsxPage_CateringBox_FollowsTheServiceDoor()
     {
         var forward = Flat(await RenderAsync<EcamGsxPage>(new Dictionary<string, object?> { ["Snap"] = Populated() }));
-        // Row 0 of the right column is y = 56; row 4 is y = 56 + 4 × 68 = 328.
+        // Row 0 of the right column is y = 56; row 3 is y = 56 + 3 × 84 = 308.
         Assert.Contains("left:546px;top:56px\"><div class=\"svc-title\">CATERING", forward, StringComparison.Ordinal);
 
         var snap = Populated();
         var aft = snap with { Gsx = snap.Gsx with { Readouts = new Dictionary<string, string>(snap.Gsx.Readouts) { ["catering_door"] = "4R" } } };
         var html = Flat(await RenderAsync<EcamGsxPage>(new Dictionary<string, object?> { ["Snap"] = aft }));
-        Assert.Contains("left:546px;top:328px\"><div class=\"svc-title\">CATERING", html, StringComparison.Ordinal);
-        // BOARDING heads the left column and PUSHBACK ends it: five boxes.
+        Assert.Contains("left:546px;top:308px\"><div class=\"svc-title\">CATERING", html, StringComparison.Ordinal);
+        // BOARDING heads the left column; PUSHBACK and GPU sit above the nose. The fixture's
+        // stairs are "not required", so the STAIRS box is hidden altogether.
         Assert.Contains("left:14px;top:56px\"><div class=\"svc-title\">BOARDING", html, StringComparison.Ordinal);
-        Assert.Contains("left:14px;top:328px\"><div class=\"svc-title\">PUSHBACK", html, StringComparison.Ordinal);
+        Assert.DoesNotContain(">STAIRS<", html, StringComparison.Ordinal);
+
+        // With nothing known (the empty snapshot) the stairs show as amber XX in row 2.
+        var empty = Flat(await RenderAsync<EcamGsxPage>(new Dictionary<string, object?> { ["Snap"] = DiagnosticsSnapshot.Empty }));
+        Assert.Contains("left:14px;top:224px\"><div class=\"svc-title\">STAIRS", empty, StringComparison.Ordinal);
+        Assert.Contains("left:236px;top:8px\"><div class=\"svc-title\">PUSHBACK", html, StringComparison.Ordinal);
+        Assert.Contains("left:384px;top:8px\"><div class=\"svc-title\">GPU", html, StringComparison.Ordinal);
     }
 
     /// <summary>Markup with the whitespace between tags removed, so an assertion can span tags.</summary>
@@ -190,7 +198,7 @@ public sealed class EcamPagesRenderTests
     {
         var html = await RenderAsync<EcamGsxPage>(new Dictionary<string, object?> { ["Snap"] = Populated() });
         Assert.Contains("door open st-caution", html, StringComparison.Ordinal);
-        Assert.Contains("svc-box st-na", html, StringComparison.Ordinal);
+        Assert.Contains("svc-box right-side st-na", html, StringComparison.Ordinal);   // DEICE not required
         Assert.Contains("- - -", html, StringComparison.Ordinal);
         Assert.Contains("112 / 174", html, StringComparison.Ordinal);
         Assert.Contains("7.9 / 9.2", html, StringComparison.Ordinal);
