@@ -51,8 +51,8 @@
 <div class="abs ecam-box @EcamPresentation.StateClass(host.State)" style="left:272px;top:86px;width:176px;height:62px"></div>
 <div class="abs center @EcamPresentation.StateClass(host.State)" style="left:272px;top:92px;width:176px">WEB HOST</div>
 <div class="abs center @EcamPresentation.StateClass(host.State)" style="left:272px;top:116px;width:176px">@host.Value<span style="margin-left:16px">@(host.Detail ?? "")</span></div>
-<div class="abs center small" style="left:272px;top:158px;width:176px"><span class="c-white">LISTEN</span> <span class="@EcamPresentation.ReadoutClass(pg.Readout("listen"))">@EcamPresentation.ReadoutText(pg.Readout("listen"))</span> <span class="c-white">TLS</span></div>
-<div class="abs center small @(pg.Readout("tls") == EcamTokens.On ? "c-green" : "c-grey")" style="left:272px;top:174px;width:176px">@EcamPresentation.ReadoutText(pg.Readout("tls"))</div>
+@* One line, wide enough for an address plus the TLS word (a two-line wrap overlapped the ON). *@
+<div class="abs center small" style="left:220px;top:158px;width:280px;white-space:nowrap"><span class="c-white">LISTEN</span> <span class="@EcamPresentation.ReadoutClass(pg.Readout("listen"))">@EcamPresentation.ReadoutText(pg.Readout("listen"))</span> <span class="c-white">· TLS</span> <span class="@(pg.Readout("tls") == EcamTokens.On ? "c-green" : "c-grey")">@EcamPresentation.ReadoutText(pg.Readout("tls"))</span></div>
 
 <div class="abs ecam-box @EcamPresentation.StateClass(deck.State)" style="left:536px;top:86px;width:160px;height:62px"></div>
 <div class="abs right @EcamPresentation.StateClass(deck.State)" style="left:536px;top:92px;width:150px">STREAM DECK</div>
@@ -71,7 +71,8 @@
 }
 @for (var i = 0; i < agents.Length && i < 4; i++)
 {
-    <div class="abs right detail @EcamPresentation.StateClass(agents[i].State)" style="left:496px;top:@(234 + i * 14)px;width:200px;white-space:nowrap;overflow:hidden">@(i + 1) @agents[i].Value@(agents[i].State == DiagState.Normal ? "" : " · " + (agents[i].Detail ?? ""))</div>
+    @* Name, then what the agent reports: the Voicemeeter kind when connected, LOST nn S otherwise. *@
+    <div class="abs right detail @EcamPresentation.StateClass(agents[i].State)" style="left:456px;top:@(234 + i * 14)px;width:240px;white-space:nowrap;overflow:hidden">@(i + 1) @agents[i].Value@(string.IsNullOrEmpty(agents[i].Detail) ? "" : " · " + agents[i].Detail)@(agents[i].State == DiagState.Normal ? " · " + EcamTokens.Conn : "")</div>
 }
 
 <div class="abs detail c-white" style="left:24px;top:298px">AUDIO ROUTING</div>
@@ -89,7 +90,7 @@
     <div class="abs center @EcamPresentation.StateClass(node.State)" style="left:@(left)px;top:338px;width:124px">@EcamPresentation.ReadoutText(pg.Readout(id + "_label"))</div>
     <div class="abs badge @EcamPresentation.StateClass(node.State)" style="left:@(left + 31)px;top:362px">@node.Value</div>
     <div class="abs center @EcamPresentation.StateClass(node.State)" style="left:@(left)px;top:394px;width:124px">@(node.Detail ?? EcamTokens.NoData)</div>
-    <div class="abs center small @EcamPresentation.StateClass(node.State)" style="left:@(left)px;top:414px;width:124px;white-space:nowrap;overflow:hidden">@EcamPresentation.ReadoutText(pg.Readout(id + "_device"))</div>
+    <div class="abs center detail route-device @EcamPresentation.StateClass(node.State)" style="left:@(left)px;top:414px;width:124px">@EcamPresentation.ReadoutText(pg.Readout(id + "_device"))</div>
 }
 
 @if (pg.CautionLine is { } line)

@@ -208,28 +208,31 @@ else
     private static int HullY(int drawingY) => HullTop + (int)Math.Round(drawingY * HullScale);
     private static int HullX(int drawingX) => HullLeft + (int)Math.Round(drawingX * HullScale);
 
-    // Where the connectors land: door rows, the nose, the right wing's refuel panel.
-    private static readonly int Door1LY = HullY(215);
-    private static readonly int Door1RY = HullY(215);
-    private static readonly int Door4LY = HullY(1310);
-    private static readonly int Door4RY = HullY(1310);
+    // Where the connectors land, measured in the traced drawing's own units (the door
+    // openings are closed rings in the trace: forward pair centred at y 235, aft pair at
+    // y 1342; cockpit glazing ends at y 141; the right nacelle sits at x ≈ 1073 with the wing
+    // chord behind it around y 890).
+    private static readonly int Door1LY = HullY(235);
+    private static readonly int Door1RY = HullY(235);
+    private static readonly int Door4LY = HullY(1342);
+    private static readonly int Door4RY = HullY(1342);
     private static readonly int NoseX = HullX(819);
-    private static readonly int GpuY = HullY(185);
-    private static readonly int WingRightX = HullX(1180);
-    private static readonly int WingY = HullY(820);
+    private static readonly int GpuY = HullY(172);
+    private static readonly int WingRightX = HullX(1073);
+    private static readonly int WingY = HullY(890);
 
     // Marker positions on the hull (stage px): (readout id, label, x, y, label on the left?).
     // The y values are the drawing's door positions in its own units.
     private static readonly (string Id, string Label, int X, int Y, bool LabelLeft)[] Doors =
     [
-        ("door_1l", "1L", FuselageLeftX - 8, HullY(215), true),
-        ("door_1r", "1R", FuselageRightX, HullY(215), false),
+        ("door_1l", "1L", FuselageLeftX - 8, HullY(228), true),
+        ("door_1r", "1R", FuselageRightX, HullY(228), false),
         ("door_2l", "2L", FuselageLeftX - 8, HullY(820), true),
         ("door_2r", "2R", FuselageRightX, HullY(820), false),
         ("door_3l", "3L", FuselageLeftX - 8, HullY(900), true),
         ("door_3r", "3R", FuselageRightX, HullY(900), false),
-        ("door_4l", "4L", FuselageLeftX - 8, HullY(1310), true),
-        ("door_4r", "4R", FuselageRightX, HullY(1310), false),
+        ("door_4l", "4L", FuselageLeftX - 8, HullY(1335), true),
+        ("door_4r", "4R", FuselageRightX, HullY(1335), false),
         ("door_fwd_cgo", "FWD CGO", FuselageRightX, HullY(470), false),
         ("door_aft_cgo", "AFT CGO", FuselageRightX, HullY(1180), false),
         ("door_bulk", "BULK", FuselageRightX, HullY(1400), false),

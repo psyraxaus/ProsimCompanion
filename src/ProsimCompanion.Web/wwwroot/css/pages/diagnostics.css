@@ -126,6 +126,8 @@
 .ecam-box { border: 2px solid var(--st); }
 .sq { width: 30px; height: 30px; border: 2px solid var(--st); color: var(--st); display: flex; align-items: center; justify-content: center; font-size: 15px; }
 .badge { border: 2px solid var(--st); color: var(--st); font-size: 15px; padding: 3px 0; width: 62px; text-align: center; }
+/* "STRIP 1 · MIXER PC" wraps at the dot onto a second line instead of running into the next column. */
+.route-device { height: 24px; line-height: 11px; white-space: normal; overflow-wrap: anywhere; overflow: hidden; }
 
 /* GSX page */
 .svc-box { width: 160px; height: 60px; border: 2px solid var(--st); padding: 5px 12px; }

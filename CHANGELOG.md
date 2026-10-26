@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.0-rc.12
+
+Local build for the owner's sim test, 2026-10-27, on `feature/ecam-diagnostics` (one fix over rc.11). Unverified live.
+
+- Fixed: **GSX page lines land on the doors** (owner report 2026-10-27 on rc.11): the jetway, stairs and catering connectors end on the forward and aft door openings measured in the traced drawing, the GPU line meets the fuselage just aft of the cockpit glazing, and the refuel line ends on the right wing behind the engine.
+- Fixed: **REMOTE page**: the LISTEN address and the TLS word sit on one line (a wrapped line overlapped "ON"); a connected mixer agent's legend now names its Voicemeeter ("1 MIXER PC · POTATO 3.1 · CONN"); the routing column's strip and agent line wraps instead of running into the next column.
+
 ## 0.8.0-rc.11
 
 Local build for the owner's sim test, 2026-10-27, on `feature/ecam-diagnostics` (one fix over rc.10). Unverified live.
