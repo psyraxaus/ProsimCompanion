@@ -29,6 +29,19 @@ One process, one DI container, three surfaces:
   components subscribe and re-render. The same stores can later feed REST/WebSocket/StreamDeck
   surfaces via the command registry.
 
+### Diagnostics pipeline (Core/Diagnostics/Ecam, ADR-0016)
+
+The ECAM-style diagnostics pages are the one place every pillar reports its health in the
+same vocabulary. Each feature project registers `IDiagnosticsCollector`s (Speech → VOICE;
+Prosim, Sim and the GSX source box → SIM; Audio and Web → REMOTE; Gsx → GSX). Core's
+`DiagnosticsSnapshotService` ticks at 1 Hz, runs every collector in its own try/catch (a
+failure costs that collector's nodes, which draw as amber `XX`, never the page), merges the
+pages and folds the cautions into one immutable `DiagnosticsSnapshot` in `DiagnosticsStore`.
+Collectors read the existing stores plus two Core registries the hot paths write into:
+`LatencyRegistry` (ASR, LLM first token / total, TTS, end-to-end) and `RateRegistry`
+(datarefs, simvars, API). The Web project draws the snapshot and never computes health; the
+same snapshot is `GET /api/diagnostics/snapshot` and travels in the support bundle.
+
 ## Project dependency rules
 
 ```

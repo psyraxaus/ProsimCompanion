@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.8.0-rc.10
+
+Unreleased, on `feature/ecam-diagnostics` (four commits over rc.9, 2026-10-27). Unverified live.
+
+- Added: **Diagnostics pages** (ADR-0016; owner design `docs/design/diagnostics/`): five ECAM-style system displays under Settings → Diagnostics — **VOICE** (mic → VAD → STT → LLM → TTS → out pipeline with host labels, end-to-end and GPU dials, VRAM / tok/s / RTF / queue, the last utterance with intent and action, the endpoint bus), **SIM** (ProSim / SimConnect / GSX sources on the dataref and simvar bus bars with rate, subscription and stale counts; phase, ground, power and doors; plan, load and weather rows), **REMOTE** (the web host with open browser sessions and their round trip, the Stream Deck's poll age, the mixer agents with `LOST nn S`, the audio routing row), **GSX** (the aircraft outline with open doors, the eight services around it with GSX stages, pax / cargo / fuel bars, smart-button and turnaround memo) and **STATUS** (cautions by system with dotted action lines, INOP SYS, DEGRADED, RECENT, the bundle export). A node with no data shows amber `XX`, a feature not in use white `- - -`, a link the worse of its ends. Fixed 720×640 drawing scaled to the window; the ECAM palette is deliberately not themed. Sidebar badge with the caution count (red with a warning). Seven language packs; the ECAM tokens stay English.
+- Added: **collectors and metrics** behind the pages: one `IDiagnosticsCollector` per feature project into a 1 Hz snapshot (a throwing collector costs its own nodes, never the page); latency series for ASR, LLM first token / total / tokens per second, TTS and end-to-end (utterance end → first FO audio, correlated by time); dispatch rates for datarefs, simvars and the API; an LLM **host probe** (TCP reachability every 15 s, Ollama `/api/ps` VRAM, llama-server `/metrics` KV fill) so "host asleep, wake-on-LAN sent at hh:mm" (amber) is told apart from "host up, server down" (red); per-circuit presence (browser class, route, 5 s ping); `/api/*` client presence. The Stream Deck plugin now sends `User-Agent: ProsimCompanion-StreamDeck/<version>`.
+- Added: `GET /api/diagnostics/snapshot` (telemetry gating, enums by name); the support bundle gains `diagnostics-snapshot.json` and `diagnostics-events.jsonl`; `ProsimCompanion.Reduce` reports a `health` section (absent for older bundles).
+- Added: Settings → Advanced → **Diagnostics**: page refresh (`diagnostics.ecamTickMs`, 250–10000 ms) and the host labels shown above the VOICE boxes (`diagnostics.ecamHostLabels`, one row per configured server).
+- Docs: manual chapter 13, ADR-0016, support-bundle and Stream Deck integration notes, THIRD_PARTY entry for the self-hosted Share Tech Mono face.
+
 ## 0.8.0-rc.9
 
 Local build for the owner's sim test, 2026-10-25, on `feature/radios-tile-and-courtesies` (14 commits over rc.8). Everything below is unverified live.

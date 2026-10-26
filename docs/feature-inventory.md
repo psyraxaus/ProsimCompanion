@@ -214,6 +214,11 @@ through with a note if deliberately dropped. Sources: Prosim2GSX 0.9.0, ProsimIn
       the single-writer trigger path, opt-in, token even on loopback) + GET /api/status
 - [x] StreamDeck plugin (streamdeck/ — five actions, REST poll, pair-via-URL; build with
       npm run build / pack per streamdeck/README.md)
+- [x] ECAM-style diagnostics pages (ADR-0016, 2026-10-27): VOICE / SIM / REMOTE / GSX /
+      STATUS at `/diagnostics`, one collector per feature project into a 1 Hz snapshot,
+      latency and rate registries, LLM host probe, circuit and API-client presence, nav badge,
+      `GET /api/diagnostics/snapshot`, snapshot + RECENT ring in the support bundle and the
+      reducer's `health` section — new, no predecessor equivalent, Unverified live
 - [x] GSX voice control ("commence ground services", "request boarding", "cabin crew start
       boarding", …) via the command registry (gsx.voiceControlEnabled)
 - [x] Voice-gated ground ops (ADR-0006, issues #50–#53): prep gate (gsx.groundPrepActivation),
