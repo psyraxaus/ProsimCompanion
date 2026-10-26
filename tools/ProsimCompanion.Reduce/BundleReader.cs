@@ -19,6 +19,14 @@ public sealed record BundleContents(
     /// <summary>Temp extraction directory to remove when the reader was given a zip.</summary>
     public string? TempDirectory { get; init; }
 
+    /// <summary>The ECAM diagnostics snapshot (<c>diagnostics-snapshot.json</c>) when the bundle
+    /// carries one (0.8.0-rc.10 and later); null is not an error.</summary>
+    public string? HealthSnapshotFile { get; init; }
+
+    /// <summary>The RECENT ring (<c>diagnostics-events.jsonl</c>) when present. Never a session
+    /// file, although it is JSON lines.</summary>
+    public string? HealthEventsFile { get; init; }
+
     public void Dispose()
     {
         if (TempDirectory is not null && Directory.Exists(TempDirectory))
@@ -162,6 +170,7 @@ public static class BundleReader
         var hashesVerified = false;
         var sessions = new List<string>();
         var logs = new List<string>();
+        var health = new HealthFiles();
 
         if (manifestPath is not null)
         {
@@ -200,7 +209,7 @@ public static class BundleReader
                     throw new BundleRejectedException($"SHA-256 mismatch for '{file.Path}': the bundle was altered or truncated.");
                 }
 
-                Classify(full, sessions, logs);
+                Classify(full, sessions, logs, health);
             }
 
             hashesVerified = true;
@@ -210,7 +219,7 @@ public static class BundleReader
             notes.Add("no manifest.json: bare folder scanned, hashes not verified");
             foreach (var file in Directory.EnumerateFiles(root, "*", SearchOption.AllDirectories))
             {
-                Classify(file, sessions, logs);
+                Classify(file, sessions, logs, health);
             }
         }
 
@@ -219,16 +228,26 @@ public static class BundleReader
         return new BundleContents(source, root, folder, manifest, sessions, logs, hashesVerified, notes)
         {
             TempDirectory = tempDirectory,
+            HealthSnapshotFile = health.Snapshot,
+            HealthEventsFile = health.Events,
         };
     }
 
     /// <summary>Any .jsonl is a session file and any non-wire .log a CMTrace log: the app names
     /// them session-*/ProsimCompanion-*, but a recording copied into a test folder or renamed by
     /// a user is still the same evidence.</summary>
-    private static void Classify(string path, List<string> sessions, List<string> logs)
+    private static void Classify(string path, List<string> sessions, List<string> logs, HealthFiles health)
     {
         var name = Path.GetFileName(path);
-        if (name.EndsWith(".jsonl", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(name, DiagnosticsBundleBuilder.SnapshotFileName, StringComparison.OrdinalIgnoreCase))
+        {
+            health.Snapshot ??= path;
+        }
+        else if (string.Equals(name, DiagnosticsBundleBuilder.EventsFileName, StringComparison.OrdinalIgnoreCase))
+        {
+            health.Events ??= path;
+        }
+        else if (name.EndsWith(".jsonl", StringComparison.OrdinalIgnoreCase))
         {
             sessions.Add(path);
         }
@@ -238,4 +257,12 @@ public static class BundleReader
             logs.Add(path);
         }
     }
+}
+
+/// <summary>The two optional diagnostics files found while classifying (the shallowest wins).</summary>
+internal sealed class HealthFiles
+{
+    public string? Snapshot { get; set; }
+
+    public string? Events { get; set; }
 }

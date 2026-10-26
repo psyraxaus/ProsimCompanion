@@ -94,6 +94,17 @@ public static class CoreServiceCollectionExtensions
         services.AddSingleton<Diagnostics.IAppBuildInfo>(Diagnostics.AppBuildInfo.Current);
         services.AddSingleton<Diagnostics.DiagnosticsBundleBuilder>();
 
+        // ECAM-style diagnostics pages (ADR-0016): the metric registries feature projects record
+        // into, the event ring, the memo source, the store and the 1 Hz snapshot service.
+        // Collectors are registered by the feature projects that own the data.
+        services.AddSingleton<Diagnostics.Metrics.UptimeTracker>();
+        services.AddSingleton<Diagnostics.Metrics.LatencyRegistry>();
+        services.AddSingleton<Diagnostics.Metrics.RateRegistry>();
+        services.AddSingleton<Diagnostics.Ecam.DiagEventLog>();
+        services.AddSingleton<Diagnostics.Ecam.DiagnosticsStore>();
+        services.AddSingleton<Diagnostics.Ecam.IDiagMemoSource, Diagnostics.Ecam.DiagMemoSource>();
+        services.AddHostedService<Diagnostics.Ecam.DiagnosticsSnapshotService>();
+
         services.AddSingleton(new JsonSettingsFile(settingsFilePath));
         // The typed settings write path — pages and services write through this, never through
         // hand-written section/key strings.

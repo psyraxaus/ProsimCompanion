@@ -30,4 +30,24 @@ public sealed class DiagnosticsOptions : IOptionSection
     /// test and is only useful when a protocol question is on the table.
     /// </summary>
     public bool IncludeWireTrace { get; set; }
+
+    /// <summary>Floor for <see cref="EcamTickMs"/>: four snapshots a second is as fast as a
+    /// human reads a page, and every tick walks every store.</summary>
+    public const int MinEcamTickMs = 250;
+
+    /// <summary>Ceiling for <see cref="EcamTickMs"/>.</summary>
+    public const int MaxEcamTickMs = 10_000;
+
+    /// <summary>How often the ECAM-style diagnostics pages rebuild their snapshot. One second
+    /// matches the aircraft displays; lower only when chasing a flapping link.</summary>
+    [OptionField(FieldKind.Number, "diagnostics.ecamTickMs", Suffix = "ms", Min = "250", Max = "10000", Advanced = true)]
+    public int EcamTickMs { get; set; } = 1000;
+
+    /// <summary>
+    /// The host labels printed above the VOICE page pipeline nodes, keyed by the host part of
+    /// a configured STT / LLM / TTS URL ("10.0.1.30" → "MAC MINI"). A host with no entry shows
+    /// its address. Nothing is assumed about which machine runs what: the defaults are the
+    /// addresses themselves and the user renames them on the Diagnostics settings page.
+    /// </summary>
+    public Dictionary<string, string> EcamHostLabels { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 }

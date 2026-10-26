@@ -35,6 +35,15 @@ public sealed record DiagnosticsBundleRequest(
 
     /// <summary>The bundle's timestamp (UTC); defaults to now. Injectable for tests.</summary>
     public DateTimeOffset? CreatedUtc { get; init; }
+
+    /// <summary>The latest ECAM diagnostics snapshot, written as <c>diagnostics-snapshot.json</c>
+    /// when present: what the pages showed at the moment the user pressed Export, so a report
+    /// of "the LLM box was amber" comes with the amber box.</summary>
+    public Ecam.DiagnosticsSnapshot? DiagnosticsSnapshot { get; init; }
+
+    /// <summary>The RECENT ring (newest first, as the store hands it out), written oldest-first
+    /// as <c>diagnostics-events.jsonl</c> when present.</summary>
+    public IReadOnlyList<Ecam.DiagEvent>? DiagnosticsEvents { get; init; }
 }
 
 /// <summary>One file inside the bundle, as listed in manifest.json.</summary>
@@ -71,8 +80,15 @@ public sealed partial class DiagnosticsBundleBuilder
     /// <summary>200 MB of source bytes; beyond this the bundle is no longer mailable.</summary>
     public const long DefaultMaxTotalBytes = 200L * 1024 * 1024;
 
-    /// <summary>Manifest schema version — bump when the layout changes.</summary>
+    /// <summary>Manifest schema version — bump when the layout changes. Version 1 stays: the
+    /// two diagnostics files are additive and optional, and the reducer tolerates their absence.</summary>
     public const int BundleVersion = 1;
+
+    /// <summary>The ECAM snapshot file inside the bundle folder.</summary>
+    public const string SnapshotFileName = "diagnostics-snapshot.json";
+
+    /// <summary>The RECENT ring inside the bundle folder, one event per line.</summary>
+    public const string EventsFileName = "diagnostics-events.jsonl";
 
     private static readonly JsonSerializerOptions ManifestJson = new()
     {
@@ -126,6 +142,19 @@ public sealed partial class DiagnosticsBundleBuilder
 
             files.Add(await WriteTextAsync(
                 zip, $"{folder}/versions.txt", VersionsText(request), ct).ConfigureAwait(false));
+
+            if (request.DiagnosticsSnapshot is { } snapshot)
+            {
+                files.Add(await WriteTextAsync(
+                    zip, $"{folder}/{SnapshotFileName}", Ecam.EcamJson.Serialize(snapshot), ct).ConfigureAwait(false));
+            }
+
+            if (request.DiagnosticsEvents is { } events)
+            {
+                var lines = string.Join('\n', Ecam.EcamJson.EventLines(events));
+                files.Add(await WriteTextAsync(
+                    zip, $"{folder}/{EventsFileName}", lines.Length == 0 ? "" : lines + "\n", ct).ConfigureAwait(false));
+            }
 
             var manifest = new BundleManifest(
                 BundleVersion,

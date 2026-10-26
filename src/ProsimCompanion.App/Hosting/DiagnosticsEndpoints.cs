@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ProsimCompanion.Core.Configuration;
 using ProsimCompanion.Core.Diagnostics;
+using ProsimCompanion.Core.Diagnostics.Ecam;
 using ProsimCompanion.Core.State;
 
 namespace ProsimCompanion.App.Hosting;
@@ -18,6 +19,10 @@ namespace ProsimCompanion.App.Hosting;
 /// read-only evidence surface, just packaged. The Logs page links here directly: the
 /// onboarded browser cookie authenticates, so no token ever appears in a URL. The temp zip is
 /// opened delete-on-close, so it disappears when the response finishes (or aborts).
+/// <para>
+/// <c>GET /api/diagnostics/snapshot</c>: the current ECAM diagnostics snapshot as JSON (enums
+/// by name), same gating — what a future iPad display or the Stream Deck renders from.
+/// </para>
 /// </summary>
 public static class DiagnosticsEndpoints
 {
@@ -27,7 +32,26 @@ public static class DiagnosticsEndpoints
     {
         ArgumentNullException.ThrowIfNull(endpoints);
         endpoints.MapGet("/api/diagnostics/bundle", GetBundle);
+        endpoints.MapGet("/api/diagnostics/snapshot", GetSnapshot);
     }
+
+    private static IResult GetSnapshot(
+        HttpContext context,
+        IOptionsMonitor<TelemetryApiOptions> apiOptions,
+        IOptionsMonitor<WebUiOptions> webUiOptions,
+        DiagnosticsStore store)
+    {
+        if (Gate(context, apiOptions, webUiOptions) is { } refusal)
+        {
+            return refusal;
+        }
+
+        return Results.Text(SnapshotJson(store.Snapshot()), "application/json");
+    }
+
+    /// <summary>The snapshot document the endpoint returns. Exposed for tests: enums must come
+    /// out as names ("caution"), never as numbers, because the consumers are scripts.</summary>
+    public static string SnapshotJson(DiagnosticsSnapshot snapshot) => EcamJson.Serialize(snapshot);
 
     private static async Task<IResult> GetBundle(
         int? sessions,
@@ -40,21 +64,14 @@ public static class DiagnosticsEndpoints
         DiagnosticsBundleBuilder builder,
         IAppBuildInfo build,
         ConnectionStatusStore status,
+        DiagnosticsStore diagnostics,
+        DiagEventLog diagnosticEvents,
         ILogger<DiagnosticsBundleBuilder> logger,
         CancellationToken ct)
     {
-        if (!apiOptions.CurrentValue.Enabled)
+        if (Gate(context, apiOptions, webUiOptions) is { } refusal)
         {
-            return Results.NotFound();
-        }
-
-        if (!ApiTokenAuth.IsAuthorized(
-                context, apiOptions.CurrentValue.RequireTokenOnLoopback, webUiOptions.CurrentValue))
-        {
-            return Results.Json(
-                new { reason = "Access token required (Authorization: Bearer <token>, or the web UI cookie)." },
-                Json,
-                statusCode: StatusCodes.Status401Unauthorized);
+            return refusal;
         }
 
         var defaults = diagnosticsOptions.CurrentValue;
@@ -68,6 +85,8 @@ public static class DiagnosticsEndpoints
             LogDays = Math.Clamp(days ?? defaults.BundleLogDays, DiagnosticsOptions.MinLogDays, DiagnosticsOptions.MaxLogDays),
             IncludeWireTrace = wire ?? defaults.IncludeWireTrace,
             DependencyLines = DependencyLines(status),
+            DiagnosticsSnapshot = diagnostics.Snapshot(),
+            DiagnosticsEvents = diagnosticEvents.Snapshot(),
         };
 
         string zipPath;
@@ -84,6 +103,29 @@ public static class DiagnosticsEndpoints
         var stream = new FileStream(
             zipPath, FileMode.Open, FileAccess.Read, FileShare.Read, 81920, FileOptions.DeleteOnClose | FileOptions.Asynchronous);
         return Results.File(stream, "application/zip", Path.GetFileName(zipPath), enableRangeProcessing: false);
+    }
+
+    /// <summary>The sibling-API gate order: a disabled surface 404s before any auth probing.</summary>
+    private static IResult? Gate(
+        HttpContext context,
+        IOptionsMonitor<TelemetryApiOptions> apiOptions,
+        IOptionsMonitor<WebUiOptions> webUiOptions)
+    {
+        if (!apiOptions.CurrentValue.Enabled)
+        {
+            return Results.NotFound();
+        }
+
+        if (!ApiTokenAuth.IsAuthorized(
+                context, apiOptions.CurrentValue.RequireTokenOnLoopback, webUiOptions.CurrentValue))
+        {
+            return Results.Json(
+                new { reason = "Access token required (Authorization: Bearer <token>, or the web UI cookie)." },
+                Json,
+                statusCode: StatusCodes.Status401Unauthorized);
+        }
+
+        return null;
     }
 
     /// <summary>Which optional dependencies were present, from the status store — cheap, no

@@ -74,7 +74,10 @@ public static class Reducer
             [.. bundle.Manifest?.Truncated.Select(t => $"{t.Path} ({t.Bytes} bytes)") ?? []],
             notes);
 
-        var report = new ReduceReport(summary, reports, restarts, unattributed, probes, forLlm);
+        var report = new ReduceReport(summary, reports, restarts, unattributed, probes, forLlm)
+        {
+            Health = HealthReducer.Reduce(bundle.HealthSnapshotFile, bundle.HealthEventsFile),
+        };
         return Trim(report, maxKb);
     }
 

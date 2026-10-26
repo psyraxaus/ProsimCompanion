@@ -14,6 +14,10 @@ public sealed record ReduceReport(
     IReadOnlyDictionary<string, ProbeResult> Probes,
     IReadOnlyList<ProbeForLlm> ForLlm)
 {
+    /// <summary>The ECAM diagnostics state at export time (0.8.0-rc.10+): null when the bundle
+    /// predates the pages, which the LLM step must read as "unknown", not "healthy".</summary>
+    public HealthSummary? Health { get; init; }
+
     /// <summary>Compact on purpose: the document is LLM input under a size budget, and
     /// indentation would spend a third of it on whitespace.</summary>
     public static JsonSerializerOptions Json { get; } = new()
@@ -129,3 +133,24 @@ public sealed record ProbeForLlm(
     IReadOnlyList<string> Sources,
     IReadOnlyList<string> Checks,
     string? Notes);
+
+/// <summary>One STATUS-page caution as the bundle carried it.</summary>
+public sealed record HealthCaution(string System, string Title, string Severity, IReadOnlyList<string> Actions, DateTimeOffset RaisedUtc);
+
+/// <summary>One RECENT line from <c>diagnostics-events.jsonl</c>.</summary>
+public sealed record HealthEvent(DateTimeOffset AtUtc, string Text, string State);
+
+/// <summary>
+/// The <c>health</c> section: what the diagnostics pages showed when the user exported the
+/// bundle. <see cref="Cautions"/>, <see cref="Inop"/> and <see cref="Degraded"/> are the STATUS
+/// page's three lists; <see cref="Recent"/> is its change log (oldest first); the node table
+/// lists every non-green node by page so "which box was amber" is one lookup.
+/// </summary>
+public sealed record HealthSummary(
+    IReadOnlyList<HealthCaution> Cautions,
+    IReadOnlyList<string> Inop,
+    IReadOnlyList<string> Degraded,
+    DateTimeOffset? LastSnapshotUtc,
+    IReadOnlyDictionary<string, string> AbnormalNodes,
+    IReadOnlyList<HealthEvent> Recent,
+    IReadOnlyList<string> Notes);
