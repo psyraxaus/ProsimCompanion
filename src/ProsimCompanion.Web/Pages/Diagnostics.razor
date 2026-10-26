@@ -12,9 +12,10 @@
 <PageTitle>@T["diagnostics.pageTitle"]</PageTitle>
 <h1 class="sr-only">@T["diagnostics.heading"]</h1>
 
-@* The ECAM system display (ADR-0016): one fixed 720×640 stage scaled as a whole to its
-   frame (ecam.js). The palette is the aircraft's, not the airline theme's. Page switching is
-   a row of real links under the memo strip — no global key handler. *@
+@* The ECAM system display (ADR-0016): one fixed 720×640 stage scaled as a whole to fit the
+   window — the column width or the height under the header, whichever is tighter (ecam.js,
+   owner request 2026-10-27). The palette is the aircraft's, not the airline theme's. Page
+   switching is a row of real links under the memo strip — no global key handler. *@
 <div class="diag-page">
     <div class="ecam-frame" role="img" aria-label="@T["diagnostics.aria", CurrentPage.ToUpperInvariant()]">
         <div class="ecam-stage" id="@StageId">
@@ -74,7 +75,7 @@
 
         try
         {
-            await JS.InvokeVoidAsync("prosimCompanion.ecam.attach", StageId, EcamPresentation.StageWidth);
+            await JS.InvokeVoidAsync("prosimCompanion.ecam.attach", StageId, EcamPresentation.StageWidth, EcamPresentation.StageHeight);
             _attached = true;
         }
         catch (JSException)

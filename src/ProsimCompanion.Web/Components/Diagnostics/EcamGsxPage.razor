@@ -15,28 +15,11 @@
 }
 <div class="abs ecam-title" style="left:40px;top:14px">GSX</div>
 
-@* A320 from above (owner request 2026-10-27: the outline only, like the flyPad / FAP ground
-   page — no seats). Centreline x = 110; the fuselage is 34 px wide so the door markers sit on
-   its sides. *@
-<svg class="abs hull" style="left:250px;top:58px" width="220" height="330" viewBox="0 0 220 330" aria-hidden="true">
-    @* fuselage: radome, constant section, tail cone *@
-    <path d="M110 4 C101 8 95 22 93 44 L93 236 C93 266 100 300 106 324 L114 324 C120 300 127 266 127 236 L127 44 C125 22 119 8 110 4 Z" />
-    @* cockpit glazing *@
-    <path d="M99 30 Q110 24 121 30" />
-    @* wings: swept leading edge, kinked trailing edge, sharklet at the tip *@
-    <path d="M93 150 L22 234 L14 246 L23 252 L60 228 L93 210 Z" />
-    <path d="M127 150 L198 234 L206 246 L197 252 L160 228 L127 210 Z" />
-    <path d="M22 234 L13 224" />
-    <path d="M198 234 L207 224" />
-    @* engines on their pylons, ahead of the leading edge *@
-    <rect x="49" y="156" width="17" height="42" rx="7" />
-    <rect x="154" y="156" width="17" height="42" rx="7" />
-    <path d="M62 196 L74 212" />
-    <path d="M158 196 L146 212" />
-    @* horizontal stabiliser and the fin seen edge-on *@
-    <path d="M104 282 L58 314 L56 322 L66 324 L106 302 Z" />
-    <path d="M116 282 L162 314 L164 322 L154 324 L114 302 Z" />
-    <path d="M108 258 L112 258 L111 318 L109 318 Z" />
+@* The A320 from above: the owner's own three-view drawing, traced (A320TopView, 2026-10-27).
+   The drawing's fuselage edges give the door-marker columns (HullX below). *@
+<svg class="abs hull" style="left:@(HullLeft)px;top:@(HullTop)px" width="@HullWidth" height="@HullHeight"
+     viewBox="0 0 @A320TopView.ViewBoxWidth @A320TopView.ViewBoxHeight" aria-hidden="true">
+    <path class="hull-path" d="@A320TopView.Path" />
 </svg>
 
 @* Door markers: left doors on the port side of the hull, right doors starboard, cargo doors
@@ -67,10 +50,15 @@
         <div class="svc-detail">@(node.Detail ?? "")</div>
     </div>
 }
-<EcamLink State="@pg.NodeOrNoData("jetway").State" Left="174" Top="102" Width="165" Height="20" Points="0,2 0,15 165,15" Arrow="false" />
-<EcamLink State="@pg.NodeOrNoData("gpu").State" Left="174" Top="180" Length="76" Arrow="false" />
-<EcamLink State="@pg.NodeOrNoData("stairs").State" Left="174" Top="260" Length="20" Arrow="false" />
-<EcamLink State="@pg.NodeOrNoData("pushback").State" Left="174" Top="300" Width="76" Height="46" Points="0,44 0,2 76,2" Arrow="false" />
+@{
+    // Connectors run from the service boxes to the traced fuselage sides.
+    var toLeftEdge = FuselageLeftX - 174;
+    var toRightEdge = 546 - FuselageRightX;
+}
+<EcamLink State="@pg.NodeOrNoData("jetway").State" Left="174" Top="102" Width="@(toLeftEdge + 2)" Height="20" Points="@($"0,2 0,15 {toLeftEdge},15")" Arrow="false" />
+<EcamLink State="@pg.NodeOrNoData("gpu").State" Left="174" Top="180" Length="@toLeftEdge" Arrow="false" />
+<EcamLink State="@pg.NodeOrNoData("stairs").State" Left="174" Top="260" Length="@toLeftEdge" Arrow="false" />
+<EcamLink State="@pg.NodeOrNoData("pushback").State" Left="174" Top="300" Width="@(toLeftEdge + 2)" Height="46" Points="@($"0,44 0,2 {toLeftEdge},2")" Arrow="false" />
 
 @for (var i = 0; i < right.Length; i++)
 {
@@ -82,9 +70,9 @@
         <div class="svc-detail">@(node.Detail ?? "")</div>
     </div>
 }
-<EcamLink State="@pg.NodeOrNoData("catering").State" Left="386" Top="100" Length="160" Arrow="false" />
-<EcamLink State="@pg.NodeOrNoData("refuel").State" Left="386" Top="180" Length="160" Arrow="false" />
-<EcamLink State="@pg.NodeOrNoData("boarding").State" Left="470" Top="260" Length="76" Arrow="false" />
+<EcamLink State="@pg.NodeOrNoData("catering").State" Left="@FuselageRightX" Top="100" Length="@toRightEdge" Arrow="false" />
+<EcamLink State="@pg.NodeOrNoData("refuel").State" Left="@FuselageRightX" Top="180" Length="@toRightEdge" Arrow="false" />
+<EcamLink State="@pg.NodeOrNoData("boarding").State" Left="@FuselageRightX" Top="260" Length="@toRightEdge" Arrow="false" />
 
 <div class="abs hline" style="left:14px;top:420px;width:692px"></div>
 @{
@@ -122,20 +110,35 @@
 @code {
     [Parameter, EditorRequired] public DiagnosticsSnapshot Snap { get; set; } = DiagnosticsSnapshot.Empty;
 
+    // The traced drawing fitted between the service boxes: 294 px wide (its wingspan), which
+    // the 1593:1713 aspect makes 316 px tall, centred on the stage's x = 360.
+    private const int HullLeft = 213;
+    private const int HullTop = 56;
+    private const int HullWidth = 294;
+    private const int HullHeight = 316;
+    private const double HullScale = HullWidth / (double)A320TopView.ViewBoxWidth;
+
+    // Fuselage sides in stage px, from the drawing's own edges (door markers hug them).
+    private static readonly int FuselageLeftX = HullLeft + (int)Math.Round(A320TopView.FuselageLeft * HullScale);
+    private static readonly int FuselageRightX = HullLeft + (int)Math.Round(A320TopView.FuselageRight * HullScale);
+
+    private static int HullY(int drawingY) => HullTop + (int)Math.Round(drawingY * HullScale);
+
     // Marker positions on the hull (stage px): (readout id, label, x, y, label on the left?).
+    // The y values are the drawing's door positions in its own units.
     private static readonly (string Id, string Label, int X, int Y, bool LabelLeft)[] Doors =
     [
-        ("door_1l", "1L", 335, 104, true),
-        ("door_1r", "1R", 378, 104, false),
-        ("door_2l", "2L", 335, 190, true),
-        ("door_2r", "2R", 378, 190, false),
-        ("door_3l", "3L", 335, 214, true),
-        ("door_3r", "3R", 378, 214, false),
-        ("door_4l", "4L", 335, 300, true),
-        ("door_4r", "4R", 378, 300, false),
-        ("door_fwd_cgo", "FWD CGO", 378, 140, false),
-        ("door_aft_cgo", "AFT CGO", 378, 262, false),
-        ("door_bulk", "BULK", 378, 330, false),
+        ("door_1l", "1L", FuselageLeftX - 8, HullY(215), true),
+        ("door_1r", "1R", FuselageRightX, HullY(215), false),
+        ("door_2l", "2L", FuselageLeftX - 8, HullY(820), true),
+        ("door_2r", "2R", FuselageRightX, HullY(820), false),
+        ("door_3l", "3L", FuselageLeftX - 8, HullY(900), true),
+        ("door_3r", "3R", FuselageRightX, HullY(900), false),
+        ("door_4l", "4L", FuselageLeftX - 8, HullY(1310), true),
+        ("door_4r", "4R", FuselageRightX, HullY(1310), false),
+        ("door_fwd_cgo", "FWD CGO", FuselageRightX, HullY(470), false),
+        ("door_aft_cgo", "AFT CGO", FuselageRightX, HullY(1180), false),
+        ("door_bulk", "BULK", FuselageRightX, HullY(1400), false),
     ];
 
     private static string FormatBar(double value, DiagGauge gauge)

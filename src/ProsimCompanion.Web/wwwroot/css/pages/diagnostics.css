@@ -15,11 +15,14 @@
 }
 
 .diag-page {
-  padding: 16px 18px;
+  padding: 12px 18px 12px;
   display: flex;
   justify-content: center;
+  align-items: flex-start;
 }
 
+/* ecam.js sizes the frame to the scaled stage so it fits the window (width OR height, whichever
+   is tighter). Without JS (prerender) the frame falls back to the full column width at 9:8. */
 .ecam-frame {
   --ecam-white: #f2f2f2;
   --ecam-green: #33ff33;
@@ -126,7 +129,9 @@
 .svc-box .svc-val { font-size: 15px; margin-top: 4px; color: var(--st); }
 .svc-box .svc-detail { font-size: 11px; margin-top: 3px; color: var(--st); white-space: nowrap; overflow: hidden; }
 .svc-box.right-side { text-align: right; }
-.hull path, .hull line { fill: none; stroke: var(--ecam-green); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+/* The traced three-view: every stroke of the drawing is a thin closed ring, filled and stroked
+   in green so the lines stay visible at the 0.18 scale the page draws it at. */
+.hull .hull-path { fill: var(--ecam-green); fill-rule: evenodd; stroke: var(--ecam-green); stroke-width: 2.5; stroke-linejoin: round; }
 .door { width: 8px; height: 14px; border: 2px solid var(--st); }
 .door.open { background: var(--ecam-amber); border-color: var(--ecam-amber); }
 .bar-track { height: 14px; border: 1px solid var(--st); }
