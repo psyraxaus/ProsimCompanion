@@ -31,17 +31,27 @@ public sealed class OpenAiChatClient
     private readonly IOptionsMonitor<BriefingOptions> _options;
     private readonly HttpClient _http;
     private readonly LlmHealthStore? _health;
+    private readonly Core.Diagnostics.Metrics.LatencyRegistry? _latency;
 
     /// <summary>Production path — uses the process-wide shared HttpClient. The health store
     /// is optional so hand-constructed instances (tests, tools) keep working; the DI
     /// registration supplies it.</summary>
-    public OpenAiChatClient(IOptionsMonitor<BriefingOptions> options, LlmHealthStore? health = null)
-        : this(options, SharedHttp, health)
+    public OpenAiChatClient(
+        IOptionsMonitor<BriefingOptions> options,
+        LlmHealthStore? health = null,
+        Core.Diagnostics.Metrics.LatencyRegistry? latency = null)
+        : this(options, SharedHttp, health, latency)
     {
     }
 
     /// <summary>Test seam: supply an HttpClient over a fake handler.</summary>
-    public OpenAiChatClient(IOptionsMonitor<BriefingOptions> options, HttpClient http, LlmHealthStore? health = null)
+    /// <param name="latency">Where the stream's first-token / total times and tokens-per-second
+    /// land for the diagnostics VOICE page; null records nothing.</param>
+    public OpenAiChatClient(
+        IOptionsMonitor<BriefingOptions> options,
+        HttpClient http,
+        LlmHealthStore? health = null,
+        Core.Diagnostics.Metrics.LatencyRegistry? latency = null)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(http);
@@ -49,6 +59,7 @@ public sealed class OpenAiChatClient
         _options = options;
         _http = http;
         _health = health;
+        _latency = latency;
     }
 
     /// <summary>True when the LLM is enabled and a model is named — the gate every styled
@@ -269,6 +280,7 @@ public sealed class OpenAiChatClient
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         cts.CancelAfter(budget);
 
+        var started = System.Diagnostics.Stopwatch.GetTimestamp();
         using var response = await OpenStreamAsync(options, system, user, budget, cts.Token, cancellationToken)
             .ConfigureAwait(false);
         using var body = await GuardAsync(
@@ -276,6 +288,8 @@ public sealed class OpenAiChatClient
         using var reader = new StreamReader(body, Encoding.UTF8);
 
         var sawText = false;
+        var deltas = 0;
+        long firstTokenAt = 0;
         while (true)
         {
             var line = await GuardAsync(
@@ -291,9 +305,13 @@ public sealed class OpenAiChatClient
                 if (!sawText)
                 {
                     sawText = true;
+                    firstTokenAt = System.Diagnostics.Stopwatch.GetTimestamp();
+                    _latency?[Core.Diagnostics.Metrics.LatencyNames.LlmFirstToken]
+                        .Record(System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalMilliseconds);
                     _health?.Report(LlmHealthState.Healthy);
                 }
 
+                deltas++;
                 yield return delta;
             }
 
@@ -313,6 +331,20 @@ public sealed class OpenAiChatClient
         {
             // The endpoint answered and closed cleanly with no text: reachable, just silent.
             _health?.Report(LlmHealthState.Healthy);
+        }
+        else if (_latency is not null)
+        {
+            // Total time, and the generation rate as deltas per second after the first token.
+            // Neither wire format carries a token count in its stream lines (Ollama's eval_count
+            // and OpenAI's usage block are not parsed), so one delta stands in for one token —
+            // right for llama-server and Ollama, which stream per token.
+            _latency[Core.Diagnostics.Metrics.LatencyNames.LlmTotal]
+                .Record(System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalMilliseconds);
+            var generating = System.Diagnostics.Stopwatch.GetElapsedTime(firstTokenAt).TotalSeconds;
+            if (deltas > 1 && generating > 0.05)
+            {
+                _latency[Core.Diagnostics.Metrics.LatencyNames.LlmTokensPerSecond].Record((deltas - 1) / generating);
+            }
         }
     }
 

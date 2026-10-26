@@ -91,6 +91,11 @@ public sealed class UtteranceSegmenter
     /// shorter than the minimum speech length (a blip, door slam, breath).</summary>
     public event EventHandler<UtteranceDroppedEventArgs>? UtteranceDropped;
 
+    /// <summary>True while the gate holds an utterance open (speech seen, end-silence not yet
+    /// reached). Read by the diagnostics VOICE page's VAD cell; a plain field read under the
+    /// owner's gate.</summary>
+    public bool InSpeech => _speechDetected;
+
     /// <summary>Clears classifier state and all buffered audio; call at capture start.</summary>
     public void Reset()
     {

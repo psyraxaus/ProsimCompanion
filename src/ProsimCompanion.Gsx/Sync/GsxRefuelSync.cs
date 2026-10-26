@@ -129,6 +129,17 @@ public sealed class GsxRefuelSync : IDisposable
         }
     }
 
+    /// <summary>Current fuel on board and the latched target in kg while a transfer is active;
+    /// null otherwise. Cached reads only — the diagnostics GSX page's FUEL bar.</summary>
+    public (double CurrentKg, double TargetKg)? Transfer
+    {
+        get
+        {
+            var state = _state;
+            return state.TransferActive ? (_fuelTotal.Value, state.LatchedTargetKg) : null;
+        }
+    }
+
     private void Tick() => _ = TickAsync();
 
     private async Task TickAsync()

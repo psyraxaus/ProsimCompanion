@@ -20,6 +20,10 @@ public static class LatencyNames
 
     /// <summary>Utterance end (pilot stopped talking) to the first FO audio out.</summary>
     public const string EndToEnd = "e2e";
+
+    /// <summary>Not a latency: the LLM's generation rate in tokens per second, one sample per
+    /// completed stream, kept in the same registry so the VOICE page has one place to read.</summary>
+    public const string LlmTokensPerSecond = "llm_tok_s";
 }
 
 /// <summary>The rate series the SIM and REMOTE pages print.</summary>

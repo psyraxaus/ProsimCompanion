@@ -32,6 +32,8 @@ public static class AudioServiceCollectionExtensions
         services.AddSingleton<IMixerClients>(p => p.GetRequiredService<MixerClientHost>());
         services.AddHostedService(p => p.GetRequiredService<MixerClientHost>());
         services.AddHostedService<MixerMappingService>();
+        // Diagnostics REMOTE page (ADR-0016): mixer agents and the audio routing row.
+        services.AddSingleton<Core.Diagnostics.Ecam.IDiagnosticsCollector, Diagnostics.RemoteAudioDiagnosticsCollector>();
 
         return services;
     }

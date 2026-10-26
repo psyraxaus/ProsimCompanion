@@ -47,6 +47,12 @@ public static class WebServiceCollectionExtensions
         services.AddSingleton<AdvancedSettingsStore>();
         // Flight Status pill/text change log (issue #110) — runs whether or not a browser is open.
         services.AddStartupModule<FlightStatusChangeLog>();
+        // Diagnostics REMOTE page (ADR-0016): one CircuitHandler per circuit records address,
+        // browser class, route and a 5 s ping into the shared registry; the collector draws it.
+        services.AddHttpContextAccessor();
+        services.AddSingleton<Diagnostics.CircuitRegistry>();
+        services.AddScoped<Microsoft.AspNetCore.Components.Server.Circuits.CircuitHandler, Diagnostics.CircuitTracker>();
+        services.AddSingleton<Core.Diagnostics.Ecam.IDiagnosticsCollector, Diagnostics.WebHostDiagnosticsCollector>();
         return services;
     }
 }

@@ -22,6 +22,9 @@ public static class ProsimServiceCollectionExtensions
 
         services.AddSingleton<ProsimDataRefService>();
         services.AddSingleton<IProsimDataRefs>(provider => provider.GetRequiredService<ProsimDataRefService>());
+        // Diagnostics SIM page (ADR-0016): the ProSim source box, bus figures and aircraft grid.
+        services.AddSingleton<DoorStateReader>();
+        services.AddSingleton<Core.Diagnostics.Ecam.IDiagnosticsCollector, Diagnostics.ProsimDiagnosticsCollector>();
         services.AddSingleton<IProsimGateway, ProsimGatewayClient>();
         services.AddSingleton<ISimbriefImporter, Simbrief.SimbriefImportService>();
         services.AddSingleton<IFlightDataSource, ProsimFlightDataSource>();

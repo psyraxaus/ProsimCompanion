@@ -100,6 +100,7 @@ public static class CoreServiceCollectionExtensions
         services.AddSingleton<Diagnostics.Metrics.UptimeTracker>();
         services.AddSingleton<Diagnostics.Metrics.LatencyRegistry>();
         services.AddSingleton<Diagnostics.Metrics.RateRegistry>();
+        services.AddSingleton<Diagnostics.ApiClientRegistry>();
         services.AddSingleton<Diagnostics.Ecam.DiagEventLog>();
         services.AddSingleton<Diagnostics.Ecam.DiagnosticsStore>();
         services.AddSingleton<Diagnostics.Ecam.IDiagMemoSource, Diagnostics.Ecam.DiagMemoSource>();
@@ -249,6 +250,8 @@ public static class CoreServiceCollectionExtensions
         services.AddSingleton<GsxDiagnosticsStore>();
         services.AddSingleton<AudioStatusStore>();
         services.AddSingleton<SpeechStatusStore>();
+        services.AddSingleton<VoiceSignalStore>();
+        services.AddSingleton<Diagnostics.Metrics.VoiceTurnTracker>();
         // Utterances nothing acted on (issue #112) — written by the Speech pillar's router,
         // read by the Voice page's "Heard but not understood" section.
         services.AddSingleton<UnmatchedUtteranceStore>();

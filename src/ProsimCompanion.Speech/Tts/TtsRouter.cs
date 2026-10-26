@@ -27,6 +27,12 @@ public sealed class TtsRouter : IDisposable
 
     private readonly ConnectionStatusStore? _connections;
     private readonly IDisposable? _optionsChange;
+    private readonly Core.Diagnostics.Metrics.LatencyTracker? _ttsLatency;
+    private volatile TtsLastSynthesis? _last;
+
+    /// <summary>The provider and voice that answered the last successful synthesis, for the
+    /// diagnostics VOICE page's TTS cell; null before the first.</summary>
+    public TtsLastSynthesis? LastSynthesis => _last;
 
     /// <param name="connections">Footer/status dot for the network voice
     /// (<see cref="Subsystems.Tts"/>); optional so tests need no store.</param>
@@ -35,7 +41,8 @@ public sealed class TtsRouter : IDisposable
         IOptionsMonitor<SpeechOptions> options,
         SpeechStatusStore store,
         ILogger<TtsRouter> logger,
-        ConnectionStatusStore? connections = null)
+        ConnectionStatusStore? connections = null,
+        Core.Diagnostics.Metrics.LatencyRegistry? latency = null)
     {
         ArgumentNullException.ThrowIfNull(providers);
         ArgumentNullException.ThrowIfNull(options);
@@ -47,6 +54,7 @@ public sealed class TtsRouter : IDisposable
         _store = store;
         _logger = logger;
         _connections = connections;
+        _ttsLatency = latency?[Core.Diagnostics.Metrics.LatencyNames.Tts];
         // A save on the settings page (a Kokoro URL, an ElevenLabs key) must show on the Status
         // page at once, not after the FO next speaks (owner, 2026-10-12). Null from a bare
         // test mock is fine.
@@ -153,7 +161,10 @@ public sealed class TtsRouter : IDisposable
                     ?? (wanted.HasProvider
                         ? (provider.Name.Equals(wanted.Provider, StringComparison.OrdinalIgnoreCase) ? wanted.Id : null)
                         : (wanted.IsEmpty ? null : wanted.Id));
+                var started = System.Diagnostics.Stopwatch.GetTimestamp();
                 var audio = await provider.SynthesizeAsync(text, cancellationToken, effectiveVoice).ConfigureAwait(false);
+                _ttsLatency?.Record(System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalMilliseconds);
+                _last = new TtsLastSynthesis(provider.Name, effectiveVoice, DateTimeOffset.UtcNow);
                 lock (_gate)
                 {
                     _cooldownUntil.Remove(provider.Name);
@@ -298,3 +309,6 @@ public sealed class TtsRouter : IDisposable
         _ => ConnectionState.Disabled,
     };
 }
+
+/// <summary>The provider and voice that answered the last successful synthesis.</summary>
+public sealed record TtsLastSynthesis(string Provider, string? Voice, DateTimeOffset AtUtc);

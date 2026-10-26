@@ -67,6 +67,9 @@ public sealed class RecognitionController : IRecognitionWindow, IVoiceListeningC
     private CancellationTokenSource? _retry;
     private int _retryAttempt;
     private CancellationTokenSource? _reprobe;
+    private readonly Core.Diagnostics.Metrics.LatencyRegistry? _latency;
+    private readonly Core.Diagnostics.Metrics.VoiceTurnTracker? _turns;
+    private readonly VoiceSignalStore? _signals;
 
     /// <param name="recognizerFactory">Test seam: overrides the engine chain so the listen
     /// decision is testable without a Windows speech engine; DI leaves it null.</param>
@@ -88,7 +91,10 @@ public sealed class RecognitionController : IRecognitionWindow, IVoiceListeningC
         Core.EventLog.JsonlEventLog? eventLog = null,
         ConnectionStatusStore? connections = null,
         RecognitionEngineSeams? seams = null,
-        IExpectedReplyProvider? expectedReplies = null)
+        IExpectedReplyProvider? expectedReplies = null,
+        Core.Diagnostics.Metrics.LatencyRegistry? latency = null,
+        Core.Diagnostics.Metrics.VoiceTurnTracker? turns = null,
+        VoiceSignalStore? signals = null)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(ptt);
@@ -100,6 +106,9 @@ public sealed class RecognitionController : IRecognitionWindow, IVoiceListeningC
         _store = store;
         _connections = connections;
         _expectedReplies = expectedReplies;
+        _latency = latency;
+        _turns = turns;
+        _signals = signals;
         _loggerFactory = loggerFactory;
         _logger = loggerFactory.CreateLogger<RecognitionController>();
         _retryBackoff = retryBackoff is { Count: > 0 } ? retryBackoff : DefaultRetryBackoff;
@@ -460,7 +469,9 @@ public sealed class RecognitionController : IRecognitionWindow, IVoiceListeningC
 
     private IVoiceRecognizer BuildLanRecognizer()
         => _seams.LanFactory?.Invoke()
-           ?? new LanAsrRecognizer(_options, _loggerFactory.CreateLogger<LanAsrRecognizer>(), _eventLog, _store, _expectedReplies);
+           ?? new LanAsrRecognizer(
+               _options, _loggerFactory.CreateLogger<LanAsrRecognizer>(), _eventLog, _store, _expectedReplies,
+               _latency, _turns, _signals);
 
     private IVoiceRecognizer BuildOfflineRecognizer()
         => _seams.OfflineFactory?.Invoke()

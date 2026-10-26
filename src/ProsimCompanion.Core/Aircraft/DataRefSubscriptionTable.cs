@@ -28,6 +28,11 @@ public sealed class DataRefSubscriptionTable
     /// <summary>Raised when the last subscriber for a name is disposed.</summary>
     public event Action<string>? RegistrationReleased;
 
+    /// <summary>Raised once per dispatched update, after the subscribers ran, on the pump
+    /// thread. The diagnostics rate counter hangs here (one increment, no allocation); nothing
+    /// else should, because it fires tens of times a second.</summary>
+    public event Action? ValueUpdated;
+
     /// <summary>Creates a subscription handle for a dataref at the given cadence.</summary>
     public IDataRefSubscription Subscribe(string name, DataRefTier tier)
     {
@@ -89,6 +94,7 @@ public sealed class DataRefSubscriptionTable
         }
 
         Notify(name, toNotify);
+        ValueUpdated?.Invoke();
     }
 
     /// <summary>Flags every cached value stale (connection lost) and notifies subscribers.</summary>
@@ -112,6 +118,26 @@ public sealed class DataRefSubscriptionTable
         foreach (var (name, subscriptions) in toNotify)
         {
             Notify(name, subscriptions);
+        }
+    }
+
+    /// <summary>How many names are registered and how many of them hold a stale value (the
+    /// connection dropped after it arrived, or nothing has arrived yet). For the diagnostics
+    /// SIM page; one lock, no allocation.</summary>
+    public SubscriptionStats Stats()
+    {
+        lock (_gate)
+        {
+            var stale = 0;
+            foreach (var entry in _entries.Values)
+            {
+                if (entry.IsStale || entry.LastUpdatedUtc is null)
+                {
+                    stale++;
+                }
+            }
+
+            return new SubscriptionStats(_entries.Count, stale);
         }
     }
 

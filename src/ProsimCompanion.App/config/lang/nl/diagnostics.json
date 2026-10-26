@@ -1,0 +1,8 @@
+{
+  "diagnostics": {
+    "ecamTickMs": {
+      "label": "Paginaverversing",
+      "hint": "Hoe vaak de diagnosepagina's hun beeld opnieuw opbouwen. Eén seconde komt overeen met de schermen in het vliegtuig."
+    }
+  }
+}

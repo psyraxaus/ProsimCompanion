@@ -1,0 +1,8 @@
+{
+  "diagnostics": {
+    "ecamTickMs": {
+      "label": "Seitenaktualisierung",
+      "hint": "Wie oft die Diagnoseseiten ihr Bild neu aufbauen. Eine Sekunde entspricht den Anzeigen im Flugzeug."
+    }
+  }
+}

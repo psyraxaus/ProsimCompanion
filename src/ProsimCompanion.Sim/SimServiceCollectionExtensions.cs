@@ -16,6 +16,8 @@ public static class SimServiceCollectionExtensions
 
         services.AddSingleton<SimVarService>();
         services.AddSingleton<ISimVars>(provider => provider.GetRequiredService<SimVarService>());
+        // Diagnostics SIM page (ADR-0016): the SimConnect source box and simvar bus figures.
+        services.AddSingleton<Core.Diagnostics.Ecam.IDiagnosticsCollector, Diagnostics.SimConnectDiagnosticsCollector>();
         services.AddSingleton<SimSessionSignals>();
         // Airport parkings from the simulator's facility data (Option B, 2026-10-04): the
         // scenery tier of Core's parking catalogue — identity, position, radius, jetway for

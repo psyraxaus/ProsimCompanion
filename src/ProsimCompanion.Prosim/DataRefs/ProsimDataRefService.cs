@@ -13,7 +13,7 @@ namespace ProsimCompanion.Prosim.DataRefs;
 /// as the <see cref="IDataRefBackend"/>. With no backend attached, cached (stale-flagged) values
 /// remain readable and writes fail fast with a clear error.
 /// </summary>
-public sealed class ProsimDataRefService : IProsimDataRefs, IAsyncDisposable
+public sealed class ProsimDataRefService : IProsimDataRefs, IDataRefSubscriptionStats, IAsyncDisposable
 {
     private readonly DataRefSubscriptionTable _table;
     private readonly ILogger<ProsimDataRefService> _logger;
@@ -28,7 +28,12 @@ public sealed class ProsimDataRefService : IProsimDataRefs, IAsyncDisposable
     private long _dispatchStartedTicks;
 
     // DataRefSubscriptionTable lives in Core (shared with the SimConnect layer).
-    public ProsimDataRefService(IOptionsMonitor<ProsimOptions> options, ILogger<ProsimDataRefService> logger)
+    /// <param name="rates">The diagnostics rate registry; when supplied, every dispatched
+    /// update counts one hit on the dataref feed (the SIM page's RATE readout).</param>
+    public ProsimDataRefService(
+        IOptionsMonitor<ProsimOptions> options,
+        ILogger<ProsimDataRefService> logger,
+        Core.Diagnostics.Metrics.RateRegistry? rates = null)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(logger);
@@ -40,6 +45,11 @@ public sealed class ProsimDataRefService : IProsimDataRefs, IAsyncDisposable
 
         _table.RegistrationNeeded += (name, interval) => _backend?.EnsureRegistered(name, interval);
         _table.RegistrationReleased += name => _backend?.Unregister(name);
+        if (rates is not null)
+        {
+            var counter = rates[Core.Diagnostics.Metrics.RateNames.Datarefs];
+            _table.ValueUpdated += counter.Hit;
+        }
 
         _presses = Channel.CreateUnbounded<PressRequest>(new UnboundedChannelOptions
         {
@@ -56,6 +66,15 @@ public sealed class ProsimDataRefService : IProsimDataRefs, IAsyncDisposable
 
     /// <inheritdoc />
     public IDataRefSubscription SubscribeDynamic(string name, DataRefTier tier) => _table.Subscribe(name, tier);
+
+    /// <inheritdoc />
+    public int Count => _table.Stats().Count;
+
+    /// <inheritdoc />
+    public int Stale => _table.Stats().Stale;
+
+    /// <summary>True while an SDK session is attached as the push backend.</summary>
+    public bool BackendAttached => _backend is not null;
 
     /// <inheritdoc />
     public async Task WriteAsync(string name, object? value, CancellationToken cancellationToken = default)

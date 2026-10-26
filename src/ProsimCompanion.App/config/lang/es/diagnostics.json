@@ -1,0 +1,8 @@
+{
+  "diagnostics": {
+    "ecamTickMs": {
+      "label": "Actualización de la página",
+      "hint": "Cada cuánto las páginas de diagnóstico reconstruyen su imagen. Un segundo coincide con las pantallas del avión."
+    }
+  }
+}

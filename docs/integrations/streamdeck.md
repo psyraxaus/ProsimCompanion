@@ -14,6 +14,13 @@ REST-only against the embedded web server (default `http://127.0.0.1:5320`),
 `Authorization: Bearer {webUi.accessToken}` on every request (required even on
 loopback). Requires `commandApi.enabled: true`.
 
+Every request also carries `User-Agent: ProsimCompanion-StreamDeck/<plugin version>` (the
+version from `manifest.json`, via the SDK's `streamDeck.info.plugin.version`). The app's
+`/api/*` middleware records the last request per address and user agent, and the diagnostics
+REMOTE page (`/diagnostics/remote`) shows the deck as connected while that user agent polled
+within the last 5 s, amber when older, `XX` when it never polled. Node's `fetch` allows the
+header to be set; the value is informational only and never gates a request.
+
 - `GET /api/status` — polled at 1 Hz while any key is visible (exponential
   backoff capped at 30 s on failure):
   `{ phase, connections:{prosim,msfs,gsx}, gsx:{ automationActive, nextService,

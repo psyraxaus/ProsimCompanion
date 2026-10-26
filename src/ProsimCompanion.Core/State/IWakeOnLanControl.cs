@@ -12,4 +12,9 @@ public interface IWakeOnLanControl
 
     /// <summary>One packet to every enabled target (plus the legacy single-PC block).</summary>
     string SendAll();
+
+    /// <summary>When the last magic packet left this process (any target), or null when none
+    /// has: the diagnostics STATUS page prints it beside "LLM HOST NOT RESPONDING" so the
+    /// pilot knows whether a wake is already on its way.</summary>
+    DateTimeOffset? LastSentUtc { get; }
 }

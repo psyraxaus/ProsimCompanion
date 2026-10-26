@@ -35,6 +35,7 @@ public sealed class SpeechArbiterService : ISpeechArbiter, ISpeechControl, IDisp
     private readonly JsonlEventLog _eventLog;
     private readonly ILogger<SpeechArbiterService> _logger;
     private readonly Crew.AccentVoiceResolver? _accents;
+    private readonly Core.Diagnostics.Metrics.VoiceTurnTracker? _turns;
 
     private readonly SpeechArbiterCore _core;
     private readonly object _gate = new();
@@ -59,7 +60,8 @@ public sealed class SpeechArbiterService : ISpeechArbiter, ISpeechControl, IDisp
         JsonlEventLog eventLog,
         ILogger<SpeechArbiterService> logger,
         Persona.QuietState quietState,
-        Crew.AccentVoiceResolver? accents = null)
+        Crew.AccentVoiceResolver? accents = null,
+        Core.Diagnostics.Metrics.VoiceTurnTracker? turns = null)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(voices);
@@ -80,6 +82,7 @@ public sealed class SpeechArbiterService : ISpeechArbiter, ISpeechControl, IDisp
         _eventLog = eventLog;
         _logger = logger;
         _accents = accents;
+        _turns = turns;
 
         _core = new SpeechArbiterCore(
         [
@@ -413,6 +416,9 @@ public sealed class SpeechArbiterService : ISpeechArbiter, ISpeechControl, IDisp
             }
         }
 
+        // The end-to-end turn clock closes here: this is the one place every FO line passes
+        // right before the first audio reaches the device (streamed segments included).
+        _turns?.AudioStarted(DateTimeOffset.UtcNow);
         onAudioStart?.Invoke();
         await _playback.PlayAsync(audio.WavBytes, token, roleVoice.IntercomOverride).ConfigureAwait(false);
         return true;

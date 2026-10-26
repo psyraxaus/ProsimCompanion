@@ -51,18 +51,33 @@ public sealed class LanAsrRecognizer : IVoiceRecognizer
     private bool _suppressing;
     private long _suppressedEpisodes;
 
+    // Diagnostics VOICE page (ADR-0016): the ASR latency series, the end-to-end turn clock and
+    // the mic/gate meter. All optional — a hand-built recognizer (tests) measures nothing.
+    private readonly Core.Diagnostics.Metrics.LatencyTracker? _asrLatency;
+    private readonly Core.Diagnostics.Metrics.VoiceTurnTracker? _turns;
+    private readonly VoiceSignalStore? _signals;
+    private string _vadEngine = "";
+    private long _lastSignalPublishTicks;
+
     /// <param name="eventLog">Session JSONL for per-utterance VAD diagnostics; null (tests,
     /// degraded mode) simply skips the records.</param>
     /// <param name="speechStatus">The arbiter's playing state and recent lines, for the
     /// self-echo guard; null (tests) leaves the mic open.</param>
     /// <param name="expectedReplies">What the FO is waiting to hear (issue #172) — those
     /// replies are never taken for the FO's own voice; null = no exemptions.</param>
+    /// <param name="latency">Where the ASR round-trip is recorded; null measures nothing.</param>
+    /// <param name="turns">The end-to-end turn clock (utterance end → first FO audio); null
+    /// measures nothing.</param>
+    /// <param name="signals">The mic meter / gate / last-utterance store; null publishes nothing.</param>
     public LanAsrRecognizer(
         IOptionsMonitor<SpeechOptions> options,
         ILogger<LanAsrRecognizer> logger,
         Core.EventLog.JsonlEventLog? eventLog = null,
         SpeechStatusStore? speechStatus = null,
-        IExpectedReplyProvider? expectedReplies = null)
+        IExpectedReplyProvider? expectedReplies = null,
+        Core.Diagnostics.Metrics.LatencyRegistry? latency = null,
+        Core.Diagnostics.Metrics.VoiceTurnTracker? turns = null,
+        VoiceSignalStore? signals = null)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(logger);
@@ -72,6 +87,9 @@ public sealed class LanAsrRecognizer : IVoiceRecognizer
         _eventLog = eventLog;
         _expectedReplies = expectedReplies;
         _speechStatusWatch = speechStatus?.Observe(OnSpeechStatus);
+        _asrLatency = latency?[Core.Diagnostics.Metrics.LatencyNames.Asr];
+        _turns = turns;
+        _signals = signals;
     }
 
     /// <summary>Arbiter state → the guard: NowPlaying is set from dequeue to the end of the
@@ -191,6 +209,7 @@ public sealed class LanAsrRecognizer : IVoiceRecognizer
             // if it contained speech, and discards buffered ambience otherwise.
             _segmenter?.Flush();
             _segmenter = null;
+            _signals?.CaptureStopped();
         }
     }
 
@@ -223,11 +242,16 @@ public sealed class LanAsrRecognizer : IVoiceRecognizer
             : RmsSegmenterSettings;
 
         var engine = classifier is SileroVadClassifier ? "silero" : "rms";
+        _vadEngine = engine;
         var segmenter = new UtteranceSegmenter(classifier, settings);
         segmenter.Reset();
         segmenter.UtteranceReady += (_, e) =>
         {
             RecordUtterance(e.Stats, engine);
+            // The turn clock starts when the pilot stops talking, not when the transcript
+            // lands — the ASR round-trip is part of what the pilot waits for.
+            _turns?.UtteranceEnded(DateTimeOffset.UtcNow);
+            _signals?.UtteranceClosed(e.Stats.DurationMs);
             _ = TranscribeAsync(e.Pcm);
         };
         segmenter.UtteranceDropped += (_, e) =>
@@ -311,7 +335,54 @@ public sealed class LanAsrRecognizer : IVoiceRecognizer
 
             _suppressing = false;
             _segmenter.Push(e.Buffer, e.BytesRecorded);
+            PublishSignal(e.Buffer, e.BytesRecorded, _segmenter.InSpeech);
         }
+    }
+
+    /// <summary>The mic meter for the diagnostics page: peak dBFS of the capture buffer and
+    /// the gate state, published at most four times a second. One pass over 800 samples per
+    /// 50 ms callback — cheaper than the classifier that follows it. Caller holds the gate.</summary>
+    private void PublishSignal(byte[] buffer, int bytes, bool inSpeech)
+    {
+        if (_signals is null)
+        {
+            return;
+        }
+
+        var now = Environment.TickCount64;
+        if (now - _lastSignalPublishTicks < 250)
+        {
+            return;
+        }
+
+        _lastSignalPublishTicks = now;
+        _signals.Signal(PeakDb(buffer, bytes), SampleRate, inSpeech, _vadEngine);
+    }
+
+    /// <summary>Peak level of a PCM16 buffer in dBFS (0 = full scale), floored at -90 for silence.
+    /// Exposed for tests.</summary>
+    internal static double PeakDb(byte[] buffer, int bytes)
+    {
+        var samples = Math.Min(bytes, buffer.Length) / 2;
+        var peak = 0;
+        for (var i = 0; i < samples; i++)
+        {
+            var sample = Math.Abs((int)BitConverter.ToInt16(buffer, i * 2));
+            if (sample > peak)
+            {
+                peak = sample;
+            }
+        }
+
+        return peak == 0 ? -90 : Math.Max(-90, 20 * Math.Log10(peak / 32768.0));
+    }
+
+    /// <summary>Every rejection path: the turn clock stops (nothing will be answered) and the
+    /// BLEED counter ticks.</summary>
+    private void NoteRejected()
+    {
+        _turns?.UtteranceRejected();
+        _signals?.Rejected(DateTimeOffset.UtcNow);
     }
 
     private async Task TranscribeAsync(byte[] pcm)
@@ -339,10 +410,12 @@ public sealed class LanAsrRecognizer : IVoiceRecognizer
             }
 
             var url = options.AsrBaseUrl.TrimEnd('/') + AsrServerApi.TranscribePath(api);
+            var started = System.Diagnostics.Stopwatch.GetTimestamp();
             using var response = await Http.PostAsync(url, form, cts.Token).ConfigureAwait(false);
             if (!response.IsSuccessStatusCode)
             {
                 NoteServerFailure(url, (int)response.StatusCode, api);
+                NoteRejected();
                 Rejected?.Invoke(this, new RecognizedEventArgs("", 0, null, null));
                 return;
             }
@@ -352,13 +425,18 @@ public sealed class LanAsrRecognizer : IVoiceRecognizer
             if (transcript is null)
             {
                 NoteServerFailure(url, (int)response.StatusCode, api);
+                NoteRejected();
                 Rejected?.Invoke(this, new RecognizedEventArgs("", 0, null, null));
                 return;
             }
 
+            // Recorded only for a parsed answer: a 5xx or a wrong-shape body is a failure,
+            // not a slow success.
+            _asrLatency?.Record(System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalMilliseconds);
             NoteServerRecovered(url);
             if (transcript.Text.Length == 0)
             {
+                NoteRejected();
                 Rejected?.Invoke(this, new RecognizedEventArgs("", 0, null, transcript.NoSpeechProb));
                 return;
             }
@@ -372,16 +450,19 @@ public sealed class LanAsrRecognizer : IVoiceRecognizer
             {
                 _logger.LogInformation("ASR dropped the FO's own words heard back from the speakers: {Text}", transcript.Text);
                 _eventLog?.Record("asr.self-echo", new { text = transcript.Text, windowSeconds = options.SelfEchoWindowSeconds });
+                NoteRejected();
                 Rejected?.Invoke(this, new RecognizedEventArgs("", 0, null, transcript.NoSpeechProb));
                 return;
             }
 
+            _signals?.Accepted(transcript.Text, transcript.Confidence, DateTimeOffset.UtcNow);
             Accepted?.Invoke(this, new RecognizedEventArgs(
                 transcript.Text, transcript.Confidence ?? 0, transcript.Confidence, transcript.NoSpeechProb));
         }
         catch (Exception ex)
         {
             _logger.LogDebug(ex, "LAN ASR transcription failed");
+            NoteRejected();
             Rejected?.Invoke(this, new RecognizedEventArgs("", 0, null, null));
         }
     }

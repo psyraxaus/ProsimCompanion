@@ -18,6 +18,9 @@ public static class GsxServiceCollectionExtensions
 
         services.AddSingleton<GsxRemoteApiClient>();
         services.AddSingleton<IGsxRemoteApi>(provider => provider.GetRequiredService<GsxRemoteApiClient>());
+        // Diagnostics pages (ADR-0016): the GSX page and the SIM page's GSX source box.
+        services.AddSingleton<Core.Diagnostics.Ecam.IDiagnosticsCollector, Diagnostics.GsxDiagnosticsCollector>();
+        services.AddSingleton<Core.Diagnostics.Ecam.IDiagnosticsCollector, Diagnostics.GsxSourceDiagnosticsCollector>();
         services.AddSingleton<IHostedService>(provider => provider.GetRequiredService<GsxRemoteApiClient>());
         services.AddSingleton<GsxServiceLifecycleTracker>();
         services.AddSingleton<IGsxServiceLifecycleView>(provider => provider.GetRequiredService<GsxServiceLifecycleTracker>());

@@ -1,0 +1,8 @@
+{
+  "diagnostics": {
+    "ecamTickMs": {
+      "label": "Page refresh",
+      "hint": "How often the diagnostics pages rebuild their picture. One second matches the aircraft displays."
+    }
+  }
+}

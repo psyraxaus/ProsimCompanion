@@ -297,7 +297,15 @@ public static class SpeechServiceCollectionExtensions
         services.AddSingleton<Llm.OpenAiChatClient>();
         // Sentence-by-sentence LLM speech for briefings and the debrief (issue #147).
         services.AddSingleton<Llm.StreamingNarrator>();
-        services.AddHostedService<Llm.LlmHealthProbeService>();
+        // Registered as itself too: the diagnostics VOICE page reads its retry counters.
+        services.AddSingleton<Llm.LlmHealthProbeService>();
+        services.AddHostedService(p => p.GetRequiredService<Llm.LlmHealthProbeService>());
+        // Diagnostics VOICE page (ADR-0016): host reachability beside the health probe, and
+        // the collector that turns the speech stores into the page.
+        services.AddSingleton<Llm.LlmHostProbe>();
+        services.AddHostedService(p => p.GetRequiredService<Llm.LlmHostProbe>());
+        services.AddSingleton<Llm.ILlmHostView>(p => p.GetRequiredService<Llm.LlmHostProbe>());
+        services.AddSingleton<Core.Diagnostics.Ecam.IDiagnosticsCollector, Diagnostics.VoiceDiagnosticsCollector>();
         // The utterance router (CONTEXT.md, campaign #82): owns interpretation, precedence
         // and the idle grammar; the checklist engine attaches as its routing host.
         // Free-form questions to the FO (issue #149): the router's last stop before the

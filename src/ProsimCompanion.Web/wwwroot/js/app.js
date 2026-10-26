@@ -15,6 +15,9 @@
   // scrollIntoView keeps the active checklist entry / the current ECAM line visible while
   // the lists scroll inside their cards (ADR-0011, owner request 2026-09-20).
   window.prosimCompanion = window.prosimCompanion || {};
+  // Diagnostics REMOTE page: the server's CircuitTracker calls this every 5 s and times the
+  // round trip itself, so the answer only has to exist. Kept trivial on purpose.
+  window.prosimCompanion.diagPing = function () { return 1; };
   window.prosimCompanion.scrollIntoView = function (id) {
     const el = document.getElementById(id);
     if (el) el.scrollIntoView({ block: "nearest", behavior: "smooth" });

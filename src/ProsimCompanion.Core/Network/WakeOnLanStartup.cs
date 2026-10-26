@@ -19,6 +19,7 @@ public sealed class WakeOnLanStartup : IStartupModule, IWakeOnLanControl
     private readonly IOptionsMonitor<WakeTargetsOptions> _targets;
     private readonly IOptionsMonitor<BriefingOptions> _briefing;
     private readonly ILogger<WakeOnLanStartup> _logger;
+    private DateTimeOffset? _lastSentUtc;
 
     public WakeOnLanStartup(
         IOptionsMonitor<WakeTargetsOptions> targets,
@@ -33,11 +34,14 @@ public sealed class WakeOnLanStartup : IStartupModule, IWakeOnLanControl
         _logger = logger;
     }
 
+    /// <inheritdoc/>
+    public DateTimeOffset? LastSentUtc => _lastSentUtc;
+
     public void Start()
     {
         foreach (var target in _targets.CurrentValue.Targets.Where(t => t.Enabled))
         {
-            WakeOnLan.Send(target.MacAddress, target.BroadcastAddress, target.Port, _logger);
+            Stamp(WakeOnLan.Send(target.MacAddress, target.BroadcastAddress, target.Port, _logger));
         }
 
         var legacy = _briefing.CurrentValue.LlmWakeOnLan;
@@ -45,15 +49,26 @@ public sealed class WakeOnLanStartup : IStartupModule, IWakeOnLanControl
         {
             _logger.LogInformation(
                 "briefing.llmWakeOnLan is the old single-PC form — open Settings → Setup → Wake-on-LAN once to move it into the list");
-            WakeOnLan.Send(legacy.MacAddress, legacy.BroadcastAddress, legacy.Port, _logger);
+            Stamp(WakeOnLan.Send(legacy.MacAddress, legacy.BroadcastAddress, legacy.Port, _logger));
         }
+    }
+
+    /// <summary>Remembers the send instant when the outcome line says a packet left.</summary>
+    private string Stamp(string outcome)
+    {
+        if (outcome.StartsWith("Magic packet sent", StringComparison.Ordinal))
+        {
+            _lastSentUtc = DateTimeOffset.UtcNow;
+        }
+
+        return outcome;
     }
 
     /// <inheritdoc/>
     public string Send(WakeTarget target)
     {
         ArgumentNullException.ThrowIfNull(target);
-        return WakeOnLan.Send(target.MacAddress, target.BroadcastAddress, target.Port, _logger);
+        return Stamp(WakeOnLan.Send(target.MacAddress, target.BroadcastAddress, target.Port, _logger));
     }
 
     /// <inheritdoc/>
@@ -77,7 +92,7 @@ public sealed class WakeOnLanStartup : IStartupModule, IWakeOnLanControl
         var legacy = _briefing.CurrentValue.LlmWakeOnLan;
         if (legacy.Enabled)
         {
-            var outcome = WakeOnLan.Send(legacy.MacAddress, legacy.BroadcastAddress, legacy.Port, _logger);
+            var outcome = Stamp(WakeOnLan.Send(legacy.MacAddress, legacy.BroadcastAddress, legacy.Port, _logger));
             if (outcome.StartsWith("Magic packet sent", StringComparison.Ordinal))
             {
                 sent++;

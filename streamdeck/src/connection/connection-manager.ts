@@ -8,6 +8,8 @@ const POLL_INTERVAL_MS = 1_000;
 const MAX_BACKOFF_MS = 30_000;
 /** How old the cached /api/controls may be before the next status poll refreshes it. */
 const CONTROLS_MAX_AGE_MS = 30_000;
+/** Reported in the User-Agent header; the SDK reads it from manifest.json. */
+const PLUGIN_VERSION: string = streamDeck.info?.plugin?.version ?? "0.0.0";
 
 /**
  * The single connection to a running ProsimCompanion instance. REST-only:
@@ -55,6 +57,19 @@ export class ConnectionManager extends EventEmitter {
 	/** The last /api/controls payload, or null before the first successful read. */
 	get controls(): ControlsDto | null {
 		return this.controlsCache;
+	}
+
+	/**
+	 * Every request carries the bearer token and a `User-Agent` that names this plugin and
+	 * its version. ProsimCompanion's diagnostics REMOTE page recognises the prefix
+	 * `ProsimCompanion-StreamDeck/` and shows the deck as connected while the poll is fresh
+	 * (docs/integrations/streamdeck.md). Node's fetch allows the header; a browser would not.
+	 */
+	private headers(): Record<string, string> {
+		return {
+			Authorization: `Bearer ${this.settings.token}`,
+			"User-Agent": `ProsimCompanion-StreamDeck/${PLUGIN_VERSION}`,
+		};
 	}
 
 	get baseUrl(): string {
@@ -154,7 +169,7 @@ export class ConnectionManager extends EventEmitter {
 		let res: Response | undefined;
 		try {
 			res = await fetch(`${this.baseUrl}/api/status`, {
-				headers: { Authorization: `Bearer ${this.settings.token}` },
+				headers: this.headers(),
 				signal: AbortSignal.timeout(5_000),
 			});
 		} catch (err) {
@@ -232,7 +247,7 @@ export class ConnectionManager extends EventEmitter {
 		this.controlsInFlight = (async (): Promise<ControlsDto | null> => {
 			try {
 				const res = await fetch(`${this.baseUrl}/api/controls`, {
-					headers: { Authorization: `Bearer ${this.settings.token}` },
+					headers: this.headers(),
 					signal: AbortSignal.timeout(5_000),
 				});
 				if (!res.ok) return this.controlsCache;
@@ -270,7 +285,7 @@ export class ConnectionManager extends EventEmitter {
 			const res = await fetch(`${this.baseUrl}/api/command/${name}`, {
 				method: "POST",
 				headers: {
-					Authorization: `Bearer ${this.settings.token}`,
+					...this.headers(),
 					"Content-Type": "application/json",
 				},
 				body: body !== undefined ? JSON.stringify(body) : undefined,

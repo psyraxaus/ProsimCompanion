@@ -92,6 +92,7 @@ public sealed class UtteranceRouter : IDisposable
 
     /// <summary>Clock for the courtesy window (owner request 2026-10-25) — injectable for tests.</summary>
     private readonly TimeProvider _time;
+    private readonly VoiceSignalStore? _signals;
 
     /// <summary>When the FO last spoke or acted on a command — a "thank you" inside
     /// <see cref="CourtesyReplyCore.ReplyWindow"/> of it is about that, anything later is a breath.</summary>
@@ -118,7 +119,8 @@ public sealed class UtteranceRouter : IDisposable
         UnmatchedUtteranceTracker? unmatched = null,
         IOptionsMonitor<SpeechOptions>? options = null,
         ExpectedReplyStore? expectedReplies = null,
-        TimeProvider? time = null)
+        TimeProvider? time = null,
+        VoiceSignalStore? signals = null)
     {
         ArgumentNullException.ThrowIfNull(interpreter);
         ArgumentNullException.ThrowIfNull(checklists);
@@ -149,6 +151,7 @@ public sealed class UtteranceRouter : IDisposable
         _options = options;
         _expectedReplies = expectedReplies;
         _time = time ?? TimeProvider.System;
+        _signals = signals;
     }
 
     /// <summary>Attaches the checklist run loop; called by the engine before Start. The open
@@ -324,6 +327,8 @@ public sealed class UtteranceRouter : IDisposable
             "ASR heard \"{Heard}\" (conf {Confidence:F2}, acoustic {Acoustic}, noSpeech {NoSpeech}) -> {Decision} \"{Matched}\" (score {Score:F2})",
             e.Text, e.Confidence, e.AcousticConfidence, e.NoSpeechProb,
             interpretation.Kind, interpretation.Text, interpretation.Score);
+        // The diagnostics VOICE page's INTENT / ACTION cells: the same decision, kept.
+        _signals?.Decided(interpretation.Kind.ToString(), interpretation.Text);
 
         // A bare courtesy (owner request 2026-10-25): answered inside the reply window when the
         // switch is on, otherwise absorbed — never a "say again" for "cheers".

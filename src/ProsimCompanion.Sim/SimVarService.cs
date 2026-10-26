@@ -9,7 +9,7 @@ namespace ProsimCompanion.Sim;
 /// backend on connect. Mirrors the ProSim dataref service's degrade behaviour: without a
 /// backend, cached values remain readable (stale-flagged).
 /// </summary>
-public sealed class SimVarService : ISimVars
+public sealed class SimVarService : ISimVars, IDataRefSubscriptionStats
 {
     private readonly DataRefSubscriptionTable _table;
     private readonly ILogger<SimVarService> _logger;
@@ -17,12 +17,19 @@ public sealed class SimVarService : ISimVars
     private readonly Dictionary<string, string> _units = new(StringComparer.OrdinalIgnoreCase);
     private ISimVarBackend? _backend;
 
-    public SimVarService(ILogger<SimVarService> logger)
+    /// <param name="rates">The diagnostics rate registry; when supplied, every dispatched
+    /// update counts one hit on the simvar feed (the SIM page's RATE readout).</param>
+    public SimVarService(ILogger<SimVarService> logger, Core.Diagnostics.Metrics.RateRegistry? rates = null)
     {
         ArgumentNullException.ThrowIfNull(logger);
         _logger = logger;
         _table = new DataRefSubscriptionTable(
             (name, ex) => _logger.LogError(ex, "SimVar subscriber handler for {SimVar} threw", name));
+        if (rates is not null)
+        {
+            var counter = rates[Core.Diagnostics.Metrics.RateNames.Simvars];
+            _table.ValueUpdated += counter.Hit;
+        }
 
         _table.RegistrationNeeded += (name, interval) =>
         {
@@ -120,6 +127,12 @@ public sealed class SimVarService : ISimVars
 
     internal void UpdateFromSim(string name, double value)
         => _table.UpdateValue(name, value, DateTimeOffset.UtcNow);
+
+    /// <inheritdoc />
+    public int Count => _table.Stats().Count;
+
+    /// <inheritdoc />
+    public int Stale => _table.Stats().Stale;
 }
 
 /// <summary>Transport a connected SimConnect session provides to <see cref="SimVarService"/>.</summary>

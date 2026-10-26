@@ -375,6 +375,10 @@ public static class Program
         // LAN clients authenticate with the access token (QR onboarding); loopback always passes.
         web.UseMiddleware<LanTokenMiddleware>();
 
+        // Who is calling the HTTP API, for the diagnostics REMOTE page (after the token check,
+        // so a refused probe never counts as a client).
+        web.UseMiddleware<ApiClientTrackingMiddleware>();
+
         // Serves wwwroot, including the blazor.web.js copied there at build (see csproj) — a
         // WinExe host has no static-web-assets pipeline to provide it.
         web.UseStaticFiles();

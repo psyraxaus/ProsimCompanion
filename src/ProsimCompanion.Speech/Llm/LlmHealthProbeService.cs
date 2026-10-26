@@ -24,6 +24,14 @@ public sealed class LlmHealthProbeService : IHostedService, IDisposable
     private readonly CancellationTokenSource _stop = new();
 
     private Task? _loop;
+    private int _probes;
+    private int _consecutiveFailures;
+
+    /// <summary>Probes attempted this session (the diagnostics STATUS page's RETRY line).</summary>
+    public int ProbeCount => Volatile.Read(ref _probes);
+
+    /// <summary>Probes failed in a row since the last success; 0 while healthy.</summary>
+    public int ConsecutiveFailures => Volatile.Read(ref _consecutiveFailures);
 
     public LlmHealthProbeService(
         OpenAiChatClient llm,
@@ -102,6 +110,7 @@ public sealed class LlmHealthProbeService : IHostedService, IDisposable
     private async Task ProbeAsync(CancellationToken ct)
     {
         var before = _health.Snapshot().State;
+        Interlocked.Increment(ref _probes);
         try
         {
             // CompleteAsync reports the outcome to the health store itself — the probe only
@@ -109,6 +118,7 @@ public sealed class LlmHealthProbeService : IHostedService, IDisposable
             _ = await _llm.CompleteAsync(
                 "You are a connectivity test. Reply with the single word OK.", "ping", ct)
                 .ConfigureAwait(false);
+            Volatile.Write(ref _consecutiveFailures, 0);
             if (before is not LlmHealthState.Healthy)
             {
                 _logger.LogInformation("LLM endpoint recovered — free-form styling is back online");
@@ -120,6 +130,7 @@ public sealed class LlmHealthProbeService : IHostedService, IDisposable
         }
         catch (Exception ex)
         {
+            Interlocked.Increment(ref _consecutiveFailures);
             var state = _health.Snapshot();
             if (before != state.State)
             {

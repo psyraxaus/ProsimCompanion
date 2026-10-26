@@ -1,0 +1,8 @@
+{
+  "diagnostics": {
+    "ecamTickMs": {
+      "label": "Rafraîchissement de la page",
+      "hint": "Fréquence à laquelle les pages de diagnostic reconstruisent leur image. Une seconde correspond aux écrans de l'avion."
+    }
+  }
+}
