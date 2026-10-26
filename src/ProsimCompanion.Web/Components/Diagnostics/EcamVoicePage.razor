@@ -44,10 +44,11 @@
 }
 @for (var i = 0; i < pipeline.Length; i++)
 {
-    <EcamNode Node="@pg.NodeOrNoData(pipeline[i])" Left="@(14 + i * 120)" Top="260" />
+    <EcamNode Node="@pg.NodeOrNoData(pipeline[i])" Left="@(14 + i * 120)" Top="248" />
     if (i < pipeline.Length - 1)
     {
-        <EcamLink State="@pg.LinkState(pipeline[i], pipeline[i + 1])" Left="@(106 + i * 120)" Top="291" Length="28" />
+        @* Node box centre: top 248 + host label 26 + half of 44. *@
+        <EcamLink State="@pg.LinkState(pipeline[i], pipeline[i + 1])" Left="@(106 + i * 120)" Top="290" Length="28" />
     }
 }
 
@@ -56,9 +57,11 @@
     <div class="abs ecam-caution-line" style="top:430px">@line</div>
 }
 
-<div class="abs" style="left:24px;top:468px"><span class="c-white">STT</span> <span class="@EcamPresentation.StateClass(stt.State == DiagState.NotApplicable ? DiagState.NotApplicable : stt.State)">@EcamPresentation.ReadoutText(pg.Readout("ep_stt"))</span></div>
-<div class="abs" style="left:244px;top:468px"><span class="c-white">LLM</span> <span class="@EcamPresentation.StateClass(llm.State)">@EcamPresentation.ReadoutText(pg.Readout("ep_llm"))</span></div>
-<div class="abs" style="left:436px;top:468px"><span class="c-white">TTS</span> <span class="@EcamPresentation.StateClass(tts.State)">@EcamPresentation.ReadoutText(pg.Readout("ep_tts"))</span></div>
+@* Endpoint bus: one line per server, so a full domain name never runs into its neighbour
+   (owner report 2026-10-27 with *.protovision.internal names). *@
+<div class="abs ecam-endpoint" style="left:24px;top:452px"><span class="c-white">STT</span><span class="@EcamPresentation.StateClass(stt.State)">@EcamPresentation.ReadoutText(pg.Readout("ep_stt"))</span></div>
+<div class="abs ecam-endpoint" style="left:24px;top:474px"><span class="c-white">LLM</span><span class="@EcamPresentation.StateClass(llm.State)">@EcamPresentation.ReadoutText(pg.Readout("ep_llm"))</span></div>
+<div class="abs ecam-endpoint" style="left:24px;top:496px"><span class="c-white">TTS</span><span class="@EcamPresentation.StateClass(tts.State)">@EcamPresentation.ReadoutText(pg.Readout("ep_tts"))</span></div>
 
 <EcamMemoStrip Cells="@(new[]
 {

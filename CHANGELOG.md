@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.0-rc.11
+
+Local build for the owner's sim test, 2026-10-27, on `feature/ecam-diagnostics` (one fix over rc.10). Unverified live.
+
+- Fixed: **VOICE page text overlap with full domain names** (owner report 2026-10-27 on rc.10): the three endpoint addresses now sit one per line; the host label above each pipeline box and the detail line under it wrap onto two lines instead of clipping ("voice.protovision.internal", "FS2Crew (VB-Audio …)"); the LLM box shows the last first-token time once a stream has run.
+
 ## 0.8.0-rc.10
 
 Local build for the owner's sim test, 2026-10-27, on `feature/ecam-diagnostics` (8 commits over rc.9). Everything below is unverified live.

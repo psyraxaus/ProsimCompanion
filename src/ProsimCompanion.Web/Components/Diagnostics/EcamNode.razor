@@ -2,7 +2,7 @@
 @* One pipeline node: host label above, the label box, the value box, the detail line. Colour
    and dash state come only from the st-* class EcamPresentation maps from the node state. *@
 <div class="abs ecam-node-wrap @EcamPresentation.StateClass(Node.State)" style="left:@(Left)px;top:@(Top)px">
-    <div class="node-host">@(Node.Host ?? "")</div>
+    <div class="node-host"><span>@(Node.Host ?? "")</span></div>
     <div class="ecam-node">@Label</div>
     <div class="ecam-value">@Node.Value</div>
     <div class="node-detail">@(Node.Detail ?? "")</div>

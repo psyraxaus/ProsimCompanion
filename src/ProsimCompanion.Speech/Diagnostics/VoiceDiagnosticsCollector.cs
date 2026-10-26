@@ -134,7 +134,7 @@ public sealed class VoiceDiagnosticsCollector : IDiagnosticsCollector
         // llm
         var health = _llmHealth.Snapshot();
         var host = _hostProbe?.View ?? LlmHostView.Empty;
-        var (llmState, llmValue, llmDetail) = LlmNode(briefing, health, host);
+        var (llmState, llmValue, llmDetail) = LlmNode(briefing, health, host, _latency[LatencyNames.LlmFirstToken].Last);
         page.Node("llm", llmState, llmValue, llmDetail, HostLabel(labels, llmHost));
         if (briefing.LlmEnabled)
         {
@@ -231,7 +231,7 @@ public sealed class VoiceDiagnosticsCollector : IDiagnosticsCollector
         }
     }
 
-    private static (DiagState State, string Value, string? Detail) LlmNode(BriefingOptions briefing, LlmHealthSnapshot health, LlmHostView host)
+    private static (DiagState State, string Value, string? Detail) LlmNode(BriefingOptions briefing, LlmHealthSnapshot health, LlmHostView host, double? firstTokenMs)
     {
         if (!briefing.LlmEnabled || string.IsNullOrWhiteSpace(briefing.LlmModel))
         {
@@ -248,7 +248,8 @@ public sealed class VoiceDiagnosticsCollector : IDiagnosticsCollector
             _ => (host.HostReachable == true ? DiagState.Normal : DiagState.NoData, FirstToken(), backend),
         };
 
-        string FirstToken() => "- -";
+        // The last first-token time once a stream has run; "- -" (ready, not yet asked) before.
+        string FirstToken() => firstTokenMs is { } ms ? $"{ms:0} ms" : "- -";
     }
 
     /// <summary>Connection state to node state: on = green, retrying = amber, off = not applicable.</summary>
