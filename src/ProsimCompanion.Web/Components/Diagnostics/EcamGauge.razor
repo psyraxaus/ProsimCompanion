@@ -1,0 +1,30 @@
+@using ProsimCompanion.Core.Diagnostics.Ecam
+@* A 270° arc dial: green arc, red segment from the warning threshold, white needle, the value
+   under the needle in the state colour the value earns, the title and unit above right. *@
+<div class="abs lbl" style="left:@(Left + 70)px;top:@(Top - 18)px">@Title<span class="unit">@Gauge.Unit</span></div>
+<svg class="abs ecam-gauge" style="left:@(Left)px;top:@(Top)px" width="78" height="66" viewBox="0 0 78 66" aria-hidden="true">
+    <path class="arc" d="@_geometry.ArcPath"></path>
+    @if (_geometry.WarningArcPath is { } warn)
+    {
+        <path class="arc-warn" d="@warn"></path>
+    }
+    @if (_geometry.Needle is { } tip)
+    {
+        <line class="needle" x1="39" y1="40" x2="@tip.X.ToString(System.Globalization.CultureInfo.InvariantCulture)" y2="@tip.Y.ToString(System.Globalization.CultureInfo.InvariantCulture)"></line>
+    }
+</svg>
+<div class="abs center @_geometry.ValueClass" style="left:@(Left)px;top:@(Top + 36)px;width:78px;font-size:15px">@_geometry.ValueText</div>
+
+@code {
+    [Parameter, EditorRequired] public DiagGauge Gauge { get; set; } = new("", null, 0, 100, 100, 100, "");
+
+    [Parameter] public string Title { get; set; } = "";
+
+    [Parameter] public int Left { get; set; }
+
+    [Parameter] public int Top { get; set; }
+
+    private GaugeGeometry _geometry = EcamPresentation.Gauge(new DiagGauge("", null, 0, 100, 100, 100, ""));
+
+    protected override void OnParametersSet() => _geometry = EcamPresentation.Gauge(Gauge);
+}

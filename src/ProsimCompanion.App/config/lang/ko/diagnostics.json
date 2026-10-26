@@ -1,8 +1,27 @@
 {
   "diagnostics": {
+    "pageTitle": "진단 — ProsimCompanion",
+    "heading": "진단",
+    "aria": "ECAM 스타일 진단 화면, {0} 페이지",
     "ecamTickMs": {
       "label": "페이지 갱신 주기",
       "hint": "진단 페이지가 화면을 다시 그리는 주기입니다. 1초는 항공기 디스플레이와 같습니다."
+    },
+    "settings": {
+      "pageTitle": "진단 설정 — ProsimCompanion",
+      "heading": "진단",
+      "open": "진단 페이지 열기",
+      "refresh": {
+        "title": "갱신",
+        "hint": "진단 아래 ECAM 스타일 페이지를 얼마나 빨리 다시 그릴지"
+      },
+      "hosts": {
+        "title": "호스트 이름표",
+        "hint": "음성 파이프라인의 각 상자 위에 표시되는 짧은 이름입니다. 비워 두면 주소가 그대로 표시됩니다.",
+        "rowHint": "{0}에서 실행되는 상자 위에 표시할 이름표",
+        "none": "음성 인식, 언어 모델, 음성 합성 서버가 아직 설정되지 않아 이름을 붙일 대상이 없습니다.",
+        "json": "고급 사용자는 settings.json의 다음 항목에서도 목록을 편집할 수 있습니다:"
+      }
     }
   }
 }

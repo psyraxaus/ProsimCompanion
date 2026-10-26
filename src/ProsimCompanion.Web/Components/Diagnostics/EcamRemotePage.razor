@@ -1,0 +1,110 @@
+@using ProsimCompanion.Core.Diagnostics.Ecam
+@* REMOTE: F/CTL grammar. Displays left, the web host centre, controllers (Stream Deck, mixer
+   agents) right, the audio routing row below. *@
+@{
+    var pg = Snap.Remote;
+    var memo = Snap.Memo;
+    var (verMain, verTag) = EcamPresentation.VersionParts(memo.Version);
+    var (upH, upM) = EcamPresentation.UptimeParts(memo.Uptime);
+    var host = pg.NodeOrNoData("webhost");
+    var deck = pg.NodeOrNoData("streamdeck");
+    var displays = new[] { "display_1", "display_2" }.Select(id => pg.Nodes.GetValueOrDefault(id)).ToArray();
+    var agents = Enumerable.Range(1, 6).Select(i => pg.Nodes.GetValueOrDefault($"mixer_{i}")).Where(n => n is not null).Select(n => n!).ToArray();
+    var channels = Enumerable.Range(1, 5).Select(i => (Id: $"ch_{i}", Node: pg.Nodes.GetValueOrDefault($"ch_{i}"))).ToArray();
+    var clients = pg.Readout("memo_clients");
+    var lost = pg.Readout("memo_clients_lost");
+}
+<div class="abs ecam-title" style="left:24px;top:14px">REMOTE</div>
+<div class="abs detail c-white" style="left:24px;top:60px">DISPLAYS</div>
+<div class="abs detail c-white right" style="left:614px;top:60px;width:82px">CONTROLLERS</div>
+
+@for (var i = 0; i < displays.Length; i++)
+{
+    var id = $"display_{i + 1}";
+    var top = 86 + i * 86;
+    var node = displays[i];
+    if (node is null)
+    {
+        <div class="abs ecam-box st-na" style="left:24px;top:@(top)px;width:160px;height:62px"></div>
+        <div class="abs c-grey" style="left:36px;top:@(top + 6)px">DISPLAY @(i + 1)</div>
+        <div class="abs c-grey small" style="left:36px;top:@(top + 24)px">@EcamTokens.NotApplicable</div>
+        continue;
+    }
+
+    <div class="abs ecam-box @EcamPresentation.StateClass(node.State)" style="left:24px;top:@(top)px;width:160px;height:62px"></div>
+    <div class="abs @EcamPresentation.StateClass(node.State)" style="left:36px;top:@(top + 6)px">DISPLAY @(i + 1)</div>
+    <div class="abs c-cyan small" style="left:36px;top:@(top + 24)px;width:140px;white-space:nowrap;overflow:hidden">@node.Value</div>
+    <div class="abs @EcamPresentation.StateClass(node.State) small" style="left:36px;top:@(top + 42)px;width:140px;white-space:nowrap;overflow:hidden">@(node.Detail ?? "")</div>
+    if (i == 0)
+    {
+        <EcamLink State="@node.State" Left="184" Top="111" Length="88" />
+    }
+    else
+    {
+        <EcamLink State="@node.State" Left="184" Top="117" Width="88" Height="86" Points="0,80 36,80 36,6 80,6" ArrowPoints="80,2 88,6 80,10" />
+    }
+
+    var ms = pg.Readout(id + "_ms");
+    <div class="abs c-cyan small" style="left:@(i == 0 ? 200 : 192)px;top:@(i == 0 ? 92 : 180)px">@(ms is null ? "" : ms + EcamTokens.Units.Ms)</div>
+}
+
+<div class="abs ecam-box @EcamPresentation.StateClass(host.State)" style="left:272px;top:86px;width:176px;height:62px"></div>
+<div class="abs center @EcamPresentation.StateClass(host.State)" style="left:272px;top:92px;width:176px">WEB HOST</div>
+<div class="abs center @EcamPresentation.StateClass(host.State)" style="left:272px;top:116px;width:176px">@host.Value<span style="margin-left:16px">@(host.Detail ?? "")</span></div>
+<div class="abs center small" style="left:272px;top:158px;width:176px"><span class="c-white">LISTEN</span> <span class="@EcamPresentation.ReadoutClass(pg.Readout("listen"))">@EcamPresentation.ReadoutText(pg.Readout("listen"))</span> <span class="c-white">TLS</span></div>
+<div class="abs center small @(pg.Readout("tls") == EcamTokens.On ? "c-green" : "c-grey")" style="left:272px;top:174px;width:176px">@EcamPresentation.ReadoutText(pg.Readout("tls"))</div>
+
+<div class="abs ecam-box @EcamPresentation.StateClass(deck.State)" style="left:536px;top:86px;width:160px;height:62px"></div>
+<div class="abs right @EcamPresentation.StateClass(deck.State)" style="left:536px;top:92px;width:150px">STREAM DECK</div>
+<div class="abs right c-cyan small" style="left:536px;top:110px;width:150px">@(deck.State == DiagState.NoData ? (deck.Detail ?? EcamTokens.NoData) : "POLL " + deck.Value)</div>
+<div class="abs right small @EcamPresentation.StateClass(deck.State)" style="left:536px;top:128px;width:150px">@(deck.State == DiagState.NoData ? "" : deck.Detail ?? "")</div>
+<EcamLink State="@pg.LinkState("streamdeck", "webhost")" Left="448" Top="111" Length="88" />
+
+<div class="abs c-white right" style="left:536px;top:172px;width:160px">MIXER AGENTS</div>
+@if (agents.Length == 0)
+{
+    <div class="abs right c-grey small" style="left:536px;top:200px;width:160px">@EcamTokens.NotApplicable</div>
+}
+@for (var i = 0; i < agents.Length && i < 4; i++)
+{
+    <div class="abs sq @EcamPresentation.StateClass(agents[i].State)" style="left:@(536 + i * 38)px;top:196px">@(i + 1)</div>
+}
+@for (var i = 0; i < agents.Length && i < 4; i++)
+{
+    <div class="abs right detail @EcamPresentation.StateClass(agents[i].State)" style="left:496px;top:@(234 + i * 14)px;width:200px;white-space:nowrap;overflow:hidden">@(i + 1) @agents[i].Value@(agents[i].State == DiagState.Normal ? "" : " · " + (agents[i].Detail ?? ""))</div>
+}
+
+<div class="abs detail c-white" style="left:24px;top:298px">AUDIO ROUTING</div>
+<div class="abs hline" style="left:24px;top:314px;width:672px"></div>
+@for (var i = 0; i < channels.Length; i++)
+{
+    var left = 24 + i * 136;
+    var (id, node) = channels[i];
+    if (node is null)
+    {
+        <div class="abs center c-grey" style="left:@(left)px;top:338px;width:124px">@EcamTokens.NotApplicable</div>
+        continue;
+    }
+
+    <div class="abs center @EcamPresentation.StateClass(node.State)" style="left:@(left)px;top:338px;width:124px">@EcamPresentation.ReadoutText(pg.Readout(id + "_label"))</div>
+    <div class="abs badge @EcamPresentation.StateClass(node.State)" style="left:@(left + 31)px;top:362px">@node.Value</div>
+    <div class="abs center @EcamPresentation.StateClass(node.State)" style="left:@(left)px;top:394px;width:124px">@(node.Detail ?? EcamTokens.NoData)</div>
+    <div class="abs center small @EcamPresentation.StateClass(node.State)" style="left:@(left)px;top:414px;width:124px;white-space:nowrap;overflow:hidden">@EcamPresentation.ReadoutText(pg.Readout(id + "_device"))</div>
+}
+
+@if (pg.CautionLine is { } line)
+{
+    <div class="abs ecam-caution-line" style="top:470px">@line</div>
+}
+
+<EcamMemoStrip Cells="@(new[]
+{
+    new EcamMemoCell("VER", verMain, verTag),
+    new EcamMemoCell("CLIENTS", clients ?? EcamTokens.NoData, lost, clients is null ? "c-amber" : null, "c-amber"),
+    new EcamMemoCell("UP", upH, "H " + upM),
+    new EcamMemoCell("PHASE", EcamPresentation.Or(memo.Phase, EcamTokens.NoData)),
+})" />
+
+@code {
+    [Parameter, EditorRequired] public DiagnosticsSnapshot Snap { get; set; } = DiagnosticsSnapshot.Empty;
+}

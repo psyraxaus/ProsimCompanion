@@ -1,0 +1,58 @@
+@using ProsimCompanion.Core.Diagnostics.Ecam
+@* A dashed link with a solid arrowhead, horizontal (left → right) or vertical (top → bottom),
+   or an elbow given as a polyline. Stroke and fill follow --st from the state class. *@
+@if (Points is not null)
+{
+    <svg class="abs ecam-link @EcamPresentation.StateClass(State)" style="left:@(Left)px;top:@(Top)px" width="@Width" height="@Height" aria-hidden="true">
+        <polyline points="@Points" fill="none" stroke-width="2" stroke-dasharray="5 4"></polyline>
+        @if (Arrow)
+        {
+            <polygon points="@ArrowPoints"></polygon>
+        }
+    </svg>
+}
+else if (Vertical)
+{
+    <svg class="abs ecam-link @EcamPresentation.StateClass(State)" style="left:@(Left)px;top:@(Top)px" width="12" height="@Length" aria-hidden="true">
+        <line x1="6" y1="0" x2="6" y2="@(Arrow ? Length - 8 : Length)" stroke-width="2" stroke-dasharray="5 4"></line>
+        @if (Arrow)
+        {
+            <polygon points="2,@(Length - 8) 6,@Length 10,@(Length - 8)"></polygon>
+        }
+    </svg>
+}
+else
+{
+    <svg class="abs ecam-link @EcamPresentation.StateClass(State)" style="left:@(Left)px;top:@(Top)px" width="@Length" height="12" aria-hidden="true">
+        <line x1="0" y1="6" x2="@(Arrow ? Length - 8 : Length)" y2="6" stroke-width="2" stroke-dasharray="5 4"></line>
+        @if (Arrow)
+        {
+            <polygon points="@(Length - 8),2 @Length,6 @(Length - 8),10"></polygon>
+        }
+    </svg>
+}
+
+@code {
+    [Parameter] public DiagState State { get; set; } = DiagState.Normal;
+
+    [Parameter] public int Left { get; set; }
+
+    [Parameter] public int Top { get; set; }
+
+    /// <summary>Length in px for a straight link.</summary>
+    [Parameter] public int Length { get; set; } = 28;
+
+    [Parameter] public bool Vertical { get; set; }
+
+    [Parameter] public bool Arrow { get; set; } = true;
+
+    /// <summary>SVG polyline points for an elbow; with it, Width/Height size the box and
+    /// ArrowPoints places the head.</summary>
+    [Parameter] public string? Points { get; set; }
+
+    [Parameter] public int Width { get; set; }
+
+    [Parameter] public int Height { get; set; }
+
+    [Parameter] public string ArrowPoints { get; set; } = "";
+}

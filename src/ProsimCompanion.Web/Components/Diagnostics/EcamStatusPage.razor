@@ -1,0 +1,77 @@
+@using ProsimCompanion.Core.Diagnostics.Ecam
+@* STATUS: cautions by system on the left, INOP SYS / DEGRADED / RECENT on the right, the
+   counts and the bundle export in the memo strip. *@
+@{
+    var memo = Snap.Memo;
+    var (upH, upM) = EcamPresentation.UptimeParts(memo.Uptime);
+    var inop = Snap.InopSystems;
+    var degraded = Snap.Degraded;
+    var recent = Snap.Recent.Take(8).ToList();
+    var y = 58;
+}
+<div class="abs ecam-title" style="left:318px;top:14px">STATUS</div>
+
+@if (Snap.Cautions.Count == 0)
+{
+    <div class="abs c-green" style="left:24px;top:58px">NORMAL</div>
+}
+else
+{
+    <EcamCautionList Cautions="@Snap.Cautions" Left="24" Top="58" MaxY="500" />
+}
+
+<div class="abs vline" style="left:440px;top:52px;height:466px"></div>
+
+<div class="abs head-u" style="left:466px;top:@(y)px">INOP SYS</div>
+@{ y += 24; }
+@if (inop.Count == 0)
+{
+    <div class="abs c-green grp-ttl st-normal" style="left:466px;top:@(y)px">NONE</div>
+    y += 22;
+}
+@foreach (var item in inop.Take(6))
+{
+    <div class="abs grp-ttl st-caution" style="left:466px;top:@(y)px">@item.ToUpperInvariant()</div>
+    y += 22;
+}
+@{ y += 14; }
+<div class="abs head-u" style="left:466px;top:@(y)px">DEGRADED</div>
+@{ y += 24; }
+@if (degraded.Count == 0)
+{
+    <div class="abs grp-ttl st-normal" style="left:466px;top:@(y)px">NONE</div>
+    y += 22;
+}
+@foreach (var item in degraded.Take(4))
+{
+    <div class="abs grp-ttl st-caution" style="left:466px;top:@(y)px">@item.ToUpperInvariant()</div>
+    y += 22;
+}
+@{ y += 14; }
+<div class="abs head-u" style="left:466px;top:@(y)px">RECENT</div>
+@{ y += 24; }
+@foreach (var evt in recent)
+{
+    if (y > 500)
+    {
+        break;
+    }
+
+    <div class="abs act @EcamPresentation.StateClass(evt.State)" style="left:466px;top:@(y)px;font-size:15px;width:240px;white-space:nowrap;overflow:hidden">@EcamPresentation.Clock(evt.AtUtc) @evt.Text.ToUpperInvariant()</div>
+    y += 22;
+}
+
+<EcamMemoStrip Cells="@(new[]
+{
+    new EcamMemoCell("CAUTIONS", memo.CautionCount.ToString(System.Globalization.CultureInfo.InvariantCulture), null, memo.CautionCount > 0 ? "c-amber" : null),
+    new EcamMemoCell("WARNINGS", memo.WarningCount.ToString(System.Globalization.CultureInfo.InvariantCulture), null, memo.WarningCount > 0 ? "c-amber" : null),
+    new EcamMemoCell("BUNDLE", "EXPORT", memo.BundleReady ? "RDY" : null, null, null, BundleHref),
+    new EcamMemoCell("PHASE", EcamPresentation.Or(memo.Phase, EcamTokens.NoData)),
+})" />
+
+@code {
+    [Parameter, EditorRequired] public DiagnosticsSnapshot Snap { get; set; } = DiagnosticsSnapshot.Empty;
+
+    /// <summary>The Logs page's bundle export link (relative, cookie-authenticated).</summary>
+    [Parameter] public string? BundleHref { get; set; }
+}

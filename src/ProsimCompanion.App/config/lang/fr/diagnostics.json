@@ -1,8 +1,27 @@
 {
   "diagnostics": {
+    "pageTitle": "Diagnostic — ProsimCompanion",
+    "heading": "Diagnostic",
+    "aria": "Affichage de diagnostic de type ECAM, page {0}",
     "ecamTickMs": {
       "label": "Rafraîchissement de la page",
       "hint": "Fréquence à laquelle les pages de diagnostic reconstruisent leur image. Une seconde correspond aux écrans de l'avion."
+    },
+    "settings": {
+      "pageTitle": "Réglages du diagnostic — ProsimCompanion",
+      "heading": "Diagnostic",
+      "open": "Ouvrir les pages de diagnostic",
+      "refresh": {
+        "title": "Rafraîchissement",
+        "hint": "Les pages de type ECAM sous Diagnostic : à quelle vitesse elles se redessinent"
+      },
+      "hosts": {
+        "title": "Noms des machines",
+        "hint": "Le nom court affiché au-dessus de chaque case de la chaîne vocale. Laissez une ligne vide pour afficher l'adresse elle-même.",
+        "rowHint": "Nom affiché au-dessus des cases qui tournent sur {0}",
+        "none": "Aucun serveur de reconnaissance, de modèle de langage ou de voix n'est encore configuré : il n'y a rien à nommer.",
+        "json": "Les utilisateurs avancés peuvent aussi modifier la liste dans settings.json sous"
+      }
     }
   }
 }

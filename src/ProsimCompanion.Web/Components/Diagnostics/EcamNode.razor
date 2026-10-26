@@ -1,0 +1,22 @@
+@using ProsimCompanion.Core.Diagnostics.Ecam
+@* One pipeline node: host label above, the label box, the value box, the detail line. Colour
+   and dash state come only from the st-* class EcamPresentation maps from the node state. *@
+<div class="abs ecam-node-wrap @EcamPresentation.StateClass(Node.State)" style="left:@(Left)px;top:@(Top)px">
+    <div class="node-host">@(Node.Host ?? "")</div>
+    <div class="ecam-node">@Label</div>
+    <div class="ecam-value">@Node.Value</div>
+    <div class="node-detail">@(Node.Detail ?? "")</div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public DiagNode Node { get; set; } = DiagNode.NoData("");
+
+    /// <summary>The box text; defaults to the node id in capitals.</summary>
+    [Parameter] public string? Label { get; set; }
+
+    [Parameter] public int Left { get; set; }
+
+    [Parameter] public int Top { get; set; }
+
+    protected override void OnParametersSet() => Label ??= Node.Id.ToUpperInvariant();
+}

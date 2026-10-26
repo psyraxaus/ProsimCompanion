@@ -50,7 +50,8 @@
       "techLog": "Tech Log",
       "logbook": "Bitácora",
       "dutyDay": "Jornada",
-      "settings": "Ajustes"
+      "settings": "Ajustes",
+      "diagnostics": "Diagnóstico"
     },
     "footer": {
       "asr": "Reconocimiento de voz (whisper en LAN): {0}",
@@ -127,7 +128,8 @@
       "profiles": "Perfiles de aeronave",
       "advanced": "Avanzado",
       "advanced.flightPhase": "Motor de fases de vuelo",
-      "advanced.logs": "Registros"
+      "advanced.logs": "Registros",
+      "advanced.diagnostics": "Diagnóstico"
     }
   }
 }

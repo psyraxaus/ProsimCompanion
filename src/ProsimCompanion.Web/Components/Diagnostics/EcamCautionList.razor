@@ -1,0 +1,39 @@
+@using ProsimCompanion.Core.Diagnostics.Ecam
+@* The STATUS page's left column: cautions grouped by system, each an amber (red, or green for
+   a note) title line with the dotted cyan action lines under it. Lines are 22 px apart; the
+   column is clipped at the memo strip, so the top items — warnings first — always show. *@
+@{
+    var y = Top;
+}
+@foreach (var caution in Cautions)
+{
+    if (y > MaxY)
+    {
+        break;
+    }
+
+    <div class="abs grp-ttl @EcamPresentation.CautionClass(caution)" style="left:@(Left)px;top:@(y)px">@caution.System.ToUpperInvariant()&nbsp;&nbsp;&nbsp;@caution.Title.ToUpperInvariant()</div>
+    y += 24;
+    foreach (var action in caution.Actions)
+    {
+        if (y > MaxY)
+        {
+            break;
+        }
+
+        <div class="abs act @(caution.Severity == DiagState.Normal ? "c-green" : "c-cyan")" style="left:@(Left + 18)px;top:@(y)px">@EcamPresentation.DottedAction(action)</div>
+        y += 22;
+    }
+
+    y += 14;
+}
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<DiagCaution> Cautions { get; set; } = [];
+
+    [Parameter] public int Left { get; set; } = 24;
+
+    [Parameter] public int Top { get; set; } = 58;
+
+    [Parameter] public int MaxY { get; set; } = 500;
+}

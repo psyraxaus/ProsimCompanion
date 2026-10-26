@@ -17,6 +17,17 @@ re-verified against upstream.
   2026-09-20 Superdesign restyle (ADR-0011). Bundled so the UI never fetches a font from a
   CDN — the sim PC and the iPad may be offline.
 
+## Share Tech Mono — `src/ProsimCompanion.Web/wwwroot/fonts/ShareTechMono-Regular.woff2`
+
+- Upstream: https://github.com/google/fonts/tree/main/ofl/sharetechmono (Carrois Type Design,
+  Ralph du Carrois)
+- Source file: the Google Fonts latin woff2 subset (`sharetechmono/v16`, 13,500 bytes),
+  fetched 2026-10-27
+- Licence: **SIL Open Font License 1.1** (Copyright 2012 Carrois Type Design, Reserved Font
+  Name "Share") — shipped beside the font as `ShareTechMono-OFL.txt`
+- Used only by the ECAM-style diagnostics pages (ADR-0016) as the display's condensed
+  monospace face. Deliberately not ProSim's own display font.
+
 ## Public Sans — `src/ProsimCompanion.Web/wwwroot/fonts/PublicSans-{Light,Regular,SemiBold,Bold}.woff2`
 
 - Upstream: https://github.com/uswds/public-sans

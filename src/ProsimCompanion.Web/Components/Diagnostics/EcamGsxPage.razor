@@ -1,0 +1,152 @@
+@using ProsimCompanion.Core.Diagnostics.Ecam
+@* GSX: DOOR/OXY grammar. The hull with its door markers, four service boxes either side with
+   dashed connectors, the three progress bars, the GSX memo. *@
+@{
+    var pg = Snap.Gsx;
+    var memo = Snap.Memo;
+    var (upH, upM) = EcamPresentation.UptimeParts(memo.Uptime);
+    var left = new[] { "jetway", "gpu", "stairs", "pushback" };
+    var right = new[] { "catering", "refuel", "boarding", "deice" };
+    var pax = pg.Gauges.GetValueOrDefault("pax");
+    var cargo = pg.Gauges.GetValueOrDefault("cargo");
+    var fuel = pg.Gauges.GetValueOrDefault("fuel");
+    var turnaround = pg.Readout("memo_turnaround");
+    var gsxMemo = pg.Readout("memo_gsx");
+}
+<div class="abs ecam-title" style="left:40px;top:14px">GSX</div>
+
+@* A320 from above (owner request 2026-10-27: the outline only, like the flyPad / FAP ground
+   page — no seats). Centreline x = 110; the fuselage is 34 px wide so the door markers sit on
+   its sides. *@
+<svg class="abs hull" style="left:250px;top:58px" width="220" height="330" viewBox="0 0 220 330" aria-hidden="true">
+    @* fuselage: radome, constant section, tail cone *@
+    <path d="M110 4 C101 8 95 22 93 44 L93 236 C93 266 100 300 106 324 L114 324 C120 300 127 266 127 236 L127 44 C125 22 119 8 110 4 Z" />
+    @* cockpit glazing *@
+    <path d="M99 30 Q110 24 121 30" />
+    @* wings: swept leading edge, kinked trailing edge, sharklet at the tip *@
+    <path d="M93 150 L22 234 L14 246 L23 252 L60 228 L93 210 Z" />
+    <path d="M127 150 L198 234 L206 246 L197 252 L160 228 L127 210 Z" />
+    <path d="M22 234 L13 224" />
+    <path d="M198 234 L207 224" />
+    @* engines on their pylons, ahead of the leading edge *@
+    <rect x="49" y="156" width="17" height="42" rx="7" />
+    <rect x="154" y="156" width="17" height="42" rx="7" />
+    <path d="M62 196 L74 212" />
+    <path d="M158 196 L146 212" />
+    @* horizontal stabiliser and the fin seen edge-on *@
+    <path d="M104 282 L58 314 L56 322 L66 324 L106 302 Z" />
+    <path d="M116 282 L162 314 L164 322 L154 324 L114 302 Z" />
+    <path d="M108 258 L112 258 L111 318 L109 318 Z" />
+</svg>
+
+@* Door markers: left doors on the port side of the hull, right doors starboard, cargo doors
+   starboard between them (A320: both cargo doors are on the right). *@
+@foreach (var (id, label, x, y, labelLeft) in Doors)
+{
+    var state = pg.Readout(id);
+    if (state is null)
+    {
+        continue;
+    }
+
+    var open = state == "OPEN";
+    <div class="abs door @(open ? "open st-caution" : "st-normal")" style="left:@(x)px;top:@(y)px"></div>
+    if (open)
+    {
+        <div class="abs detail c-amber" style="left:@(labelLeft ? x - 38 : x + 13)px;top:@(y + 2)px;width:36px;@(labelLeft ? "text-align:right" : "")">@label</div>
+    }
+}
+
+@for (var i = 0; i < left.Length; i++)
+{
+    var node = pg.NodeOrNoData(left[i]);
+    var top = 66 + i * 80;
+    <div class="abs svc-box @EcamPresentation.StateClass(node.State)" style="left:14px;top:@(top)px">
+        <div class="svc-title">@left[i].ToUpperInvariant()</div>
+        <div class="svc-val">@node.Value</div>
+        <div class="svc-detail">@(node.Detail ?? "")</div>
+    </div>
+}
+<EcamLink State="@pg.NodeOrNoData("jetway").State" Left="174" Top="102" Width="165" Height="20" Points="0,2 0,15 165,15" Arrow="false" />
+<EcamLink State="@pg.NodeOrNoData("gpu").State" Left="174" Top="180" Length="76" Arrow="false" />
+<EcamLink State="@pg.NodeOrNoData("stairs").State" Left="174" Top="260" Length="20" Arrow="false" />
+<EcamLink State="@pg.NodeOrNoData("pushback").State" Left="174" Top="300" Width="76" Height="46" Points="0,44 0,2 76,2" Arrow="false" />
+
+@for (var i = 0; i < right.Length; i++)
+{
+    var node = pg.NodeOrNoData(right[i]);
+    var top = 66 + i * 80;
+    <div class="abs svc-box right-side @EcamPresentation.StateClass(node.State)" style="left:546px;top:@(top)px">
+        <div class="svc-title">@right[i].ToUpperInvariant()</div>
+        <div class="svc-val">@node.Value</div>
+        <div class="svc-detail">@(node.Detail ?? "")</div>
+    </div>
+}
+<EcamLink State="@pg.NodeOrNoData("catering").State" Left="386" Top="100" Length="160" Arrow="false" />
+<EcamLink State="@pg.NodeOrNoData("refuel").State" Left="386" Top="180" Length="160" Arrow="false" />
+<EcamLink State="@pg.NodeOrNoData("boarding").State" Left="470" Top="260" Length="76" Arrow="false" />
+
+<div class="abs hline" style="left:14px;top:420px;width:692px"></div>
+@{
+    var bars = new[] { ("PAX", pax, 24), ("CARGO", cargo, 256), ("FUEL", fuel, 488) };
+}
+@foreach (var (label, gauge, x) in bars)
+{
+    <div class="abs lbl" style="left:@(x)px;top:432px">@label</div>
+    if (gauge?.Value is { } value && gauge.Max > 0)
+    {
+        var pct = Math.Clamp(value / gauge.Max * 100, 0, 100);
+        <div class="abs bar-track st-normal" style="left:@(x)px;top:452px;width:200px"><div class="bar-fill" style="width:@(pct.ToString("0", System.Globalization.CultureInfo.InvariantCulture))%"></div></div>
+        <div class="abs" style="left:@(x)px;top:472px"><span class="c-green">@FormatBar(value, gauge)</span> <span class="unit">@(gauge.Unit == EcamTokens.Units.Percent ? "" : gauge.Unit)@(gauge.Unit == EcamTokens.Units.Percent ? "" : " ")@(pct.ToString("0", System.Globalization.CultureInfo.InvariantCulture))%</span></div>
+    }
+    else
+    {
+        <div class="abs bar-track st-na" style="left:@(x)px;top:452px;width:200px"></div>
+        <div class="abs c-amber" style="left:@(x)px;top:472px">@EcamTokens.NoData</div>
+    }
+}
+
+@if (pg.CautionLine is { } line)
+{
+    <div class="abs ecam-caution-line" style="top:506px">@line</div>
+}
+
+<EcamMemoStrip Cells="@(new[]
+{
+    new EcamMemoCell("GSX", gsxMemo ?? EcamTokens.NoData, pg.Readout("memo_gsx_detail"), gsxMemo is null or "RECONN" or "NO COUATL" ? "c-amber" : null),
+    new EcamMemoCell("SMART BTN", pg.Readout("memo_smartbtn") ?? EcamTokens.NotApplicable),
+    new EcamMemoCell("TURNAROUND", turnaround is null ? EcamTokens.NotApplicable : turnaround.Split(" H ")[0], turnaround is null ? null : "H " + turnaround.Split(" H ")[1]),
+    new EcamMemoCell("PHASE", EcamPresentation.Or(memo.Phase, EcamTokens.NoData)),
+})" />
+
+@code {
+    [Parameter, EditorRequired] public DiagnosticsSnapshot Snap { get; set; } = DiagnosticsSnapshot.Empty;
+
+    // Marker positions on the hull (stage px): (readout id, label, x, y, label on the left?).
+    private static readonly (string Id, string Label, int X, int Y, bool LabelLeft)[] Doors =
+    [
+        ("door_1l", "1L", 335, 104, true),
+        ("door_1r", "1R", 378, 104, false),
+        ("door_2l", "2L", 335, 190, true),
+        ("door_2r", "2R", 378, 190, false),
+        ("door_3l", "3L", 335, 214, true),
+        ("door_3r", "3R", 378, 214, false),
+        ("door_4l", "4L", 335, 300, true),
+        ("door_4r", "4R", 378, 300, false),
+        ("door_fwd_cgo", "FWD CGO", 378, 140, false),
+        ("door_aft_cgo", "AFT CGO", 378, 262, false),
+        ("door_bulk", "BULK", 378, 330, false),
+    ];
+
+    private static string FormatBar(double value, DiagGauge gauge)
+    {
+        var culture = System.Globalization.CultureInfo.InvariantCulture;
+        if (gauge.Unit == EcamTokens.Units.Percent)
+        {
+            return value.ToString("0", culture);
+        }
+
+        var format = gauge.Unit == EcamTokens.Units.Tonnes ? "0.0" : "0";
+        return $"{value.ToString(format, culture)} / {gauge.Max.ToString(format, culture)}";
+    }
+}

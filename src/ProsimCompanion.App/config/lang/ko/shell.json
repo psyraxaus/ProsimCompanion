@@ -50,7 +50,8 @@
       "techLog": "Tech Log",
       "logbook": "비행 일지",
       "dutyDay": "근무일",
-      "settings": "설정"
+      "settings": "설정",
+      "diagnostics": "진단"
     },
     "footer": {
       "asr": "음성 인식 (LAN whisper): {0}",
@@ -127,7 +128,8 @@
       "profiles": "항공기 프로필",
       "advanced": "고급",
       "advanced.flightPhase": "비행 단계 엔진",
-      "advanced.logs": "로그"
+      "advanced.logs": "로그",
+      "advanced.diagnostics": "진단"
     }
   }
 }

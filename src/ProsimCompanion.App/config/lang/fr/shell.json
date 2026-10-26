@@ -50,7 +50,8 @@
       "techLog": "Tech Log",
       "logbook": "Carnet de vol",
       "dutyDay": "Journée",
-      "settings": "Réglages"
+      "settings": "Réglages",
+      "diagnostics": "Diagnostic"
     },
     "footer": {
       "asr": "Reconnaissance vocale (whisper LAN) : {0}",
@@ -127,7 +128,8 @@
       "profiles": "Profils d'appareil",
       "advanced": "Avancé",
       "advanced.flightPhase": "Moteur de phases de vol",
-      "advanced.logs": "Journaux"
+      "advanced.logs": "Journaux",
+      "advanced.diagnostics": "Diagnostic"
     }
   }
 }

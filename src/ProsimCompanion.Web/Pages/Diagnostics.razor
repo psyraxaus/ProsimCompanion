@@ -1,0 +1,97 @@
+@page "/diagnostics"
+@page "/diagnostics/{Page?}"
+@using Microsoft.JSInterop
+@using ProsimCompanion.Core.Diagnostics.Ecam
+@using ProsimCompanion.Web.Components.Diagnostics
+@inherits StoreObserverComponent
+@inject DiagnosticsStore Store
+@inject IOptionsMonitor<DiagnosticsOptions> DiagnosticsMonitor
+@inject IJSRuntime JS
+@inject IStringLocalizer T
+
+<PageTitle>@T["diagnostics.pageTitle"]</PageTitle>
+<h1 class="sr-only">@T["diagnostics.heading"]</h1>
+
+@* The ECAM system display (ADR-0016): one fixed 720×640 stage scaled as a whole to its
+   frame (ecam.js). The palette is the aircraft's, not the airline theme's. Page switching is
+   a row of real links under the memo strip — no global key handler. *@
+<div class="diag-page">
+    <div class="ecam-frame" role="img" aria-label="@T["diagnostics.aria", CurrentPage.ToUpperInvariant()]">
+        <div class="ecam-stage" id="@StageId">
+            @switch (CurrentPage)
+            {
+                case DiagPageIds.Sim:
+                    <EcamSimPage Snap="@_snap" />
+                    break;
+                case DiagPageIds.Remote:
+                    <EcamRemotePage Snap="@_snap" />
+                    break;
+                case DiagPageIds.Gsx:
+                    <EcamGsxPage Snap="@_snap" />
+                    break;
+                case DiagPageIds.Status:
+                    <EcamStatusPage Snap="@_snap" BundleHref="@BundleUrl" />
+                    break;
+                default:
+                    <EcamVoicePage Snap="@_snap" />
+                    break;
+            }
+            <EcamSelector Current="@CurrentPage" />
+        </div>
+    </div>
+</div>
+
+@code {
+    private const string StageId = "ecam-stage";
+
+    [Parameter] public string? Page { get; set; }
+
+    private DiagnosticsSnapshot _snap = DiagnosticsSnapshot.Empty;
+    private bool _attached;
+
+    private string CurrentPage => Page is { } p && DiagPageIds.All.Contains(p, StringComparer.OrdinalIgnoreCase)
+        ? p.ToLowerInvariant()
+        : DiagPageIds.Voice;
+
+    // Same relative link the Logs page uses: the onboarded cookie authenticates, no token in the URL.
+    private string BundleUrl
+    {
+        get
+        {
+            var o = DiagnosticsMonitor.CurrentValue;
+            return $"api/diagnostics/bundle?sessions={o.BundleSessionCount}&days={o.BundleLogDays}&wire={(o.IncludeWireTrace ? "true" : "false")}";
+        }
+    }
+
+    protected override void OnInitialized() => Watch(Store, s => _snap = s);
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_attached)
+        {
+            return;
+        }
+
+        try
+        {
+            await JS.InvokeVoidAsync("prosimCompanion.ecam.attach", StageId, EcamPresentation.StageWidth);
+            _attached = true;
+        }
+        catch (JSException)
+        {
+            // Prerender / interop not ready: the next render retries.
+        }
+        catch (InvalidOperationException)
+        {
+        }
+    }
+
+    public override void Dispose()
+    {
+        base.Dispose();
+        if (_attached)
+        {
+            _ = JS.InvokeVoidAsync("prosimCompanion.ecam.detach", StageId).AsTask().ContinueWith(_ => { }, TaskScheduler.Default);
+        }
+    }
+}

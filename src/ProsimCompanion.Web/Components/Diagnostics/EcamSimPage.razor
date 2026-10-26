@@ -1,0 +1,73 @@
+@using ProsimCompanion.Core.Diagnostics.Ecam
+@* SIM: ELEC grammar. Three sources feeding two bus bars, the aircraft grid, the plan rows. *@
+@{
+    var pg = Snap.Sim;
+    var memo = Snap.Memo;
+    var (verMain, verTag) = EcamPresentation.VersionParts(memo.Version);
+    var (upH, upM) = EcamPresentation.UptimeParts(memo.Uptime);
+    var prosim = pg.NodeOrNoData("prosim");
+    var simconnect = pg.NodeOrNoData("simconnect");
+    var gsx = pg.NodeOrNoData("gsx");
+    var datarefBus = pg.NodeOrNoData("dataref_bus");
+    var simvarBus = pg.NodeOrNoData("simvar_bus");
+    var tieState = DiagStates.Worse(datarefBus.State, simvarBus.State);
+    var simName = pg.Readout("sim_name");
+}
+<div class="abs ecam-title" style="left:34px;top:14px">SIM</div>
+
+<div class="abs src-box @EcamPresentation.StateClass(prosim.State)" style="left:40px;top:50px"><div>PROSIM</div><div>@(prosim.Detail ?? "")</div><div>@prosim.Value</div></div>
+<div class="abs src-box @EcamPresentation.StateClass(simconnect.State)" style="left:300px;top:50px"><div>SIMCONNECT</div><div>@(simconnect.Detail ?? "")</div><div>@simconnect.Value</div></div>
+<div class="abs src-box @EcamPresentation.StateClass(gsx.State)" style="left:560px;top:50px"><div>GSX</div><div>@(gsx.Detail ?? "")</div><div>@gsx.Value</div></div>
+
+<div class="abs feed @EcamPresentation.StateClass(pg.LinkState("prosim", "dataref_bus"))" style="left:99px;top:110px;height:60px"></div>
+<div class="abs feed @EcamPresentation.StateClass(pg.LinkState("simconnect", "simvar_bus"))" style="left:359px;top:110px;height:60px"></div>
+<div class="abs feed @EcamPresentation.StateClass(pg.LinkState("gsx", "simvar_bus"))" style="left:619px;top:110px;height:60px"></div>
+
+<div class="abs" style="left:112px;top:130px"><span class="c-white">RATE</span> <span class="@EcamPresentation.ReadoutClass(pg.Readout("rate_datarefs"))">@EcamPresentation.ReadoutText(pg.Readout("rate_datarefs"))@(pg.Readout("rate_datarefs") is null ? "" : EcamTokens.Units.Hz)</span></div>
+<div class="abs" style="left:372px;top:130px"><span class="c-white">RATE</span> <span class="@EcamPresentation.ReadoutClass(pg.Readout("rate_simvars"))">@EcamPresentation.ReadoutText(pg.Readout("rate_simvars"))@(pg.Readout("rate_simvars") is null ? "" : EcamTokens.Units.Hz)</span></div>
+<div class="abs" style="left:632px;top:130px"><span class="c-white">RATE</span> <span class="@EcamPresentation.ReadoutClass(pg.Readout("rate_gsx"))">@EcamPresentation.ReadoutText(pg.Readout("rate_gsx"))@(pg.Readout("rate_gsx") is null ? "" : EcamTokens.Units.Hz)</span></div>
+
+<EcamBus State="@datarefBus.State" Label="DATAREF BUS" Left="40" Top="170" Width="300" />
+<EcamBus State="@simvarBus.State" Label="SIMVAR BUS" Left="380" Top="170" Width="300" />
+<EcamLink State="@tieState" Left="340" Top="174" Length="40" Arrow="false" />
+
+<div class="abs lbl" style="left:40px;top:204px">DATAREFS</div>
+<div class="abs" style="left:130px;top:204px"><span class="@EcamPresentation.ReadoutClass(pg.Readout("subs_datarefs"))">@EcamPresentation.ReadoutText(pg.Readout("subs_datarefs"))</span> <span class="c-white">SUBS</span></div>
+<div class="abs" style="left:218px;top:204px"><span class="@(pg.Readout("stale_datarefs") is null ? "st-nodata" : pg.Readout("stale_datarefs") == "0" ? "st-normal" : "st-caution")">@EcamPresentation.ReadoutText(pg.Readout("stale_datarefs"))</span> <span class="c-white">STALE</span></div>
+<div class="abs lbl" style="left:380px;top:204px">SIMVARS</div>
+<div class="abs" style="left:470px;top:204px"><span class="@EcamPresentation.ReadoutClass(pg.Readout("subs_simvars"))">@EcamPresentation.ReadoutText(pg.Readout("subs_simvars"))</span> <span class="c-white">SUBS</span></div>
+<div class="abs" style="left:558px;top:204px"><span class="@(pg.Readout("stale_simvars") is null ? "st-nodata" : pg.Readout("stale_simvars") == "0" ? "st-normal" : "st-caution")">@EcamPresentation.ReadoutText(pg.Readout("stale_simvars"))</span> <span class="c-white">STALE</span></div>
+
+@{
+    var grid = new[] { ("phase", "PHASE"), ("ground", "GROUND"), ("power", "POWER"), ("doors", "DOORS") };
+}
+@for (var i = 0; i < grid.Length; i++)
+{
+    var node = pg.NodeOrNoData(grid[i].Item1);
+    <div class="abs grid-cell @EcamPresentation.StateClass(node.State)" style="left:@(40 + i * 164)px;top:248px">
+        <div class="lbl">@grid[i].Item2</div>
+        <div class="val">@node.Value</div>
+        <div class="detail">@(node.Detail ?? "")</div>
+    </div>
+}
+
+<div class="abs lbl" style="left:40px;top:362px">FPLN</div><div class="abs @EcamPresentation.ReadoutClass(pg.Readout("fpln"))" style="left:110px;top:362px">@EcamPresentation.ReadoutText(pg.Readout("fpln"))@if (pg.Readout("fpln_src") is { } src) { <span class="unit">@src</span> }</div>
+<div class="abs lbl" style="left:40px;top:386px">LOAD</div><div class="abs @EcamPresentation.ReadoutClass(pg.Readout("load"))" style="left:110px;top:386px">@EcamPresentation.ReadoutText(pg.Readout("load"))</div>
+<div class="abs lbl" style="left:40px;top:410px">WX</div><div class="abs @EcamPresentation.ReadoutClass(pg.Readout("wx"))" style="left:110px;top:410px">@EcamPresentation.ReadoutText(pg.Readout("wx"))</div>
+
+@if (pg.CautionLine is { } line)
+{
+    <div class="abs ecam-caution-line" style="top:456px">@line</div>
+}
+
+<EcamMemoStrip Cells="@(new[]
+{
+    new EcamMemoCell("VER", verMain, verTag),
+    new EcamMemoCell("SIM", simName is null ? EcamTokens.NoData : simName, null, simName is null ? "c-amber" : null),
+    new EcamMemoCell("UP", upH, "H " + upM),
+    new EcamMemoCell("PHASE", EcamPresentation.Or(memo.Phase, EcamTokens.NoData)),
+})" />
+
+@code {
+    [Parameter, EditorRequired] public DiagnosticsSnapshot Snap { get; set; } = DiagnosticsSnapshot.Empty;
+}

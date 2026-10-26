@@ -50,7 +50,8 @@
       "techLog": "Tech Log",
       "logbook": "Logbuch",
       "dutyDay": "Diensttag",
-      "settings": "Einstellungen"
+      "settings": "Einstellungen",
+      "diagnostics": "Diagnose"
     },
     "footer": {
       "asr": "Spracherkennung (LAN-Whisper): {0}",
@@ -127,7 +128,8 @@
       "profiles": "Flugzeugprofile",
       "advanced": "Erweitert",
       "advanced.flightPhase": "Flugphasen-Engine",
-      "advanced.logs": "Protokolle"
+      "advanced.logs": "Protokolle",
+      "advanced.diagnostics": "Diagnose"
     }
   }
 }

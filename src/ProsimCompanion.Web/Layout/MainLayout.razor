@@ -21,6 +21,7 @@
 @inject OfpStore Ofp
 @inject GsxDiagnosticsStore Diagnostics
 @inject IGsxDepartureControl DepartureControl
+@inject ProsimCompanion.Core.Diagnostics.Ecam.DiagnosticsStore EcamDiagnostics
 
 <ThemeStyle />
 
@@ -143,6 +144,14 @@
                 <span class="side-icon"><AppIcon Name="settings" Size="22" /></span>
                 <span class="side-label">@T["layout.nav.settings"]</span>
             </NavLink>
+            @* The ECAM diagnostics pages (ADR-0016), pinned under Settings with the caution
+               count as a badge so a problem shows without opening the page. *@
+            <NavLink class="side-item" href="diagnostics" Match="NavLinkMatch.Prefix"
+                     ActiveClass="active" title="@T["layout.nav.diagnostics"]">
+                <span class="side-icon"><AppIcon Name="activity" Size="22" /></span>
+                <span class="side-label">@T["layout.nav.diagnostics"]</span>
+                <ProsimCompanion.Web.Components.Diagnostics.EcamNavBadge Memo="@_ecam.Memo" Label="@T["layout.nav.diagnostics"]" />
+            </NavLink>
         </nav>
 
         <main class="main">
@@ -228,6 +237,7 @@
 
     // ── NEXT SERVICE header button (issue #133) ────────────────────────────────────
     private GsxDiagnosticsSnapshot _gsx = GsxDiagnosticsSnapshot.Empty;
+    private ProsimCompanion.Core.Diagnostics.Ecam.DiagnosticsSnapshot _ecam = ProsimCompanion.Core.Diagnostics.Ecam.DiagnosticsSnapshot.Empty;
 
     /// <summary>The first departure-board row still to run (not completed / skipped) — the
     /// service ForceNext would call. Null before the board exists or once everything ran.</summary>
@@ -335,6 +345,7 @@
         Watch(Updates, snapshot => _update = snapshot);
         Watch(Speech, snapshot => _speech = snapshot);
         Watch(Diagnostics, snapshot => _gsx = snapshot);
+        Watch(EcamDiagnostics, snapshot => _ecam = snapshot);
         WatchChanged(h => Ofp.Changed += h, h => Ofp.Changed -= h, () => { });
         WatchChanged(h => Profiles.Changed += h, h => Profiles.Changed -= h, () => { });
         WatchChanged(h => Status.Changed += h, h => Status.Changed -= h, () => { });

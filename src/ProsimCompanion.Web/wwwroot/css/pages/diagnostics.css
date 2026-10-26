@@ -1,0 +1,176 @@
+/* ECAM-style diagnostics pages (ADR-0016, canvas drafts "Diagnostics — VOICE/SIM/REMOTE/GSX/
+   STATUS (ECAM)" 2026-10-27). The drawing is a FIXED 720×640 stage scaled as one piece to its
+   frame by ecam.js (transform), never reflowed. The palette is the Airbus ECAM one and is
+   deliberately NOT themed: black ground and six fixed hexes, whatever airline theme the rest
+   of the app wears — a system display that changed colour with the livery would stop being
+   readable at a glance. No colour literal lives in a Razor file; the st-* classes below are
+   the only way a state becomes a colour (EcamPresentation.StateClass). */
+
+@font-face {
+  font-family: "Share Tech Mono";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("../../fonts/ShareTechMono-Regular.woff2") format("woff2");
+}
+
+.diag-page {
+  padding: 16px 18px;
+  display: flex;
+  justify-content: center;
+}
+
+.ecam-frame {
+  --ecam-white: #f2f2f2;
+  --ecam-green: #33ff33;
+  --ecam-amber: #ffbf00;
+  --ecam-red: #ff3b30;
+  --ecam-cyan: #4fd1ff;
+  --ecam-grey: #8a8a8a;
+  --ecam-black: #000000;
+  position: relative;
+  width: 100%;
+  max-width: 1080px;
+  aspect-ratio: 9 / 8;
+  overflow: hidden;
+  background: var(--ecam-black);
+  border-radius: 2px;
+}
+
+.ecam-stage {
+  --ecam-scale: 1;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 720px;
+  height: 640px;
+  transform-origin: top left;
+  transform: scale(var(--ecam-scale));
+  background: var(--ecam-black);
+  color: var(--ecam-green);
+  font-family: "Share Tech Mono", "JetBrains Mono", monospace;
+  font-size: 15px;
+  line-height: 1.15;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  overflow: hidden;
+  user-select: none;
+}
+
+.ecam-stage *,
+.ecam-stage *::before,
+.ecam-stage *::after { box-sizing: border-box; font-family: inherit; }
+.ecam-stage a { color: inherit; text-decoration: none; }
+
+/* ---- state → colour: the one mapping -------------------------------------------------- */
+.st-normal  { --st: var(--ecam-green); }
+.st-caution { --st: var(--ecam-amber); }
+.st-warning { --st: var(--ecam-red); }
+.st-na      { --st: var(--ecam-white); }
+.st-nodata  { --st: var(--ecam-amber); }
+.st-normal, .st-caution, .st-warning, .st-na, .st-nodata { color: var(--st); }
+
+/* ---- grammar ----------------------------------------------------------------------- */
+.abs { position: absolute; }
+.ecam-title { color: var(--ecam-white); font-size: 20px; border-bottom: 2px solid var(--ecam-white); padding-bottom: 1px; }
+.lbl { color: var(--ecam-white); font-size: 15px; }
+.detail { font-size: 11px; }
+.small { font-size: 13px; }
+.unit { color: var(--ecam-cyan); font-size: 11px; margin-left: 2px; }
+.c-white { color: var(--ecam-white); }
+.c-green { color: var(--ecam-green); }
+.c-amber { color: var(--ecam-amber); }
+.c-red { color: var(--ecam-red); }
+.c-cyan { color: var(--ecam-cyan); }
+.c-grey { color: var(--ecam-grey); }
+.center { text-align: center; }
+.right { text-align: right; }
+.hline { height: 1px; background: var(--ecam-white); }
+.vline { width: 1px; background: var(--ecam-white); }
+.ecam-caution-line { left: 0; width: 720px; text-align: center; color: var(--ecam-amber); font-size: 15px; }
+
+/* node: label box, value box, host label above, detail below */
+.ecam-node-wrap { width: 92px; }
+.ecam-node { width: 92px; height: 44px; border: 2px solid var(--st); display: flex; align-items: center; justify-content: center; font-size: 15px; color: var(--st); }
+.ecam-value { width: 92px; height: 30px; border: 2px solid var(--st); display: flex; align-items: center; justify-content: center; font-size: 15px; color: var(--st); margin-top: 8px; white-space: nowrap; }
+.node-host { font-size: 11px; color: var(--ecam-white); text-align: center; width: 92px; margin-bottom: 4px; height: 13px; white-space: nowrap; overflow: hidden; }
+.node-detail { font-size: 11px; text-align: center; width: 92px; margin-top: 5px; color: var(--st); white-space: nowrap; overflow: hidden; }
+
+/* link: dashed line + solid arrowhead, coloured by --st */
+.ecam-link line, .ecam-link polyline, .ecam-link path { stroke: var(--st); }
+.ecam-link polygon { fill: var(--st); }
+
+/* gauge */
+.ecam-gauge .arc { fill: none; stroke: var(--ecam-green); stroke-width: 3; }
+.ecam-gauge .arc-warn { fill: none; stroke: var(--ecam-red); stroke-width: 3; }
+.ecam-gauge .needle { stroke: var(--ecam-white); stroke-width: 2; }
+
+/* SIM page */
+.src-box { width: 150px; height: 60px; border: 2px solid var(--st); color: var(--st); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; font-size: 15px; }
+.feed { width: 2px; background: var(--st); }
+.busbar { height: 20px; background: var(--st); color: var(--ecam-black); display: flex; align-items: center; justify-content: center; font-size: 15px; }
+.busbar.st-na { background: transparent; border: 1px solid var(--ecam-white); color: var(--ecam-white); }
+.grid-cell { width: 158px; height: 72px; border: 2px solid var(--st); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
+.grid-cell .lbl { color: var(--ecam-white); }
+.grid-cell .val { color: var(--st); font-size: 15px; }
+.grid-cell .detail { color: var(--ecam-cyan); }
+
+/* REMOTE page */
+.ecam-box { border: 2px solid var(--st); }
+.sq { width: 30px; height: 30px; border: 2px solid var(--st); color: var(--st); display: flex; align-items: center; justify-content: center; font-size: 15px; }
+.badge { border: 2px solid var(--st); color: var(--st); font-size: 15px; padding: 3px 0; width: 62px; text-align: center; }
+
+/* GSX page */
+.svc-box { width: 160px; height: 72px; border: 2px solid var(--st); padding: 8px 12px; }
+.svc-box .svc-title { font-size: 15px; color: var(--st); }
+.svc-box .svc-val { font-size: 15px; margin-top: 4px; color: var(--st); }
+.svc-box .svc-detail { font-size: 11px; margin-top: 3px; color: var(--st); white-space: nowrap; overflow: hidden; }
+.svc-box.right-side { text-align: right; }
+.hull path, .hull line { fill: none; stroke: var(--ecam-green); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.door { width: 8px; height: 14px; border: 2px solid var(--st); }
+.door.open { background: var(--ecam-amber); border-color: var(--ecam-amber); }
+.bar-track { height: 14px; border: 1px solid var(--st); }
+.bar-fill { height: 100%; background: var(--st); }
+
+/* STATUS page */
+.head-u { color: var(--ecam-white); font-size: 15px; border-bottom: 1px solid var(--ecam-white); padding-bottom: 1px; display: inline-block; }
+.grp-ttl { font-size: 15px; color: var(--st); white-space: nowrap; }
+.act { font-size: 13px; letter-spacing: 0.02em; white-space: pre; }
+.act.c-cyan { color: var(--ecam-cyan); }
+
+/* memo strip + selector */
+.ecam-memo-rule { left: 0; top: 540px; width: 720px; height: 1px; background: var(--ecam-green); }
+.ecam-memo { top: 540px; width: 180px; height: 60px; }
+.ecam-memo .m-lbl { position: absolute; left: 16px; top: 16px; font-size: 11px; color: var(--ecam-white); }
+.ecam-memo .m-val { position: absolute; left: 16px; top: 34px; font-size: 17px; color: var(--ecam-green); white-space: nowrap; }
+.ecam-memo .m-val.c-amber { color: var(--ecam-amber); }
+.ecam-memo .m-val .q { font-size: 11px; color: var(--ecam-cyan); margin-left: 4px; }
+.ecam-memo .m-val .q.c-amber { color: var(--ecam-amber); }
+.ecam-memo-div { top: 548px; width: 1px; height: 44px; background: var(--ecam-white); }
+.ecam-selector { left: 0; top: 616px; width: 720px; text-align: center; }
+.ecam-selector a { font-size: 11px; margin: 0 6px; color: var(--ecam-grey); padding-bottom: 1px; }
+.ecam-selector a.sel-active { color: var(--ecam-green); border-bottom: 1px solid var(--ecam-green); }
+.ecam-selector a:hover { color: var(--ecam-white); }
+
+/* ---- nav badge in the app sidebar (outside the stage, so it follows the app theme) ------- */
+.side-badge {
+  position: absolute;
+  top: 2px;
+  right: 10px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--warning);
+  color: #000;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 16px;
+  text-align: center;
+}
+.side-badge.is-warning { background: var(--danger); color: #fff; }
+.side-item { position: relative; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .ecam-stage { transition: transform 80ms linear; }
+}

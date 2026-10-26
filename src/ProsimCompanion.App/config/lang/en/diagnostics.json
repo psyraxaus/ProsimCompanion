@@ -1,8 +1,27 @@
 {
   "diagnostics": {
+    "pageTitle": "Diagnostics — ProsimCompanion",
+    "heading": "Diagnostics",
+    "aria": "ECAM-style diagnostics display, {0} page",
     "ecamTickMs": {
       "label": "Page refresh",
       "hint": "How often the diagnostics pages rebuild their picture. One second matches the aircraft displays."
+    },
+    "settings": {
+      "pageTitle": "Diagnostics settings — ProsimCompanion",
+      "heading": "Diagnostics",
+      "open": "Open the diagnostics pages",
+      "refresh": {
+        "title": "Refresh",
+        "hint": "The ECAM-style pages under Diagnostics: how fast they redraw"
+      },
+      "hosts": {
+        "title": "Host labels",
+        "hint": "The short name shown above each voice pipeline box. Leave a row empty to show the address itself.",
+        "rowHint": "Label shown above the boxes that run on {0}",
+        "none": "No speech, language-model or voice server is configured yet, so there is nothing to label.",
+        "json": "Power users can also edit the list in settings.json under"
+      }
     }
   }
 }

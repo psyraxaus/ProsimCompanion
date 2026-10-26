@@ -1,0 +1,13 @@
+@using ProsimCompanion.Core.Diagnostics.Ecam
+@* The ECP-style page row under the memo strip: real links, no keyboard handler (ADR-0016). The
+   page names are ECAM tokens and stay as they are in every language. *@
+<div class="abs ecam-selector">
+    @foreach (var id in DiagPageIds.All)
+    {
+        <a href="diagnostics/@id" class="@(id == Current ? "sel-active" : "sel-inactive")">@id.ToUpperInvariant()</a>
+    }
+</div>
+
+@code {
+    [Parameter] public string Current { get; set; } = DiagPageIds.Voice;
+}

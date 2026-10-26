@@ -1,0 +1,89 @@
+@page "/settings/diagnostics"
+@layout SettingsLayout
+@using ProsimCompanion.Core.Diagnostics.Ecam
+@inherits SettingsPageBase
+@inject IOptionsMonitor<DiagnosticsOptions> Monitor
+@inject IOptionsMonitor<SpeechOptions> Speech
+@inject IOptionsMonitor<BriefingOptions> Briefing
+@inject IStringLocalizer T
+
+<PageTitle>@T["diagnostics.settings.pageTitle"]</PageTitle>
+<h1 class="sr-only">@T["diagnostics.settings.heading"]</h1>
+
+@* The two knobs of the ECAM diagnostics pages (ADR-0016). The host labels are a dictionary
+   (owner rule: dictionaries may stay JSON-edited but must be named on the page) — here each
+   host the voice pipeline is configured for gets its own row, so no JSON editing is needed. *@
+<div class="panel" style="padding-bottom:96px;">
+
+    <Section Title="@T["diagnostics.settings.refresh.title"]" Hint="@T["diagnostics.settings.refresh.hint"]">
+        <OptionField Draft="_o" For="o => o.EcamTickMs" />
+        <div class="field-hint" style="margin-top:6px;">
+            <a href="diagnostics">@T["diagnostics.settings.open"]</a>
+        </div>
+    </Section>
+
+    <Section Title="@T["diagnostics.settings.hosts.title"]" Hint="@T["diagnostics.settings.hosts.hint"]">
+        @foreach (var host in Hosts())
+        {
+            var current = host;
+            <TextField Label="@current"
+                       Hint="@T["diagnostics.settings.hosts.rowHint", current]"
+                       Value="@(_o.Value.EcamHostLabels.TryGetValue(current, out var label) ? label : "")"
+                       ValueChanged="@(value => SetLabel(current, value))"
+                       Placeholder="@current" />
+        }
+        @if (Hosts().Count == 0)
+        {
+            <div class="field-hint">@T["diagnostics.settings.hosts.none"]</div>
+        }
+        <div class="field-hint" style="margin-top:6px;">@T["diagnostics.settings.hosts.json"] <code>diagnostics.ecamHostLabels</code></div>
+    </Section>
+</div>
+
+<DirtyBar Visible="@BarVisible" Message="@BarMessage" Tone="BarTone" OnSave="Save" OnDiscard="Discard" />
+
+@code {
+    private OptionsDraft<DiagnosticsOptions> _o = default!;
+
+    protected override void OnInitialized() => _o = Draft(Monitor);
+
+    /// <summary>The hosts the pipeline is configured for right now plus any the user already
+    /// labelled, so a renamed box keeps its row after its URL changes.</summary>
+    private List<string> Hosts()
+    {
+        var speech = Speech.CurrentValue;
+        var hosts = new List<string>();
+        foreach (var url in new[] { speech.AsrBaseUrl, Briefing.CurrentValue.LlmBaseUrl, speech.KokoroBaseUrl, speech.ElevenLabsBaseUrl })
+        {
+            if (Uri.TryCreate(url?.Trim(), UriKind.Absolute, out var uri) && uri.Host.Length > 0
+                && !hosts.Contains(uri.Host, StringComparer.OrdinalIgnoreCase))
+            {
+                hosts.Add(uri.Host);
+            }
+        }
+
+        foreach (var saved in _o.Value.EcamHostLabels.Keys)
+        {
+            if (!hosts.Contains(saved, StringComparer.OrdinalIgnoreCase))
+            {
+                hosts.Add(saved);
+            }
+        }
+
+        return hosts;
+    }
+
+    private void SetLabel(string host, string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            _o.Value.EcamHostLabels.Remove(host);
+        }
+        else
+        {
+            _o.Value.EcamHostLabels[host] = value.Trim();
+        }
+
+        _o.MarkEdited();
+    }
+}

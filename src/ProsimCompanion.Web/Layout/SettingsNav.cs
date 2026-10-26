@@ -110,6 +110,8 @@ public static class SettingsNav
         [
             new("flightPhase", "Flight Phase Engine", "settings/flight-phase") { LabelTextId = "settings.nav.advanced.flightPhase" },
             new("logs", "Logs", "settings/logs") { LabelTextId = "settings.nav.advanced.logs" },
+            // The ECAM diagnostics pages' two knobs (ADR-0016).
+            new("diagnostics", "Diagnostics", "settings/diagnostics") { LabelTextId = "settings.nav.advanced.diagnostics" },
         ]),
     ];
 

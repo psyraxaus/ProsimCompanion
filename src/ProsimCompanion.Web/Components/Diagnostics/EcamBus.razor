@@ -1,0 +1,16 @@
+@using ProsimCompanion.Core.Diagnostics.Ecam
+@* A bus bar: filled in the state colour with the bus name in black; outlined white when the
+   feed is not in use. *@
+<div class="abs busbar @EcamPresentation.StateClass(State)" style="left:@(Left)px;top:@(Top)px;width:@(Width)px">@Label</div>
+
+@code {
+    [Parameter] public DiagState State { get; set; } = DiagState.Normal;
+
+    [Parameter] public string Label { get; set; } = "";
+
+    [Parameter] public int Left { get; set; }
+
+    [Parameter] public int Top { get; set; }
+
+    [Parameter] public int Width { get; set; } = 300;
+}

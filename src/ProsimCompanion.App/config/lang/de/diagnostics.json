@@ -1,8 +1,27 @@
 {
   "diagnostics": {
+    "pageTitle": "Diagnose — ProsimCompanion",
+    "heading": "Diagnose",
+    "aria": "Diagnoseanzeige im ECAM-Stil, Seite {0}",
     "ecamTickMs": {
       "label": "Seitenaktualisierung",
       "hint": "Wie oft die Diagnoseseiten ihr Bild neu aufbauen. Eine Sekunde entspricht den Anzeigen im Flugzeug."
+    },
+    "settings": {
+      "pageTitle": "Diagnose-Einstellungen — ProsimCompanion",
+      "heading": "Diagnose",
+      "open": "Diagnoseseiten öffnen",
+      "refresh": {
+        "title": "Aktualisierung",
+        "hint": "Die Seiten im ECAM-Stil unter Diagnose: wie schnell sie neu zeichnen"
+      },
+      "hosts": {
+        "title": "Host-Bezeichnungen",
+        "hint": "Der Kurzname über jedem Kasten der Sprachkette. Eine leere Zeile zeigt die Adresse selbst.",
+        "rowHint": "Bezeichnung über den Kästen, die auf {0} laufen",
+        "none": "Es ist noch kein Sprach-, Sprachmodell- oder Stimmenserver eingerichtet, also gibt es nichts zu bezeichnen.",
+        "json": "Fortgeschrittene können die Liste auch in settings.json bearbeiten unter"
+      }
     }
   }
 }

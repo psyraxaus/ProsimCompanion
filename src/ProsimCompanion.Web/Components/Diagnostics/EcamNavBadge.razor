@@ -1,0 +1,13 @@
+@using ProsimCompanion.Core.Diagnostics.Ecam
+@* The sidebar's caution count: amber with the count while cautions are up, red when any is a
+   warning, nothing at all when both are zero (the layout renders this inside the nav link). *@
+@if (EcamPresentation.BadgeText(Memo) is { } text)
+{
+    <span class="side-badge @(Memo.WarningCount > 0 ? "is-warning" : "")" aria-label="@Label">@text</span>
+}
+
+@code {
+    [Parameter, EditorRequired] public DiagMemo Memo { get; set; } = DiagnosticsSnapshot.Empty.Memo;
+
+    [Parameter] public string Label { get; set; } = "";
+}

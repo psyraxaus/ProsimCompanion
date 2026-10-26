@@ -1,8 +1,27 @@
 {
   "diagnostics": {
+    "pageTitle": "診断 — ProsimCompanion",
+    "heading": "診断",
+    "aria": "ECAM 風の診断表示、{0} ページ",
     "ecamTickMs": {
       "label": "ページ更新間隔",
       "hint": "診断ページが表示を再構築する間隔です。1 秒は機体のディスプレイと同じです。"
+    },
+    "settings": {
+      "pageTitle": "診断の設定 — ProsimCompanion",
+      "heading": "診断",
+      "open": "診断ページを開く",
+      "refresh": {
+        "title": "更新",
+        "hint": "「診断」にある ECAM 風ページの再描画の速さ"
+      },
+      "hosts": {
+        "title": "ホスト名ラベル",
+        "hint": "音声パイプラインの各ボックスの上に表示する短い名前です。空欄にするとアドレスそのものが表示されます。",
+        "rowHint": "{0} で動作するボックスの上に表示するラベル",
+        "none": "音声認識、言語モデル、音声合成のサーバーがまだ設定されていないため、ラベルを付ける対象がありません。",
+        "json": "上級者は settings.json の次の項目でもこのリストを編集できます:"
+      }
     }
   }
 }

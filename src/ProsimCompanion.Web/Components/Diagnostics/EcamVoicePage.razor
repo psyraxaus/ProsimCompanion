@@ -1,0 +1,73 @@
+@using ProsimCompanion.Core.Diagnostics.Ecam
+@* VOICE: ENGINE + FUEL grammar. Dials and readouts top-left, LAST UTTERANCE top-right, the
+   six-node pipeline, the caution line, the endpoint bus, the memo strip. Node ids come from
+   the Speech pillar's collector; a node it did not report draws as amber XX. *@
+@{
+    var pg = Snap.Voice;
+    var memo = Snap.Memo;
+    var (verMain, verTag) = EcamPresentation.VersionParts(memo.Version);
+    var (upH, upM) = EcamPresentation.UptimeParts(memo.Uptime);
+    var stt = pg.NodeOrNoData("stt");
+    var llm = pg.NodeOrNoData("llm");
+    var tts = pg.NodeOrNoData("tts");
+}
+<div class="abs ecam-title" style="left:323px;top:14px">VOICE</div>
+
+<EcamGauge Gauge="@pg.GaugeOrNoData("e2e", 5000, EcamTokens.Units.Ms)" Title="E2E" Left="40" Top="62" />
+<div class="abs lbl" style="left:168px;top:76px">VRAM</div>
+<div class="abs @EcamPresentation.ReadoutClass(pg.Readout("vram"))" style="left:230px;top:76px">@EcamPresentation.ReadoutText(pg.Readout("vram"))<span class="unit">@EcamTokens.Units.Gb</span></div>
+<div class="abs lbl" style="left:168px;top:100px">TOK/S</div>
+<div class="abs @EcamPresentation.ReadoutClass(pg.Readout("tok_s"))" style="left:230px;top:100px">@EcamPresentation.ReadoutText(pg.Readout("tok_s"))</div>
+
+<EcamGauge Gauge="@pg.GaugeOrNoData("gpu", 100, EcamTokens.Units.Percent)" Title="GPU" Left="40" Top="158" />
+<div class="abs lbl" style="left:168px;top:172px">RTF</div>
+<div class="abs @EcamPresentation.ReadoutClass(pg.Readout("rtf"))" style="left:230px;top:172px">@EcamPresentation.ReadoutText(pg.Readout("rtf"))</div>
+<div class="abs lbl" style="left:168px;top:196px">QUEUE</div>
+<div class="abs @EcamPresentation.ReadoutClass(pg.Readout("queue"))" style="left:230px;top:196px">@EcamPresentation.ReadoutText(pg.Readout("queue"))</div>
+
+<div class="abs vline" style="left:306px;top:40px;height:184px"></div>
+
+<div class="abs lbl" style="left:326px;top:46px">LAST UTTERANCE</div>
+<div class="abs ecam-box @(pg.Readout("utt_text") is null ? "st-na" : "st-normal")" style="left:326px;top:70px;width:360px;height:52px"></div>
+<div class="abs c-green" style="left:338px;top:80px;width:340px;white-space:nowrap;overflow:hidden">@(pg.Readout("utt_text") ?? "")</div>
+<div class="abs small" style="left:338px;top:100px">
+    <span class="c-white">CONF</span> <span class="@EcamPresentation.ReadoutClass(pg.Readout("utt_conf"))">@EcamPresentation.ReadoutText(pg.Readout("utt_conf"))</span>
+    <span class="@EcamPresentation.ReadoutClass(pg.Readout("utt_dur"))" style="margin-left:22px">@EcamPresentation.ReadoutText(pg.Readout("utt_dur"))</span><span class="unit">@EcamTokens.Units.Seconds</span>
+</div>
+<div class="abs lbl" style="left:326px;top:140px">INTENT</div><div class="abs @EcamPresentation.ReadoutClass(pg.Readout("intent"))" style="left:438px;top:140px">@EcamPresentation.ReadoutText(pg.Readout("intent"))</div>
+<div class="abs lbl" style="left:326px;top:166px">ACTION</div><div class="abs @EcamPresentation.ReadoutClass(pg.Readout("action"))" style="left:438px;top:166px;width:250px;white-space:nowrap;overflow:hidden">@EcamPresentation.ReadoutText(pg.Readout("action"))</div>
+<div class="abs lbl" style="left:326px;top:192px">GATE</div><div class="abs @EcamPresentation.ReadoutClass(pg.Readout("gate"))" style="left:438px;top:192px">@EcamPresentation.ReadoutText(pg.Readout("gate"))</div>
+<div class="abs lbl" style="left:548px;top:192px">BLEED</div><div class="abs @EcamPresentation.ReadoutClass(pg.Readout("bleed"))" style="left:628px;top:192px">@EcamPresentation.ReadoutText(pg.Readout("bleed"))</div>
+
+@{
+    var pipeline = new[] { "mic", "vad", "stt", "llm", "tts", "out" };
+}
+@for (var i = 0; i < pipeline.Length; i++)
+{
+    <EcamNode Node="@pg.NodeOrNoData(pipeline[i])" Left="@(14 + i * 120)" Top="260" />
+    if (i < pipeline.Length - 1)
+    {
+        <EcamLink State="@pg.LinkState(pipeline[i], pipeline[i + 1])" Left="@(106 + i * 120)" Top="291" Length="28" />
+    }
+}
+
+@if (pg.CautionLine is { } line)
+{
+    <div class="abs ecam-caution-line" style="top:430px">@line</div>
+}
+
+<div class="abs" style="left:24px;top:468px"><span class="c-white">STT</span> <span class="@EcamPresentation.StateClass(stt.State == DiagState.NotApplicable ? DiagState.NotApplicable : stt.State)">@EcamPresentation.ReadoutText(pg.Readout("ep_stt"))</span></div>
+<div class="abs" style="left:244px;top:468px"><span class="c-white">LLM</span> <span class="@EcamPresentation.StateClass(llm.State)">@EcamPresentation.ReadoutText(pg.Readout("ep_llm"))</span></div>
+<div class="abs" style="left:436px;top:468px"><span class="c-white">TTS</span> <span class="@EcamPresentation.StateClass(tts.State)">@EcamPresentation.ReadoutText(pg.Readout("ep_tts"))</span></div>
+
+<EcamMemoStrip Cells="@(new[]
+{
+    new EcamMemoCell("VER", verMain, verTag),
+    new EcamMemoCell("MODEL", EcamPresentation.Or(memo.Model.ToUpperInvariant(), EcamTokens.NotApplicable)),
+    new EcamMemoCell("UP", upH, "H " + upM),
+    new EcamMemoCell("PHASE", EcamPresentation.Or(memo.Phase, EcamTokens.NoData)),
+})" />
+
+@code {
+    [Parameter, EditorRequired] public DiagnosticsSnapshot Snap { get; set; } = DiagnosticsSnapshot.Empty;
+}

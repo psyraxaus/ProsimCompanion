@@ -1,0 +1,42 @@
+@using ProsimCompanion.Core.Diagnostics.Ecam
+@* The four-cell strip at the bottom of every page: green rule, white dividers, 11 px label over
+   a 17 px value with an optional small qualifier. A cell may be a link (the STATUS page's BUNDLE
+   export). The labels are ECAM tokens, not localised. *@
+<div class="abs ecam-memo-rule"></div>
+@for (var i = 0; i < 4; i++)
+{
+    var cell = i < Cells.Count ? Cells[i] : new EcamMemoCell("", EcamTokens.NoData);
+    if (i > 0)
+    {
+        <div class="abs ecam-memo-div" style="left:@(i * 180)px"></div>
+    }
+
+    <div class="abs ecam-memo" style="left:@(i * 180)px">
+        <div class="m-lbl">@cell.Label</div>
+        @if (cell.Href is { } href)
+        {
+            <a class="m-val @cell.ValueClass" href="@href" download>@cell.Value@Qualifier(cell)</a>
+        }
+        else
+        {
+            <div class="m-val @cell.ValueClass">@cell.Value@Qualifier(cell)</div>
+        }
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<EcamMemoCell> Cells { get; set; } = [];
+
+    private static RenderFragment Qualifier(EcamMemoCell cell) => builder =>
+    {
+        if (string.IsNullOrEmpty(cell.Qualifier))
+        {
+            return;
+        }
+
+        builder.OpenElement(0, "span");
+        builder.AddAttribute(1, "class", "q " + (cell.QualifierClass ?? ""));
+        builder.AddContent(2, cell.Qualifier);
+        builder.CloseElement();
+    };
+}

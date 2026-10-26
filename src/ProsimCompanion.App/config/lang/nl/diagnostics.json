@@ -1,8 +1,27 @@
 {
   "diagnostics": {
+    "pageTitle": "Diagnose — ProsimCompanion",
+    "heading": "Diagnose",
+    "aria": "Diagnoseweergave in ECAM-stijl, pagina {0}",
     "ecamTickMs": {
       "label": "Paginaverversing",
       "hint": "Hoe vaak de diagnosepagina's hun beeld opnieuw opbouwen. Eén seconde komt overeen met de schermen in het vliegtuig."
+    },
+    "settings": {
+      "pageTitle": "Diagnose-instellingen — ProsimCompanion",
+      "heading": "Diagnose",
+      "open": "Diagnosepagina's openen",
+      "refresh": {
+        "title": "Verversing",
+        "hint": "De pagina's in ECAM-stijl onder Diagnose: hoe snel ze opnieuw tekenen"
+      },
+      "hosts": {
+        "title": "Hostnamen",
+        "hint": "De korte naam boven elk vak van de spraakketen. Laat een rij leeg om het adres zelf te tonen.",
+        "rowHint": "Naam boven de vakken die op {0} draaien",
+        "none": "Er is nog geen spraakherkennings-, taalmodel- of stemserver ingesteld, dus er valt niets te benoemen.",
+        "json": "Gevorderde gebruikers kunnen de lijst ook in settings.json bewerken onder"
+      }
     }
   }
 }

@@ -1,8 +1,27 @@
 {
   "diagnostics": {
+    "pageTitle": "Diagnóstico — ProsimCompanion",
+    "heading": "Diagnóstico",
+    "aria": "Pantalla de diagnóstico al estilo ECAM, página {0}",
     "ecamTickMs": {
       "label": "Actualización de la página",
       "hint": "Cada cuánto las páginas de diagnóstico reconstruyen su imagen. Un segundo coincide con las pantallas del avión."
+    },
+    "settings": {
+      "pageTitle": "Ajustes de diagnóstico — ProsimCompanion",
+      "heading": "Diagnóstico",
+      "open": "Abrir las páginas de diagnóstico",
+      "refresh": {
+        "title": "Actualización",
+        "hint": "Las páginas al estilo ECAM en Diagnóstico: con qué rapidez se redibujan"
+      },
+      "hosts": {
+        "title": "Etiquetas de equipos",
+        "hint": "El nombre corto que aparece sobre cada casilla de la cadena de voz. Deja una fila vacía para mostrar la propia dirección.",
+        "rowHint": "Etiqueta sobre las casillas que se ejecutan en {0}",
+        "none": "Aún no hay configurado ningún servidor de reconocimiento, de modelo de lenguaje ni de voz, así que no hay nada que etiquetar.",
+        "json": "Los usuarios avanzados también pueden editar la lista en settings.json bajo"
+      }
     }
   }
 }
