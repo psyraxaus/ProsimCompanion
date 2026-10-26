@@ -167,6 +167,25 @@ public sealed class EcamPagesRenderTests
     }
 
     [Fact]
+    public async Task GsxPage_CateringBox_FollowsTheServiceDoor()
+    {
+        var forward = Flat(await RenderAsync<EcamGsxPage>(new Dictionary<string, object?> { ["Snap"] = Populated() }));
+        // Row 0 of the right column is y = 56; row 4 is y = 56 + 4 × 68 = 328.
+        Assert.Contains("left:546px;top:56px\"><div class=\"svc-title\">CATERING", forward, StringComparison.Ordinal);
+
+        var snap = Populated();
+        var aft = snap with { Gsx = snap.Gsx with { Readouts = new Dictionary<string, string>(snap.Gsx.Readouts) { ["catering_door"] = "4R" } } };
+        var html = Flat(await RenderAsync<EcamGsxPage>(new Dictionary<string, object?> { ["Snap"] = aft }));
+        Assert.Contains("left:546px;top:328px\"><div class=\"svc-title\">CATERING", html, StringComparison.Ordinal);
+        // BOARDING heads the left column and PUSHBACK ends it: five boxes.
+        Assert.Contains("left:14px;top:56px\"><div class=\"svc-title\">BOARDING", html, StringComparison.Ordinal);
+        Assert.Contains("left:14px;top:328px\"><div class=\"svc-title\">PUSHBACK", html, StringComparison.Ordinal);
+    }
+
+    /// <summary>Markup with the whitespace between tags removed, so an assertion can span tags.</summary>
+    private static string Flat(string html) => System.Text.RegularExpressions.Regex.Replace(html, ">\\s+<", "><");
+
+    [Fact]
     public async Task GsxPage_OpenDoorIsAmber_NotRequiredIsWhiteDashes_BarsHaveFigures()
     {
         var html = await RenderAsync<EcamGsxPage>(new Dictionary<string, object?> { ["Snap"] = Populated() });

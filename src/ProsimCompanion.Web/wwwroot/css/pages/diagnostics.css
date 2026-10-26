@@ -124,7 +124,7 @@
 .badge { border: 2px solid var(--st); color: var(--st); font-size: 15px; padding: 3px 0; width: 62px; text-align: center; }
 
 /* GSX page */
-.svc-box { width: 160px; height: 72px; border: 2px solid var(--st); padding: 8px 12px; }
+.svc-box { width: 160px; height: 60px; border: 2px solid var(--st); padding: 5px 12px; }
 .svc-box .svc-title { font-size: 15px; color: var(--st); }
 .svc-box .svc-val { font-size: 15px; margin-top: 4px; color: var(--st); }
 .svc-box .svc-detail { font-size: 11px; margin-top: 3px; color: var(--st); white-space: nowrap; overflow: hidden; }

@@ -1,29 +1,51 @@
 @using ProsimCompanion.Core.Diagnostics.Ecam
-@* GSX: DOOR/OXY grammar. The hull with its door markers, four service boxes either side with
-   dashed connectors, the three progress bars, the GSX memo. *@
+@* GSX: DOOR/OXY grammar. The hull with its door markers, the service boxes either side with
+   dashed connectors to where each service really meets the aircraft (owner layout 2026-10-27:
+   BOARDING over JETWAY and tied to it and to STAIRS; GPU and PUSHBACK on one trunk to the
+   nose; CATERING beside the service door the GSX profile uses, 1R at the top or 4R at the
+   bottom; REFUEL to the right wing), the three progress bars, the GSX memo. *@
 @{
     var pg = Snap.Gsx;
     var memo = Snap.Memo;
     var (upH, upM) = EcamPresentation.UptimeParts(memo.Uptime);
-    var left = new[] { "jetway", "gpu", "stairs", "pushback" };
-    var right = new[] { "catering", "refuel", "boarding", "deice" };
     var pax = pg.Gauges.GetValueOrDefault("pax");
     var cargo = pg.Gauges.GetValueOrDefault("cargo");
     var fuel = pg.Gauges.GetValueOrDefault("fuel");
     var turnaround = pg.Readout("memo_turnaround");
     var gsxMemo = pg.Readout("memo_gsx");
+
+    var boarding = pg.NodeOrNoData("boarding");
+    var jetway = pg.NodeOrNoData("jetway");
+    var gpu = pg.NodeOrNoData("gpu");
+    var stairs = pg.NodeOrNoData("stairs");
+    var pushback = pg.NodeOrNoData("pushback");
+    var catering = pg.NodeOrNoData("catering");
+    var refuel = pg.NodeOrNoData("refuel");
+    var deice = pg.NodeOrNoData("deice");
+    var cateringAft = pg.Readout("catering_door") == "4R";
+
+    // Column rows: five on the left (BOARDING, JETWAY, GPU, STAIRS, PUSHBACK), the right
+    // column uses the same rows (CATERING at row 0 or 4, REFUEL row 1, DEICE row 2).
+    var leftBoxes = new[] { ("BOARDING", boarding), ("JETWAY", jetway), ("GPU", gpu), ("STAIRS", stairs), ("PUSHBACK", pushback) };
+    var rightBoxes = new (string Label, DiagNode Node, int Row)[]
+    {
+        ("CATERING", catering, cateringAft ? 4 : 0),
+        ("REFUEL", refuel, 1),
+        ("DEICE", deice, 2),
+    };
+    var toLeftEdge = FuselageLeftX - BoxRight;
+    var toRightEdge = RightBoxLeft - FuselageRightX;
+    var trunkState = DiagStates.Worse(gpu.State, pushback.State);
 }
 <div class="abs ecam-title" style="left:40px;top:14px">GSX</div>
 
 @* The A320 from above: the owner's own three-view drawing, traced (A320TopView, 2026-10-27).
-   The drawing's fuselage edges give the door-marker columns (HullX below). *@
+   The drawing's fuselage edges give the door-marker columns and where the connectors end. *@
 <svg class="abs hull" style="left:@(HullLeft)px;top:@(HullTop)px" width="@HullWidth" height="@HullHeight"
      viewBox="0 0 @A320TopView.ViewBoxWidth @A320TopView.ViewBoxHeight" aria-hidden="true">
     <path class="hull-path" d="@A320TopView.Path" />
 </svg>
 
-@* Door markers: left doors on the port side of the hull, right doors starboard, cargo doors
-   starboard between them (A320: both cargo doors are on the right). *@
 @foreach (var (id, label, x, y, labelLeft) in Doors)
 {
     var state = pg.Readout(id);
@@ -40,39 +62,65 @@
     }
 }
 
-@for (var i = 0; i < left.Length; i++)
+@* ---- left column ---- *@
+@for (var i = 0; i < leftBoxes.Length; i++)
 {
-    var node = pg.NodeOrNoData(left[i]);
-    var top = 66 + i * 80;
-    <div class="abs svc-box @EcamPresentation.StateClass(node.State)" style="left:14px;top:@(top)px">
-        <div class="svc-title">@left[i].ToUpperInvariant()</div>
+    var (label, node) = leftBoxes[i];
+    <div class="abs svc-box @EcamPresentation.StateClass(node.State)" style="left:@(BoxLeft)px;top:@(RowTop(i))px">
+        <div class="svc-title">@label</div>
         <div class="svc-val">@node.Value</div>
         <div class="svc-detail">@(node.Detail ?? "")</div>
     </div>
 }
-@{
-    // Connectors run from the service boxes to the traced fuselage sides.
-    var toLeftEdge = FuselageLeftX - 174;
-    var toRightEdge = 546 - FuselageRightX;
-}
-<EcamLink State="@pg.NodeOrNoData("jetway").State" Left="174" Top="102" Width="@(toLeftEdge + 2)" Height="20" Points="@($"0,2 0,15 {toLeftEdge},15")" Arrow="false" />
-<EcamLink State="@pg.NodeOrNoData("gpu").State" Left="174" Top="180" Length="@toLeftEdge" Arrow="false" />
-<EcamLink State="@pg.NodeOrNoData("stairs").State" Left="174" Top="260" Length="@toLeftEdge" Arrow="false" />
-<EcamLink State="@pg.NodeOrNoData("pushback").State" Left="174" Top="300" Width="@(toLeftEdge + 2)" Height="46" Points="@($"0,44 0,2 {toLeftEdge},2")" Arrow="false" />
 
-@for (var i = 0; i < right.Length; i++)
+@* BOARDING ties to JETWAY (always) and down to STAIRS (when stairs are in use) along a trunk
+   outside the column, with a stub into each box. *@
+<EcamLink State="@DiagStates.Worse(boarding.State, jetway.State)" Left="@(OuterTrunkX - 6)" Top="@(RowMid(0) - 6)" Length="@(BoxLeft - OuterTrunkX + 6)" Arrow="false" />
+<EcamLink State="@DiagStates.Worse(boarding.State, jetway.State)" Left="@(OuterTrunkX - 6)" Top="@RowMid(0)" Length="@(RowMid(1) - RowMid(0))" Vertical="true" Arrow="false" />
+<EcamLink State="@DiagStates.Worse(boarding.State, jetway.State)" Left="@(OuterTrunkX - 6)" Top="@(RowMid(1) - 6)" Length="@(BoxLeft - OuterTrunkX + 6)" Arrow="false" />
+@if (stairs.State != DiagState.NotApplicable)
 {
-    var node = pg.NodeOrNoData(right[i]);
-    var top = 66 + i * 80;
-    <div class="abs svc-box right-side @EcamPresentation.StateClass(node.State)" style="left:546px;top:@(top)px">
-        <div class="svc-title">@right[i].ToUpperInvariant()</div>
+    <EcamLink State="@DiagStates.Worse(boarding.State, stairs.State)" Left="@(OuterTrunkX - 6)" Top="@RowMid(1)" Length="@(RowMid(3) - RowMid(1))" Vertical="true" Arrow="false" />
+    <EcamLink State="@DiagStates.Worse(boarding.State, stairs.State)" Left="@(OuterTrunkX - 6)" Top="@(RowMid(3) - 6)" Length="@(BoxLeft - OuterTrunkX + 6)" Arrow="false" />
+}
+
+@* JETWAY → door 1L (elbow up to the door row). *@
+<EcamLink State="@jetway.State" Left="@BoxRight" Top="@(Door1LY - 6)" Width="@(toLeftEdge + 2)" Height="@(RowMid(1) - Door1LY + 12)"
+          Points="@($"0,{RowMid(1) - Door1LY + 6} 26,{RowMid(1) - Door1LY + 6} 26,6 {toLeftEdge},6")" Arrow="false" />
+
+@* STAIRS → the hull at its own row. *@
+<EcamLink State="@stairs.State" Left="@BoxRight" Top="@(RowMid(3) - 6)" Length="@toLeftEdge" Arrow="false" />
+
+@* GPU and PUSHBACK share one trunk that ends at the nose. *@
+<EcamLink State="@gpu.State" Left="@BoxRight" Top="@(RowMid(2) - 6)" Length="@(InnerTrunkX - BoxRight)" Arrow="false" />
+<EcamLink State="@pushback.State" Left="@BoxRight" Top="@(RowMid(4) - 6)" Length="@(InnerTrunkX - BoxRight)" Arrow="false" />
+<EcamLink State="@trunkState" Left="@(InnerTrunkX - 6)" Top="@NoseY" Length="@(RowMid(4) - NoseY)" Vertical="true" Arrow="false" />
+<EcamLink State="@trunkState" Left="@(InnerTrunkX - 6)" Top="@(NoseY - 6)" Length="@(FuselageLeftX - InnerTrunkX + 6)" Arrow="false" />
+
+@* ---- right column ---- *@
+@foreach (var (label, node, row) in rightBoxes)
+{
+    <div class="abs svc-box right-side @EcamPresentation.StateClass(node.State)" style="left:@(RightBoxLeft)px;top:@(RowTop(row))px">
+        <div class="svc-title">@label</div>
         <div class="svc-val">@node.Value</div>
         <div class="svc-detail">@(node.Detail ?? "")</div>
     </div>
 }
-<EcamLink State="@pg.NodeOrNoData("catering").State" Left="@FuselageRightX" Top="100" Length="@toRightEdge" Arrow="false" />
-<EcamLink State="@pg.NodeOrNoData("refuel").State" Left="@FuselageRightX" Top="180" Length="@toRightEdge" Arrow="false" />
-<EcamLink State="@pg.NodeOrNoData("boarding").State" Left="@FuselageRightX" Top="260" Length="@toRightEdge" Arrow="false" />
+
+@* CATERING → door 1R (top) or door 4R (bottom, with an elbow up to the door row). *@
+@if (cateringAft)
+{
+    <EcamLink State="@catering.State" Left="@FuselageRightX" Top="@(Door4RY - 6)" Width="@(toRightEdge + 2)" Height="@(RowMid(4) - Door4RY + 12)"
+              Points="@($"{toRightEdge},{RowMid(4) - Door4RY + 6} 40,{RowMid(4) - Door4RY + 6} 40,6 0,6")" Arrow="false" />
+}
+else
+{
+    <EcamLink State="@catering.State" Left="@FuselageRightX" Top="@(Door1RY - 6)" Length="@toRightEdge" Arrow="false" />
+}
+
+@* REFUEL → the right wing (the refuel panel sits under it). *@
+<EcamLink State="@refuel.State" Left="@WingRightX" Top="@(RowMid(1) - 6)" Width="@(RightBoxLeft - WingRightX + 2)" Height="@(WingY - RowMid(1) + 12)"
+          Points="@($"{RightBoxLeft - WingRightX},6 60,6 60,{WingY - RowMid(1) + 6} 0,{WingY - RowMid(1) + 6}")" Arrow="false" />
 
 <div class="abs hline" style="left:14px;top:420px;width:692px"></div>
 @{
@@ -118,11 +166,35 @@
     private const int HullHeight = 316;
     private const double HullScale = HullWidth / (double)A320TopView.ViewBoxWidth;
 
+    // Service-box columns: 160 px boxes, five rows of 68 px from y = 56.
+    private const int BoxLeft = 14;
+    private const int BoxRight = BoxLeft + 160;
+    private const int RightBoxLeft = 546;
+    private const int RowPitch = 68;
+    private const int RowHeight = 60;
+    private const int FirstRowTop = 56;
+
+    // The BOARDING tie runs outside the left column; the GPU/PUSHBACK trunk between it and the hull.
+    private const int OuterTrunkX = 7;
+    private const int InnerTrunkX = 236;
+
+    private static int RowTop(int row) => FirstRowTop + row * RowPitch;
+    private static int RowMid(int row) => RowTop(row) + RowHeight / 2;
+
     // Fuselage sides in stage px, from the drawing's own edges (door markers hug them).
     private static readonly int FuselageLeftX = HullLeft + (int)Math.Round(A320TopView.FuselageLeft * HullScale);
     private static readonly int FuselageRightX = HullLeft + (int)Math.Round(A320TopView.FuselageRight * HullScale);
 
     private static int HullY(int drawingY) => HullTop + (int)Math.Round(drawingY * HullScale);
+    private static int HullX(int drawingX) => HullLeft + (int)Math.Round(drawingX * HullScale);
+
+    // Where the connectors land: door rows, the nose, the right wing's refuel panel.
+    private static readonly int Door1LY = HullY(215);
+    private static readonly int Door1RY = HullY(215);
+    private static readonly int Door4RY = HullY(1310);
+    private static readonly int NoseY = HullY(330);
+    private static readonly int WingRightX = HullX(1180);
+    private static readonly int WingY = HullY(820);
 
     // Marker positions on the hull (stage px): (readout id, label, x, y, label on the left?).
     // The y values are the drawing's door positions in its own units.

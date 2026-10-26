@@ -2,12 +2,13 @@
   "gsxSettings": {
     "pageTitle": "Bodendienste — ProsimCompanion",
     "heading": "Bodendienste",
-    "options": { "never": "Nie", "always": "Immer", "onlyJetway": "Nur Brückenpositionen" },
+    "options": { "never": "Nie", "always": "Immer", "onlyJetway": "Nur Brückenpositionen", "cateringDoorForward": "Vordere Servicetür (1R)", "cateringDoorAft": "Hintere Servicetür (4R)" },
     "doors": {
       "title": "Türen",
       "automation": { "label": "Türautomatik", "hint": "Lässt die App Türen für die Bodendienste öffnen und schließen.", "more": "Die Türregeln unten gelten nur, solange das eingeschaltet ist." },
       "stairs": { "label": "Passagiertüren folgen der Treppe", "hint": "Die hintere Passagiertür öffnet, wenn die Treppe kommt, und schließt, wenn sie geht.", "more": "An Positionen ohne Fluggastbrücke öffnet auch die vordere Tür." },
       "catering": { "label": "Servicetüren folgen dem Catering", "hint": "Die rechten Servicetüren öffnen und schließen für den Catering-Lkw." },
+      "cateringDoor": { "label": "Catering-Tür", "hint": "Die Servicetür, zu der Ihr GSX-Flugzeugprofil den Catering-Lkw schickt. Die GSX-Diagnoseseite zeichnet den Catering-Kasten daneben." },
       "cargo": { "label": "Frachttüren folgen dem Beladen", "hint": "Die Frachttüren öffnen für die Lader und schließen, wenn jeder Lader fertig ist." },
       "cargoOnBoarding": { "label": "Frachttüren bei aktivem Boarding öffnen", "hint": "Beide Frachttüren öffnen kurz nach Beginn von Boarding oder Deboarding." },
       "cargoOpenDelay": { "label": "Verzögerung Frachttür öffnen", "hint": "Wartezeit nach Beginn von Boarding oder Deboarding." },

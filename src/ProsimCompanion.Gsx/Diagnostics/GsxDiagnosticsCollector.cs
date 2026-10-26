@@ -36,6 +36,7 @@ public sealed class GsxDiagnosticsCollector : IDiagnosticsCollector
     private readonly DepartureCycleState _cycle;
     private readonly GsxRefuelSync? _refuel;
     private readonly IGsxAutomationPhaseView? _automation;
+    private readonly Microsoft.Extensions.Options.IOptionsMonitor<Core.Configuration.GsxOptions>? _options;
     private readonly StateTransitions<string> _edges = new();
     private DateTimeOffset? _turnaroundStartedUtc;
 
@@ -45,8 +46,10 @@ public sealed class GsxDiagnosticsCollector : IDiagnosticsCollector
         DoorStateReader doors,
         DepartureCycleState cycle,
         GsxRefuelSync? refuel = null,
-        IGsxAutomationPhaseView? automation = null)
+        IGsxAutomationPhaseView? automation = null,
+        Microsoft.Extensions.Options.IOptionsMonitor<Core.Configuration.GsxOptions>? options = null)
     {
+        _options = options;
         ArgumentNullException.ThrowIfNull(store);
         ArgumentNullException.ThrowIfNull(api);
         ArgumentNullException.ThrowIfNull(doors);
@@ -102,6 +105,10 @@ public sealed class GsxDiagnosticsCollector : IDiagnosticsCollector
                 next = node.ToUpperInvariant();
             }
         }
+
+        // Which service door the catering truck serves (the page places the CATERING box
+        // beside it): the user's mirror of their GSX profile, forward unless told otherwise.
+        page.Readout("catering_door", string.Equals(_options?.CurrentValue.CateringDoor, "aft", StringComparison.OrdinalIgnoreCase) ? "4R" : "1R");
 
         // Door markers on the hull: one readout per open door, "OPEN".
         foreach (var door in _doors.Read())

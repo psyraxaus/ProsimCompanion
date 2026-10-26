@@ -69,6 +69,7 @@ public sealed class GsxAndRemoteCollectorTests
         Assert.Equal(EcamTokens.Prog, page.Nodes["refuel"].Value);
         Assert.Equal(EcamTokens.Avail, page.Nodes["boarding"].Value);
         Assert.Equal(DiagState.NotApplicable, page.Nodes["pushback"].State);   // not on the board
+        Assert.Equal("1R", page.Readout("catering_door"));   // forward unless the GSX profile says aft
         Assert.Equal(112, page.Gauges["pax"].Value);
         Assert.Equal(174, page.Gauges["pax"].Max);
         Assert.Equal(50, page.Gauges["cargo"].Value);
@@ -249,5 +250,26 @@ public sealed class GsxAndRemoteCollectorTests
         Assert.Single(registry.Snapshot());
         Assert.NotNull(registry.StreamDeck());
         Assert.True(rates[RateNames.Api].PerSecond > 0);
+    }
+}
+
+public sealed class GsxCateringDoorTests
+{
+    [Theory]
+    [InlineData("forward", "1R")]
+    [InlineData("aft", "4R")]
+    [InlineData("AFT", "4R")]
+    [InlineData("", "1R")]
+    public void CateringDoor_FollowsTheGsxDoorSetting(string setting, string expected)
+    {
+        var api = new Mock<IGsxRemoteApi>();
+        api.SetupGet(a => a.Readiness).Returns(GsxReadiness.Ready);
+        var collector = new GsxDiagnosticsCollector(
+            new GsxDiagnosticsStore(), api.Object, new DoorStateReader(new TableDataRefs()), new DepartureCycleState(),
+            options: new FixedOptionsMonitor<GsxOptions>(new GsxOptions { CateringDoor = setting }));
+
+        var (page, _, _) = CollectorTestSupport.Run(collector);
+
+        Assert.Equal(expected, page.Readout("catering_door"));
     }
 }

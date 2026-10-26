@@ -2,12 +2,13 @@
   "gsxSettings": {
     "pageTitle": "Services au sol — ProsimCompanion",
     "heading": "Services au sol",
-    "options": { "never": "Jamais", "always": "Toujours", "onlyJetway": "Postes à passerelle seulement" },
+    "options": { "never": "Jamais", "always": "Toujours", "onlyJetway": "Postes à passerelle seulement", "cateringDoorForward": "Porte de service avant (1R)", "cateringDoorAft": "Porte de service arrière (4R)" },
     "doors": {
       "title": "Portes",
       "automation": { "label": "Automatisation des portes", "hint": "Laisse l'application ouvrir et fermer les portes pour les services au sol.", "more": "Les règles de portes ci-dessous ne fonctionnent que lorsque ceci est activé." },
       "stairs": { "label": "Les portes passagers suivent les escaliers", "hint": "La porte passagers arrière s'ouvre à l'arrivée des escaliers et se ferme à leur départ.", "more": "Aux postes sans passerelle, la porte avant s'ouvre aussi." },
       "catering": { "label": "Les portes de service suivent le catering", "hint": "Les portes de service côté droit s'ouvrent et se ferment pour le camion de catering." },
+      "cateringDoor": { "label": "Porte du catering", "hint": "La porte de service vers laquelle votre profil avion GSX envoie le camion de catering. La page GSX du Diagnostic dessine la case catering à côté." },
       "cargo": { "label": "Les portes cargo suivent le chargement", "hint": "Les portes cargo s'ouvrent pour les chargeurs et se ferment quand chaque chargeur a terminé." },
       "cargoOnBoarding": { "label": "Ouvrir les portes cargo dès l'embarquement actif", "hint": "Les deux portes cargo s'ouvrent peu après le début de l'embarquement ou du débarquement." },
       "cargoOpenDelay": { "label": "Délai d'ouverture des portes cargo", "hint": "Attente après le début de l'embarquement ou du débarquement." },

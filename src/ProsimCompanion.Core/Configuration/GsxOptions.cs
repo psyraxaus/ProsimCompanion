@@ -502,6 +502,14 @@ public sealed class GsxOptions : IOptionSection
     [OptionField(FieldKind.Bool, "gsxSettings.doors.catering", DependsOn = "DoorAutomationEnabled")]
     public bool DoorCateringHandling { get; set; } = true;
 
+    /// <summary>Which starboard service door the catering truck serves in the user's GSX
+    /// aircraft profile: <c>forward</c> (1R, the usual A320 setup) or <c>aft</c> (4R). The app
+    /// cannot read GSX's profile, so the user mirrors it here; the diagnostics GSX page places
+    /// the CATERING box beside that door and draws its connector there (owner request
+    /// 2026-10-27).</summary>
+    [OptionField(FieldKind.Select, "gsxSettings.doors.cateringDoor", Choices = "cateringDoor")]
+    public string CateringDoor { get; set; } = "forward";
+
     /// <summary>Cargo doors follow GSX boarding/deboarding (predecessor DoorCargoHandling —
     /// the CARGO_n toggles plus loader-finished closes).</summary>
     [OptionField(FieldKind.Bool, "gsxSettings.doors.cargo", DependsOn = "DoorAutomationEnabled")]

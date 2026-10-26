@@ -2,12 +2,13 @@
   "gsxSettings": {
     "pageTitle": "Grondservices — ProsimCompanion",
     "heading": "Grondservices",
-    "options": { "never": "Nooit", "always": "Altijd", "onlyJetway": "Alleen posities met aviobrug" },
+    "options": { "never": "Nooit", "always": "Altijd", "onlyJetway": "Alleen posities met aviobrug", "cateringDoorForward": "Voorste servicedeur (1R)", "cateringDoorAft": "Achterste servicedeur (4R)" },
     "doors": {
       "title": "Deuren",
       "automation": { "label": "Deurautomatisering", "hint": "Laat de app deuren openen en sluiten voor de grondservices.", "more": "De deurregels hieronder werken alleen zolang dit aanstaat." },
       "stairs": { "label": "Passagiersdeuren volgen de trap", "hint": "De achterste passagiersdeur gaat open als de trap aankomt en dicht als die vertrekt.", "more": "Op posities zonder aviobrug gaat ook de voorste deur open." },
       "catering": { "label": "Servicedeuren volgen de catering", "hint": "De servicedeuren aan de rechterkant gaan open en dicht voor de cateringwagen." },
+      "cateringDoor": { "label": "Cateringdeur", "hint": "De servicedeur waar uw GSX-vliegtuigprofiel de cateringwagen naartoe stuurt. De GSX-pagina van Diagnose tekent het cateringvak ernaast." },
       "cargo": { "label": "Vrachtdeuren volgen het laden", "hint": "De vrachtdeuren gaan open voor de laders en dicht als elke lader klaar is." },
       "cargoOnBoarding": { "label": "Vrachtdeuren openen bij actieve boarding", "hint": "Beide vrachtdeuren gaan kort na het begin van boarding of deboarding open." },
       "cargoOpenDelay": { "label": "Vertraging vrachtdeur openen", "hint": "Wachttijd na het begin van boarding of deboarding." },
