@@ -43,3 +43,6 @@ src/ProsimCompanion.App/config/themes/logos/
 
 # Superdesign scratch HTML (never commit)
 .superdesign/tmp/
+
+# Skalarki lib files
+libs/skalarki/
