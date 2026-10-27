@@ -110,8 +110,9 @@ hardware as the Profiler sees it.
   on its own.
 - **HW RESET** appears under a lost board. It sends the Profiler's reset for that board: click
   once to arm (the line reads **CONFIRM?**), once more to send. Use it only when a board has
-  stopped answering; the Profiler may take a few seconds to re-enumerate it. Its effect on the
-  Profiler's running profile has not been verified on hardware yet.
+  stopped answering. On the owner's rig (2026-10-27) a reset of the overhead made the Profiler
+  drop its SDK link for several minutes before it came back; expect the PANELS page to go amber
+  and recover on its own.
 - Memo strip: **DEVICES** connected / watched (amber when a watched board is missing),
   **PROFILER** SDK version and licence, **LINK UP** hours and minutes, **PHASE**.
 

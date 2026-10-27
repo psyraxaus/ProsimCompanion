@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.8.0-rc.16
+
+Local build for the owner's hardware test, 2026-10-27, on `feature/ecam-diagnostics` (over rc.15, after the first run on the rig).
+
+- Fixed: **Skalarki link went deaf after connecting** (owner's rig 2026-10-27: LAMP TEST said "1 of 1 boards", events never arrived, "Unobserved task exception … NullReferenceException in SkalarkiIO.SDK"): asking the SDK for the licence makes its dispatch block throw on a null entry, and that client never receives another event or presence change. The app no longer asks; LIC reads `- - -`. The same defect had hidden the fact that `scanState=true` replays every switch position (476 events in half a second on the rig); the link still registers with `scanState=false` so a replay cannot satisfy a hardware check.
+- Fixed: **two Skalarki sessions per settings save**: the link is rebuilt only when a value it depends on changes (switch, SDK folder, host, port, catalogue, board list), not on every settings.json write.
+- Fixed: the first refusal after a lost Profiler link was never logged (the loss had used up the "first attempt").
+- Fixed: closing the Diagnostics page while the browser was already gone logged "Unobserved task exception (JavaScript interop…)"; the detach is awaited and swallowed.
+- Noted: HW RESET on the overhead board made the Profiler drop its SDK link for several minutes on the rig; the manual calls it out.
+
 ## 0.8.0-rc.15
 
 Local build for the owner's hardware test, 2026-10-27, on `feature/ecam-diagnostics` (over rc.14). Unverified on hardware.
