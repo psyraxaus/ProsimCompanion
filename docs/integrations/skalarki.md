@@ -95,10 +95,14 @@ B73X = `B73XSwitches.All` + `Encoders.B73XMIP.All`; B77X = `B77XSwitches.All` +
 `B77XEncoders.All`. Axes are not registered (every potentiometer wobble would be an event).
 The list is filtered to the watched boards; an empty `skalarki.enabledDevices` registers all.
 
-The PANELS plan view and the hardware-check prompts come from
+The PANELS plan view, its zones and the hardware-check prompts come from
 `wwwroot/data/skalarki-layout.json` (one section per catalogue; the A33X/B73X/B77X sections
 are stubs from the `DeviceType` list). Another deck is a JSON edit there; the embedded copy
-is the fallback.
+is the fallback. Zones follow the SDK's own board grouping (`Switches.OVHD.All` = OVERHEAD,
+RMP3, ACP3, REFUEL; `Switches.MIP.All` = MIP, CLOCK, DCDUCS, DCDUFO; `Switches.PEDESTAL.All` =
+the rest): a zone's first board is its controller and its drawn box rolls the zone up; a zone
+whose controller is not drawn (PEDESTAL) gets a clickable label; clicking opens the zone's
+board list in the right column with per-board lamp test and reset.
 
 ## What the hardware check proves, and what it does not
 

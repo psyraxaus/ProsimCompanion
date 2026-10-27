@@ -32,7 +32,11 @@
       "start": "Start a hardware check: touch one control on each board",
       "restart": "Start the hardware check over",
       "hwReset": "Reset this board's controller. Click once more to confirm.",
-      "confirm": "Confirm the hardware reset"
+      "confirm": "Confirm the hardware reset",
+      "zone": "Show the boards in this zone",
+      "back": "Back to the hardware check",
+      "lampBoard": "Light this board for the configured time",
+      "resetBoard": "Reset this board. Click once more to confirm."
     }
   }
 }

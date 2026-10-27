@@ -32,7 +32,11 @@
       "start": "Een hardwarecontrole starten: bedien één knop op elk board",
       "restart": "De hardwarecontrole opnieuw beginnen",
       "hwReset": "De controller van dit board resetten. Klik nogmaals om te bevestigen.",
-      "confirm": "De hardwarereset bevestigen"
+      "confirm": "De hardwarereset bevestigen",
+      "zone": "De boards in deze zone tonen",
+      "back": "Terug naar de hardwarecontrole",
+      "lampBoard": "Dit board gedurende de ingestelde tijd laten branden",
+      "resetBoard": "Dit board resetten. Klik nogmaals om te bevestigen."
     }
   }
 }

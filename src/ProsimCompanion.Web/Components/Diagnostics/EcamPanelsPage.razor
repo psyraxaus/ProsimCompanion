@@ -8,18 +8,27 @@
 @* PANELS: the Skalarki hardware (owner mockup 2026-10-27, ADR-0017). Left: the Profiler box
    with LIC and EVT/S beside it, a drop line to the OVERHEAD bar, the GLARE bar, three small
    boxes, then the pedestal as pairs either side of the white centre line. Right: HW CHECK
-   with one dotted line per board, LAMP TEST and START/RESTART, the progress bar, and the
-   lost-board caution with its HW RESET action. Every word in the drawing is an ECAM token;
-   only the button hover texts are localised. The plan view comes from skalarki-layout.json. *@
+   with one dotted line per watched board, LAMP TEST and START/RESTART as real buttons when a
+   control is wired, the progress bar, the lost-board caution with a two-click HW RESET.
+
+   Zones (owner request 2026-10-27, option 1): every drawn box belongs to a zone from the
+   layout file; a zone's first board is its controller, and that board's box rolls the zone
+   up — the worst state of every watched board in it, "n LOST" when any is lost, a c/w count
+   — so a board no row draws (RMP 3 in the overhead) can never go missing. A zone whose
+   controller is not drawn (the pedestal) gets a clickable label at the bottom left. Clicking
+   any box or label swaps the right column for that zone's board list with per-board LT / RST.
+   Every word in the drawing is an ECAM token; only hover texts are localised. *@
 @{
     var pg = Snap.Panels ?? DiagPage.Empty(DiagPageIds.Panels);
     var memo = Snap.Memo;
     var profiler = pg.NodeOrNoData("profiler");
     var layout = Layout();
-    var boards = layout.Boards();
-    var checkRunning = pg.Readout("check_progress") is not null;
-    var checkBoards = boards.Where(b => pg.NodeOrNoData(SkalarkiDevices.NodeId(b.Device)).State != DiagState.NotApplicable).ToList();
+    var drawn = layout.Boards();
+    var drawnIds = drawn.Select(b => b.Device).ToHashSet();
+    var allBoards = layout.AllBoards();
+    var checkBoards = allBoards.Where(d => IsWatched(pg, d)).ToList();
     var prompts = layout.PromptsById();
+    var checkRunning = pg.Readout("check_progress") is not null;
     var progressText = pg.Readout("check_progress");
     var done = 0;
     var total = checkBoards.Count;
@@ -31,7 +40,7 @@
 
     var pct = total > 0 ? Math.Clamp(done * 100.0 / total, 0, 100) : 0;
     var control = Services.GetService<ISkalarkiControl>();
-    var lostBoards = boards.Where(b => pg.NodeOrNoData(SkalarkiDevices.NodeId(b.Device)).Value == EcamTokens.Lost).ToList();
+    var lostBoards = allBoards.Where(d => pg.NodeOrNoData(SkalarkiDevices.NodeId(d)).Value == EcamTokens.Lost).ToList();
     var note = _note is not null && DateTimeOffset.UtcNow < _noteUntil ? _note : null;
     var linkUp = pg.Readout("memo_link") == EcamTokens.LinkUp;
     var devicesText = (pg.Readout("memo_devices") ?? "0/0").Split('/');
@@ -39,6 +48,8 @@
     var devicesTotal = devicesText.Length > 1 ? devicesText[1] : "0";
     var devicesShort = devicesConnected != devicesTotal;
     var (linkH, linkM) = LinkUptime(pg.Readout("link_since"));
+    var openZone = layout.Zone(_zone ?? Zone);
+    var hasControl = control is not null;
 
     // Geometry (stage px, halved from the 2x mockup).
     const int LeftX = 30;
@@ -68,11 +79,16 @@
         case "bar":
         case "span":
         {
-            var (node, label) = Board(pg, row.Device, row.Label);
-            <div class="abs pn-box @EcamPresentation.StateClass(node.State)" style="left:@(LeftX)px;top:@(rowTop)px;width:@(PlanWidth)px;height:32px">
-                <span class="pn-lbl">@label</span>
-                <span class="pn-val" style="left:170px">@Word(node)</span>
-                <span class="pn-detail">@(node.State == DiagState.Normal ? node.Detail ?? "" : "")</span>
+            var box = BoxFor(pg, layout, drawnIds, row.Device, row.Label);
+            <div class="abs pn-box @EcamPresentation.StateClass(box.State) @(box.Zone is null ? "" : "zone")" style="left:@(LeftX)px;top:@(rowTop)px;width:@(PlanWidth)px;height:32px"
+                 title="@ZoneTitle(box)" role="@(box.Zone is null ? null : "button")" tabindex="@(box.Zone is null ? null : "0")" @onclick="() => OpenZone(box.Zone)">
+                <span class="pn-lbl">@box.Label</span>
+                <span class="pn-val" style="left:170px">@box.Word</span>
+                <span class="pn-detail @(box.Count is null ? "" : "with-count")">@(box.Detail ?? "")</span>
+                @if (box.Count is { } count)
+                {
+                    <span class="pn-count">@count</span>
+                }
             </div>
             rowTop += 46;
             break;
@@ -86,10 +102,11 @@
             var width = (PlanWidth - gap * (count - 1)) / count;
             for (var i = 0; i < devices.Count && i < 3; i++)
             {
-                var (node, label) = Board(pg, devices[i], row.Labels is not null && i < row.Labels.Count ? row.Labels[i] : null);
-                <div class="abs pn-small @EcamPresentation.StateClass(node.State)" style="left:@(LeftX + i * (width + gap))px;top:@(rowTop)px;width:@(width)px;height:38px">
-                    <span class="pn-lbl">@label</span>
-                    <span class="pn-val">@Word(node)</span>
+                var box = BoxFor(pg, layout, drawnIds, devices[i], row.Labels is not null && i < row.Labels.Count ? row.Labels[i] : null);
+                <div class="abs pn-small @EcamPresentation.StateClass(box.State) @(box.Zone is null ? "" : "zone")" style="left:@(LeftX + i * (width + gap))px;top:@(rowTop)px;width:@(width)px;height:38px"
+                     title="@ZoneTitle(box)" role="@(box.Zone is null ? null : "button")" tabindex="@(box.Zone is null ? null : "0")" @onclick="() => OpenZone(box.Zone)">
+                    <span class="pn-lbl">@box.Label</span>
+                    <span class="pn-val">@box.Word@if (box.Count is { } c) { <span class="unit" style="margin-left:6px">@c</span> }</span>
                 </div>
             }
 
@@ -106,15 +123,17 @@
                 <div class="abs pn-centre" style="left:@(CentreX)px;top:@(rowTop - 3)px;height:@(pairs * 50 + 6)px"></div>
             }
 
-            var (left, leftLabel) = Board(pg, row.Left, null);
-            var (right, rightLabel) = Board(pg, row.Right, null);
-            <div class="abs pn-box @EcamPresentation.StateClass(left.State)" style="left:@(LeftX)px;top:@(rowTop)px;width:190px;height:38px">
-                <span class="pn-lbl">@leftLabel</span>
-                <span class="pn-val right">@Word(left)</span>
+            var left = BoxFor(pg, layout, drawnIds, row.Left, null);
+            var right = BoxFor(pg, layout, drawnIds, row.Right, null);
+            <div class="abs pn-box @EcamPresentation.StateClass(left.State) @(left.Zone is null ? "" : "zone")" style="left:@(LeftX)px;top:@(rowTop)px;width:190px;height:38px"
+                 title="@ZoneTitle(left)" role="@(left.Zone is null ? null : "button")" tabindex="@(left.Zone is null ? null : "0")" @onclick="() => OpenZone(left.Zone)">
+                <span class="pn-lbl">@left.Label</span>
+                <span class="pn-val right">@left.Word</span>
             </div>
-            <div class="abs pn-box @EcamPresentation.StateClass(right.State)" style="left:@(CentreX + 12)px;top:@(rowTop)px;width:191px;height:38px">
-                <span class="pn-lbl">@rightLabel</span>
-                <span class="pn-val right">@Word(right)</span>
+            <div class="abs pn-box @EcamPresentation.StateClass(right.State) @(right.Zone is null ? "" : "zone")" style="left:@(CentreX + 12)px;top:@(rowTop)px;width:191px;height:38px"
+                 title="@ZoneTitle(right)" role="@(right.Zone is null ? null : "button")" tabindex="@(right.Zone is null ? null : "0")" @onclick="() => OpenZone(right.Zone)">
+                <span class="pn-lbl">@right.Label</span>
+                <span class="pn-val right">@right.Word</span>
             </div>
             rowTop += 50;
             break;
@@ -122,72 +141,147 @@
     }
 }
 
-@* HW CHECK column. *@
-<div class="abs head-u" style="left:@(RightX)px;top:48px">@EcamTokens.HwCheck</div>
+@* Zones whose controller no row draws (the pedestal): a clickable label with the roll-up. *@
 @{
-    var lineTop = 66;
+    var stripX = LeftX;
 }
-@foreach (var (device, layoutLabel) in checkBoards)
+@foreach (var zone in layout.Zones)
 {
-    var id = SkalarkiDevices.NodeId(device);
-    var label = layoutLabel ?? pg.Readout("label_" + id) ?? SkalarkiDevices.DefaultLabel(device);
-    var state = pg.Readout("check_" + id);
-    var text = state ?? (prompts.TryGetValue(device, out var prompt) ? prompt.ToUpperInvariant() : "ANY KEY");
-    var stateClass = state is null ? "idle"
-        : state == EcamTokens.Done ? "st-normal"
-        : state == EcamTokens.Lost ? "st-caution"
-        : state == EcamTokens.Skipped ? "idle"
-        : "prompt";
-    <div class="abs chk-line" style="left:@(RightX)px;top:@(lineTop)px;width:@(RightWidth)px">@Leader(label, text)<span class="chk-state @stateClass">@text</span></div>
-    lineTop += 21;
-}
-@if (checkBoards.Count == 0)
-{
-    <div class="abs chk-line" style="left:@(RightX)px;top:66px"><span class="chk-state idle">@EcamTokens.NotApplicable</span></div>
-}
-
-@{
-    var buttonTop = Math.Max(372, lineTop + 10);
-}
-@if (control is not null)
-{
-    <button type="button" class="abs ecam-btn" style="left:@(RightX)px;top:@(buttonTop)px;width:108px" disabled="@_busy" title="@T["diagnostics.panels.lampTest"].Value" @onclick="LampTestAsync">@EcamTokens.LampTest</button>
-    <button type="button" class="abs ecam-btn" style="left:@(RightX + 118)px;top:@(buttonTop)px;width:108px" disabled="@_busy" title="@T[checkRunning ? "diagnostics.panels.restart" : "diagnostics.panels.start"].Value" @onclick="() => StartOrRestart(control, checkRunning, prompts)">@(checkRunning ? EcamTokens.Restart : EcamTokens.Start)</button>
-}
-else
-{
-    <div class="abs ecam-btn" style="left:@(RightX)px;top:@(buttonTop)px;width:108px;line-height:24px;text-align:center">@EcamTokens.LampTest</div>
-    <div class="abs ecam-btn" style="left:@(RightX + 118)px;top:@(buttonTop)px;width:108px;line-height:24px;text-align:center">@EcamTokens.Restart</div>
-}
-@if (note is not null)
-{
-    <div class="abs small c-cyan" style="left:@(RightX)px;top:@(buttonTop + 32)px">@note</div>
-}
-
-<div class="abs detail c-white" style="left:@(RightX)px;top:@(buttonTop + 46)px">PROGRESS</div>
-<div class="abs chk-track" style="left:@(RightX)px;top:@(buttonTop + 66)px;width:@(RightWidth)px"><div class="chk-fill" style="width:@(pct.ToString("0", System.Globalization.CultureInfo.InvariantCulture))%"></div></div>
-<div class="abs small" style="left:@(RightX)px;top:@(buttonTop + 84)px"><span class="@(pg.Readout("check_complete") is null ? "c-green" : "c-green")">@done</span> <span class="c-cyan">/ @total CHECKED</span></div>
-
-@* Lost-board caution with its action; the caution line itself when no board is lost. *@
-@if (lostBoards.Count > 0)
-{
-    var first = lostBoards[0];
-    var firstLabel = first.Label ?? pg.Readout("label_" + SkalarkiDevices.NodeId(first.Device)) ?? SkalarkiDevices.DefaultLabel(first.Device);
-    <div class="abs small c-amber" style="left:@(RightX)px;top:@(buttonTop + 122)px">@firstLabel @EcamTokens.Lost · CHECK USB</div>
-    @if (control is not null)
+    var head = zone.BoardIds().FirstOrDefault();
+    if (zone.BoardIds().Count == 0 || drawnIds.Contains(head))
     {
-        <div class="abs pn-action @(_resetArmed == first.Device ? "armed" : "")" style="left:@(RightX)px;top:@(buttonTop + 140)px"
-             title="@T[_resetArmed == first.Device ? "diagnostics.panels.confirm" : "diagnostics.panels.hwReset"].Value"
-             role="button" tabindex="0" @onclick="() => HardwareResetAsync(control, first.Device)">- @EcamTokens.HwReset ....... @(_resetArmed == first.Device ? EcamTokens.Confirm : EcamTokens.Avail)</div>
+        continue;
+    }
+
+    var roll = Rollup(pg, zone, drawnIds, includeDrawn: true);
+    <div class="abs pn-zone-label @EcamPresentation.StateClass(roll.State)" style="left:@(stripX)px;top:@(Math.Max(rowTop, 508))px"
+         title="@T["diagnostics.panels.zone"].Value" role="button" tabindex="0" @onclick="() => OpenZone(zone.Id)">
+        <span class="c-white">@zone.Label</span> <span>@roll.Word</span> <span class="unit">@roll.Count</span>
+    </div>
+    stripX += 150;
+}
+
+@if (openZone is { } z)
+{
+    @* ---- Zone drill-down in the right column ---- *@
+    var boards = z.BoardIds();
+    var compact = boards.Count > 12;
+    var pitch = compact ? 24 : 30;
+    var zoneWatched = boards.Where(d => IsWatched(pg, d)).ToList();
+    var zoneDone = zoneWatched.Count(d => pg.Readout("check_" + SkalarkiDevices.NodeId(d)) == EcamTokens.Done);
+    <div class="abs head-u" style="left:@(RightX)px;top:48px">PANELS › @z.Id</div>
+    @if (hasControl)
+    {
+        <button type="button" class="abs ecam-btn mini" style="left:@(RightX + RightWidth - 44)px;top:44px;width:44px" title="@T["diagnostics.panels.back"].Value" @onclick="CloseZone">@EcamTokens.Back</button>
     }
     else
     {
-        <div class="abs pn-action" style="left:@(RightX)px;top:@(buttonTop + 140)px">- @EcamTokens.HwReset ....... @EcamTokens.Avail</div>
+        <div class="abs ecam-btn mini" style="left:@(RightX + RightWidth - 44)px;top:44px;width:44px;text-align:center">@EcamTokens.Back</div>
+    }
+
+    var lineTop = 70;
+    foreach (var device in boards)
+    {
+        var id = SkalarkiDevices.NodeId(device);
+        var node = pg.NodeOrNoData(id);
+        var label = pg.Readout("label_" + id) ?? SkalarkiDevices.DefaultLabel(device);
+        var detail = node.State == DiagState.Normal ? node.Detail : node.State == DiagState.NotApplicable ? "" : node.Detail;
+        <div class="abs zone-line @EcamPresentation.StateClass(node.State)" style="left:@(RightX)px;top:@(lineTop)px;width:@(RightWidth)px;height:@(pitch)px">
+            <span class="zl-lbl">@label</span>
+            <span class="zl-state">@Word(node)</span>
+            @if (!compact && !string.IsNullOrEmpty(detail))
+            {
+                <span class="zl-detail">@detail</span>
+            }
+            @if (hasControl && node.State != DiagState.NotApplicable)
+            {
+                <button type="button" class="abs ecam-btn mini" style="left:@(RightWidth - 64)px;top:0" disabled="@_busy" title="@T["diagnostics.panels.lampBoard"].Value" @onclick="() => LampTestAsync(device)">@EcamTokens.Lt</button>
+                <button type="button" class="abs ecam-btn mini @(_resetArmed == device ? "amber" : "")" style="left:@(RightWidth - 30)px;top:0" title="@T[_resetArmed == device ? "diagnostics.panels.confirm" : "diagnostics.panels.resetBoard"].Value" @onclick="() => HardwareResetAsync(device)">@(_resetArmed == device ? EcamTokens.Sure : EcamTokens.Rst)</button>
+            }
+        </div>
+        lineTop += pitch;
+    }
+
+    <div class="abs small" style="left:@(RightX)px;top:@(lineTop + 6)px">
+        <span class="c-white">@EcamTokens.Devices</span> <span class="@(zoneWatched.Count(d => pg.NodeOrNoData(SkalarkiDevices.NodeId(d)).State == DiagState.Normal) == zoneWatched.Count ? "c-green" : "c-amber")">@zoneWatched.Count(d => pg.NodeOrNoData(SkalarkiDevices.NodeId(d)).State == DiagState.Normal)</span><span class="c-cyan"> / @zoneWatched.Count @EcamTokens.Conn</span>
+        @if (checkRunning)
+        {
+            <span class="c-white" style="margin-left:12px">@EcamTokens.HwCheck</span> <span class="c-green">@zoneDone</span><span class="c-cyan"> / @zoneWatched.Count @EcamTokens.Checked</span>
+        }
+    </div>
+    @if (note is not null)
+    {
+        <div class="abs small c-cyan" style="left:@(RightX)px;top:@(lineTop + 24)px">@note</div>
     }
 }
-else if (pg.CautionLine is { } line)
+else
 {
-    <div class="abs small c-amber" style="left:@(RightX)px;top:@(buttonTop + 122)px;width:@(RightWidth)px;white-space:normal;line-height:15px">@line</div>
+    @* ---- HW CHECK column: every watched board, zone order ---- *@
+    <div class="abs head-u" style="left:@(RightX)px;top:48px">@EcamTokens.HwCheck</div>
+    var linePitch = checkBoards.Count > 16 ? 17 : 21;
+    var lineTop = 66;
+    foreach (var device in checkBoards)
+    {
+        var id = SkalarkiDevices.NodeId(device);
+        var label = drawn.FirstOrDefault(b => b.Device == device).Label ?? pg.Readout("label_" + id) ?? SkalarkiDevices.DefaultLabel(device);
+        var state = pg.Readout("check_" + id);
+        var text = state ?? (prompts.TryGetValue(device, out var prompt) ? prompt.ToUpperInvariant() : "ANY KEY");
+        var stateClass = state is null ? "idle"
+            : state == EcamTokens.Done ? "st-normal"
+            : state == EcamTokens.Lost ? "st-caution"
+            : state == EcamTokens.Skipped ? "idle"
+            : "prompt";
+        <div class="abs chk-line" style="left:@(RightX)px;top:@(lineTop)px;width:@(RightWidth)px">@Leader(label, text)<span class="chk-state @stateClass">@text</span></div>
+        lineTop += linePitch;
+    }
+
+    if (checkBoards.Count == 0)
+    {
+        <div class="abs chk-line" style="left:@(RightX)px;top:66px"><span class="chk-state idle">@EcamTokens.NotApplicable</span></div>
+    }
+
+    var buttonTop = Math.Max(372, lineTop + 10);
+    if (hasControl)
+    {
+        <button type="button" class="abs ecam-btn" style="left:@(RightX)px;top:@(buttonTop)px;width:108px" disabled="@_busy" title="@T["diagnostics.panels.lampTest"].Value" @onclick="() => LampTestAsync(null)">@EcamTokens.LampTest</button>
+        <button type="button" class="abs ecam-btn" style="left:@(RightX + 118)px;top:@(buttonTop)px;width:108px" disabled="@_busy" title="@T[checkRunning ? "diagnostics.panels.restart" : "diagnostics.panels.start"].Value" @onclick="() => StartOrRestart(control!, checkRunning, prompts)">@(checkRunning ? EcamTokens.Restart : EcamTokens.Start)</button>
+    }
+    else
+    {
+        <div class="abs ecam-btn" style="left:@(RightX)px;top:@(buttonTop)px;width:108px;line-height:24px;text-align:center">@EcamTokens.LampTest</div>
+        <div class="abs ecam-btn" style="left:@(RightX + 118)px;top:@(buttonTop)px;width:108px;line-height:24px;text-align:center">@EcamTokens.Restart</div>
+    }
+
+    if (note is not null)
+    {
+        <div class="abs small c-cyan" style="left:@(RightX)px;top:@(buttonTop + 32)px">@note</div>
+    }
+
+    <div class="abs detail c-white" style="left:@(RightX)px;top:@(buttonTop + 46)px">PROGRESS</div>
+    <div class="abs chk-track" style="left:@(RightX)px;top:@(buttonTop + 66)px;width:@(RightWidth)px"><div class="chk-fill" style="width:@(pct.ToString("0", System.Globalization.CultureInfo.InvariantCulture))%"></div></div>
+    <div class="abs small" style="left:@(RightX)px;top:@(buttonTop + 84)px"><span class="c-green">@done</span> <span class="c-cyan">/ @total @EcamTokens.Checked</span></div>
+
+    @* Lost-board caution with its action; the caution line itself when no board is lost. *@
+    if (lostBoards.Count > 0)
+    {
+        var first = lostBoards[0];
+        var firstLabel = pg.Readout("label_" + SkalarkiDevices.NodeId(first)) ?? SkalarkiDevices.DefaultLabel(first);
+        <div class="abs small c-amber" style="left:@(RightX)px;top:@(buttonTop + 122)px">@firstLabel @EcamTokens.Lost · CHECK USB</div>
+        if (hasControl)
+        {
+            <div class="abs pn-action @(_resetArmed == first ? "armed" : "")" style="left:@(RightX)px;top:@(buttonTop + 140)px"
+                 title="@T[_resetArmed == first ? "diagnostics.panels.confirm" : "diagnostics.panels.hwReset"].Value"
+                 role="button" tabindex="0" @onclick="() => HardwareResetAsync(first)">- @EcamTokens.HwReset ....... @(_resetArmed == first ? EcamTokens.Confirm : EcamTokens.Avail)</div>
+        }
+        else
+        {
+            <div class="abs pn-action" style="left:@(RightX)px;top:@(buttonTop + 140)px">- @EcamTokens.HwReset ....... @EcamTokens.Avail</div>
+        }
+    }
+    else if (pg.CautionLine is { } line)
+    {
+        <div class="abs small c-amber" style="left:@(RightX)px;top:@(buttonTop + 122)px;width:@(RightWidth)px;white-space:normal;line-height:15px">@line</div>
+    }
 }
 
 <EcamMemoStrip Cells="@(new[]
@@ -203,6 +297,10 @@ else if (pg.CautionLine is { } line)
 @code {
     [Parameter, EditorRequired] public DiagnosticsSnapshot Snap { get; set; } = DiagnosticsSnapshot.Empty;
 
+    /// <summary>The zone to open on first render (tests and deep links); the user's clicks
+    /// take over from there.</summary>
+    [Parameter] public string? Zone { get; set; }
+
     private static readonly TimeSpan NoteLife = TimeSpan.FromSeconds(8);
     private static readonly SkalarkiLayoutCatalog Fallback = new(null, NullLogger<SkalarkiLayoutCatalog>.Instance);
 
@@ -211,6 +309,11 @@ else if (pg.CautionLine is { } line)
     private string? _note;
     private DateTimeOffset _noteUntil;
     private SkalarkiDeviceId? _resetArmed;
+    private string? _zone;
+
+    /// <summary>One drawn box: its label, the word in it, its state class, the roll-up count
+    /// when it stands for a whole zone, and the zone a click opens.</summary>
+    private sealed record Box(string Label, string Word, DiagState State, string? Detail, string? Count, string? Zone);
 
     protected override void OnParametersSet() => _centreDrawn = false;
 
@@ -220,18 +323,59 @@ else if (pg.CautionLine is { } line)
         return (Services.GetService<SkalarkiLayoutCatalog>() ?? Fallback).For(catalogue);
     }
 
-    /// <summary>A board's node and the label the page prints: the layout's, else the user's
-    /// (collector readout), else the SDK default.</summary>
-    private static (DiagNode Node, string Label) Board(DiagPage pg, string? name, string? layoutLabel)
+    private static bool IsWatched(DiagPage pg, SkalarkiDeviceId device)
+        => pg.NodeOrNoData(SkalarkiDevices.NodeId(device)).State != DiagState.NotApplicable;
+
+    /// <summary>A drawn box. The zone's controller (first board) rolls the zone up over every
+    /// watched board no other row draws; any other box shows its own board.</summary>
+    private static Box BoxFor(DiagPage pg, SkalarkiLayout layout, HashSet<SkalarkiDeviceId> drawnIds, string? name, string? layoutLabel)
     {
         if (!SkalarkiDevices.TryParse(name, out var device))
         {
-            return (DiagNode.NoData(name ?? "?"), (name ?? "?").ToUpperInvariant());
+            return new Box((name ?? "?").ToUpperInvariant(), EcamTokens.NoData, DiagState.NoData, null, null, null);
         }
 
         var id = SkalarkiDevices.NodeId(device);
-        return (pg.NodeOrNoData(id), layoutLabel ?? pg.Readout("label_" + id) ?? SkalarkiDevices.DefaultLabel(device));
+        var node = pg.NodeOrNoData(id);
+        var label = layoutLabel ?? pg.Readout("label_" + id) ?? SkalarkiDevices.DefaultLabel(device);
+        var zone = layout.ZoneOf(device);
+        if (zone is null || zone.BoardIds().FirstOrDefault() != device)
+        {
+            return new Box(label, Word(node), node.State, node.State == DiagState.Normal ? node.Detail : null, null, zone?.Id);
+        }
+
+        var roll = Rollup(pg, zone, drawnIds, includeDrawn: false);
+        // The controller's own last input stays readable while the roll-up is amber for a sibling.
+        return new Box(label, roll.Word, roll.State, node.State == DiagState.Normal ? node.Detail : null, roll.Members > 1 ? roll.Count : null, zone.Id);
     }
+
+    /// <summary>The worst state over a zone's watched boards (the controller plus the boards no
+    /// row draws, or every board when <paramref name="includeDrawn"/>), the word for it and
+    /// the connected/watched count.</summary>
+    private static (DiagState State, string Word, string Count, int Members) Rollup(DiagPage pg, SkalarkiLayoutZone zone, HashSet<SkalarkiDeviceId> drawnIds, bool includeDrawn)
+    {
+        var ids = zone.BoardIds();
+        var head = ids.FirstOrDefault();
+        var members = ids.Where(d => d == head || includeDrawn || !drawnIds.Contains(d)).Where(d => IsWatched(pg, d)).ToList();
+        if (members.Count == 0)
+        {
+            return (DiagState.NotApplicable, EcamTokens.NotApplicable, "0/0", 0);
+        }
+
+        var nodes = members.Select(d => pg.NodeOrNoData(SkalarkiDevices.NodeId(d))).ToList();
+        var connected = nodes.Count(n => n.State == DiagState.Normal);
+        var lost = nodes.Count(n => n.Value == EcamTokens.Lost);
+        var worst = nodes.Aggregate(DiagState.Normal, (acc, n) => DiagStates.Worse(acc, n.State));
+        var word = worst switch
+        {
+            DiagState.Normal => EcamTokens.Conn,
+            DiagState.NoData when lost == 0 => EcamTokens.NoData,
+            _ => lost > 0 ? $"{lost} {EcamTokens.Lost}" : EcamTokens.NoData,
+        };
+        return (worst, word, $"{connected}/{members.Count}", members.Count);
+    }
+
+    private string? ZoneTitle(Box box) => box.Zone is null ? null : T["diagnostics.panels.zone"].Value;
 
     /// <summary>The word in a box: CONN, "LOST 42 S", XX, "- - -".</summary>
     private static string Word(DiagNode node)
@@ -269,7 +413,25 @@ else if (pg.CautionLine is { } line)
         return (((int)up.TotalHours).ToString("00", System.Globalization.CultureInfo.InvariantCulture), up.Minutes.ToString("00", System.Globalization.CultureInfo.InvariantCulture));
     }
 
-    private async Task LampTestAsync()
+    private void OpenZone(string? zoneId)
+    {
+        if (zoneId is null)
+        {
+            return;
+        }
+
+        _zone = zoneId;
+        _resetArmed = null;
+    }
+
+    private void CloseZone()
+    {
+        _zone = null;
+        Zone = null;
+        _resetArmed = null;
+    }
+
+    private async Task LampTestAsync(SkalarkiDeviceId? device)
     {
         if (_busy || Services.GetService<ISkalarkiControl>() is not { } control)
         {
@@ -279,7 +441,7 @@ else if (pg.CautionLine is { } line)
         _busy = true;
         try
         {
-            Note(await control.LampTestAsync(null, CancellationToken.None));
+            Note(await control.LampTestAsync(device, CancellationToken.None));
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -304,9 +466,14 @@ else if (pg.CautionLine is { } line)
         }
     }
 
-    /// <summary>Two clicks: the first arms (the line reads CONFIRM?), the second sends.</summary>
-    private async Task HardwareResetAsync(ISkalarkiControl control, SkalarkiDeviceId device)
+    /// <summary>Two clicks: the first arms (the line reads CONFIRM? / SURE?), the second sends.</summary>
+    private async Task HardwareResetAsync(SkalarkiDeviceId device)
     {
+        if (Services.GetService<ISkalarkiControl>() is not { } control)
+        {
+            return;
+        }
+
         if (_resetArmed != device)
         {
             _resetArmed = device;

@@ -100,6 +100,14 @@ hardware as the Profiler sees it.
   talking; amber **LOST 42 S** means the Profiler lost its USB link that many seconds ago;
   amber **XX** means you ticked the board in settings but the Profiler has never reported it;
   white **- - -** means the board is not watched.
+- **Zones.** Every box belongs to a zone: OVERHEAD, GLARE, MIP or PEDESTAL. The zone's
+  controller box (the OVERHEAD bar, the GLARE bar, the MIP box) also stands for the boards that
+  live in that area but have no box of their own, such as RMP 3 and ACP 3 in the overhead or
+  the DCDUs under the MIP: it turns amber with `1 LOST` when one of them drops, and carries a
+  small connected/watched count. The pedestal has a clickable **PEDESTAL** label at the bottom
+  left instead. Click any box or that label and the right column lists every board of the
+  zone with its state, its last input and two small buttons: **LT** lights that board, **RST**
+  resets it after a second click (**SURE?**). **BACK** returns to the hardware check.
 - **HW CHECK** (right): one line per watched board with what to touch (`PRESS CLR`,
   `MOVE LVR`, `ANY SWITCH`). Press **START**, then walk the cockpit touching one control
   per board; each line turns **DONE**, the bar fills, and the strip says `n / m CHECKED`. A

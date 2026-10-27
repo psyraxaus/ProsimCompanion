@@ -32,7 +32,11 @@
       "start": "Lancer une vérification matérielle : actionner une commande sur chaque carte",
       "restart": "Recommencer la vérification matérielle",
       "hwReset": "Réinitialiser le contrôleur de cette carte. Cliquez encore une fois pour confirmer.",
-      "confirm": "Confirmer la réinitialisation matérielle"
+      "confirm": "Confirmer la réinitialisation matérielle",
+      "zone": "Afficher les cartes de cette zone",
+      "back": "Retour à la vérification matérielle",
+      "lampBoard": "Allumer cette carte pendant la durée configurée",
+      "resetBoard": "Réinitialiser cette carte. Cliquez encore une fois pour confirmer."
     }
   }
 }

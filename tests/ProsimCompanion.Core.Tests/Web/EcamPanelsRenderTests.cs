@@ -47,6 +47,9 @@ public sealed class EcamPanelsRenderTests
         p.Node("tq", DiagState.Normal, "CONN");
         p.Node("lower_ped", DiagState.Normal, "CONN");
         p.NotApplicable("pwr_ctrl", "OFF");
+        p.Node("rmp3", DiagState.Caution, "LOST", "7 S");          // in the overhead, drawn by no row
+        p.Node("acp3", DiagState.Normal, "CONN");
+        MarkRestNotApplicable(p);
         p.Readout("label_rmp2", "RMP 2");
         p.Readout("check_progress", "6/14").Readout("check_glare", "DONE").Readout("check_glare_at", "11:09")
             .Readout("check_mcdu1", "PRESS CLR").Readout("check_rmp2", "LOST");
@@ -55,7 +58,7 @@ public sealed class EcamPanelsRenderTests
         c.Raise("SKALARKI", "RMP 2 LOST", DiagState.Caution, new DiagAction("HW RESET", "AVAIL"));
     });
 
-    private static async Task<string> RenderAsync<TComponent>(DiagnosticsSnapshot snap, Action<IServiceCollection>? configure = null)
+    private static async Task<string> RenderAsync<TComponent>(DiagnosticsSnapshot snap, Action<IServiceCollection>? configure = null, string? zone = null)
         where TComponent : IComponent
     {
         var services = new ServiceCollection();
@@ -67,7 +70,13 @@ public sealed class EcamPanelsRenderTests
         await using var renderer = new HtmlRenderer(provider, NullLoggerFactory.Instance);
         return await renderer.Dispatcher.InvokeAsync(async () =>
         {
-            var output = await renderer.RenderComponentAsync<TComponent>(ParameterView.FromDictionary(new Dictionary<string, object?> { ["Snap"] = snap }));
+            var parameters = new Dictionary<string, object?> { ["Snap"] = snap };
+            if (zone is not null)
+            {
+                parameters["Zone"] = zone;
+            }
+
+            var output = await renderer.RenderComponentAsync<TComponent>(ParameterView.FromDictionary(parameters));
             return System.Net.WebUtility.HtmlDecode(output.ToHtmlString());
         });
     }
@@ -148,6 +157,7 @@ public sealed class EcamPanelsRenderTests
             p.Node("profiler", DiagState.Normal, "CONN", "10.0.1.21:53000");
             p.Node("glare", DiagState.Normal, "CONN");
             p.Node("mcdu1", DiagState.Normal, "CONN");
+            MarkRestNotApplicable(p);
             p.Readout("memo_devices", "2/2").Readout("memo_link", "LINK UP");
         });
         var html = await RenderAsync<EcamPanelsPage>(snap, s =>
@@ -164,7 +174,7 @@ public sealed class EcamPanelsRenderTests
         Assert.Contains("chk-state idle\">PRESS CLR", html, StringComparison.Ordinal);
         Assert.Contains("Light every output", html, StringComparison.Ordinal);           // localised hover text
         // Every layout board is listed (this fixture marks none "- - -"), none checked yet.
-        Assert.Contains(">0</span> <span class=\"c-cyan\">/ 15 CHECKED", html, StringComparison.Ordinal);
+        Assert.Contains(">0</span> <span class=\"c-cyan\">/ 2 CHECKED", html, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -192,7 +202,22 @@ public sealed class EcamPanelsRenderTests
             Assert.NotEmpty(layout.Boards());
         }
 
+        foreach (var (name, layout) in layouts)
+        {
+            Assert.Equal(["OVHD", "GLARE", "MIP", "PED"], layout.Zones.Select(z => z.Id).ToList());
+            foreach (var zone in layout.Zones)
+            {
+                Assert.Equal(zone.Boards.Count, zone.BoardIds().Count);   // every zone board is a real id
+            }
+
+            Assert.Equal(SkalarkiDeviceId.Pedestal, layout.Zone("PED")!.BoardIds()[0]);   // controller not drawn → label
+            Assert.True(layout.AllBoards().Count >= 25, name);
+        }
+
         var a32x = layouts["A32X"];
+        Assert.Equal("OVHD", a32x.ZoneOf(SkalarkiDeviceId.Rmp3)!.Id);
+        Assert.Equal("MIP", a32x.ZoneOf(SkalarkiDeviceId.DcduCs)!.Id);
+        Assert.Null(a32x.ZoneOf(SkalarkiDeviceId.Md80Mcp));
         Assert.Equal(SkalarkiDeviceId.Overhead, a32x.Boards()[0].Device);
         Assert.Equal("ECAM CP", a32x.Boards().Single(b => b.Device == SkalarkiDeviceId.Ecam).Label);
         Assert.Equal("PRESS CLR", a32x.PromptsById()[SkalarkiDeviceId.Mcdu1]);
@@ -204,6 +229,48 @@ public sealed class EcamPanelsRenderTests
 
         var catalog = new SkalarkiLayoutCatalog(null, NullLogger<SkalarkiLayoutCatalog>.Instance);
         Assert.Same(SkalarkiLayout.Empty, catalog.For((SkalarkiCatalogue)42));
+    }
+
+    /// <summary>What the real collector does for every board the user does not watch.</summary>
+    private static void MarkRestNotApplicable(DiagPageBuilder p)
+    {
+        foreach (var device in SkalarkiDevices.All)
+        {
+            var id = SkalarkiDevices.NodeId(device);
+            if (!p.NodeIds.Contains(id))
+            {
+                p.NotApplicable(id, "OFF");
+            }
+        }
+    }
+
+    [Fact]
+    public async Task Zones_RollUp_AndTheDrillDown_ListsEveryBoardOfTheZone()
+    {
+        var html = await RenderAsync<EcamPanelsPage>(Fixture());
+
+        // OVERHEAD is the overhead zone's controller: RMP 3 (lost, drawn nowhere) rolls into
+        // its bar — amber, "1 LOST", 2 of 3 connected — while its own last input stays.
+        Assert.Contains("pn-box st-caution zone", html, StringComparison.Ordinal);
+        Assert.Contains(">1 LOST<", html, StringComparison.Ordinal);
+        Assert.Contains("pn-count\">2/3<", html, StringComparison.Ordinal);
+        Assert.Contains("LAST 11:04 APU", html, StringComparison.Ordinal);
+        // Every drawn box is a click target; the pedestal zone gets its label at the bottom.
+        Assert.Contains("pn-small st-normal zone", html, StringComparison.Ordinal);
+        Assert.Contains("pn-zone-label", html, StringComparison.Ordinal);
+        Assert.Contains(">PEDESTAL</span>", html, StringComparison.Ordinal);
+        // The check walks the undrawn boards too.
+        Assert.Contains("RMP 3 ", html, StringComparison.Ordinal);
+
+        var zone = await RenderAsync<EcamPanelsPage>(Fixture(), s => { }, "OVHD");
+        Assert.Contains("PANELS › OVHD", zone, StringComparison.Ordinal);
+        Assert.Contains(">BACK<", zone, StringComparison.Ordinal);
+        Assert.Contains("zl-lbl\">RMP 3<", zone, StringComparison.Ordinal);
+        Assert.Contains("zl-state\">LOST 7 S<", zone, StringComparison.Ordinal);
+        Assert.Contains("zl-lbl\">ACP 3<", zone, StringComparison.Ordinal);
+        Assert.Contains("zl-lbl\">REFUEL<", zone, StringComparison.Ordinal);      // unwatched boards still listed, as - - -
+        Assert.DoesNotContain("head-u\" style=\"left:462px;top:48px\">HW CHECK", zone, StringComparison.Ordinal);   // the check column is replaced
+        Assert.Contains("/ 3 CHECKED", zone, StringComparison.Ordinal);   // the zone's own tally: OVERHEAD, RMP 3, ACP 3 watched, none done yet
     }
 
     private sealed class RecordingControl : ISkalarkiControl

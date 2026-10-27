@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.8.0-rc.17
+
+Local build for the owner's hardware test, 2026-10-27, on `feature/ecam-diagnostics` (over rc.16).
+
+- Added: **PANELS zones** (owner request 2026-10-27, option 1): every box on the plan view belongs to a zone from the layout file (OVERHEAD, GLARE, MIP, PEDESTAL). A zone's controller box rolls the zone up: the worst state of every watched board in it, `1 LOST` in amber when one is gone, a small connected/watched count. Boards no row draws (RMP 3 and ACP 3 in the overhead, the DCDUs under the MIP) can no longer go missing from the picture. The pedestal, whose controller is not drawn, gets a clickable `PEDESTAL` label at the bottom left.
+- Added: click any box or zone label and the right column swaps to that zone's board list — one line per board with CONN / LOST nn S / XX / `- - -`, the last input, and per-board LT (lamp test) and RST (two-click reset). `PANELS › OVHD` in the header, BACK returns to the hardware check.
+- Changed: the HW CHECK walks every watched board in zone order, not only the drawn ones.
+
 ## 0.8.0-rc.16
 
 Local build for the owner's hardware test, 2026-10-27, on `feature/ecam-diagnostics` (over rc.15, after the first run on the rig).

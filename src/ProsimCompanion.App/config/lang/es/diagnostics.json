@@ -32,7 +32,11 @@
       "start": "Iniciar una comprobación de hardware: toca un control de cada placa",
       "restart": "Reiniciar la comprobación de hardware",
       "hwReset": "Reiniciar el controlador de esta placa. Haz clic otra vez para confirmar.",
-      "confirm": "Confirmar el reinicio del hardware"
+      "confirm": "Confirmar el reinicio del hardware",
+      "zone": "Mostrar las placas de esta zona",
+      "back": "Volver a la comprobación de hardware",
+      "lampBoard": "Encender esta placa durante el tiempo configurado",
+      "resetBoard": "Reiniciar esta placa. Haz clic otra vez para confirmar."
     }
   }
 }

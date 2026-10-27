@@ -182,6 +182,20 @@
 .ecam-btn.amber { border-color: var(--ecam-amber); color: var(--ecam-amber); }
 .chk-track { height: 10px; border: 1px solid var(--ecam-green); }
 .chk-fill { height: 100%; background: var(--ecam-green); }
+/* Zones (owner request 2026-10-27): a zone box is a click target and carries its c/w count;
+   the drill-down list in the right column has one line per board with two tiny buttons. */
+.pn-box.zone, .pn-small.zone { cursor: pointer; }
+.pn-box.zone:hover, .pn-small.zone:hover, .pn-box.zone:focus-visible, .pn-small.zone:focus-visible { outline: 1px solid var(--ecam-white); outline-offset: 1px; }
+.pn-box .pn-count { position: absolute; right: 12px; bottom: 2px; font-size: 10px; color: var(--ecam-cyan); line-height: 10px; }
+.pn-box .pn-detail.with-count { top: 40%; }
+.pn-small .pn-count { display: block; font-size: 10px; line-height: 10px; color: var(--ecam-cyan); margin-top: 1px; }
+.pn-zone-label { font-size: 13px; color: var(--ecam-white); cursor: pointer; white-space: nowrap; }
+.pn-zone-label:hover { color: var(--ecam-green); }
+.zone-line { font-size: 13px; line-height: 13px; white-space: nowrap; }
+.zone-line .zl-lbl { position: absolute; left: 0; color: var(--ecam-white); }
+.zone-line .zl-state { position: absolute; left: 92px; color: var(--st); }
+.zone-line .zl-detail { position: absolute; left: 0; top: 13px; font-size: 10px; line-height: 10px; color: var(--ecam-cyan); white-space: nowrap; overflow: hidden; width: 160px; }
+.ecam-btn.mini { height: 18px; font-size: 10px; width: 30px; padding: 0; line-height: 14px; }
 .pn-action { font-size: 13px; color: var(--ecam-cyan); white-space: pre; cursor: pointer; }
 .pn-action:hover { color: var(--ecam-white); }
 .pn-action.armed { color: var(--ecam-amber); }

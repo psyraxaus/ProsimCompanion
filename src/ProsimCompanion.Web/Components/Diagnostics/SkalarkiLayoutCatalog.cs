@@ -18,10 +18,66 @@ public sealed record SkalarkiLayoutRow(
     string? Left = null,
     string? Right = null);
 
-/// <summary>The plan view and the hardware-check prompts for one catalogue.</summary>
-public sealed record SkalarkiLayout(IReadOnlyList<SkalarkiLayoutRow> Rows, IReadOnlyDictionary<string, string> Prompts)
+/// <summary>One click-through zone of the plan view (owner request 2026-10-27): the boards that
+/// live in one area of the cockpit. The first board is the area's controller, whose drawn box
+/// shows the zone's rolled-up state; boards no row draws still count, list and get checked.</summary>
+public sealed record SkalarkiLayoutZone(string Id, string Label, IReadOnlyList<string> Boards)
 {
-    public static SkalarkiLayout Empty { get; } = new([], new Dictionary<string, string>());
+    /// <summary>The boards as ids, unknown names dropped, in file order.</summary>
+    public IReadOnlyList<SkalarkiDeviceId> BoardIds()
+    {
+        var ids = new List<SkalarkiDeviceId>();
+        foreach (var name in Boards)
+        {
+            if (SkalarkiDevices.TryParse(name, out var id) && !ids.Contains(id))
+            {
+                ids.Add(id);
+            }
+        }
+
+        return ids;
+    }
+}
+
+/// <summary>The plan view, its zones and the hardware-check prompts for one catalogue.</summary>
+public sealed record SkalarkiLayout(IReadOnlyList<SkalarkiLayoutRow> Rows, IReadOnlyDictionary<string, string> Prompts, IReadOnlyList<SkalarkiLayoutZone> Zones)
+{
+    public static SkalarkiLayout Empty { get; } = new([], new Dictionary<string, string>(), []);
+
+    /// <summary>The zone a board belongs to, or null when no zone lists it.</summary>
+    public SkalarkiLayoutZone? ZoneOf(SkalarkiDeviceId device)
+        => Zones.FirstOrDefault(z => z.BoardIds().Contains(device));
+
+    /// <summary>The zone by id (case-insensitive), or null.</summary>
+    public SkalarkiLayoutZone? Zone(string? id)
+        => id is null ? null : Zones.FirstOrDefault(z => z.Id.Equals(id, StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>Every board the page should account for: zone boards in zone order first, then
+    /// any drawn board no zone lists. This is the hardware-check order.</summary>
+    public IReadOnlyList<SkalarkiDeviceId> AllBoards()
+    {
+        var all = new List<SkalarkiDeviceId>();
+        foreach (var zone in Zones)
+        {
+            foreach (var id in zone.BoardIds())
+            {
+                if (!all.Contains(id))
+                {
+                    all.Add(id);
+                }
+            }
+        }
+
+        foreach (var (device, _) in Boards())
+        {
+            if (!all.Contains(device))
+            {
+                all.Add(device);
+            }
+        }
+
+        return all;
+    }
 
     /// <summary>Every board the plan view draws, in reading order (bars, then the row, then
     /// the pedestal left-to-right per pair), with the layout's own label when it has one.</summary>
@@ -113,7 +169,11 @@ public sealed class SkalarkiLayoutCatalog
         var result = new Dictionary<string, SkalarkiLayout>(StringComparer.OrdinalIgnoreCase);
         foreach (var (name, layout) in file.Layouts ?? new Dictionary<string, LayoutEntry>())
         {
-            result[name] = new SkalarkiLayout(layout.Rows ?? [], layout.Prompts ?? new Dictionary<string, string>());
+            var zones = (layout.Zones ?? [])
+                .Where(z => !string.IsNullOrWhiteSpace(z.Id))
+                .Select(z => new SkalarkiLayoutZone(z.Id!.Trim().ToUpperInvariant(), (z.Label ?? z.Id).Trim().ToUpperInvariant(), z.Boards ?? []))
+                .ToList();
+            result[name] = new SkalarkiLayout(layout.Rows ?? [], layout.Prompts ?? new Dictionary<string, string>(), zones);
         }
 
         return result;
@@ -151,5 +211,7 @@ public sealed class SkalarkiLayoutCatalog
 
     private sealed record LayoutFile(Dictionary<string, LayoutEntry>? Layouts);
 
-    private sealed record LayoutEntry(List<SkalarkiLayoutRow>? Rows, Dictionary<string, string>? Prompts);
+    private sealed record LayoutEntry(List<SkalarkiLayoutRow>? Rows, Dictionary<string, string>? Prompts, List<ZoneEntry>? Zones);
+
+    private sealed record ZoneEntry(string? Id, string? Label, List<string>? Boards);
 }

@@ -57,6 +57,12 @@ public static class EcamTokens
     public const string Devices = "DEVICES";
     public const string Profiler = "PROFILER";
     public const string Link = "LINK";
+    public const string Back = "BACK";
+    public const string Checked = "CHECKED";
+    public const string Zone = "ZONE";
+    public const string Lt = "LT";
+    public const string Rst = "RST";
+    public const string Sure = "SURE?";
 
     /// <summary>Unit qualifiers (cyan on the page).</summary>
     public static class Units

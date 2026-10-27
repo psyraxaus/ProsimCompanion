@@ -1,16 +1,107 @@
 {
-  "_comment": "PANELS page layout per Skalarki catalogue (ADR-0017). A row is one of: bar (one full-width board), row (up to three boards side by side), pair (one board per pedestal column), span (one board across both pedestal columns). device = the SDK's DeviceType name (GLARE, MCDU1, LOWERPED, ...). prompts = the hardware-check line per board; a board without one says ANY KEY. Other decks are a JSON edit here.",
+  "_comment": "PANELS page layout per Skalarki catalogue (ADR-0017). A row is one of: bar (one full-width board), row (up to three boards side by side), pair (one board per pedestal column), span (one board across both pedestal columns). device = the SDK's DeviceType name (GLARE, MCDU1, LOWERPED, ...). prompts = the hardware-check line per board; a board without one says ANY KEY. Other decks are a JSON edit here. zones = the click-through groups (owner request 2026-10-27): a zone rolls up the state of every board listed in it; its first board is the controller whose drawn box shows the roll-up. Boards not drawn by a row still count, show in the zone list and in the hardware check.",
   "layouts": {
     "A32X": {
       "rows": [
-        { "kind": "bar", "device": "OVERHEAD", "label": "OVERHEAD" },
-        { "kind": "bar", "device": "GLARE", "label": "GLARE" },
-        { "kind": "row", "devices": ["MIP", "CLOCK", "ECAM"], "labels": ["MIP", "CLOCK", "ECAM CP"] },
-        { "kind": "pair", "left": "MCDU1", "right": "MCDU2" },
-        { "kind": "pair", "left": "RMP1", "right": "RMP2" },
-        { "kind": "pair", "left": "ACP1", "right": "ACP2" },
-        { "kind": "pair", "left": "ATC", "right": "TQ" },
-        { "kind": "pair", "left": "LOWERPED", "right": "PWRCTRL" }
+        {
+          "kind": "bar",
+          "device": "OVERHEAD",
+          "label": "OVERHEAD"
+        },
+        {
+          "kind": "bar",
+          "device": "GLARE",
+          "label": "GLARE"
+        },
+        {
+          "kind": "row",
+          "devices": [
+            "MIP",
+            "CLOCK",
+            "ECAM"
+          ],
+          "labels": [
+            "MIP",
+            "CLOCK",
+            "ECAM CP"
+          ]
+        },
+        {
+          "kind": "pair",
+          "left": "MCDU1",
+          "right": "MCDU2"
+        },
+        {
+          "kind": "pair",
+          "left": "RMP1",
+          "right": "RMP2"
+        },
+        {
+          "kind": "pair",
+          "left": "ACP1",
+          "right": "ACP2"
+        },
+        {
+          "kind": "pair",
+          "left": "ATC",
+          "right": "TQ"
+        },
+        {
+          "kind": "pair",
+          "left": "LOWERPED",
+          "right": "PWRCTRL"
+        }
+      ],
+      "zones": [
+        {
+          "id": "OVHD",
+          "label": "OVERHEAD",
+          "boards": [
+            "OVERHEAD",
+            "RMP3",
+            "ACP3",
+            "REFUEL"
+          ]
+        },
+        {
+          "id": "GLARE",
+          "label": "GLARE",
+          "boards": [
+            "GLARE"
+          ]
+        },
+        {
+          "id": "MIP",
+          "label": "MIP",
+          "boards": [
+            "MIP",
+            "CLOCK",
+            "DCDUCS",
+            "DCDUFO"
+          ]
+        },
+        {
+          "id": "PED",
+          "label": "PEDESTAL",
+          "boards": [
+            "PEDESTAL",
+            "ECAM",
+            "MCDU1",
+            "MCDU2",
+            "MCDU3",
+            "RMP1",
+            "RMP2",
+            "ACP1",
+            "ACP2",
+            "ATC",
+            "TQ",
+            "LOWERPED",
+            "PWRCTRL",
+            "CBCTRL",
+            "DRAIMS1",
+            "DRAIMS2"
+          ]
+        }
       ],
       "prompts": {
         "GLARE": "PRESS FCU",
@@ -34,15 +125,110 @@
     },
     "A33X": {
       "rows": [
-        { "kind": "bar", "device": "OVERHEAD", "label": "OVERHEAD" },
-        { "kind": "bar", "device": "GLARE", "label": "GLARE" },
-        { "kind": "row", "devices": ["MIP", "CLOCK", "ECAM"], "labels": ["MIP", "CLOCK", "ECAM CP"] },
-        { "kind": "pair", "left": "MCDU1", "right": "MCDU2" },
-        { "kind": "pair", "left": "RMP1", "right": "RMP2" },
-        { "kind": "pair", "left": "ACP1", "right": "ACP2" },
-        { "kind": "pair", "left": "TQ", "right": "ATC" },
-        { "kind": "pair", "left": "DRAIMS1", "right": "DRAIMS2" },
-        { "kind": "span", "device": "MCDU3", "label": "MCDU 3" }
+        {
+          "kind": "bar",
+          "device": "OVERHEAD",
+          "label": "OVERHEAD"
+        },
+        {
+          "kind": "bar",
+          "device": "GLARE",
+          "label": "GLARE"
+        },
+        {
+          "kind": "row",
+          "devices": [
+            "MIP",
+            "CLOCK",
+            "ECAM"
+          ],
+          "labels": [
+            "MIP",
+            "CLOCK",
+            "ECAM CP"
+          ]
+        },
+        {
+          "kind": "pair",
+          "left": "MCDU1",
+          "right": "MCDU2"
+        },
+        {
+          "kind": "pair",
+          "left": "RMP1",
+          "right": "RMP2"
+        },
+        {
+          "kind": "pair",
+          "left": "ACP1",
+          "right": "ACP2"
+        },
+        {
+          "kind": "pair",
+          "left": "TQ",
+          "right": "ATC"
+        },
+        {
+          "kind": "pair",
+          "left": "DRAIMS1",
+          "right": "DRAIMS2"
+        },
+        {
+          "kind": "span",
+          "device": "MCDU3",
+          "label": "MCDU 3"
+        }
+      ],
+      "zones": [
+        {
+          "id": "OVHD",
+          "label": "OVERHEAD",
+          "boards": [
+            "OVERHEAD",
+            "RMP3",
+            "ACP3",
+            "REFUEL"
+          ]
+        },
+        {
+          "id": "GLARE",
+          "label": "GLARE",
+          "boards": [
+            "GLARE"
+          ]
+        },
+        {
+          "id": "MIP",
+          "label": "MIP",
+          "boards": [
+            "MIP",
+            "CLOCK",
+            "DCDUCS",
+            "DCDUFO"
+          ]
+        },
+        {
+          "id": "PED",
+          "label": "PEDESTAL",
+          "boards": [
+            "PEDESTAL",
+            "ECAM",
+            "MCDU1",
+            "MCDU2",
+            "MCDU3",
+            "RMP1",
+            "RMP2",
+            "ACP1",
+            "ACP2",
+            "ATC",
+            "TQ",
+            "LOWERPED",
+            "PWRCTRL",
+            "CBCTRL",
+            "DRAIMS1",
+            "DRAIMS2"
+          ]
+        }
       ],
       "prompts": {
         "MCDU1": "PRESS CLR",
@@ -53,14 +239,106 @@
     },
     "B73X": {
       "rows": [
-        { "kind": "bar", "device": "OVERHEAD", "label": "OVERHEAD" },
-        { "kind": "bar", "device": "GLARE", "label": "MCP / EFIS" },
-        { "kind": "row", "devices": ["MIP", "CLOCK", "MD80MCP"], "labels": ["MIP", "CLOCK", "MCP"] },
-        { "kind": "pair", "left": "MCDU1", "right": "MCDU2" },
-        { "kind": "pair", "left": "RMP1", "right": "RMP2" },
-        { "kind": "pair", "left": "ACP1", "right": "ACP2" },
-        { "kind": "pair", "left": "TQ", "right": "ATC" },
-        { "kind": "span", "device": "LOWERPED", "label": "AFT PED" }
+        {
+          "kind": "bar",
+          "device": "OVERHEAD",
+          "label": "OVERHEAD"
+        },
+        {
+          "kind": "bar",
+          "device": "GLARE",
+          "label": "MCP / EFIS"
+        },
+        {
+          "kind": "row",
+          "devices": [
+            "MIP",
+            "CLOCK",
+            "MD80MCP"
+          ],
+          "labels": [
+            "MIP",
+            "CLOCK",
+            "MCP"
+          ]
+        },
+        {
+          "kind": "pair",
+          "left": "MCDU1",
+          "right": "MCDU2"
+        },
+        {
+          "kind": "pair",
+          "left": "RMP1",
+          "right": "RMP2"
+        },
+        {
+          "kind": "pair",
+          "left": "ACP1",
+          "right": "ACP2"
+        },
+        {
+          "kind": "pair",
+          "left": "TQ",
+          "right": "ATC"
+        },
+        {
+          "kind": "span",
+          "device": "LOWERPED",
+          "label": "AFT PED"
+        }
+      ],
+      "zones": [
+        {
+          "id": "OVHD",
+          "label": "OVERHEAD",
+          "boards": [
+            "OVERHEAD",
+            "RMP3",
+            "ACP3",
+            "REFUEL"
+          ]
+        },
+        {
+          "id": "GLARE",
+          "label": "MCP / EFIS",
+          "boards": [
+            "GLARE",
+            "MD80MCP"
+          ]
+        },
+        {
+          "id": "MIP",
+          "label": "MIP",
+          "boards": [
+            "MIP",
+            "CLOCK",
+            "DCDUCS",
+            "DCDUFO"
+          ]
+        },
+        {
+          "id": "PED",
+          "label": "PEDESTAL",
+          "boards": [
+            "PEDESTAL",
+            "ECAM",
+            "MCDU1",
+            "MCDU2",
+            "MCDU3",
+            "RMP1",
+            "RMP2",
+            "ACP1",
+            "ACP2",
+            "ATC",
+            "TQ",
+            "LOWERPED",
+            "PWRCTRL",
+            "CBCTRL",
+            "DRAIMS1",
+            "DRAIMS2"
+          ]
+        }
       ],
       "prompts": {
         "MCDU1": "PRESS CLR",
@@ -70,14 +348,105 @@
     },
     "B77X": {
       "rows": [
-        { "kind": "bar", "device": "OVERHEAD", "label": "OVERHEAD" },
-        { "kind": "bar", "device": "GLARE", "label": "MCP / EFIS" },
-        { "kind": "row", "devices": ["MIP", "CLOCK", "ECAM"], "labels": ["MIP", "CLOCK", "EICAS CP"] },
-        { "kind": "pair", "left": "MCDU1", "right": "MCDU2" },
-        { "kind": "pair", "left": "RMP1", "right": "RMP2" },
-        { "kind": "pair", "left": "ACP1", "right": "ACP2" },
-        { "kind": "pair", "left": "TQ", "right": "ATC" },
-        { "kind": "span", "device": "MCDU3", "label": "CDU 3" }
+        {
+          "kind": "bar",
+          "device": "OVERHEAD",
+          "label": "OVERHEAD"
+        },
+        {
+          "kind": "bar",
+          "device": "GLARE",
+          "label": "MCP / EFIS"
+        },
+        {
+          "kind": "row",
+          "devices": [
+            "MIP",
+            "CLOCK",
+            "ECAM"
+          ],
+          "labels": [
+            "MIP",
+            "CLOCK",
+            "EICAS CP"
+          ]
+        },
+        {
+          "kind": "pair",
+          "left": "MCDU1",
+          "right": "MCDU2"
+        },
+        {
+          "kind": "pair",
+          "left": "RMP1",
+          "right": "RMP2"
+        },
+        {
+          "kind": "pair",
+          "left": "ACP1",
+          "right": "ACP2"
+        },
+        {
+          "kind": "pair",
+          "left": "TQ",
+          "right": "ATC"
+        },
+        {
+          "kind": "span",
+          "device": "MCDU3",
+          "label": "CDU 3"
+        }
+      ],
+      "zones": [
+        {
+          "id": "OVHD",
+          "label": "OVERHEAD",
+          "boards": [
+            "OVERHEAD",
+            "RMP3",
+            "ACP3",
+            "REFUEL"
+          ]
+        },
+        {
+          "id": "GLARE",
+          "label": "MCP / EFIS",
+          "boards": [
+            "GLARE"
+          ]
+        },
+        {
+          "id": "MIP",
+          "label": "MIP",
+          "boards": [
+            "MIP",
+            "CLOCK",
+            "DCDUCS",
+            "DCDUFO"
+          ]
+        },
+        {
+          "id": "PED",
+          "label": "PEDESTAL",
+          "boards": [
+            "PEDESTAL",
+            "ECAM",
+            "MCDU1",
+            "MCDU2",
+            "MCDU3",
+            "RMP1",
+            "RMP2",
+            "ACP1",
+            "ACP2",
+            "ATC",
+            "TQ",
+            "LOWERPED",
+            "PWRCTRL",
+            "CBCTRL",
+            "DRAIMS1",
+            "DRAIMS2"
+          ]
+        }
       ],
       "prompts": {
         "MCDU1": "PRESS CLR",

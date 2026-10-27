@@ -32,7 +32,11 @@
       "start": "Hardwareprüfung starten: an jedem Board ein Bedienelement betätigen",
       "restart": "Hardwareprüfung von vorn beginnen",
       "hwReset": "Controller dieses Boards zurücksetzen. Zum Bestätigen noch einmal klicken.",
-      "confirm": "Hardware-Reset bestätigen"
+      "confirm": "Hardware-Reset bestätigen",
+      "zone": "Die Boards dieser Zone anzeigen",
+      "back": "Zurück zur Hardwareprüfung",
+      "lampBoard": "Dieses Board für die eingestellte Zeit aufleuchten lassen",
+      "resetBoard": "Dieses Board zurücksetzen. Zum Bestätigen noch einmal klicken."
     }
   }
 }
