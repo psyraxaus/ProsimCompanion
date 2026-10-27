@@ -56,7 +56,7 @@
     <span class="pn-row" style="margin-top:5px">@EndpointHost(pg.Readout("host"))<span class="unit">@EndpointPort(pg.Readout("host"))</span></span>
     <span class="pn-row" style="margin-top:5px">@profiler.Value<span class="unit" style="margin-left:8px">@(profiler.Host ?? "")</span></span>
 </div>
-<div class="abs small" style="left:340px;top:56px"><span class="c-white">LIC</span> <span class="@EcamPresentation.ReadoutClass(pg.Readout("license"))">@EcamPresentation.ReadoutText(pg.Readout("license"))</span></div>
+<div class="abs small" style="left:340px;top:56px"><span class="c-white">LIC</span> <span class="@(pg.Readout("license") == EcamTokens.NotApplicable ? "c-white" : EcamPresentation.ReadoutClass(pg.Readout("license")))">@EcamPresentation.ReadoutText(pg.Readout("license"))</span></div>
 <div class="abs small" style="left:340px;top:76px"><span class="c-white">EVT/S</span> <span class="@(pg.Readout("evt_s") is null ? "st-nodata" : "c-cyan")">@EcamPresentation.ReadoutText(pg.Readout("evt_s"))</span></div>
 <EcamLink State="@profiler.State" Left="@(CentreX - 6)" Top="112" Length="12" Vertical="true" Arrow="false" />
 

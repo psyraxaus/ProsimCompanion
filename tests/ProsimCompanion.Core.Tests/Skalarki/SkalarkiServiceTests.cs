@@ -164,7 +164,7 @@ public sealed class SkalarkiServiceTests : IDisposable
         }
 
         Assert.Equal(ConnectionState.Connected, store.Snapshot().LinkState);
-        Assert.Equal("200200", store.Snapshot().License);
+        Assert.Equal("200200", store.Snapshot().License);   // the fake answers; the real bridge returns null (SDK defect)
         Assert.Equal([SkalarkiDeviceId.Glare, SkalarkiDeviceId.Rmp2], client.Registered);
         Assert.Equal(SkalarkiCatalogue.A32X, client.RegisteredCatalogue);
 

@@ -70,6 +70,10 @@ whether we needed a .NET Framework 4.8 sidecar talking over a named pipe.
   nothing above the seam would change.
 - The `Event` enum name is the control name; the SDK's `EventMapper` is internal and is not
   used.
+- `GetLicenseTypeAsync` is never called: its reply packet faults the SDK's dispatch block and
+  silences that client for good (docs/integrations/skalarki.md). The licence cell shows
+  `- - -`. The SDK client is rebuilt only when a link setting changes (host, port, folder,
+  catalogue, board list), not on every settings save.
 - Still to verify on hardware (owner): live input events reach the app; a second subscriber
   does not disturb the Profiler's ProSim profile; LAMP TEST lights the right boards; HW
   RESET re-enumerates a board.

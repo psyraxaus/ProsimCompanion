@@ -76,15 +76,9 @@ public sealed class SkalarkiProbe : ISkalarkiSdkInspector
             timeout.CancelAfter(ConnectTimeout);
             await client.ConnectAsync(host, port, timeout.Token).ConfigureAwait(false);
             await Task.Delay(PresenceWindow, cancellationToken).ConfigureAwait(false);
-            string? licence = null;
-            try
-            {
-                licence = await client.GetLicenseAsync(timeout.Token).ConfigureAwait(false);
-            }
-            catch (Exception ex) when (ex is not OperationCanceledException)
-            {
-                _logger.LogDebug(ex, "Skalarki probe: licence call failed");
-            }
+            // No licence call (SDK 5.1.919: its reply kills the event pipeline; the bridge
+            // returns null anyway).
+            var licence = await client.GetLicenseAsync(timeout.Token).ConfigureAwait(false);
 
             List<SkalarkiDeviceId> seen, up;
             lock (gate)

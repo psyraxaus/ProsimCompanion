@@ -91,8 +91,9 @@ Shown only when **Settings → Hardware → Skalarki Panels** is switched on (it
 SkalarkiIO Profiler and its SDK folder; see that page). The page is your Skalarki cockpit
 hardware as the Profiler sees it.
 
-- **PROFILER** box: the Profiler PC and port, CONN / RECONN, the SDK version; beside it the
-  licence reply (LIC) and the input events per second (EVT/S).
+- **PROFILER** box: the Profiler PC and port, CONN / RECONN, the SDK version; beside it LIC
+  (always `- - -`: this SDK cannot be asked for the licence without losing its events) and the
+  input events per second (EVT/S).
 - **OVERHEAD** and **GLARE** bars, the **MIP / CLOCK / ECAM CP** row and the pedestal pairs
   (MCDU, RMP, ACP, ATC and TQ, LOWER PED and PWR CTRL): one box per board. Green **CONN** with
   the last input (`LAST 11:04 APU` = time and panel group) means the board is plugged in and

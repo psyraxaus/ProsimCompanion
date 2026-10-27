@@ -31,8 +31,8 @@
     "test": {
       "button": "Test connection",
       "testing": "Testing…",
-      "title": "Connect once to the Profiler, list the boards it reports and read the licence, then disconnect",
-      "ok": "Connected: {0} boards reported, {1} connected, licence {2}",
+      "title": "Connect once to the Profiler, list the boards it reports, then disconnect",
+      "ok": "Connected: {0} boards reported, {1} connected",
       "fail": "Could not connect: {0}",
       "timeout": "The Profiler did not answer in time.",
       "connectedList": "Connected boards: {0}"

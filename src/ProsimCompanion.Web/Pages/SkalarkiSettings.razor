@@ -47,7 +47,7 @@
             {
                 <span class="pill @(result.Ok ? "tone-ok" : "tone-bad")">
                     @(result.Ok
-                        ? T["skalarkiSettings.test.ok", result.Reported.Count, result.Connected.Count, result.License ?? "?"].Value
+                        ? T["skalarkiSettings.test.ok", result.Reported.Count, result.Connected.Count].Value
                         : T["skalarkiSettings.test.fail", result.Message].Value)
                 </span>
             }

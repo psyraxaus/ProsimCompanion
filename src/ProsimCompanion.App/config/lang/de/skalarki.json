@@ -31,8 +31,8 @@
     "test": {
       "button": "Verbindung testen",
       "testing": "Teste…",
-      "title": "Einmal mit dem Profiler verbinden, die gemeldeten Boards auflisten und die Lizenz lesen, dann trennen",
-      "ok": "Verbunden: {0} Boards gemeldet, {1} angeschlossen, Lizenz {2}",
+      "title": "Einmal mit dem Profiler verbinden, die gemeldeten Boards auflisten, dann trennen",
+      "ok": "Verbunden: {0} Boards gemeldet, {1} angeschlossen",
       "fail": "Verbindung fehlgeschlagen: {0}",
       "timeout": "Der Profiler hat nicht rechtzeitig geantwortet.",
       "connectedList": "Angeschlossene Boards: {0}"

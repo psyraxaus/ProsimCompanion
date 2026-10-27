@@ -31,8 +31,8 @@
     "test": {
       "button": "Probar conexión",
       "testing": "Probando…",
-      "title": "Conectar una vez con el Profiler, listar las placas que informa y leer la licencia, luego desconectar",
-      "ok": "Conectado: {0} placas informadas, {1} conectadas, licencia {2}",
+      "title": "Conectar una vez con el Profiler, listar las placas que informa y luego desconectar",
+      "ok": "Conectado: {0} placas informadas, {1} conectadas",
       "fail": "No se pudo conectar: {0}",
       "timeout": "El Profiler no respondió a tiempo.",
       "connectedList": "Placas conectadas: {0}"

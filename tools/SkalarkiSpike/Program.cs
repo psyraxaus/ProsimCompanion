@@ -124,15 +124,34 @@ catch (Exception ex)
 await Task.Delay(TimeSpan.FromSeconds(4));
 Say($"device events in the first 4 s: {deviceEvents.Count}, IO events before registering: {ioEvents}");
 
-try
+// The licence call is opt-in since 2026-10-27 (second run): the reply packet makes the SDK's
+// Serializer.Deserialize add a NULL to its event list, the dispatch block dereferences it, and
+// that client's whole incoming pipeline is dead from then on (no events, no presence). The
+// unobserved NullReferenceException below is the proof.
+TaskScheduler.UnobservedTaskException += (_, e) =>
 {
-    Say($"GetLicenseTypeAsync()...");
-    var licence = await client.GetLicenseTypeAsync().WaitAsync(TimeSpan.FromSeconds(10));
-    Say($"  licence reply = {licence} (Task<int>)");
+    Say($"  UNOBSERVED TASK EXCEPTION: {e.Exception.InnerException?.GetType().Name}: {e.Exception.InnerException?.Message} @ {e.Exception.InnerException?.StackTrace?.Split('\n').FirstOrDefault()?.Trim()}");
+    e.SetObserved();
+};
+if (args.Contains("--license", StringComparer.OrdinalIgnoreCase))
+{
+    try
+    {
+        Say($"GetLicenseTypeAsync()...");
+        var licence = await client.GetLicenseTypeAsync().WaitAsync(TimeSpan.FromSeconds(10));
+        Say($"  licence reply = {licence} (Task<int>)");
+        await Task.Delay(1000);
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+    }
+    catch (Exception ex)
+    {
+        Say($"  GetLicenseTypeAsync failed: {ex.GetType().FullName}: {ex.Message}");
+    }
 }
-catch (Exception ex)
+else
 {
-    Say($"  GetLicenseTypeAsync failed: {ex.GetType().FullName}: {ex.Message}");
+    Say("licence call skipped (--license to run it; it poisons the SDK's event pipeline)");
 }
 
 try
@@ -179,6 +198,10 @@ catch (Exception ex)
     Say($"Disconnect/Dispose threw: {ex.GetType().FullName}: {ex.Message}");
 }
 
+// Flush any unobserved task exception the SDK's Dataflow blocks left behind before exiting.
+GC.Collect();
+GC.WaitForPendingFinalizers();
+await Task.Delay(200);
 Say("done");
 return 0;
 

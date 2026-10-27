@@ -31,8 +31,8 @@
     "test": {
       "button": "Tester la connexion",
       "testing": "Test en cours…",
-      "title": "Se connecter une fois au Profiler, lister les cartes signalées et lire la licence, puis se déconnecter",
-      "ok": "Connecté : {0} cartes signalées, {1} connectées, licence {2}",
+      "title": "Se connecter une fois au Profiler, lister les cartes signalées, puis se déconnecter",
+      "ok": "Connecté : {0} cartes signalées, {1} connectées",
       "fail": "Connexion impossible : {0}",
       "timeout": "Le Profiler n'a pas répondu à temps.",
       "connectedList": "Cartes connectées : {0}"

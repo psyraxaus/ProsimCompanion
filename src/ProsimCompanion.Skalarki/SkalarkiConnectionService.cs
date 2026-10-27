@@ -131,8 +131,18 @@ public sealed class SkalarkiConnectionService : BackgroundService, ISkalarkiCont
             _client = client;
         }
 
+        // Rebuild only when a value the link depends on changed: IOptionsMonitor fires for every
+        // settings.json write (and usually twice per save), and each rebuild disposes the SDK
+        // client — on 2026-10-27 one save produced two sessions 400 ms apart.
+        var fingerprint = options.LinkFingerprint();
         using var optionsChanged = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
-        using var subscription = _options.OnChange(_ => optionsChanged.Cancel());
+        using var subscription = _options.OnChange(changed =>
+        {
+            if (!string.Equals(changed.LinkFingerprint(), fingerprint, StringComparison.Ordinal))
+            {
+                optionsChanged.Cancel();
+            }
+        });
         var token = optionsChanged.Token;
         var linkLost = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
 
@@ -172,6 +182,7 @@ public sealed class SkalarkiConnectionService : BackgroundService, ISkalarkiCont
         Publish(_core.SetSdkVersion(Safe(() => client.SdkVersion)));
         Publish(_core.Configure(options.EnabledDeviceIds()));
 
+        var failureLogged = false;
         try
         {
             while (!token.IsCancellationRequested)
@@ -195,9 +206,12 @@ public sealed class SkalarkiConnectionService : BackgroundService, ISkalarkiCont
                     Publish(_core.LinkDown(_clock.GetUtcNow(), reason));
                     _status.Set(Subsystems.Skalarki, ConnectionState.Disconnected, reason);
                     var pause = _core.NextBackoff(options.ReconnectBackoff);
-                    if (_core.Attempt == 1)
+                    // Once per failure streak (a loss already counts as the first attempt, so
+                    // "== 1" alone never logged the first refusal after a drop).
+                    if (!failureLogged)
                     {
-                        _logger.LogWarning("Skalarki Profiler at {Endpoint} did not answer: {Error}; retrying every {Pause}s", endpoint, Short(ex), pause.TotalSeconds);
+                        failureLogged = true;
+                        _logger.LogWarning("Skalarki Profiler at {Endpoint} did not answer: {Error}; retrying with backoff from {Pause}s", endpoint, Short(ex), pause.TotalSeconds);
                     }
 
                     await Task.Delay(pause, _clock, token).ConfigureAwait(false);
@@ -205,10 +219,13 @@ public sealed class SkalarkiConnectionService : BackgroundService, ISkalarkiCont
                 }
 
                 linkLost = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+                failureLogged = false;
                 Publish(_core.LinkUp(_clock.GetUtcNow()));
                 _status.Set(Subsystems.Skalarki, ConnectionState.Connected, "Skalarki Profiler at " + endpoint + ".");
                 _logger.LogInformation("Skalarki Profiler link up at {Endpoint} (SDK {Version})", endpoint, _core.Snapshot.SdkVersion);
 
+                // No licence call: in SDK 5.1.919 its reply packet kills the client's event
+                // pipeline (see SdkSkalarkiClient.GetLicenseAsync). The bridge returns null.
                 Publish(_core.SetLicense(await SafeAsync(() => client.GetLicenseAsync(token)).ConfigureAwait(false)));
 
                 var watched = options.EnabledDeviceIds();

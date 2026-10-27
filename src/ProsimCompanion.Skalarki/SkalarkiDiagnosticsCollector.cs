@@ -58,7 +58,9 @@ public sealed class SkalarkiDiagnosticsCollector : IDiagnosticsCollector
         };
         page.Node("profiler", linkState, linkWord, endpoint, snap.SdkVersion is null ? null : "SDK " + snap.SdkVersion);
         page.Readout("host", endpoint);
-        page.Readout("license", snap.License);
+        // The licence is not read from this SDK (see SdkSkalarkiClient.GetLicenseAsync): white
+        // "- - -" rather than amber XX, which would read as a fault.
+        page.Readout("license", snap.License ?? EcamTokens.NotApplicable);
         page.Readout("sdk_version", snap.SdkVersion);
         page.Readout("evt_s", linked ? snap.EventsPerSecond.ToString("0.0", CultureInfo.InvariantCulture) : null);
         page.Readout("link_since", snap.LinkSinceUtc is { } since ? EcamPresentationClock(since) : null);

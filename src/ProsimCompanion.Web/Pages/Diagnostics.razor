@@ -97,7 +97,22 @@
         base.Dispose();
         if (_attached)
         {
-            _ = JS.InvokeVoidAsync("prosimCompanion.ecam.detach", StageId).AsTask().ContinueWith(_ => { }, TaskScheduler.Default);
+            _ = DetachAsync();
+        }
+    }
+
+    /// <summary>The detach call races the circuit teardown: when the browser is already gone
+    /// the interop throws, and a bare ContinueWith left that exception unobserved (the
+    /// "Unobserved task exception" log lines on 2026-10-27). Awaited and swallowed here.</summary>
+    private async Task DetachAsync()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("prosimCompanion.ecam.detach", StageId);
+        }
+        catch (Exception ex) when (ex is JSDisconnectedException or JSException or InvalidOperationException or TaskCanceledException or ObjectDisposedException)
+        {
+            // The page is going away either way.
         }
     }
 }

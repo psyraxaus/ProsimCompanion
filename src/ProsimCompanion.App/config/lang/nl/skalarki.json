@@ -31,8 +31,8 @@
     "test": {
       "button": "Verbinding testen",
       "testing": "Bezig met testen…",
-      "title": "Eén keer met de Profiler verbinden, de gemelde boards tonen en de licentie lezen, daarna verbreken",
-      "ok": "Verbonden: {0} boards gemeld, {1} aangesloten, licentie {2}",
+      "title": "Eén keer met de Profiler verbinden, de gemelde boards tonen, daarna verbreken",
+      "ok": "Verbonden: {0} boards gemeld, {1} aangesloten",
       "fail": "Kon geen verbinding maken: {0}",
       "timeout": "De Profiler antwoordde niet op tijd.",
       "connectedList": "Aangesloten boards: {0}"

@@ -125,11 +125,12 @@ public sealed class SdkSkalarkiClient : ISkalarkiClient
         client.SetOutputs([reset], false);
     }
 
-    public async Task<string?> GetLicenseAsync(CancellationToken cancellationToken)
-    {
-        var licence = await Current().GetLicenseTypeAsync().WaitAsync(cancellationToken).ConfigureAwait(false);
-        return licence.ToString(CultureInfo.InvariantCulture);
-    }
+    /// <summary>Never asks the SDK. In SDK 5.1.919 the licence reply is a request-reply packet
+    /// that <c>Serializer.Deserialize</c> turns into a NULL entry of its event list; the dispatch
+    /// block then throws NullReferenceException on it and that client's whole incoming pipeline
+    /// (events AND presence) is dead for good (found 2026-10-27: "1 of 1 boards" lamp tests and
+    /// the spike's "no events" both came from this). The licence is simply not shown.</summary>
+    public Task<string?> GetLicenseAsync(CancellationToken cancellationToken) => Task.FromResult<string?>(null);
 
     public void Dispose()
     {

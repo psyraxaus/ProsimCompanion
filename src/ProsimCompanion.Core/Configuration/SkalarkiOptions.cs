@@ -71,6 +71,12 @@ public sealed class SkalarkiOptions : IOptionSection
     [OptionField(FieldKind.Number, "skalarkiSettings.reconnectBackoffMs", Suffix = "ms", Min = "1000", Max = "60000", Advanced = true, DependsOn = "Enabled")]
     public int ReconnectBackoffMs { get; set; } = 5000;
 
+    /// <summary>The values the Profiler link is built from, as one string: the connection
+    /// service rebuilds its SDK client only when this changes, not on every settings save
+    /// (labels and the lamp-test hold are read live and need no rebuild).</summary>
+    public string LinkFingerprint()
+        => string.Join("|", Enabled, SdkPath.Trim(), ProfilerHost.Trim(), ProfilerPort, Catalogue, string.Join(",", EnabledDevices));
+
     /// <summary>The configured backoff, never below the floor.</summary>
     public TimeSpan ReconnectBackoff => TimeSpan.FromMilliseconds(Math.Max(MinReconnectBackoffMs, ReconnectBackoffMs));
 
