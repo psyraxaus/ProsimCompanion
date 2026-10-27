@@ -97,6 +97,8 @@ public sealed class OptionFieldCompletenessTests
         ["CockpitSwitchRow.UpperColor"] = "a colour swatch on the Cockpit Switches page",
         ["CockpitSwitchRow.LowerColor"] = "a colour swatch on the Cockpit Switches page",
         ["CockpitSwitchRow.BezelColor"] = "a colour swatch on the Cockpit Switches page",
+        ["SkalarkiOptions.EnabledDevices"] = "the board tick boxes on the Skalarki settings page",
+        ["SkalarkiOptions.DeviceLabels"] = "the per-board label fields on the Skalarki settings page",
         ["MixerAgentOptions.PanelStrips"] = "the per-agent status-panel tick boxes (#178)",
         ["MixerAgentOptions.PanelBuses"] = "the per-agent status-panel tick boxes (#178)",
         ["AircraftProfile.*"] = "the Aircraft Profiles page's own editor",

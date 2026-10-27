@@ -10,6 +10,7 @@ using ProsimCompanion.Core.Logging;
 using ProsimCompanion.Gsx;
 using ProsimCompanion.Prosim;
 using ProsimCompanion.Sim;
+using ProsimCompanion.Skalarki;
 using ProsimCompanion.Speech;
 using ProsimCompanion.Web;
 using Serilog;
@@ -66,6 +67,8 @@ public static class ServiceComposition
         services.AddGsxServices();
         services.AddAudioServices();
         services.AddSpeechServices();
+        // Skalarki hardware link (PANELS page, ADR-0017): off until skalarki.enabled.
+        services.AddSkalarkiServices();
         // User drop-in themes come from the user config tree (ADR-0007); the built-ins are
         // embedded in the Web assembly.
         services.AddWebServices(

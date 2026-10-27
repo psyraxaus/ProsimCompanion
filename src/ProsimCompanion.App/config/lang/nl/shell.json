@@ -87,6 +87,8 @@
     "nav": {
       "setup": "Setup",
       "cockpit": "Cockpitschakelaars",
+      "hardware": "Hardware",
+      "hardware.skalarki": "Skalarki-panelen",
       "gsx": "Grondservices",
       "gsx.status": "Status",
       "gsx.doors": "Deuren & aviobrug",

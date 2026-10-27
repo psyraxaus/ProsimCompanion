@@ -87,6 +87,8 @@
     "nav": {
       "setup": "Configuración",
       "cockpit": "Interruptores de cabina",
+      "hardware": "Hardware",
+      "hardware.skalarki": "Paneles Skalarki",
       "gsx": "Servicios de tierra",
       "gsx.status": "Estado",
       "gsx.doors": "Puertas y pasarela",

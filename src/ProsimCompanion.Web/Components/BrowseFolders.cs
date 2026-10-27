@@ -16,6 +16,7 @@ public static class BrowseFolders
         {
             [nameof(ExpectedFolders.ProSimSdk)] = ExpectedFolders.ProSimSdk,
             [nameof(ExpectedFolders.ProSimNavdata)] = ExpectedFolders.ProSimNavdata,
+            [nameof(ExpectedFolders.SkalarkiSdk)] = ExpectedFolders.SkalarkiSdk,
             [nameof(ExpectedFolders.VoiceMeeter)] = ExpectedFolders.VoiceMeeter,
             [nameof(ExpectedFolders.VJoy)] = ExpectedFolders.VJoy,
             [nameof(ExpectedFolders.ActiveSky)] = ExpectedFolders.ActiveSky,

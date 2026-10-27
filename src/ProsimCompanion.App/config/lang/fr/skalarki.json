@@ -1,0 +1,73 @@
+{
+  "skalarkiSettings": {
+    "pageTitle": "Panneaux Skalarki — ProsimCompanion",
+    "heading": "Panneaux Skalarki",
+    "link": {
+      "title": "Liaison Profiler",
+      "hint": "Le SkalarkiIO Profiler tourne sur le PC auquel les cartes sont branchées et propose un serveur SDK. Cette application ne fait qu'écouter ; elle ne modifie jamais le profil ProSim du Profiler."
+    },
+    "enabled": {
+      "label": "Surveiller les panneaux Skalarki",
+      "hint": "Se connecter au serveur SDK du SkalarkiIO Profiler et afficher la page de diagnostic PANELS. Désactivé : pas de page, pas d'alerte, rien dans le journal."
+    },
+    "sdkPath": {
+      "label": "Dossier du SDK Skalarki",
+      "hint": "Le dossier contenant SkalarkiIO.SDK.dll et ses fichiers de support. Le dossier Tools du Profiler les contient tous. Le SDK vous appartient et l'application ne le copie jamais."
+    },
+    "sdkFound": "SkalarkiIO.SDK.dll version {0} trouvée",
+    "sdkMissing": "SkalarkiIO.SDK.dll n'est pas dans ce dossier",
+    "host": {
+      "label": "PC du Profiler",
+      "hint": "Le PC auquel les cartes Skalarki sont branchées et qui exécute le Profiler. Ce peut être un autre PC du réseau."
+    },
+    "port": {
+      "label": "Port SDK du Profiler",
+      "hint": "Le port du serveur SDK du Profiler. La valeur par défaut du Profiler est 53000."
+    },
+    "catalogue": {
+      "label": "Catalogue de cockpit",
+      "hint": "Quelle famille de cartes Skalarki écouter. A32X pour le cockpit Airbus monocouloir."
+    },
+    "test": {
+      "button": "Tester la connexion",
+      "testing": "Test en cours…",
+      "title": "Se connecter une fois au Profiler, lister les cartes signalées et lire la licence, puis se déconnecter",
+      "ok": "Connecté : {0} cartes signalées, {1} connectées, licence {2}",
+      "fail": "Connexion impossible : {0}",
+      "timeout": "Le Profiler n'a pas répondu à temps.",
+      "connectedList": "Cartes connectées : {0}"
+    },
+    "live": {
+      "connected": "Liaison établie, {0} cartes sur {1} connectées",
+      "connecting": "Connexion…",
+      "disconnected": "Liaison perdue, nouvelle tentative",
+      "off": "Liaison désactivée"
+    },
+    "open": "Ouvrir la page PANELS",
+    "boards": {
+      "title": "Cartes",
+      "hint": "Quelles cartes la page PANELS affiche et que la vérification matérielle parcourt. Sans aucune case cochée, chaque carte que le Profiler signale connectée est surveillée.",
+      "none": "Le Profiler n'a encore signalé aucune carte. Enregistrez avec la liaison activée, ou cochez des cartes par leur nom.",
+      "autoMode": "Rien de coché : chaque carte connectée est surveillée.",
+      "listMode": "{0} cartes cochées : seules celles-ci sont surveillées.",
+      "connected": "connectée",
+      "lost": "perdue",
+      "notConnected": "non connectée",
+      "notSeen": "pas encore signalée",
+      "labelTitle": "Le nom affiché sur la page PANELS pour cette carte",
+      "json": "Les utilisateurs avancés peuvent aussi modifier la liste dans settings.json sous"
+    },
+    "actions": {
+      "title": "Test lampes et reconnexion",
+      "hint": "LAMP TEST, sur la page PANELS, allume toutes les sorties des cartes choisies pendant cette durée. HW RESET demande toujours confirmation."
+    },
+    "lampTestMs": {
+      "label": "Durée du test lampes",
+      "hint": "Durée pendant laquelle LAMP TEST, sur la page PANELS, allume toutes les sorties des cartes choisies."
+    },
+    "reconnectBackoffMs": {
+      "label": "Pause avant reconnexion",
+      "hint": "Temps d'attente avant de réessayer le Profiler après un échec de connexion. Double à chaque échec, jusqu'à une minute."
+    }
+  }
+}

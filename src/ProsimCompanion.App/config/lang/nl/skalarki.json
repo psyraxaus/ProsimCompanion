@@ -1,0 +1,73 @@
+{
+  "skalarkiSettings": {
+    "pageTitle": "Skalarki-panelen — ProsimCompanion",
+    "heading": "Skalarki-panelen",
+    "link": {
+      "title": "Profiler-verbinding",
+      "hint": "De SkalarkiIO Profiler draait op de pc waarop de boards zijn aangesloten en biedt een SDK-server aan. Deze app luistert alleen; het ProSim-profiel van de Profiler wordt nooit gewijzigd."
+    },
+    "enabled": {
+      "label": "Skalarki-panelen bewaken",
+      "hint": "Verbind met de SDK-server van de SkalarkiIO Profiler en toon de diagnosepagina PANELS. Uit betekent: geen pagina, geen waarschuwing, niets in het logboek."
+    },
+    "sdkPath": {
+      "label": "Skalarki SDK-map",
+      "hint": "De map met SkalarkiIO.SDK.dll en de bijbehorende hulpbestanden. De Tools-map van de Profiler bevat ze allemaal. De SDK is van u en wordt nooit door de app gekopieerd."
+    },
+    "sdkFound": "SkalarkiIO.SDK.dll versie {0} gevonden",
+    "sdkMissing": "SkalarkiIO.SDK.dll staat niet in deze map",
+    "host": {
+      "label": "Profiler-pc",
+      "hint": "De pc waarop de Skalarki-boards zijn aangesloten en waarop de Profiler draait. Dit kan een andere pc in het netwerk zijn."
+    },
+    "port": {
+      "label": "SDK-poort van de Profiler",
+      "hint": "De poort van de SDK-server van de Profiler. De standaard van de Profiler is 53000."
+    },
+    "catalogue": {
+      "label": "Cockpitcatalogus",
+      "hint": "Naar welke familie Skalarki-boards geluisterd wordt. A32X voor de Airbus-cockpit met smalle romp."
+    },
+    "test": {
+      "button": "Verbinding testen",
+      "testing": "Bezig met testen…",
+      "title": "Eén keer met de Profiler verbinden, de gemelde boards tonen en de licentie lezen, daarna verbreken",
+      "ok": "Verbonden: {0} boards gemeld, {1} aangesloten, licentie {2}",
+      "fail": "Kon geen verbinding maken: {0}",
+      "timeout": "De Profiler antwoordde niet op tijd.",
+      "connectedList": "Aangesloten boards: {0}"
+    },
+    "live": {
+      "connected": "Verbinding actief, {0} van {1} boards aangesloten",
+      "connecting": "Verbinden…",
+      "disconnected": "Verbinding verbroken, opnieuw proberen",
+      "off": "Verbinding uit"
+    },
+    "open": "Pagina PANELS openen",
+    "boards": {
+      "title": "Boards",
+      "hint": "Welke boards de pagina PANELS toont en de hardwarecontrole doorloopt. Zonder vinkjes wordt elk board bewaakt dat de Profiler als aangesloten meldt.",
+      "none": "De Profiler heeft nog geen board gemeld. Sla op met de verbinding aan, of vink boards op naam aan.",
+      "autoMode": "Niets aangevinkt: elk aangesloten board wordt bewaakt.",
+      "listMode": "{0} boards aangevinkt: alleen die worden bewaakt.",
+      "connected": "aangesloten",
+      "lost": "verloren",
+      "notConnected": "niet aangesloten",
+      "notSeen": "nog niet gemeld",
+      "labelTitle": "De naam die de pagina PANELS voor dit board toont",
+      "json": "Gevorderde gebruikers kunnen de lijst ook bewerken in settings.json onder"
+    },
+    "actions": {
+      "title": "Lamptest en opnieuw verbinden",
+      "hint": "LAMP TEST op de pagina PANELS laat alle uitgangen van de gekozen boards zo lang branden. HW RESET vraagt altijd eerst om bevestiging."
+    },
+    "lampTestMs": {
+      "label": "Duur lamptest",
+      "hint": "Hoe lang LAMP TEST op de pagina PANELS alle uitgangen van de gekozen boards laat branden."
+    },
+    "reconnectBackoffMs": {
+      "label": "Pauze voor opnieuw verbinden",
+      "hint": "Hoe lang wordt gewacht voordat de Profiler na een mislukte verbinding opnieuw wordt geprobeerd. Verdubbelt bij elke mislukking, tot één minuut."
+    }
+  }
+}

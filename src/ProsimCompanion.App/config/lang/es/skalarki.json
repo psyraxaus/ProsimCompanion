@@ -1,0 +1,73 @@
+{
+  "skalarkiSettings": {
+    "pageTitle": "Paneles Skalarki — ProsimCompanion",
+    "heading": "Paneles Skalarki",
+    "link": {
+      "title": "Enlace con el Profiler",
+      "hint": "El SkalarkiIO Profiler se ejecuta en el PC al que están conectadas las placas y ofrece un servidor SDK. Esta aplicación solo escucha; nunca cambia el perfil ProSim del Profiler."
+    },
+    "enabled": {
+      "label": "Vigilar los paneles Skalarki",
+      "hint": "Conectar con el servidor SDK del SkalarkiIO Profiler y mostrar la página de diagnóstico PANELS. Apagado significa sin página, sin aviso y sin registro."
+    },
+    "sdkPath": {
+      "label": "Carpeta del SDK Skalarki",
+      "hint": "La carpeta con SkalarkiIO.SDK.dll y sus archivos de apoyo. La carpeta Tools del Profiler los tiene todos. El SDK es tuyo y la aplicación nunca lo copia."
+    },
+    "sdkFound": "Encontrada SkalarkiIO.SDK.dll versión {0}",
+    "sdkMissing": "SkalarkiIO.SDK.dll no está en esta carpeta",
+    "host": {
+      "label": "PC del Profiler",
+      "hint": "El PC al que están conectadas las placas Skalarki y que ejecuta el Profiler. Puede ser otro PC de la red."
+    },
+    "port": {
+      "label": "Puerto SDK del Profiler",
+      "hint": "El puerto del servidor SDK del Profiler. El valor por defecto del Profiler es 53000."
+    },
+    "catalogue": {
+      "label": "Catálogo de cabina",
+      "hint": "Qué familia de placas Skalarki escuchar. A32X para la cabina Airbus de fuselaje estrecho."
+    },
+    "test": {
+      "button": "Probar conexión",
+      "testing": "Probando…",
+      "title": "Conectar una vez con el Profiler, listar las placas que informa y leer la licencia, luego desconectar",
+      "ok": "Conectado: {0} placas informadas, {1} conectadas, licencia {2}",
+      "fail": "No se pudo conectar: {0}",
+      "timeout": "El Profiler no respondió a tiempo.",
+      "connectedList": "Placas conectadas: {0}"
+    },
+    "live": {
+      "connected": "Enlace activo, {0} de {1} placas conectadas",
+      "connecting": "Conectando…",
+      "disconnected": "Enlace perdido, reintentando",
+      "off": "Enlace apagado"
+    },
+    "open": "Abrir la página PANELS",
+    "boards": {
+      "title": "Placas",
+      "hint": "Qué placas muestra la página PANELS y recorre la comprobación de hardware. Sin nada marcado se vigila cada placa que el Profiler informa como conectada.",
+      "none": "El Profiler aún no ha informado de ninguna placa. Guarda con el enlace activado o marca placas por nombre.",
+      "autoMode": "Nada marcado: se vigila cada placa conectada.",
+      "listMode": "{0} placas marcadas: solo se vigilan esas.",
+      "connected": "conectada",
+      "lost": "perdida",
+      "notConnected": "no conectada",
+      "notSeen": "aún no informada",
+      "labelTitle": "El nombre que muestra la página PANELS para esta placa",
+      "json": "Los usuarios avanzados también pueden editar la lista en settings.json bajo"
+    },
+    "actions": {
+      "title": "Prueba de luces y reconexión",
+      "hint": "LAMP TEST en la página PANELS enciende todas las salidas de las placas elegidas durante este tiempo. HW RESET siempre pregunta antes."
+    },
+    "lampTestMs": {
+      "label": "Duración de la prueba de luces",
+      "hint": "Cuánto tiempo LAMP TEST en la página PANELS enciende todas las salidas de las placas elegidas."
+    },
+    "reconnectBackoffMs": {
+      "label": "Pausa de reconexión",
+      "hint": "Cuánto esperar antes de volver a intentar el Profiler tras un fallo de conexión. Se duplica con cada fallo, hasta un minuto."
+    }
+  }
+}

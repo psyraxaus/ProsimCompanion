@@ -1,0 +1,73 @@
+{
+  "skalarkiSettings": {
+    "pageTitle": "Skalarki panels — ProsimCompanion",
+    "heading": "Skalarki panels",
+    "link": {
+      "title": "Profiler link",
+      "hint": "The SkalarkiIO Profiler runs on the PC the boards are plugged into and offers an SDK server. This app only listens to it; it never changes the Profiler's own ProSim profile."
+    },
+    "enabled": {
+      "label": "Watch the Skalarki panels",
+      "hint": "Connect to the SkalarkiIO Profiler's SDK server and show the PANELS diagnostics page. Off means no page, no caution, nothing logged."
+    },
+    "sdkPath": {
+      "label": "Skalarki SDK folder",
+      "hint": "The folder with SkalarkiIO.SDK.dll and its support files. The Profiler's Tools folder has all of them. The SDK is yours and is never copied by the app."
+    },
+    "sdkFound": "Found SkalarkiIO.SDK.dll version {0}",
+    "sdkMissing": "SkalarkiIO.SDK.dll is not in this folder",
+    "host": {
+      "label": "Profiler PC",
+      "hint": "The PC the Skalarki boards are plugged into and that runs the Profiler. It can be another PC on the network."
+    },
+    "port": {
+      "label": "Profiler SDK port",
+      "hint": "The Profiler's SDK server port. The Profiler's own default is 53000."
+    },
+    "catalogue": {
+      "label": "Cockpit catalogue",
+      "hint": "Which family of Skalarki boards to listen to. A32X for the Airbus narrow-body cockpit."
+    },
+    "test": {
+      "button": "Test connection",
+      "testing": "Testing…",
+      "title": "Connect once to the Profiler, list the boards it reports and read the licence, then disconnect",
+      "ok": "Connected: {0} boards reported, {1} connected, licence {2}",
+      "fail": "Could not connect: {0}",
+      "timeout": "The Profiler did not answer in time.",
+      "connectedList": "Connected boards: {0}"
+    },
+    "live": {
+      "connected": "Link up, {0} of {1} boards connected",
+      "connecting": "Connecting…",
+      "disconnected": "Link lost, retrying",
+      "off": "Link off"
+    },
+    "open": "Open the PANELS page",
+    "boards": {
+      "title": "Boards",
+      "hint": "Which boards the PANELS page shows and the hardware check walks through. With nothing ticked every board the Profiler reports as connected is watched.",
+      "none": "The Profiler has not reported any board yet. Save with the link on, or tick boards by name.",
+      "autoMode": "Nothing ticked: every connected board is watched.",
+      "listMode": "{0} boards ticked: only those are watched.",
+      "connected": "connected",
+      "lost": "lost",
+      "notConnected": "not connected",
+      "notSeen": "not reported yet",
+      "labelTitle": "The name shown on the PANELS page for this board",
+      "json": "Power users can also edit the list in settings.json under"
+    },
+    "actions": {
+      "title": "Lamp test and reconnect",
+      "hint": "LAMP TEST on the PANELS page lights every output of the chosen boards for this long. HW RESET always asks first."
+    },
+    "lampTestMs": {
+      "label": "Lamp test duration",
+      "hint": "How long LAMP TEST on the PANELS page lights every output of the chosen boards."
+    },
+    "reconnectBackoffMs": {
+      "label": "Reconnect pause",
+      "hint": "How long to wait before trying the Profiler again after a failed connection. Doubles on each failure, up to one minute."
+    }
+  }
+}

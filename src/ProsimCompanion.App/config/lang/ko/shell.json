@@ -87,6 +87,8 @@
     "nav": {
       "setup": "설정 마법사",
       "cockpit": "조종석 스위치",
+      "hardware": "하드웨어",
+      "hardware.skalarki": "Skalarki 패널",
       "gsx": "지상 서비스",
       "gsx.status": "상태",
       "gsx.doors": "도어 및 탑승교",

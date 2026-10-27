@@ -87,6 +87,8 @@
     "nav": {
       "setup": "Einrichtung",
       "cockpit": "Cockpit-Schalter",
+      "hardware": "Hardware",
+      "hardware.skalarki": "Skalarki-Panels",
       "gsx": "Bodendienste",
       "gsx.status": "Status",
       "gsx.doors": "Türen & Fluggastbrücke",

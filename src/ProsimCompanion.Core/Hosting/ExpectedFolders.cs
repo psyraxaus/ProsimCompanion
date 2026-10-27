@@ -33,6 +33,18 @@ public static class ExpectedFolders
             Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "ProSim-AR"),
         ];
 
+    /// <summary>The SkalarkiIO SDK assemblies: the Profiler's <c>Tools</c> folder has the SDK
+    /// plus every support assembly it needs, the install root the SDK alone (2026-10-27,
+    /// docs/integrations/skalarki.md).</summary>
+    public static IReadOnlyList<string> SkalarkiSdk()
+        =>
+        [
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "SkalarkiIO Profiler 5.1", "Tools"),
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "SkalarkiIO Profiler 5.1", "Tools"),
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "SkalarkiIO Profiler 5.1"),
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "SkalarkiIO Profiler 5.1"),
+        ];
+
     /// <summary>ProSim's navdata (the DFD .s3db): <c>%ProgramData%\ProSim-AR\Navdata</c>
     /// (owner, 2026-10-13 — it does not live beside the SDK).</summary>
     public static IReadOnlyList<string> ProSimNavdata()

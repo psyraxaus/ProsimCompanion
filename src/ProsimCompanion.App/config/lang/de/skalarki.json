@@ -1,0 +1,73 @@
+{
+  "skalarkiSettings": {
+    "pageTitle": "Skalarki-Panels — ProsimCompanion",
+    "heading": "Skalarki-Panels",
+    "link": {
+      "title": "Profiler-Verbindung",
+      "hint": "Der SkalarkiIO Profiler läuft auf dem PC, an dem die Boards angeschlossen sind, und bietet einen SDK-Server an. Diese App hört nur zu; sie ändert nie das ProSim-Profil des Profilers."
+    },
+    "enabled": {
+      "label": "Skalarki-Panels überwachen",
+      "hint": "Mit dem SDK-Server des SkalarkiIO Profilers verbinden und die Diagnoseseite PANELS anzeigen. Aus bedeutet: keine Seite, keine Warnung, kein Protokolleintrag."
+    },
+    "sdkPath": {
+      "label": "Skalarki-SDK-Ordner",
+      "hint": "Der Ordner mit SkalarkiIO.SDK.dll und ihren Hilfsdateien. Der Tools-Ordner des Profilers enthält alle. Das SDK gehört Ihnen und wird von der App nie kopiert."
+    },
+    "sdkFound": "SkalarkiIO.SDK.dll Version {0} gefunden",
+    "sdkMissing": "SkalarkiIO.SDK.dll ist nicht in diesem Ordner",
+    "host": {
+      "label": "Profiler-PC",
+      "hint": "Der PC, an dem die Skalarki-Boards angeschlossen sind und auf dem der Profiler läuft. Es kann ein anderer PC im Netzwerk sein."
+    },
+    "port": {
+      "label": "SDK-Port des Profilers",
+      "hint": "Der Port des Profiler-SDK-Servers. Der Standard des Profilers ist 53000."
+    },
+    "catalogue": {
+      "label": "Cockpit-Katalog",
+      "hint": "Welche Familie von Skalarki-Boards abgehört wird. A32X für das Airbus-Schmalrumpf-Cockpit."
+    },
+    "test": {
+      "button": "Verbindung testen",
+      "testing": "Teste…",
+      "title": "Einmal mit dem Profiler verbinden, die gemeldeten Boards auflisten und die Lizenz lesen, dann trennen",
+      "ok": "Verbunden: {0} Boards gemeldet, {1} angeschlossen, Lizenz {2}",
+      "fail": "Verbindung fehlgeschlagen: {0}",
+      "timeout": "Der Profiler hat nicht rechtzeitig geantwortet.",
+      "connectedList": "Angeschlossene Boards: {0}"
+    },
+    "live": {
+      "connected": "Verbindung steht, {0} von {1} Boards angeschlossen",
+      "connecting": "Verbinde…",
+      "disconnected": "Verbindung verloren, neuer Versuch",
+      "off": "Verbindung aus"
+    },
+    "open": "Seite PANELS öffnen",
+    "boards": {
+      "title": "Boards",
+      "hint": "Welche Boards die Seite PANELS zeigt und die Hardwareprüfung durchgeht. Ohne Häkchen wird jedes Board überwacht, das der Profiler als angeschlossen meldet.",
+      "none": "Der Profiler hat noch kein Board gemeldet. Mit eingeschalteter Verbindung speichern oder Boards nach Namen ankreuzen.",
+      "autoMode": "Nichts angekreuzt: jedes angeschlossene Board wird überwacht.",
+      "listMode": "{0} Boards angekreuzt: nur diese werden überwacht.",
+      "connected": "angeschlossen",
+      "lost": "verloren",
+      "notConnected": "nicht angeschlossen",
+      "notSeen": "noch nicht gemeldet",
+      "labelTitle": "Der auf der Seite PANELS angezeigte Name dieses Boards",
+      "json": "Fortgeschrittene können die Liste auch in settings.json bearbeiten unter"
+    },
+    "actions": {
+      "title": "Lampentest und Wiederverbinden",
+      "hint": "LAMP TEST auf der Seite PANELS lässt alle Ausgänge der gewählten Boards so lange leuchten. HW RESET fragt immer zuerst nach."
+    },
+    "lampTestMs": {
+      "label": "Dauer des Lampentests",
+      "hint": "Wie lange LAMP TEST auf der Seite PANELS alle Ausgänge der gewählten Boards leuchten lässt."
+    },
+    "reconnectBackoffMs": {
+      "label": "Pause vor erneutem Verbinden",
+      "hint": "Wie lange nach einem Verbindungsfehler gewartet wird, bevor der Profiler erneut versucht wird. Verdoppelt sich bei jedem Fehler, bis zu einer Minute."
+    }
+  }
+}

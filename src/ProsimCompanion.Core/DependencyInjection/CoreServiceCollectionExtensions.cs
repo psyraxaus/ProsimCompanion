@@ -56,6 +56,10 @@ public static class CoreServiceCollectionExtensions
         // vJoy input relay (2026-10-24): remote keys press a vJoy button on the sim PC so
         // ChasePlane view changes can come from a second PC.
         services.AddOptionSection<InputRelayOptions>(configuration);
+        // Skalarki hardware link (PANELS page, 2026-10-27): options and the state store live
+        // in Core so the settings page and the collector read them with the SDK absent.
+        services.AddOptionSection<SkalarkiOptions>(configuration);
+        services.AddSingleton<Hardware.Skalarki.SkalarkiStatusStore>();
         // Cockpit switches (2026-10-24): Stream Deck keys press catalogued ProSim switches; the
         // state store lives in Core so the status feed and the page read it with ProSim absent.
         services.AddOptionSection<CockpitSwitchesOptions>(configuration);

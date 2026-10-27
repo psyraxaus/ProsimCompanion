@@ -60,6 +60,14 @@
     <ProjectReference Include="..\ProsimCompanion.Gsx\ProsimCompanion.Gsx.csproj" />
     <ProjectReference Include="..\ProsimCompanion.Prosim\ProsimCompanion.Prosim.csproj" />
     <ProjectReference Include="..\ProsimCompanion.Sim\ProsimCompanion.Sim.csproj" />
+    <ProjectReference Include="..\ProsimCompanion.Skalarki\ProsimCompanion.Skalarki.csproj" />
+    <!-- The Skalarki SDK bridge (ADR-0017) is built and copied beside the exe but NOT
+         referenced: SdkLoader loads it at runtime into the SDK's own load context, so the app
+         never binds to an SDK type and starts fine with the SDK absent. -->
+    <ProjectReference Include="..\ProsimCompanion.Skalarki.Sdk\ProsimCompanion.Skalarki.Sdk.csproj"
+                      ReferenceOutputAssembly="false"
+                      OutputItemType="Content"
+                      CopyToOutputDirectory="PreserveNewest" />
     <ProjectReference Include="..\ProsimCompanion.Speech\ProsimCompanion.Speech.csproj" />
     <ProjectReference Include="..\ProsimCompanion.Web\ProsimCompanion.Web.csproj" />
   </ItemGroup>

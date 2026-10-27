@@ -1,0 +1,210 @@
+@page "/settings/hardware"
+@page "/settings/hardware/{Section?}"
+@layout SettingsLayout
+@using ProsimCompanion.Core.Hardware.Skalarki
+@using ProsimCompanion.Core.State
+@inherits SettingsPageBase
+@inject IOptionsMonitor<SkalarkiOptions> Monitor
+@inject SkalarkiStatusStore Store
+@inject ISkalarkiSdkInspector Inspector
+@inject IStringLocalizer T
+
+<PageTitle>@T["skalarkiSettings.pageTitle"]</PageTitle>
+<h1 class="sr-only">@T["skalarkiSettings.heading"]</h1>
+
+@* The Skalarki Profiler link behind the PANELS diagnostics page (2026-10-27, ADR-0017). The
+   SDK is the user's: the folder field says whether it is usable and which version it is; Test
+   connection runs the spike's sequence once and lists the boards the Profiler reported. The
+   board list is the live store's — every board the Profiler has ever mentioned this session
+   plus the ones ticked by hand — so nothing has to be typed. *@
+<div class="panel" style="padding-bottom:96px;">
+
+    <Section Title="@T["skalarkiSettings.link.title"]" Hint="@T["skalarkiSettings.link.hint"]">
+        <OptionField Draft="_o" For="o => o.Enabled" />
+        <OptionField Draft="_o" For="o => o.SdkPath" />
+        <div class="field-hint" style="margin-top:-4px;">
+            @if (Inspector.DescribeSdk(_o.Value.SdkPath) is { } version)
+            {
+                <span class="pill @(Inspector.Validate(_o.Value.SdkPath) is null ? "tone-ok" : "tone-warn")">@T["skalarkiSettings.sdkFound", version]</span>
+                @if (Inspector.Validate(_o.Value.SdkPath) is { } refusal)
+                {
+                    <span style="margin-left:8px;">@refusal</span>
+                }
+            }
+            else if (!string.IsNullOrWhiteSpace(_o.Value.SdkPath))
+            {
+                <span class="pill tone-bad">@T["skalarkiSettings.sdkMissing"]</span>
+            }
+        </div>
+        <OptionField Draft="_o" For="o => o.ProfilerHost" />
+        <OptionField Draft="_o" For="o => o.ProfilerPort" />
+        <OptionField Draft="_o" For="o => o.Catalogue" />
+        <div class="row-actions" style="margin-top:8px; flex-wrap:wrap;">
+            <button type="button" class="btn secondary" disabled="@(_testBusy || !_o.Value.Enabled)" @onclick="TestAsync" title="@T["skalarkiSettings.test.title"]">
+                @(_testBusy ? T["skalarkiSettings.test.testing"].Value : T["skalarkiSettings.test.button"].Value)
+            </button>
+            @if (_test is { } result)
+            {
+                <span class="pill @(result.Ok ? "tone-ok" : "tone-bad")">
+                    @(result.Ok
+                        ? T["skalarkiSettings.test.ok", result.Reported.Count, result.Connected.Count, result.License ?? "?"].Value
+                        : T["skalarkiSettings.test.fail", result.Message].Value)
+                </span>
+            }
+            <span class="pill @LinkTone(_live.LinkState)" title="@(_live.Reason ?? "")">@LinkLabel(_live)</span>
+            <a class="btn secondary" style="margin-left:auto;" href="diagnostics/panels">@T["skalarkiSettings.open"]</a>
+        </div>
+        @if (_test is { Ok: true } ok && ok.Connected.Count > 0)
+        {
+            <div class="field-hint">@T["skalarkiSettings.test.connectedList", string.Join(", ", ok.Connected.Select(SkalarkiDevices.SdkName))]</div>
+        }
+    </Section>
+
+    <Section Title="@T["skalarkiSettings.boards.title"]" Hint="@T["skalarkiSettings.boards.hint"]">
+        @if (_live.Devices.Count == 0 && _o.Value.EnabledDevices.Count == 0)
+        {
+            <div class="field-hint">@T["skalarkiSettings.boards.none"]</div>
+        }
+        <div class="field-hint" style="margin-bottom:6px;">
+            @(_o.Value.EnabledDevices.Count == 0 ? T["skalarkiSettings.boards.autoMode"].Value : T["skalarkiSettings.boards.listMode", _o.Value.EnabledDevices.Count].Value)
+        </div>
+        @foreach (var device in Boards())
+        {
+            var name = SkalarkiDevices.SdkName(device);
+            var ticked = IsTicked(device);
+            var live = _live.Devices.GetValueOrDefault(device);
+            <div class="row-actions" style="align-items:center; gap:10px; padding:4px 0; flex-wrap:wrap;">
+                <label style="display:flex; align-items:center; gap:8px; min-width:180px;">
+                    <input type="checkbox" checked="@ticked" @onchange="e => Tick(device, e.Value is true)" />
+                    <span>@_o.Value.LabelFor(device) <span class="field-hint" style="display:inline;">(@name)</span></span>
+                </label>
+                @if (live is { Connected: true })
+                {
+                    <span class="pill tone-ok">@T["skalarkiSettings.boards.connected"]</span>
+                }
+                else if (live is not null && live.LastChangeUtc is not null)
+                {
+                    <span class="pill tone-warn">@T["skalarkiSettings.boards.lost"]</span>
+                }
+                else if (live is not null && _live.LinkState == ConnectionState.Connected)
+                {
+                    <span class="pill tone-neutral">@T["skalarkiSettings.boards.notConnected"]</span>
+                }
+                else
+                {
+                    <span class="pill tone-neutral">@T["skalarkiSettings.boards.notSeen"]</span>
+                }
+                @if (ticked || live is { Connected: true })
+                {
+                    <input class="text-input" style="max-width:220px; margin-left:auto;" placeholder="@SkalarkiDevices.DefaultLabel(device)"
+                           value="@(_o.Value.DeviceLabels.TryGetValue(name, out var label) ? label : "")"
+                           @onchange="e => SetLabel(name, e.Value?.ToString())"
+                           title="@T["skalarkiSettings.boards.labelTitle"]" />
+                }
+            </div>
+        }
+        <div class="field-hint" style="margin-top:6px;">@T["skalarkiSettings.boards.json"] <code>skalarki.enabledDevices</code>, <code>skalarki.deviceLabels</code></div>
+    </Section>
+
+    <Section Title="@T["skalarkiSettings.actions.title"]" Hint="@T["skalarkiSettings.actions.hint"]">
+        <OptionField Draft="_o" For="o => o.LampTestMs" />
+        <AdvancedFields>
+            <OptionField Draft="_o" For="o => o.ReconnectBackoffMs" />
+        </AdvancedFields>
+    </Section>
+</div>
+
+<DirtyBar Visible="@BarVisible" Message="@BarMessage" Tone="BarTone" OnSave="Save" OnDiscard="Discard" />
+
+@code {
+    [Parameter] public string? Section { get; set; }
+
+    private OptionsDraft<SkalarkiOptions> _o = default!;
+    private SkalarkiSnapshot _live = SkalarkiSnapshot.Empty;
+    private SkalarkiProbeResult? _test;
+    private bool _testBusy;
+
+    protected override void OnInitialized()
+    {
+        _o = Draft(Monitor);
+        Watch(Store, snapshot => _live = snapshot);
+    }
+
+    /// <summary>Every board worth a row: the ones the Profiler has mentioned this session, the
+    /// ones ticked by hand, and — while nothing is known yet — the whole SDK list so a board can
+    /// be ticked before the first connection.</summary>
+    private IEnumerable<SkalarkiDeviceId> Boards()
+    {
+        var ticked = _o.Value.EnabledDeviceIds();
+        if (_live.Devices.Count == 0)
+        {
+            return SkalarkiDevices.All;
+        }
+
+        return SkalarkiDevices.All.Where(d => _live.Devices.ContainsKey(d) || ticked.Contains(d));
+    }
+
+    private bool IsTicked(SkalarkiDeviceId device)
+        => _o.Value.EnabledDevices.Any(n => SkalarkiDevices.TryParse(n, out var id) && id == device);
+
+    private void Tick(SkalarkiDeviceId device, bool on)
+    {
+        var name = SkalarkiDevices.SdkName(device);
+        _o.Value.EnabledDevices.RemoveAll(n => SkalarkiDevices.TryParse(n, out var id) && id == device);
+        if (on)
+        {
+            _o.Value.EnabledDevices.Add(name);
+        }
+
+        _o.MarkEdited();
+    }
+
+    private void SetLabel(string name, string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            _o.Value.DeviceLabels.Remove(name);
+        }
+        else
+        {
+            _o.Value.DeviceLabels[name] = value.Trim();
+        }
+
+        _o.MarkEdited();
+    }
+
+    private async Task TestAsync()
+    {
+        _testBusy = true;
+        _test = null;
+        try
+        {
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(12));
+            _test = await Inspector.ProbeAsync(_o.Value.ProfilerHost.Trim(), _o.Value.ProfilerPort, _o.Value.SdkPath, timeout.Token);
+        }
+        catch (OperationCanceledException)
+        {
+            _test = new SkalarkiProbeResult(false, T["skalarkiSettings.test.timeout"].Value, [], [], null);
+        }
+        finally
+        {
+            _testBusy = false;
+        }
+    }
+
+    private static string LinkTone(ConnectionState state) => state switch
+    {
+        ConnectionState.Connected => "tone-ok",
+        ConnectionState.Connecting => "tone-warn",
+        ConnectionState.Disconnected => "tone-bad",
+        _ => "tone-neutral",
+    };
+
+    private string LinkLabel(SkalarkiSnapshot live) => live.LinkState switch
+    {
+        ConnectionState.Connected => T["skalarkiSettings.live.connected", live.ConnectedCount, live.EnabledCount].Value,
+        ConnectionState.Connecting => T["skalarkiSettings.live.connecting"].Value,
+        ConnectionState.Disconnected => T["skalarkiSettings.live.disconnected"].Value,
+        _ => T["skalarkiSettings.live.off"].Value,
+    };
+}

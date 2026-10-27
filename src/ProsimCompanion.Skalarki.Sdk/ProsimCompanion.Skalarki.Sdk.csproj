@@ -1,0 +1,53 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- The ONE assembly that touches the SkalarkiIO SDK (ADR-0017). It is never referenced by
+       the app: ProsimCompanion.App copies its dll beside the exe (ReferenceOutputAssembly=false)
+       and SdkLoader loads it at runtime into a load context that resolves the SDK from the
+       folder the user configured. The SDK dlls themselves are user-supplied, compiled against
+       with Private=false and never copied or redistributed.
+
+       When libs/skalarki/ (gitignored) is absent — CI, a fresh clone — the project still builds:
+       it compiles no sources and produces an empty assembly, which SdkLoader reports as
+       "built without the SDK". Override the folder with -p:SkalarkiSdkDir=<dir>. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
+    <Copyright>Copyright (C) 2026 Protovision</Copyright>
+    <SkalarkiSdkDir Condition="'$(SkalarkiSdkDir)' == '' and Exists('$(MSBuildThisFileDirectory)..\..\libs\skalarki\SkalarkiIO.SDK.dll')">$(MSBuildThisFileDirectory)..\..\libs\skalarki</SkalarkiSdkDir>
+    <SkalarkiSdkPresent Condition="'$(SkalarkiSdkDir)' != '' and Exists('$(SkalarkiSdkDir)\SkalarkiIO.SDK.dll')">true</SkalarkiSdkPresent>
+    <SkalarkiSdkPresent Condition="'$(SkalarkiSdkPresent)' == ''">false</SkalarkiSdkPresent>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(SkalarkiSdkPresent)' == 'true'">
+    <Reference Include="SkalarkiIO.SDK">
+      <HintPath>$(SkalarkiSdkDir)\SkalarkiIO.SDK.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="SkalarkiIO.SDK.Telemetry">
+      <HintPath>$(SkalarkiSdkDir)\SkalarkiIO.SDK.Telemetry.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="System.Threading.Tasks.Dataflow">
+      <HintPath>$(SkalarkiSdkDir)\System.Threading.Tasks.Dataflow.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(SkalarkiSdkPresent)' != 'true'">
+    <Compile Remove="**\*.cs" />
+  </ItemGroup>
+
+  <Target Name="ReportSkalarkiSdk" BeforeTargets="CoreCompile" Condition="'$(SkalarkiSdkPresent)' != 'true'">
+    <Message Importance="high" Text="ProsimCompanion.Skalarki.Sdk: libs/skalarki/SkalarkiIO.SDK.dll not found; building the bridge empty (the Skalarki link will report 'built without the SDK')." />
+  </Target>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ProsimCompanion.Core\ProsimCompanion.Core.csproj" />
+    <ProjectReference Include="..\ProsimCompanion.Skalarki\ProsimCompanion.Skalarki.csproj" />
+  </ItemGroup>
+
+</Project>

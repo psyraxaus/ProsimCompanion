@@ -1,0 +1,73 @@
+{
+  "skalarkiSettings": {
+    "pageTitle": "Skalarki パネル — ProsimCompanion",
+    "heading": "Skalarki パネル",
+    "link": {
+      "title": "Profiler リンク",
+      "hint": "SkalarkiIO Profiler はボードを接続した PC で動作し、SDK サーバーを提供します。このアプリは受信するだけで、Profiler の ProSim プロファイルを変更することはありません。"
+    },
+    "enabled": {
+      "label": "Skalarki パネルを監視する",
+      "hint": "SkalarkiIO Profiler の SDK サーバーに接続し、診断ページ PANELS を表示します。オフにするとページも注意表示もログも出ません。"
+    },
+    "sdkPath": {
+      "label": "Skalarki SDK フォルダー",
+      "hint": "SkalarkiIO.SDK.dll とその補助ファイルがあるフォルダーです。Profiler の Tools フォルダーにすべて揃っています。SDK はお客様のもので、アプリがコピーすることはありません。"
+    },
+    "sdkFound": "SkalarkiIO.SDK.dll バージョン {0} が見つかりました",
+    "sdkMissing": "このフォルダーに SkalarkiIO.SDK.dll がありません",
+    "host": {
+      "label": "Profiler PC",
+      "hint": "Skalarki ボードが接続され、Profiler が動作している PC です。ネットワーク上の別の PC でも構いません。"
+    },
+    "port": {
+      "label": "Profiler SDK ポート",
+      "hint": "Profiler の SDK サーバーのポートです。Profiler の既定値は 53000 です。"
+    },
+    "catalogue": {
+      "label": "コックピットカタログ",
+      "hint": "どの系列の Skalarki ボードを監視するかです。エアバス狭胴機コックピットは A32X です。"
+    },
+    "test": {
+      "button": "接続テスト",
+      "testing": "テスト中…",
+      "title": "Profiler に一度接続し、報告されたボードを一覧表示してライセンスを読み取り、切断します",
+      "ok": "接続済み: {0} 枚のボードを報告、{1} 枚が接続中、ライセンス {2}",
+      "fail": "接続できませんでした: {0}",
+      "timeout": "Profiler が時間内に応答しませんでした。",
+      "connectedList": "接続中のボード: {0}"
+    },
+    "live": {
+      "connected": "リンク確立、{1} 枚中 {0} 枚のボードが接続中",
+      "connecting": "接続中…",
+      "disconnected": "リンク切断、再試行中",
+      "off": "リンクはオフ"
+    },
+    "open": "PANELS ページを開く",
+    "boards": {
+      "title": "ボード",
+      "hint": "PANELS ページに表示し、ハードウェアチェックで順に確認するボードです。何もチェックしないと、Profiler が接続中と報告するすべてのボードを監視します。",
+      "none": "Profiler はまだボードを報告していません。リンクをオンにして保存するか、名前でボードにチェックを入れてください。",
+      "autoMode": "チェックなし: 接続中のすべてのボードを監視します。",
+      "listMode": "{0} 枚のボードをチェック: それらのみ監視します。",
+      "connected": "接続中",
+      "lost": "切断",
+      "notConnected": "未接続",
+      "notSeen": "未報告",
+      "labelTitle": "PANELS ページに表示するこのボードの名前",
+      "json": "上級ユーザーは settings.json の次の項目でも一覧を編集できます:"
+    },
+    "actions": {
+      "title": "ランプテストと再接続",
+      "hint": "PANELS ページの LAMP TEST は、選んだボードのすべての出力をこの時間だけ点灯させます。HW RESET は必ず先に確認します。"
+    },
+    "lampTestMs": {
+      "label": "ランプテストの時間",
+      "hint": "PANELS ページの LAMP TEST が、選んだボードのすべての出力を点灯させる時間です。"
+    },
+    "reconnectBackoffMs": {
+      "label": "再接続までの待ち時間",
+      "hint": "接続に失敗したあと Profiler に再試行するまでの待ち時間です。失敗のたびに倍になり、最長 1 分です。"
+    }
+  }
+}

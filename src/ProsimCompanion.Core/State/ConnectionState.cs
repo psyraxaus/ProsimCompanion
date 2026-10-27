@@ -37,4 +37,10 @@ public static class Subsystems
     /// Connecting = socket open, no welcome yet; Disconnected = retrying; Disabled = feature
     /// off or no host configured.</summary>
     public const string Mixer = "Mixer";
+
+    /// <summary>The SkalarkiIO Profiler's SDK server (PANELS page, 2026-10-27). Connected =
+    /// the TCP link is up and the Profiler answered; Connecting = attempting; Disconnected =
+    /// lost, retrying with backoff; Disabled = feature off, no SDK folder, or the SDK bridge
+    /// could not load (the reason says which).</summary>
+    public const string Skalarki = "Skalarki";
 }

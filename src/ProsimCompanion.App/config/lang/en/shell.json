@@ -87,6 +87,8 @@
     "nav": {
       "setup": "Setup",
       "cockpit": "Cockpit Switches",
+      "hardware": "Hardware",
+      "hardware.skalarki": "Skalarki Panels",
       "gsx": "Ground Services",
       "gsx.status": "Status",
       "gsx.doors": "Doors & Jetway",

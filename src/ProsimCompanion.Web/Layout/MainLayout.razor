@@ -167,7 +167,7 @@
             @foreach (var (label, subsystem) in FooterLinks)
             {
                 @* The remote mixer is an opt-in extra: no dot at all while it is off. *@
-                @if (subsystem == Subsystems.Mixer && StateOf(subsystem) == ConnectionState.Disabled)
+                @if (subsystem is Subsystems.Mixer or Subsystems.Skalarki && StateOf(subsystem) == ConnectionState.Disabled)
                 {
                     continue;
                 }
@@ -287,6 +287,8 @@
         ("ASR", Subsystems.Asr),
         ("TTS", Subsystems.Tts),
         ("Mixer", Subsystems.Mixer),
+        // Opt-in like the mixer: no dot while the Skalarki link is off.
+        ("Skalarki", Subsystems.Skalarki),
     ];
 
     private ConnectionState StateOf(string subsystem) => Status.Snapshot()
