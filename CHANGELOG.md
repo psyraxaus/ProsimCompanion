@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.8.0-rc.15
+
+Local build for the owner's hardware test, 2026-10-27, on `feature/ecam-diagnostics` (over rc.14). Unverified on hardware.
+
+- Added: **PANELS diagnostics page for Skalarki cockpit hardware** (ADR-0017): the SkalarkiIO Profiler box with licence and events per second, every board as the Profiler reports it (CONN with its last input, LOST nn S, XX for a named board never reported, "- - -" for an unwatched one), a hardware check that walks the cockpit (press one control per board; lost boards must be touched again), LAMP TEST, a two-click HW RESET under a lost board, and the DEVICES / PROFILER / LINK UP / PHASE memo. The page exists only while the link is on. Layout and prompts per cockpit family come from `wwwroot/data/skalarki-layout.json`.
+- Added: **Settings → Hardware → Skalarki Panels**: switch, SDK folder (with the found-version line), Profiler PC and port (53000), cockpit catalogue, Test connection (lists the boards the Profiler reports), board tick boxes fed by the live link, per-board labels, lamp-test duration, reconnect pause. The Skalarki SDK is the user's: never shipped, loaded at runtime from the Profiler's Tools folder into its own load context; the app starts and runs with it absent.
+- Added: STATUS cautions `SKALARKI PROFILER LINK LOST`, `<BOARD> LOST` (with the cockpit function it takes down under INOP SYS) and `SKALARKI SDK NOT LOADED`; a Skalarki footer dot while the link is on; the support-bundle reducer includes the PANELS page.
+- Dev: `tools/SkalarkiSpike` proved the .NET Framework SDK runs in-process on .NET 10; findings in `docs/integrations/skalarki.md`.
+
 ## 0.8.0-rc.14
 
 Local build for the owner's sim test, 2026-10-27, on `feature/ecam-diagnostics` (over rc.13). Unverified live.

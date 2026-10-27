@@ -85,6 +85,40 @@ bars are the boarding, cargo and refuel progress. The memo strip here is GSX-spe
 Couatl connection, what the smart button would do next, how long the turnaround has been
 running.
 
+## PANELS
+
+Shown only when **Settings → Hardware → Skalarki Panels** is switched on (it needs the
+SkalarkiIO Profiler and its SDK folder; see that page). The page is your Skalarki cockpit
+hardware as the Profiler sees it.
+
+- **PROFILER** box: the Profiler PC and port, CONN / RECONN, the SDK version; beside it the
+  licence reply (LIC) and the input events per second (EVT/S).
+- **OVERHEAD** and **GLARE** bars, the **MIP / CLOCK / ECAM CP** row and the pedestal pairs
+  (MCDU, RMP, ACP, ATC and TQ, LOWER PED and PWR CTRL): one box per board. Green **CONN** with
+  the last input (`LAST 11:04 APU` = time and panel group) means the board is plugged in and
+  talking; amber **LOST 42 S** means the Profiler lost its USB link that many seconds ago;
+  amber **XX** means you ticked the board in settings but the Profiler has never reported it;
+  white **- - -** means the board is not watched.
+- **HW CHECK** (right): one line per watched board with what to touch (`PRESS CLR`,
+  `MOVE LVR`, `ANY SWITCH`). Press **START**, then walk the cockpit touching one control
+  per board; each line turns **DONE**, the bar fills, and the strip says `n / m CHECKED`. A
+  board that drops out turns **LOST** and must be touched again when it is back; a board that
+  was unplugged when you started is skipped until it appears. **RESTART** clears the list.
+- **LAMP TEST** lights every lamp output of the watched boards for the configured time (two
+  seconds by default) and switches them off again. It is the only time the app drives outputs
+  on its own.
+- **HW RESET** appears under a lost board. It sends the Profiler's reset for that board: click
+  once to arm (the line reads **CONFIRM?**), once more to send. Use it only when a board has
+  stopped answering; the Profiler may take a few seconds to re-enumerate it. Its effect on the
+  Profiler's running profile has not been verified on hardware yet.
+- Memo strip: **DEVICES** connected / watched (amber when a watched board is missing),
+  **PROFILER** SDK version and licence, **LINK UP** hours and minutes, **PHASE**.
+
+Cautions this page raises on STATUS: `SKALARKI PROFILER LINK LOST` (reconnect is automatic;
+check that the Profiler is running and the port is right), `<BOARD> LOST` with
+`HW RESET ... AVAIL` and the cockpit function it takes with it under INOP SYS (RMP 2 → RADIO 2),
+and `SKALARKI SDK NOT LOADED` when the SDK folder is wrong.
+
 ## STATUS
 
 The summary page. The left column lists every caution grouped by system, each with the

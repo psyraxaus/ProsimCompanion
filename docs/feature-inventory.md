@@ -219,6 +219,12 @@ through with a note if deliberately dropped. Sources: Prosim2GSX 0.9.0, ProsimIn
       latency and rate registries, LLM host probe, circuit and API-client presence, nav badge,
       `GET /api/diagnostics/snapshot`, snapshot + RECENT ring in the support bundle and the
       reducer's `health` section — new, no predecessor equivalent, Unverified live
+- [x] PANELS page for Skalarki cockpit hardware (ADR-0017, 2026-10-27): SkalarkiIO Profiler
+      link over the user's own SDK (loaded at runtime into its own load context, never
+      shipped), per-board CONN / LOST / XX from the Profiler's presence events, hardware check
+      (touch one control per board), LAMP TEST, two-click HW RESET, Settings → Hardware →
+      Skalarki Panels with Test connection and board tick boxes, layout per cockpit family in
+      `skalarki-layout.json` — new, no predecessor equivalent, Unverified on hardware
 - [x] GSX voice control ("commence ground services", "request boarding", "cabin crew start
       boarding", …) via the command registry (gsx.voiceControlEnabled)
 - [x] Voice-gated ground ops (ADR-0006, issues #50–#53): prep gate (gsx.groundPrepActivation),

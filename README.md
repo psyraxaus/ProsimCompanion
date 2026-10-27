@@ -168,6 +168,10 @@ flight pages, live figures on glass instrument cards, and a Solari split-flap cl
   lamps lit from the aircraft — and **Camera View** keys that change ChasePlane views through
   a vJoy button on the sim PC; the switches are picked from ProSim's own list on the
   **Cockpit Switches** settings page — [chapter 12](docs/manual/12-remote-streamdeck.md)
+- **Skalarki cockpit hardware** (PANELS diagnostics page): the SkalarkiIO Profiler's SDK
+  server shows which boards are connected, a hardware check walks the cockpit one control per
+  board, LAMP TEST and HW RESET — over your own SDK files from the Profiler's Tools folder,
+  which the app loads at runtime and never ships ([chapter 13](docs/manual/13-diagnostics.md))
 - EFB-style web UI (ADR-0011): icon sidebar, glass instrument cards, split-flap clock,
   bundled fonts and icons (works offline), 13 airline/basic themes on the Appearance settings page
   plus user JSON themes and your own theme and airline logos (never shipped — you upload them
