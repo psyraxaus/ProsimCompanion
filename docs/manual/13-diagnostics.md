@@ -6,7 +6,8 @@ right now, and which link is unhappy? The badge on the sidebar item shows how ma
 are up (amber), or turns red when one of them is a warning.
 
 The pages live at `/diagnostics` (VOICE), `/diagnostics/sim`, `/diagnostics/remote`,
-`/diagnostics/gsx` and `/diagnostics/status`. The row of names under the memo strip switches
+`/diagnostics/gsx` and `/diagnostics/status`, plus `/diagnostics/panels` while the Skalarki
+link is switched on. The row of names under the memo strip switches
 pages; they are ordinary links, so they work on the tablet too. The drawing scales to the
 window as one piece and never rearranges itself.
 
@@ -27,7 +28,7 @@ Every page ends with the same strip: the app version, something page-specific (t
 the simulator, the client count, the GSX state), the time the app has been up, and the flight
 phase.
 
-[screenshot: voice page]
+![Diagnostics VOICE page](../img/diagnostics-voice.png)
 
 ## VOICE
 
@@ -48,7 +49,7 @@ Top right: the last thing the app heard, with its confidence and length, what th
 of it (INTENT, ACTION), which gate was in use and how many utterances were rejected in the
 last minute (BLEED: noise, empty transcripts, the FO's own voice heard back).
 
-[screenshot: sim page]
+![Diagnostics SIM page](../img/diagnostics-sim.png)
 
 ## SIM
 
@@ -69,7 +70,7 @@ Stream Deck (how long since it last polled) and the remote mixer agents as numbe
 The **AUDIO ROUTING** row shows each configured mixer channel, ON or OFF, its level and the
 strip or bus it drives.
 
-[screenshot: remote page]
+![Diagnostics REMOTE page with two mixer agents](../img/diagnostics-remote.png)
 
 ## GSX
 
@@ -78,18 +79,25 @@ services around it, each box wired to where that service meets the aircraft: abo
 **pushback** (the tug at the nose tip) and **GPU** (the cable on the forward right fuselage);
 on the left, **boarding** at the top (tied to the jetway, and to the stairs when they are in
 use), the **jetway** to door 1L, the **stairs** to door 4L; on the right, **catering** beside the service door your GSX profile uses (1R at
-the top, or 4R at the bottom: set it under Settings → Ground Services → Doors → Catering
-door), **refuel** to the right wing and **de-icing**. Each box shows the GSX stage (`AVAIL`,
+the top, or 4R at the bottom: Settings → Ground Services → Doors → Catering door is **Auto**
+by default and learns the door the first time GSX opens it; Forward / Aft pin it by hand),
+**refuel** to the right wing and **de-icing**. Each box shows the GSX stage (`AVAIL`,
 `REQ`, `CONN`, `PROG`, `DONE`, or `- - -` when not required) with a detail line. The three
 bars are the boarding, cargo and refuel progress. The memo strip here is GSX-specific: the
 Couatl connection, what the smart button would do next, how long the turnaround has been
 running.
+
+![Diagnostics GSX page](../img/diagnostics-gsx.png)
 
 ## PANELS
 
 Shown only when **Settings → Hardware → Skalarki Panels** is switched on (it needs the
 SkalarkiIO Profiler and its SDK folder; see that page). The page is your Skalarki cockpit
 hardware as the Profiler sees it.
+
+![Diagnostics PANELS page before the SDK folder is set](../img/diagnostics-panels.png)
+
+![Skalarki Panels settings page](../img/hardware-skalarki.png)
 
 - **PROFILER** box: the Profiler PC and port, CONN / RECONN, the SDK version; beside it LIC
   (always `- - -`: this SDK cannot be asked for the licence without losing its events) and the
@@ -139,7 +147,7 @@ memo strip counts cautions and warnings, and the **BUNDLE** cell is the same sup
 the Logs page: the bundle now includes the diagnostics snapshot and the RECENT list, so a bug
 report carries what the pages showed.
 
-[screenshot: status page]
+![Diagnostics STATUS page](../img/diagnostics-status.png)
 
 ## Common cautions and what to do
 
@@ -161,3 +169,5 @@ report carries what the pages showed.
 Settings → Advanced → **Diagnostics** holds the two knobs: how often the pages redraw (one
 second by default) and the short names shown above the VOICE boxes for each configured
 server. Both apply live.
+
+![Diagnostics settings](../img/diagnostics-settings.png)

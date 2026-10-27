@@ -68,6 +68,13 @@ flight pages, live figures on glass instrument cards, and a Solari split-flap cl
   complete, each once per flight; URLs and tokens stored encrypted (off by default)
 - **Every setting has a page** — persona, company channel, debrief, duty day, tech log,
   logbook, ECAM abnormals, ActiveSky, the update check; nothing is `settings.json`-only
+- **Diagnostics pages drawn like the ECAM system displays** — VOICE (mic → VAD → STT → LLM →
+  TTS → out, with the last utterance), SIM (ProSim, SimConnect, the sim PC), REMOTE (Stream
+  Deck, mixer agents, the LAN), GSX (the aircraft from above with every ground service wired
+  to its door, live GSX state, a clickable GPU box) and STATUS (every caution with the action
+  taken, INOP SYS, DEGRADED, RECENT); green / amber / red / `XX` / `- - -` exactly as the
+  aircraft shows them, a caution badge on the sidebar, and the snapshot in the support bundle —
+  [chapter 13](docs/manual/13-diagnostics.md)
 - **Wake-on-LAN for every PC you depend on** (Setup page) — the language-model box, the
   speech server, an ActiveSky PC: one row each, a magic packet at startup, Send now any time
 - **SayIntentions, both ways** — your arrival gate goes to SayIntentions ATC, and (opt-in)
@@ -186,6 +193,8 @@ flight pages, live figures on glass instrument cards, and a Solari split-flap cl
 
 ![Performance](docs/img/performance.png)
 ![Cockpit Switches](docs/img/cockpit-switches.png)
+![Diagnostics GSX page](docs/img/diagnostics-gsx.png)
+![Diagnostics PANELS page](docs/img/diagnostics-panels.png)
 
 ## Getting started
 
