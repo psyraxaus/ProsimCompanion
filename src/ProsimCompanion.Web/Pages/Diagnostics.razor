@@ -30,6 +30,9 @@
                 case DiagPageIds.Gsx:
                     <EcamGsxPage Snap="@_snap" />
                     break;
+                case DiagPageIds.Panels:
+                    <EcamPanelsPage Snap="@_snap" />
+                    break;
                 case DiagPageIds.Status:
                     <EcamStatusPage Snap="@_snap" BundleHref="@BundleUrl" />
                     break;
@@ -37,7 +40,7 @@
                     <EcamVoicePage Snap="@_snap" />
                     break;
             }
-            <EcamSelector Current="@CurrentPage" />
+            <EcamSelector Current="@CurrentPage" Pages="@_snap.VisiblePages" />
         </div>
     </div>
 </div>
@@ -50,7 +53,9 @@
     private DiagnosticsSnapshot _snap = DiagnosticsSnapshot.Empty;
     private bool _attached;
 
-    private string CurrentPage => Page is { } p && DiagPageIds.All.Contains(p, StringComparer.OrdinalIgnoreCase)
+    // PANELS is a page only while the Skalarki link is on; its route falls back to VOICE
+    // until then, like an unknown id.
+    private string CurrentPage => Page is { } p && _snap.VisiblePages.Contains(p.ToLowerInvariant(), StringComparer.Ordinal)
         ? p.ToLowerInvariant()
         : DiagPageIds.Voice;
 

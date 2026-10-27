@@ -26,6 +26,13 @@
     "gsx": {
       "gpuConnect": "Klik om de grondstroom aan te sluiten",
       "gpuDisconnect": "Klik om de grondstroom los te koppelen"
+    },
+    "panels": {
+      "lampTest": "Alle uitgangen van de bewaakte boards gedurende de ingestelde tijd inschakelen",
+      "start": "Een hardwarecontrole starten: bedien één knop op elk board",
+      "restart": "De hardwarecontrole opnieuw beginnen",
+      "hwReset": "De controller van dit board resetten. Klik nogmaals om te bevestigen.",
+      "confirm": "De hardwarereset bevestigen"
     }
   }
 }

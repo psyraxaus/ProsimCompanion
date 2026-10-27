@@ -44,7 +44,7 @@ public static class HealthReducer
                         c.System, c.Title, c.Severity.ToString(), [.. c.Actions.Select(a => $"{a.Label} {a.Value}")], c.RaisedUtc)));
                     inop.AddRange(snapshot.InopSystems);
                     degraded.AddRange(snapshot.Degraded);
-                    foreach (var page in new[] { snapshot.Voice, snapshot.Sim, snapshot.Remote, snapshot.Gsx })
+                    foreach (var page in new[] { snapshot.Voice, snapshot.Sim, snapshot.Remote, snapshot.Gsx, snapshot.Panels }.Where(p => p is not null).Select(p => p!))
                     {
                         foreach (var node in page.Nodes.Values.Where(n => n.State is not DiagState.Normal and not DiagState.NotApplicable))
                         {

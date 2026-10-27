@@ -97,6 +97,14 @@ public sealed class DiagnosticsSnapshotCore
             WarningCount = warnings,
         };
 
+        // PANELS exists only while its collector drew something (the Skalarki link is on);
+        // an empty page means "hidden", not "all XX".
+        var panels = pages[DiagPageIds.Panels].Build();
+        if (panels.Nodes.Count == 0 && panels.Readouts.Count == 0 && panels.CautionLine is null)
+        {
+            panels = null;
+        }
+
         return new DiagnosticsSnapshot(
             now,
             memo,
@@ -107,7 +115,8 @@ public sealed class DiagnosticsSnapshotCore
             folded,
             [.. cautions.InopSystems],
             [.. cautions.DegradedSystems],
-            eventLog.Snapshot());
+            eventLog.Snapshot(),
+            panels);
     }
 
     /// <summary>Keeps a caution's first-raised time across ticks and pushes a RECENT line on

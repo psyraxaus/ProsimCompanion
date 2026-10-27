@@ -87,6 +87,14 @@ public sealed class EcamPagesRenderTests
                 p.Readout("memo_gsx", "CONN").Readout("memo_smartbtn", "BOARDING").Readout("memo_turnaround", "00 H 23");
                 p.CautionLine("CATERING QUEUED · NEXT SVC BOARDING");
             }),
+            new DelegateCollector(DiagPageIds.Panels, (p, c) =>
+            {
+                p.Node("profiler", DiagState.Normal, "CONN", "10.0.1.21:53000", "SDK 5.1.0");
+                p.Node("glare", DiagState.Normal, "CONN", "LAST 11:09 FCU");
+                p.Node("rmp2", DiagState.Caution, "LOST", "42 S");
+                p.Readout("memo_devices", "1/2").Readout("memo_link", "LINK UP");
+                c.Raise("SKALARKI", "RMP 2 LOST", DiagState.Caution, new DiagAction("HW RESET", "AVAIL"));
+            }),
         ];
         return core.ProcessTick(T0, collectors, new FixedMemoSource(), log, null);
     }
@@ -110,7 +118,7 @@ public sealed class EcamPagesRenderTests
 
     public static TheoryData<Type> Pages() =>
     [
-        typeof(EcamVoicePage), typeof(EcamSimPage), typeof(EcamRemotePage), typeof(EcamGsxPage), typeof(EcamStatusPage),
+        typeof(EcamVoicePage), typeof(EcamSimPage), typeof(EcamRemotePage), typeof(EcamGsxPage), typeof(EcamPanelsPage), typeof(EcamStatusPage),
     ];
 
     [Theory]
@@ -361,6 +369,7 @@ public sealed class EcamPagesRenderTests
             : page == typeof(EcamSimPage) ? await RenderAsync<EcamSimPage>(parameters)
             : page == typeof(EcamRemotePage) ? await RenderAsync<EcamRemotePage>(parameters)
             : page == typeof(EcamGsxPage) ? await RenderAsync<EcamGsxPage>(parameters)
+            : page == typeof(EcamPanelsPage) ? await RenderAsync<EcamPanelsPage>(parameters)
             : await RenderAsync<EcamStatusPage>(parameters);
     }
 

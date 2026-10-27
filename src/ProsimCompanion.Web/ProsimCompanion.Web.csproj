@@ -24,6 +24,9 @@
   <ItemGroup>
     <!-- Built-in themes ride inside the assembly; user themes live in config/themes. -->
     <EmbeddedResource Include="Themes\*.json" />
+    <!-- The PANELS plan-view layout rides inside the assembly as the fallback; the served
+         wwwroot/data copy (same file) is what a user edits for another deck (ADR-0017). -->
+    <EmbeddedResource Include="wwwroot\data\skalarki-layout.json" LogicalName="skalarki-layout.json" />
   </ItemGroup>
 
 </Project>

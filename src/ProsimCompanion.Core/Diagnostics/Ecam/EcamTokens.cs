@@ -39,6 +39,25 @@ public static class EcamTokens
     public const string Cached = "CACHED";
     public const string Unavail = "UNAVAIL";
 
+    /// <summary>PANELS page words (Skalarki hardware, 2026-10-27).</summary>
+    public const string LinkUp = "LINK UP";
+    public const string LinkDown = "LINK DOWN";
+    public const string LampTest = "LAMP TEST";
+    public const string Restart = "RESTART";
+    public const string Start = "START";
+    public const string Stop = "STOP";
+    public const string HwCheck = "HW CHECK";
+    public const string HwReset = "HW RESET";
+    public const string Confirm = "CONFIRM?";
+    public const string Pending = "PENDING";
+    public const string Skipped = "SKIPPED";
+    public const string Complete = "COMPLETE";
+    public const string Last = "LAST";
+    public const string Evt = "EVT";
+    public const string Devices = "DEVICES";
+    public const string Profiler = "PROFILER";
+    public const string Link = "LINK";
+
     /// <summary>Unit qualifiers (cyan on the page).</summary>
     public static class Units
     {

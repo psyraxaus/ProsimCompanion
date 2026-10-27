@@ -26,6 +26,13 @@
     "gsx": {
       "gpuConnect": "Click to connect the ground power",
       "gpuDisconnect": "Click to disconnect the ground power"
+    },
+    "panels": {
+      "lampTest": "Light every output of the watched boards for the configured time",
+      "start": "Start a hardware check: touch one control on each board",
+      "restart": "Start the hardware check over",
+      "hwReset": "Reset this board's controller. Click once more to confirm.",
+      "confirm": "Confirm the hardware reset"
     }
   }
 }

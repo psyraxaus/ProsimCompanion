@@ -26,6 +26,13 @@
     "gsx": {
       "gpuConnect": "Klicken, um die Bodenstromversorgung anzuschließen",
       "gpuDisconnect": "Klicken, um die Bodenstromversorgung zu trennen"
+    },
+    "panels": {
+      "lampTest": "Alle Ausgänge der überwachten Boards für die eingestellte Zeit einschalten",
+      "start": "Hardwareprüfung starten: an jedem Board ein Bedienelement betätigen",
+      "restart": "Hardwareprüfung von vorn beginnen",
+      "hwReset": "Controller dieses Boards zurücksetzen. Zum Bestätigen noch einmal klicken.",
+      "confirm": "Hardware-Reset bestätigen"
     }
   }
 }

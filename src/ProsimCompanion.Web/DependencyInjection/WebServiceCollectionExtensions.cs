@@ -53,6 +53,11 @@ public static class WebServiceCollectionExtensions
         services.AddSingleton<Diagnostics.CircuitRegistry>();
         services.AddScoped<Microsoft.AspNetCore.Components.Server.Circuits.CircuitHandler, Diagnostics.CircuitTracker>();
         services.AddSingleton<Core.Diagnostics.Ecam.IDiagnosticsCollector, Diagnostics.WebHostDiagnosticsCollector>();
+        // The PANELS plan-view layout (ADR-0017): the served wwwroot copy when there is a web
+        // root, else the embedded one.
+        services.AddSingleton(provider => new Components.Diagnostics.SkalarkiLayoutCatalog(
+            provider.GetService<Microsoft.AspNetCore.Hosting.IWebHostEnvironment>()?.WebRootPath,
+            provider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Components.Diagnostics.SkalarkiLayoutCatalog>>()));
         return services;
     }
 }

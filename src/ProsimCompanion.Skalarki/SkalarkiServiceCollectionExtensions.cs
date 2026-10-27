@@ -16,6 +16,8 @@ public static class SkalarkiServiceCollectionExtensions
         ArgumentNullException.ThrowIfNull(services);
 
         services.AddSingleton<ISkalarkiClientFactory, SdkLoader>();
+        // The PANELS diagnostics page (package 3): draws nothing while the feature is off.
+        services.AddSingleton<Core.Diagnostics.Ecam.IDiagnosticsCollector, SkalarkiDiagnosticsCollector>();
         services.AddSingleton<Core.Hardware.Skalarki.ISkalarkiSdkInspector, SkalarkiProbe>();
         services.AddSingleton<SkalarkiConnectionService>();
         services.AddSingleton<IHostedService>(provider => provider.GetRequiredService<SkalarkiConnectionService>());

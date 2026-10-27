@@ -158,6 +158,34 @@
 .bar-track { height: 14px; border: 1px solid var(--st); }
 .bar-fill { height: 100%; background: var(--st); }
 
+/* PANELS page (Skalarki hardware, owner mockup 2026-10-27): the Profiler box, full-width
+   bars, the three small boxes, the pedestal pairs either side of the white centre line, and
+   the HW CHECK column with its dotted leaders, two buttons and the progress bar. */
+.pn-box { border: 2px solid var(--st); color: var(--st); }
+.pn-box .pn-lbl { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--ecam-white); font-size: 15px; white-space: nowrap; }
+.pn-box .pn-val { position: absolute; top: 50%; transform: translateY(-50%); font-size: 15px; white-space: nowrap; }
+.pn-box .pn-detail { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); font-size: 13px; color: var(--st); white-space: nowrap; }
+.pn-box .pn-val.right { right: 12px; }
+.pn-small { border: 2px solid var(--st); color: var(--st); text-align: center; }
+.pn-small .pn-lbl { display: block; color: var(--ecam-white); font-size: 13px; line-height: 13px; margin-top: 4px; }
+.pn-small .pn-val { display: block; font-size: 15px; line-height: 15px; margin-top: 3px; }
+.pn-profiler { border: 2px solid var(--st); color: var(--st); text-align: center; }
+.pn-profiler .pn-row { display: block; font-size: 15px; line-height: 15px; white-space: nowrap; }
+.pn-centre { width: 1px; background: var(--ecam-white); }
+.chk-line { font-size: 13px; line-height: 13px; white-space: pre; color: var(--ecam-white); }
+.chk-line .chk-state { color: var(--st); }
+.chk-line .chk-state.prompt { color: var(--ecam-cyan); }
+.chk-line .chk-state.idle { color: var(--ecam-grey); }
+.ecam-btn { height: 28px; border: 2px solid var(--ecam-green); background: var(--ecam-black); color: var(--ecam-green); font-family: inherit; font-size: 13px; letter-spacing: 0.04em; text-transform: uppercase; cursor: pointer; padding: 0; }
+.ecam-btn:hover, .ecam-btn:focus-visible { outline: 1px solid var(--ecam-white); outline-offset: 1px; }
+.ecam-btn:disabled { color: var(--ecam-grey); border-color: var(--ecam-grey); cursor: default; }
+.ecam-btn.amber { border-color: var(--ecam-amber); color: var(--ecam-amber); }
+.chk-track { height: 10px; border: 1px solid var(--ecam-green); }
+.chk-fill { height: 100%; background: var(--ecam-green); }
+.pn-action { font-size: 13px; color: var(--ecam-cyan); white-space: pre; cursor: pointer; }
+.pn-action:hover { color: var(--ecam-white); }
+.pn-action.armed { color: var(--ecam-amber); }
+
 /* STATUS page */
 .head-u { color: var(--ecam-white); font-size: 15px; border-bottom: 1px solid var(--ecam-white); padding-bottom: 1px; display: inline-block; }
 .grp-ttl { font-size: 15px; color: var(--st); white-space: nowrap; }

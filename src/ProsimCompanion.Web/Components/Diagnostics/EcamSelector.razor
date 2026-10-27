@@ -2,7 +2,7 @@
 @* The ECP-style page row under the memo strip: real links, no keyboard handler (ADR-0016). The
    page names are ECAM tokens and stay as they are in every language. *@
 <div class="abs ecam-selector">
-    @foreach (var id in DiagPageIds.All)
+    @foreach (var id in Pages ?? DiagPageIds.All)
     {
         <a href="diagnostics/@id" class="@(id == Current ? "sel-active" : "sel-inactive")">@id.ToUpperInvariant()</a>
     }
@@ -10,4 +10,8 @@
 
 @code {
     [Parameter] public string Current { get; set; } = DiagPageIds.Voice;
+
+    /// <summary>The pages to offer (the snapshot's VisiblePages hides PANELS while the Skalarki
+    /// link is off); null = every page.</summary>
+    [Parameter] public IReadOnlyList<string>? Pages { get; set; }
 }

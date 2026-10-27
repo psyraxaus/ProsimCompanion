@@ -26,6 +26,13 @@
     "gsx": {
       "gpuConnect": "Haz clic para conectar la energía de tierra",
       "gpuDisconnect": "Haz clic para desconectar la energía de tierra"
+    },
+    "panels": {
+      "lampTest": "Encender todas las salidas de las placas vigiladas durante el tiempo configurado",
+      "start": "Iniciar una comprobación de hardware: toca un control de cada placa",
+      "restart": "Reiniciar la comprobación de hardware",
+      "hwReset": "Reiniciar el controlador de esta placa. Haz clic otra vez para confirmar.",
+      "confirm": "Confirmar el reinicio del hardware"
     }
   }
 }

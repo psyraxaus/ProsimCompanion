@@ -257,7 +257,7 @@ public sealed class SkalarkiServiceTests : IDisposable
             RegisteredCatalogue = catalogue;
         }
 
-        public void SetDeviceOutputs(SkalarkiDeviceId device, bool on) => Outputs.Add((device, on));
+        public void SetDeviceOutputs(SkalarkiDeviceId device, bool lit) => Outputs.Add((device, lit));
 
         public void HardwareReset(SkalarkiDeviceId device, bool hard)
         {

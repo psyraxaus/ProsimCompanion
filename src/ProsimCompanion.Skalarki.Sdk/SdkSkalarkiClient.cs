@@ -93,7 +93,7 @@ public sealed class SdkSkalarkiClient : ISkalarkiClient
         _logger.LogInformation("Skalarki: registered {Count} {Catalogue} input descriptors for {Devices} boards", descriptors.Count, catalogue, devices.Count);
     }
 
-    public void SetDeviceOutputs(SkalarkiDeviceId device, bool on)
+    public void SetDeviceOutputs(SkalarkiDeviceId device, bool lit)
     {
         var sdkDevice = (DeviceType)(int)device;
         var outputs = OutputCatalogue().Where(o => o.Device == sdkDevice).Distinct().ToList();
@@ -102,7 +102,7 @@ public sealed class SdkSkalarkiClient : ISkalarkiClient
             return;
         }
 
-        Current().SetOutputs(outputs, on);
+        Current().SetOutputs(outputs, lit);
     }
 
     public void HardwareReset(SkalarkiDeviceId device, bool hard)

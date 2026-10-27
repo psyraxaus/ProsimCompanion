@@ -117,7 +117,9 @@ public sealed record DiagPage(
     }
 }
 
-/// <summary>Everything the five pages draw, published once per tick by the snapshot service.</summary>
+/// <summary>Everything the pages draw, published once per tick by the snapshot service.
+/// <see cref="Panels"/> is null while the Skalarki link is off (no collector contributed), and
+/// the selector and route hide PANELS then.</summary>
 public sealed record DiagnosticsSnapshot(
     DateTimeOffset AtUtc,
     DiagMemo Memo,
@@ -128,7 +130,8 @@ public sealed record DiagnosticsSnapshot(
     IReadOnlyList<DiagCaution> Cautions,
     IReadOnlyList<string> InopSystems,
     IReadOnlyList<string> Degraded,
-    IReadOnlyList<DiagEvent> Recent)
+    IReadOnlyList<DiagEvent> Recent,
+    DiagPage? Panels = null)
 {
     /// <summary>Before the first tick: every node NoData, no cautions, an empty memo.</summary>
     public static DiagnosticsSnapshot Empty { get; } = new(
@@ -144,15 +147,20 @@ public sealed record DiagnosticsSnapshot(
         []);
 
     /// <summary>The page by id, or null for an id that is not a drawing page (STATUS is composed
-    /// from the snapshot's lists, not a page).</summary>
+    /// from the snapshot's lists, not a page) and for PANELS while it is hidden.</summary>
     public DiagPage? Page(string id) => id switch
     {
         DiagPageIds.Voice => Voice,
         DiagPageIds.Sim => Sim,
         DiagPageIds.Remote => Remote,
         DiagPageIds.Gsx => Gsx,
+        DiagPageIds.Panels => Panels,
         _ => null,
     };
+
+    /// <summary>The pages the selector offers right now: every page, minus PANELS while hidden.</summary>
+    public IReadOnlyList<string> VisiblePages
+        => Panels is null ? [.. DiagPageIds.All.Where(id => id != DiagPageIds.Panels)] : DiagPageIds.All;
 }
 
 /// <summary>The page ids a collector names in <see cref="IDiagnosticsCollector.Page"/> and the
@@ -164,15 +172,18 @@ public static class DiagPageIds
     public const string Remote = "remote";
     public const string Gsx = "gsx";
 
+    /// <summary>The Skalarki hardware page (2026-10-27); present only while that link is on.</summary>
+    public const string Panels = "panels";
+
     /// <summary>Not a collector page: composed from the cautions, inop and recent lists.</summary>
     public const string Status = "status";
 
-    /// <summary>The four pages collectors may contribute to, in display order.</summary>
-    public static IReadOnlyList<string> Drawing { get; } = [Voice, Sim, Remote, Gsx];
+    /// <summary>The pages collectors may contribute to, in display order.</summary>
+    public static IReadOnlyList<string> Drawing { get; } = [Voice, Sim, Remote, Gsx, Panels];
 
     /// <summary>Every page in selector order.</summary>
-    public static IReadOnlyList<string> All { get; } = [Voice, Sim, Remote, Gsx, Status];
+    public static IReadOnlyList<string> All { get; } = [Voice, Sim, Remote, Gsx, Panels, Status];
 
     /// <summary>True for an id a collector may name.</summary>
-    public static bool IsDrawing(string id) => id is Voice or Sim or Remote or Gsx;
+    public static bool IsDrawing(string id) => id is Voice or Sim or Remote or Gsx or Panels;
 }

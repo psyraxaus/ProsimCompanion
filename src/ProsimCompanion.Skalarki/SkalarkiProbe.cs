@@ -115,7 +115,7 @@ public sealed class SkalarkiProbe : ISkalarkiSdkInspector
                 {
                     _logger.LogDebug(ex, "Skalarki probe: dispose threw");
                 }
-            });
+            }, CancellationToken.None);
             await Task.WhenAny(dispose, Task.Delay(TimeSpan.FromSeconds(3), CancellationToken.None)).ConfigureAwait(false);
         }
     }

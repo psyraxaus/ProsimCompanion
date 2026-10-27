@@ -63,7 +63,7 @@ public interface ISkalarkiClient : IDisposable
     void RegisterAll(IReadOnlyCollection<SkalarkiDeviceId> devices, SkalarkiCatalogue catalogue);
 
     /// <summary>Drives every output descriptor of a board on or off (LAMP TEST only).</summary>
-    void SetDeviceOutputs(SkalarkiDeviceId device, bool on);
+    void SetDeviceOutputs(SkalarkiDeviceId device, bool lit);
 
     /// <summary>Resets a board's controller (HW RESET only, behind an explicit confirm).</summary>
     void HardwareReset(SkalarkiDeviceId device, bool hard);

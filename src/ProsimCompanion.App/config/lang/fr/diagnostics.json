@@ -26,6 +26,13 @@
     "gsx": {
       "gpuConnect": "Cliquer pour brancher le groupe de parc",
       "gpuDisconnect": "Cliquer pour débrancher le groupe de parc"
+    },
+    "panels": {
+      "lampTest": "Allumer toutes les sorties des cartes surveillées pendant la durée configurée",
+      "start": "Lancer une vérification matérielle : actionner une commande sur chaque carte",
+      "restart": "Recommencer la vérification matérielle",
+      "hwReset": "Réinitialiser le contrôleur de cette carte. Cliquez encore une fois pour confirmer.",
+      "confirm": "Confirmer la réinitialisation matérielle"
     }
   }
 }

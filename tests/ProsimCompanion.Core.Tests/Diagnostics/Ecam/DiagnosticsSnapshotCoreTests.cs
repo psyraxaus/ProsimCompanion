@@ -156,7 +156,8 @@ public sealed class DiagnosticsSnapshotCoreTests
     {
         var core = new DiagnosticsSnapshotCore(new CountingLogger());
         var snap = core.ProcessTick(T0, [], new FixedMemoSource(), new DiagEventLog(), null);
-        Assert.All(DiagPageIds.Drawing, id => Assert.Empty(snap.Page(id)!.Nodes));
+        Assert.All(DiagPageIds.Drawing, id => Assert.True(snap.Page(id) is null || snap.Page(id)!.Nodes.Count == 0));
+        Assert.Null(snap.Panels);   // nothing drew on PANELS → hidden, not "all XX"
         Assert.Null(snap.Page(DiagPageIds.Status));
     }
 }
