@@ -2,6 +2,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ProsimCompanion.Core.Configuration;
+using ProsimCompanion.Core.Diagnostics.Ecam.HardwareCheck;
 using ProsimCompanion.Core.Hardware.Skalarki;
 using ProsimCompanion.Core.State;
 
@@ -15,7 +16,7 @@ namespace ProsimCompanion.Skalarki;
 /// change. Every SDK call is wrapped: a failure sets the link state, never reaches the host.
 /// The client is disposed with a timeout so a wedged SDK cannot hold up shutdown.
 /// </summary>
-public sealed class SkalarkiConnectionService : BackgroundService
+public sealed class SkalarkiConnectionService : BackgroundService, ISkalarkiControl
 {
     private static readonly TimeSpan ConnectTimeout = TimeSpan.FromSeconds(10);
     private static readonly TimeSpan DisposeTimeout = TimeSpan.FromSeconds(3);
@@ -28,6 +29,7 @@ public sealed class SkalarkiConnectionService : BackgroundService
     private readonly ILogger<SkalarkiConnectionService> _logger;
     private readonly TimeProvider _clock;
     private readonly SkalarkiStateCore _core = new();
+    private readonly HardwareCheckSession _check = new();
     private readonly object _gate = new();
     private ISkalarkiClient? _client;
     private string? _guidedFor;
@@ -143,8 +145,29 @@ public sealed class SkalarkiConnectionService : BackgroundService
 
             linkLost.TrySetResult();
         };
-        client.DeviceChanged += (device, connected) => Publish(_core.DeviceChanged(device, connected, _clock.GetUtcNow()));
-        client.HardwareEvent += hardwareEvent => Publish(_core.HardwareEvent(hardwareEvent));
+        client.DeviceChanged += (device, connected) =>
+        {
+            var now = _clock.GetUtcNow();
+            Publish(_core.DeviceChanged(device, connected, now));
+            lock (_check)
+            {
+                if (connected ? _check.OnDeviceBack(device) : _check.OnDeviceLost(device, now))
+                {
+                    Publish(_core.SetCheck(_check.View));
+                }
+            }
+        };
+        client.HardwareEvent += hardwareEvent =>
+        {
+            Publish(_core.HardwareEvent(hardwareEvent));
+            lock (_check)
+            {
+                if (_check.OnDeviceEvent(hardwareEvent.Device, hardwareEvent.Control, hardwareEvent.AtUtc))
+                {
+                    Publish(_core.SetCheck(_check.View));
+                }
+            }
+        };
 
         Publish(_core.SetSdkVersion(Safe(() => client.SdkVersion)));
         Publish(_core.Configure(options.EnabledDeviceIds()));
@@ -230,6 +253,99 @@ public sealed class SkalarkiConnectionService : BackgroundService
             {
                 Publish(_core.LinkDown(_clock.GetUtcNow(), null));
             }
+        }
+    }
+
+    // ---- ISkalarkiControl: the PANELS page's three buttons (package 2) ----
+
+    public async Task<string> LampTestAsync(SkalarkiDeviceId? device, CancellationToken cancellationToken)
+    {
+        var client = CurrentClient();
+        if (client is null || _core.Snapshot.LinkState != ConnectionState.Connected)
+        {
+            return "NO LINK";
+        }
+
+        var targets = device is { } one
+            ? [one]
+            : _core.Snapshot.Devices.Where(p => p.Value is { Enabled: true, Connected: true }).Select(p => p.Key).ToList();
+        if (targets.Count == 0)
+        {
+            return "NO DEVICE";
+        }
+
+        var hold = TimeSpan.FromMilliseconds(Math.Clamp(_options.CurrentValue.LampTestMs, 500, 10_000));
+        var lit = 0;
+        foreach (var target in targets)
+        {
+            if (Safe(() => { client.SetDeviceOutputs(target, true); return true; }))
+            {
+                lit++;
+            }
+        }
+
+        _logger.LogInformation("Skalarki LAMP TEST: {Lit} of {Count} boards lit for {Hold}ms", lit, targets.Count, hold.TotalMilliseconds);
+        try
+        {
+            await Task.Delay(hold, _clock, cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            // Off again whatever happened — a cancelled test must not leave a panel lit.
+            foreach (var target in targets)
+            {
+                Safe(() => { client.SetDeviceOutputs(target, false); return true; });
+            }
+        }
+
+        return lit == 0 ? "FAILED" : $"{lit} LIT";
+    }
+
+    public Task<string> HardwareResetAsync(SkalarkiDeviceId device, bool hard, CancellationToken cancellationToken)
+    {
+        var client = CurrentClient();
+        if (client is null || _core.Snapshot.LinkState != ConnectionState.Connected)
+        {
+            return Task.FromResult("NO LINK");
+        }
+
+        var ok = Safe(() => { client.HardwareReset(device, hard); return true; });
+        _logger.LogWarning("Skalarki HW RESET sent to {Device} (hard: {Hard}) from the diagnostics page: {Outcome}", device, hard, ok ? "sent" : "failed");
+        return Task.FromResult(ok ? "SENT" : "FAILED");
+    }
+
+    public void StartCheck(IReadOnlyDictionary<SkalarkiDeviceId, string> prompts)
+    {
+        ArgumentNullException.ThrowIfNull(prompts);
+        var snapshot = _core.Snapshot;
+        var devices = snapshot.EnabledDevices.Select(p => p.Key).ToList();
+        lock (_check)
+        {
+            _check.Start(devices, prompts, snapshot.Devices, _clock.GetUtcNow());
+            Publish(_core.SetCheck(_check.View));
+        }
+    }
+
+    public void RestartCheck()
+    {
+        lock (_check)
+        {
+            if (_check.View is null)
+            {
+                return;
+            }
+
+            _check.Restart(_core.Snapshot.Devices, _clock.GetUtcNow());
+            Publish(_core.SetCheck(_check.View));
+        }
+    }
+
+    public void StopCheck()
+    {
+        lock (_check)
+        {
+            _check.Stop();
+            Publish(_core.SetCheck(null));
         }
     }
 

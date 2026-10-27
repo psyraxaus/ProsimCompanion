@@ -19,6 +19,8 @@ public static class SkalarkiServiceCollectionExtensions
         services.AddSingleton<Core.Hardware.Skalarki.ISkalarkiSdkInspector, SkalarkiProbe>();
         services.AddSingleton<SkalarkiConnectionService>();
         services.AddSingleton<IHostedService>(provider => provider.GetRequiredService<SkalarkiConnectionService>());
+        // The PANELS page's LAMP TEST / HW RESET / hardware check (package 2).
+        services.AddSingleton<Core.Hardware.Skalarki.ISkalarkiControl>(provider => provider.GetRequiredService<SkalarkiConnectionService>());
         return services;
     }
 }
