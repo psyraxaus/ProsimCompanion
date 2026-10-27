@@ -22,6 +22,10 @@
         "none": "Er is nog geen spraakherkennings-, taalmodel- of stemserver ingesteld, dus er valt niets te benoemen.",
         "json": "Gevorderde gebruikers kunnen de lijst ook in settings.json bewerken onder"
       }
+    },
+    "gsx": {
+      "gpuConnect": "Klik om de grondstroom aan te sluiten",
+      "gpuDisconnect": "Klik om de grondstroom los te koppelen"
     }
   }
 }

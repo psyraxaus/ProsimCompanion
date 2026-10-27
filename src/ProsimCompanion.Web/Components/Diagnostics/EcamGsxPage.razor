@@ -1,4 +1,9 @@
 @using ProsimCompanion.Core.Diagnostics.Ecam
+@using Microsoft.Extensions.DependencyInjection
+@using Microsoft.Extensions.Logging
+@inject IServiceProvider Services
+@inject IStringLocalizer T
+@inject ILogger<EcamGsxPage> Logger
 @* GSX: DOOR/OXY grammar. The hull with its door markers, the service boxes either side with
    dashed connectors to where each service really meets the aircraft (owner layout 2026-10-27:
    BOARDING over JETWAY and tied to it and to STAIRS; GPU and PUSHBACK on one trunk to the
@@ -66,7 +71,8 @@
     <div class="abs door @(open ? "open st-caution" : "st-normal")" style="left:@(x)px;top:@(y)px"></div>
     if (open)
     {
-        <div class="abs detail c-amber" style="left:@(labelLeft ? x - 38 : x + 13)px;top:@(y + 2)px;width:36px;@(labelLeft ? "text-align:right" : "")">@label</div>
+        @* The label sits above the marker, clear of the connector that ends on the door. *@
+        <div class="abs detail c-amber" style="left:@(labelLeft ? x - 30 : x - 2)px;top:@(y - 13)px;width:36px;@(labelLeft ? "text-align:right" : "")">@label</div>
     }
 }
 
@@ -105,10 +111,22 @@
     <div class="svc-val">@pushback.Value</div>
     <div class="svc-detail">@(pushback.Detail ?? "")</div>
 </div>
-<div class="abs svc-box top-box @EcamPresentation.StateClass(gpu.State)" style="left:@(GpuBoxLeft)px;top:@(TopBoxTop)px">
+@* The GPU box is a switch (owner request 2026-10-27): one click connects the ground power
+   when it is off, or takes it away when it is on, through the same seam the voice FO and the
+   Stream Deck use. The call's answer replaces the detail line for a few seconds. *@
+@{
+    var gpuControl = Services.GetService<IGsxServiceControl>();
+    var gpuOn = gpu.Value == EcamTokens.Conn;
+    var gpuDetail = _gpuNote is not null && DateTimeOffset.UtcNow < _gpuNoteUntil ? _gpuNote : gpu.Detail ?? "";
+    var gpuClass = EcamPresentation.StateClass(gpu.State) + (gpuControl is null ? "" : " clickable");
+}
+<div class="abs svc-box top-box @gpuClass" style="left:@(GpuBoxLeft)px;top:@(TopBoxTop)px"
+     title="@(gpuControl is null ? null : T[gpuOn ? "diagnostics.gsx.gpuDisconnect" : "diagnostics.gsx.gpuConnect"].Value)"
+     role="@(gpuControl is null ? null : "button")" tabindex="@(gpuControl is null ? null : "0")"
+     @onclick="ToggleGpuAsync" @onkeydown="OnGpuKeyAsync">
     <div class="svc-title">GPU</div>
     <div class="svc-val">@gpu.Value</div>
-    <div class="svc-detail">@(gpu.Detail ?? "")</div>
+    <div class="svc-detail">@gpuDetail</div>
 </div>
 <EcamLink State="@pushback.State" Left="@(PushBoxLeft + TopBoxWidth)" Top="@(TopBoxTop + TopBoxHeight / 2 - 6)" Width="@(NoseX - PushBoxLeft - TopBoxWidth + 8)" Height="@(HullTop - TopBoxTop - TopBoxHeight / 2 + 8)"
           Points="@($"0,6 {NoseX - PushBoxLeft - TopBoxWidth},6 {NoseX - PushBoxLeft - TopBoxWidth},{HullTop - TopBoxTop - TopBoxHeight / 2 + 6}")" Arrow="false" />
@@ -181,6 +199,44 @@ else
 @code {
     [Parameter, EditorRequired] public DiagnosticsSnapshot Snap { get; set; } = DiagnosticsSnapshot.Empty;
 
+    // The last GPU call's answer, shown in the box's detail line until it ages out (the parent
+    // redraws the page every tick, so no timer is needed to clear it).
+    private static readonly TimeSpan GpuNoteLife = TimeSpan.FromSeconds(8);
+    private string? _gpuNote;
+    private DateTimeOffset _gpuNoteUntil;
+    private bool _gpuBusy;
+
+    private Task OnGpuKeyAsync(KeyboardEventArgs e)
+        => e.Key is "Enter" or " " ? ToggleGpuAsync() : Task.CompletedTask;
+
+    /// <summary>Connect the ground power when it is off, disconnect it when it is on. The GSX
+    /// layer owns the decision (interlocks, GSX GPU vs ProSim unit); this only asks.</summary>
+    private async Task ToggleGpuAsync()
+    {
+        if (_gpuBusy || Services.GetService<IGsxServiceControl>() is not { } control)
+        {
+            return;
+        }
+
+        _gpuBusy = true;
+        try
+        {
+            var connected = Snap.Gsx.NodeOrNoData("gpu").Value == EcamTokens.Conn;
+            var outcome = await control.TryCallAsync(connected ? GsxServiceAction.DisconnectGpu : GsxServiceAction.RequestGpu);
+            _gpuNote = outcome.Detail.ToUpperInvariant();
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            Logger.LogWarning(ex, "GPU call from the diagnostics page failed");
+            _gpuNote = EcamTokens.NoResp;
+        }
+        finally
+        {
+            _gpuBusy = false;
+            _gpuNoteUntil = DateTimeOffset.UtcNow + GpuNoteLife;
+        }
+    }
+
     // The traced drawing fitted between the service boxes: 294 px wide (its wingspan), which
     // the 1593:1713 aspect makes 316 px tall, centred on the stage's x = 360.
     private const int HullLeft = 213;
@@ -195,14 +251,14 @@ else
     private const int BoxRight = BoxLeft + 160;
     private const int RightBoxLeft = 546;
     private const int RowPitch = 84;
-    private const int RowHeight = 60;
+    private const int RowHeight = 66;
     private const int FirstRowTop = 56;
     private const int ColumnMidX = BoxLeft + 80;
 
     // The two boxes above the nose.
-    private const int TopBoxTop = 8;
+    private const int TopBoxTop = 6;
     private const int TopBoxWidth = 112;
-    private const int TopBoxHeight = 50;
+    private const int TopBoxHeight = 58;
     private const int PushBoxLeft = 236;
     private const int GpuBoxLeft = 384;
 

@@ -22,6 +22,10 @@
         "none": "Es ist noch kein Sprach-, Sprachmodell- oder Stimmenserver eingerichtet, also gibt es nichts zu bezeichnen.",
         "json": "Fortgeschrittene können die Liste auch in settings.json bearbeiten unter"
       }
+    },
+    "gsx": {
+      "gpuConnect": "Klicken, um die Bodenstromversorgung anzuschließen",
+      "gpuDisconnect": "Klicken, um die Bodenstromversorgung zu trennen"
     }
   }
 }

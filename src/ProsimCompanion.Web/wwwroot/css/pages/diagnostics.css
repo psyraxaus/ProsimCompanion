@@ -126,23 +126,30 @@
 .ecam-box { border: 2px solid var(--st); }
 .sq { width: 30px; height: 30px; border: 2px solid var(--st); color: var(--st); display: flex; align-items: center; justify-content: center; font-size: 15px; }
 .badge { border: 2px solid var(--st); color: var(--st); font-size: 15px; padding: 3px 0; width: 62px; text-align: center; }
-/* One box per remote mixer agent: two wrapped lines, clipped after that. */
-.agent-box { width: 160px; height: 44px; border: 2px solid var(--st); color: var(--st); padding: 3px 8px; text-align: right; overflow: hidden; }
-.agent-box .agent-line { font-size: 11px; line-height: 12px; white-space: normal; overflow-wrap: anywhere; max-height: 24px; overflow: hidden; }
+/* Remote mixer agents: numbered square, name beside it, state word under the name. */
+.sq.agent-sq { width: 24px; height: 24px; font-size: 13px; }
+.agent-name { width: 128px; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.agent-state { width: 128px; white-space: nowrap; overflow: hidden; }
 /* The end of a connector that points at a surface rather than a box (the refuel panel). */
 .link-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--st); }
 /* "STRIP 1 · MIXER PC" wraps at the dot onto a second line instead of running into the next column. */
 .route-device { height: 24px; line-height: 11px; white-space: normal; overflow-wrap: anywhere; overflow: hidden; }
 
 /* GSX page */
-.svc-box { width: 160px; height: 60px; border: 2px solid var(--st); padding: 5px 12px; }
-.svc-box .svc-title { font-size: 15px; color: var(--st); }
-.svc-box .svc-val { font-size: 15px; margin-top: 4px; color: var(--st); }
-.svc-box .svc-detail { font-size: 11px; margin-top: 3px; color: var(--st); white-space: nowrap; overflow: hidden; }
+/* Service boxes: title, stage word, then a detail that may be a sentence from the automation
+   ("departure sequence not started") — it wraps onto two 10 px lines and is clipped after
+   that, never past the border (owner report 2026-10-27). */
+.svc-box { width: 160px; height: 66px; border: 2px solid var(--st); padding: 5px 12px; overflow: hidden; }
+.svc-box .svc-title { font-size: 15px; line-height: 15px; color: var(--st); }
+.svc-box .svc-val { font-size: 15px; line-height: 15px; margin-top: 3px; color: var(--st); }
+.svc-box .svc-detail { font-size: 10px; line-height: 11px; margin-top: 2px; max-height: 22px; color: var(--st); white-space: normal; overflow-wrap: anywhere; overflow: hidden; }
 .svc-box.right-side { text-align: right; }
-.svc-box.top-box { width: 112px; height: 50px; padding: 3px 8px; }
-.svc-box.top-box .svc-val { margin-top: 2px; }
+.svc-box.top-box { width: 112px; height: 58px; padding: 3px 8px; }
+.svc-box.top-box .svc-val { margin-top: 1px; }
 .svc-box.top-box .svc-detail { margin-top: 1px; }
+/* The GPU box is a switch when a service control is wired: the pointer and a brighter border say so. */
+.svc-box.clickable { cursor: pointer; }
+.svc-box.clickable:hover, .svc-box.clickable:focus-visible { outline: 1px solid var(--ecam-white); outline-offset: 1px; }
 /* The traced three-view: every stroke of the drawing is a thin closed ring, filled and stroked
    in green so the lines stay visible at the 0.18 scale the page draws it at. */
 .hull .hull-path { fill: var(--ecam-green); fill-rule: evenodd; stroke: var(--ecam-green); stroke-width: 2.5; stroke-linejoin: round; }

@@ -60,35 +60,37 @@
 <div class="abs right small @EcamPresentation.StateClass(deck.State)" style="left:536px;top:128px;width:150px">@(deck.State == DiagState.NoData ? "" : deck.Detail ?? "")</div>
 <EcamLink State="@pg.LinkState("streamdeck", "webhost")" Left="448" Top="111" Length="88" />
 
-@* One box per remote mixer agent (owner request 2026-10-27), like the Stream Deck box: name
-   and state on the first line, the Voicemeeter it found and the channels it drives on the
-   second. Two fit above the routing rule; more are counted. *@
+@* Remote mixer agents (owner layout 2026-10-27): a numbered square per agent with its name
+   beside it, both in the state colour, and the state word under the name — CONNECTED in cyan,
+   LOST nn S / CONNECTING in amber, OFF in grey. Three fit above the routing rule. *@
 <div class="abs c-white right detail" style="left:536px;top:170px;width:160px">MIXER AGENTS</div>
 @if (agents.Length == 0)
 {
     <div class="abs right c-grey small" style="left:536px;top:192px;width:160px">@EcamTokens.NotApplicable</div>
 }
-@for (var i = 0; i < agents.Length && i < 2; i++)
+@for (var i = 0; i < agents.Length && i < 3; i++)
 {
     var agent = agents[i];
-    var id = $"mixer_{i + 1}";
+    var top = 184 + i * 38;
     var stateWord = agent.State switch
     {
-        DiagState.Normal => EcamTokens.Conn,
+        DiagState.Normal => "CONNECTED",
         DiagState.NotApplicable => EcamTokens.Off,
         _ => agent.Detail ?? EcamTokens.Reconn,
     };
-    var second = agent.State == DiagState.Normal
-        ? string.Join(" · ", new[] { pg.Readout(id + "_vm"), pg.Readout(id + "_ch") }.Where(s => !string.IsNullOrEmpty(s)))
-        : (agent.State == DiagState.NotApplicable ? agent.Detail : pg.Readout(id + "_endpoint")) ?? "";
-    <div class="abs agent-box @EcamPresentation.StateClass(agent.State)" style="left:536px;top:@(186 + i * 50)px">
-        <div class="agent-line">@agent.Value · @stateWord</div>
-        <div class="agent-line @(agent.State == DiagState.Normal ? "c-cyan" : "")">@second</div>
-    </div>
+    var stateClass = agent.State switch
+    {
+        DiagState.Normal => "c-cyan",
+        DiagState.NotApplicable => "c-grey",
+        _ => EcamPresentation.StateClass(agent.State),
+    };
+    <div class="abs sq agent-sq @EcamPresentation.StateClass(agent.State)" style="left:536px;top:@(top)px">@(i + 1)</div>
+    <div class="abs agent-name @EcamPresentation.StateClass(agent.State)" style="left:568px;top:@(top + 4)px">@agent.Value</div>
+    <div class="abs detail agent-state @stateClass" style="left:568px;top:@(top + 24)px">@stateWord</div>
 }
-@if (agents.Length > 2)
+@if (agents.Length > 3)
 {
-    <div class="abs right detail c-white" style="left:536px;top:286px;width:160px">+@(agents.Length - 2) MORE</div>
+    <div class="abs right detail c-white" style="left:536px;top:286px;width:160px">+@(agents.Length - 3) MORE</div>
 }
 
 <div class="abs detail c-white" style="left:24px;top:298px">AUDIO ROUTING</div>

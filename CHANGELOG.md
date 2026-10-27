@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.8.0-rc.14
+
+Local build for the owner's sim test, 2026-10-27, on `feature/ecam-diagnostics` (over rc.13). Unverified live.
+
+- Fixed: **GSX boxes show the live state, not the departure plan** (owner report 2026-10-27 on rc.13: a docked jetway and a connected GPU read "NOT REQ"): every service box now takes GSX's own state first (a jetway docked by hand is CONN whether or not the sequence asked for it; a stand without stairs hides the STAIRS box), and the departure board's view — held with its reason, latched completed, skipped — only while GSX sits idle. "NOT REQ" is left for a service nobody knows about.
+- Changed: **GPU box is ProSim's external-power truth and a switch**: CONN / EXT PWR when the unit is on the aircraft, OFF in white with GSX's word beneath when it is not; one click (or Enter on the box) connects the ground power or takes it away through the same seam the voice FO and the Stream Deck use, and the call's answer shows in the box for eight seconds.
+- Fixed: **GSX service-box text stayed inside the box** (owner report 2026-10-27 on rc.13 with GSX connected): the detail line ("departure sequence not started") wraps onto two small lines and is clipped at the border; the boxes grew a little to hold it; the open-door label sits above its marker, clear of the connector.
+- Changed: **REMOTE mixer agents back to numbered squares** (owner request 2026-10-27): the square and the agent's name in the state colour, CONNECTED in cyan under the name, LOST nn S or CONNECTING in amber, OFF in grey. Three agents fit.
+
 ## 0.8.0-rc.13
 
 Local build for the owner's sim test, 2026-10-27, on `feature/ecam-diagnostics` (one change over rc.12). Unverified live.

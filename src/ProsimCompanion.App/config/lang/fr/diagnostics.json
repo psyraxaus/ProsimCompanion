@@ -22,6 +22,10 @@
         "none": "Aucun serveur de reconnaissance, de modèle de langage ou de voix n'est encore configuré : il n'y a rien à nommer.",
         "json": "Les utilisateurs avancés peuvent aussi modifier la liste dans settings.json sous"
       }
+    },
+    "gsx": {
+      "gpuConnect": "Cliquer pour brancher le groupe de parc",
+      "gpuDisconnect": "Cliquer pour débrancher le groupe de parc"
     }
   }
 }

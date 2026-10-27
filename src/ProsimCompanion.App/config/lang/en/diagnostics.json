@@ -22,6 +22,10 @@
         "none": "No speech, language-model or voice server is configured yet, so there is nothing to label.",
         "json": "Power users can also edit the list in settings.json under"
       }
+    },
+    "gsx": {
+      "gpuConnect": "Click to connect the ground power",
+      "gpuDisconnect": "Click to disconnect the ground power"
     }
   }
 }

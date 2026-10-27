@@ -22,6 +22,10 @@
         "none": "Aún no hay configurado ningún servidor de reconocimiento, de modelo de lenguaje ni de voz, así que no hay nada que etiquetar.",
         "json": "Los usuarios avanzados también pueden editar la lista en settings.json bajo"
       }
+    },
+    "gsx": {
+      "gpuConnect": "Haz clic para conectar la energía de tierra",
+      "gpuDisconnect": "Haz clic para desconectar la energía de tierra"
     }
   }
 }

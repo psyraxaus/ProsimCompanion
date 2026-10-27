@@ -9,9 +9,10 @@ namespace ProsimCompanion.Gsx.Diagnostics;
 
 /// <summary>
 /// The GSX page: the eight service boxes around the hull, the door markers, the three
-/// progress bars and the GSX-specific memo cells. Stages come from the service board the
-/// automation already publishes; the only judgement made here is the ECAM word for each
-/// stage and which rows are "queued" (amber).
+/// progress bars and the GSX-specific memo cells. Each box shows GSX's live state for the
+/// service first, the departure board's view (held reasons, latched completion) while GSX is
+/// idle, and the GPU box shows ProSim's external-power truth; the only judgement made here is
+/// the ECAM word for each stage and which rows are "queued" (amber).
 /// </summary>
 public sealed class GsxDiagnosticsCollector : IDiagnosticsCollector
 {
@@ -73,7 +74,7 @@ public sealed class GsxDiagnosticsCollector : IDiagnosticsCollector
         var snap = _store.Snapshot();
         var ready = _api.Readiness == GsxReadiness.Ready;
         var board = snap.ServiceBoard.ToDictionary(r => r.ServiceId, r => r, StringComparer.OrdinalIgnoreCase);
-        var waiting = snap.Services.Where(s => s.Waiting).Select(s => s.Id).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var live = snap.Services.ToDictionary(s => s.Id, s => s, StringComparer.OrdinalIgnoreCase);
 
         string? queued = null;
         string? next = null;
@@ -86,21 +87,54 @@ public sealed class GsxDiagnosticsCollector : IDiagnosticsCollector
                 continue;
             }
 
-            if (!board.TryGetValue(serviceId, out var row))
+            live.TryGetValue(serviceId, out var view);
+            board.TryGetValue(serviceId, out var row);
+
+            // The GPU box is ProSim's external-power truth (the unit physically on the
+            // aircraft), not GSX's service state and not the departure board — GSX flips its
+            // GPU service back to "available" while the unit stays connected, and the board
+            // only knows the services the sequence intends to call (owner report 2026-10-27:
+            // "NOT REQ" with the GPU connected). The GSX word rides along as the detail.
+            if (node == "gpu" && snap.GroundPowerConnected is { } gpuOn)
+            {
+                var gsxWord = view is null ? null : "GSX " + StageWord(view.Stage, node, view.Waiting).Value;
+                var gpuState = gpuOn ? DiagState.Normal : DiagState.NotApplicable;
+                page.Node(node, gpuState, gpuOn ? EcamTokens.Conn : EcamTokens.Off, gpuOn ? "EXT PWR" : row?.Detail?.ToUpperInvariant() ?? gsxWord);
+                states.Add(new(node.ToUpperInvariant(), gpuState));
+                continue;
+            }
+
+            if (view is null && row is null)
             {
                 page.NotApplicable(node, EcamTokens.NotReq);
                 continue;
             }
 
-            var (state, value) = StageWord(row.Stage, node, waiting.Contains(serviceId));
-            page.Node(node, state, value, row.Detail?.ToUpperInvariant());
+            // What GSX is doing right now comes first (a jetway docked by hand is CONN whether
+            // or not the sequence asked for it). While GSX sits idle the departure board adds
+            // the automation's view — held with its reason, latched completed (#29), skipped.
+            var stage = view?.Stage ?? row!.Stage;
+            if (row is not null && stage == GsxServiceStage.Waiting)
+            {
+                stage = row.Stage;
+            }
+
+            var detail = row?.Detail ?? view?.ProgressText;
+            if (detail is null && view?.Stage == GsxServiceStage.Skipped)
+            {
+                detail = EcamTokens.Unavail;
+            }
+
+            var (state, value) = StageWord(stage, node, view?.Waiting ?? false);
+            page.Node(node, state, value, detail?.ToUpperInvariant());
             states.Add(new(node.ToUpperInvariant(), state));
             if (state == DiagState.Caution && queued is null)
             {
                 queued = node.ToUpperInvariant();
             }
 
-            if (next is null && row.Stage is GsxServiceStage.Waiting or GsxServiceStage.Held)
+            // "Next" is the automation's queue, so only a board row can nominate it.
+            if (next is null && row is not null && stage is GsxServiceStage.Waiting or GsxServiceStage.Held)
             {
                 next = node.ToUpperInvariant();
             }

@@ -8,6 +8,7 @@ using Microsoft.JSInterop;
 using Moq;
 using ProsimCompanion.Core.Configuration;
 using ProsimCompanion.Core.Diagnostics.Ecam;
+using ProsimCompanion.Core.State;
 using ProsimCompanion.Core.Tests.Diagnostics.Ecam;
 using ProsimCompanion.Core.Tests.Localization;
 using ProsimCompanion.Web.Components.Diagnostics;
@@ -188,8 +189,29 @@ public sealed class EcamPagesRenderTests
         // With nothing known (the empty snapshot) the stairs show as amber XX in row 2.
         var empty = Flat(await RenderAsync<EcamGsxPage>(new Dictionary<string, object?> { ["Snap"] = DiagnosticsSnapshot.Empty }));
         Assert.Contains("left:14px;top:224px\"><div class=\"svc-title\">STAIRS", empty, StringComparison.Ordinal);
-        Assert.Contains("left:236px;top:8px\"><div class=\"svc-title\">PUSHBACK", html, StringComparison.Ordinal);
-        Assert.Contains("left:384px;top:8px\"><div class=\"svc-title\">GPU", html, StringComparison.Ordinal);
+        Assert.Contains("left:236px;top:6px\"><div class=\"svc-title\">PUSHBACK", html, StringComparison.Ordinal);
+        Assert.Contains("left:384px;top:6px\"><div class=\"svc-title\">GPU", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task GsxPage_GpuBox_IsASwitchOnlyWhenAServiceControlIsWired()
+    {
+        var plain = Flat(await RenderAsync<EcamGsxPage>(new Dictionary<string, object?> { ["Snap"] = Populated() }));
+        Assert.DoesNotContain("clickable", plain, StringComparison.Ordinal);
+        Assert.DoesNotContain("role=\"button\"", plain, StringComparison.Ordinal);
+
+        var control = new Mock<IGsxServiceControl>();
+        var html = Flat(await RenderAsync<EcamGsxPage>(new Dictionary<string, object?> { ["Snap"] = Populated() },
+            services => services.AddSingleton(control.Object)));
+        Assert.Contains("svc-box top-box st-nodata clickable", html, StringComparison.Ordinal);
+        Assert.Contains("role=\"button\"", html, StringComparison.Ordinal);
+        Assert.Contains("Click to connect the ground power", html, StringComparison.Ordinal);   // XX reads as not connected
+
+        var snap = Populated();
+        var on = snap with { Gsx = snap.Gsx with { Nodes = new Dictionary<string, DiagNode>(snap.Gsx.Nodes) { ["gpu"] = new DiagNode("gpu", DiagState.Normal, "CONN", "EXT PWR", null) } } };
+        html = Flat(await RenderAsync<EcamGsxPage>(new Dictionary<string, object?> { ["Snap"] = on },
+            services => services.AddSingleton(control.Object)));
+        Assert.Contains("Click to disconnect the ground power", html, StringComparison.Ordinal);
     }
 
     /// <summary>Markup with the whitespace between tags removed, so an assertion can span tags.</summary>
@@ -320,15 +342,16 @@ public sealed class EcamPagesRenderTests
     {
         var html = Flat(await RenderAsync<EcamRemotePage>(new Dictionary<string, object?> { ["Snap"] = Populated() }));
 
-        Assert.Contains("agent-box st-normal", html, StringComparison.Ordinal);
-        Assert.Contains("VOICEMEETER · CONN", html, StringComparison.Ordinal);
-        Assert.Contains("POTATO 3.1 · 2 CH", html, StringComparison.Ordinal);
-        Assert.Contains("agent-box st-caution", html, StringComparison.Ordinal);
-        Assert.Contains("MAC MINI · LOST 42 S", html, StringComparison.Ordinal);
-        Assert.Contains("10.0.1.30:5088", html, StringComparison.Ordinal);
+        // Numbered square + name in the state colour, the state word under the name.
+        Assert.Contains("sq agent-sq st-normal", html, StringComparison.Ordinal);
+        Assert.Contains("agent-name st-normal\" style=\"left:568px;top:188px\">VOICEMEETER", html, StringComparison.Ordinal);
+        Assert.Contains("agent-state c-cyan\" style=\"left:568px;top:208px\">CONNECTED", html, StringComparison.Ordinal);
+        Assert.Contains("sq agent-sq st-caution", html, StringComparison.Ordinal);
+        Assert.Contains("agent-name st-caution\" style=\"left:568px;top:226px\">MAC MINI", html, StringComparison.Ordinal);
+        Assert.Contains("agent-state st-caution\" style=\"left:568px;top:246px\">LOST 42 S", html, StringComparison.Ordinal);
         Assert.Contains("LISTEN", html, StringComparison.Ordinal);
         Assert.Contains("· TLS", html, StringComparison.Ordinal);
-        Assert.DoesNotContain("class=\"abs sq", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("agent-box", html, StringComparison.Ordinal);
     }
 
     private static async Task<string> RenderByType(Type page, DiagnosticsSnapshot snap)

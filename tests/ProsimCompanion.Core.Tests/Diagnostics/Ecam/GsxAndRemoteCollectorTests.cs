@@ -82,6 +82,53 @@ public sealed class GsxAndRemoteCollectorTests
     }
 
     [Fact]
+    public void Gsx_LiveStateBeatsTheBoard_AndTheGpuBoxIsProsimTruth()
+    {
+        var (collector, store, _) = Gsx(GsxReadiness.Ready);
+        // The board only knows catering (held) and refuel (idle); GSX itself says the jetway is
+        // docked and the stand has no stairs, and ProSim says the ground power is on.
+        store.Update(GsxDiagnosticsSnapshot.Empty with
+        {
+            Services =
+            [
+                new GsxServiceView(GsxServiceIds.OperateJetways, "Jetway", "performing", "Active", false, false, null, GsxServiceStage.Active),
+                new GsxServiceView(GsxServiceIds.OperateStairs, "Stairs", "unavailable", "NotAvailable", false, false, null, GsxServiceStage.Skipped),
+                new GsxServiceView(GsxServiceIds.Gpu, "GPU", "available", "Callable", true, false, null, GsxServiceStage.Waiting),
+                new GsxServiceView(GsxServiceIds.Catering, "Catering", "available", "Callable", true, false, null, GsxServiceStage.Waiting),
+                new GsxServiceView(GsxServiceIds.Refueling, "Refuel", "completed", "Completed", false, false, "9.2 t", GsxServiceStage.Completed),
+            ],
+        });
+        store.UpdateServiceBoard(
+        [
+            new GsxServiceBoardRow(GsxServiceIds.Catering, GsxServiceStage.Held, "beacon on"),
+            new GsxServiceBoardRow(GsxServiceIds.Refueling, GsxServiceStage.Waiting, null),
+        ]);
+        store.UpdateGroundPower(true);
+
+        var (page, _, _) = CollectorTestSupport.Run(collector);
+
+        Assert.Equal(EcamTokens.Conn, page.Nodes["jetway"].Value);            // docked, although not on the board
+        Assert.Equal(DiagState.NotApplicable, page.Nodes["stairs"].State);    // GSX: no stairs at this stand
+        Assert.Equal(EcamTokens.Unavail, page.Nodes["stairs"].Detail);
+        Assert.Equal(EcamTokens.Conn, page.Nodes["gpu"].Value);               // ProSim external power, not GSX's "available"
+        Assert.Equal("EXT PWR", page.Nodes["gpu"].Detail);
+        Assert.Equal("HELD", page.Nodes["catering"].Value);                   // GSX idle → the board's reason shows
+        Assert.Equal("BEACON ON", page.Nodes["catering"].Detail);
+        Assert.Equal(EcamTokens.Done, page.Nodes["refuel"].Value);            // GSX finished → beats the board's "waiting"
+        Assert.Equal("9.2 T", page.Nodes["refuel"].Detail);
+        Assert.Equal(DiagState.NotApplicable, page.Nodes["pushback"].State);  // known to nobody → NOT REQ
+        Assert.Equal(EcamTokens.NotReq, page.Nodes["pushback"].Detail);
+
+        // Ground power off: OFF in white with GSX's own word as the detail, and the box exists
+        // even when the GPU is on no board at all.
+        store.UpdateGroundPower(false);
+        (page, _, _) = CollectorTestSupport.Run(collector);
+        Assert.Equal(EcamTokens.Off, page.Nodes["gpu"].Value);
+        Assert.Equal(DiagState.NotApplicable, page.Nodes["gpu"].State);
+        Assert.Equal("GSX AVAIL", page.Nodes["gpu"].Detail);
+    }
+
+    [Fact]
     public void GsxSource_OnTheSimPage_LostIsACaution()
     {
         var api = new Mock<IGsxRemoteApi>();
