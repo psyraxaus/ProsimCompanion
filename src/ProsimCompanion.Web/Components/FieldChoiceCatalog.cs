@@ -96,8 +96,14 @@ public static class FieldChoiceCatalog
                 (GsxOptions.GroundPrepActivationVoiceThenAuto, T["gsxSettings.automation.groundPrepOptions.voiceThenAuto"].Value),
             ],
             ["removeStairs"] = T => [("never", T["gsxSettings.options.never"].Value), ("always", T["gsxSettings.options.always"].Value), ("onlyJetway", T["gsxSettings.options.onlyJetway"].Value)],
-            // The service door GSX caters through (diagnostics GSX page, 2026-10-27).
-            ["cateringDoor"] = T => [("forward", T["gsxSettings.options.cateringDoorForward"].Value), ("aft", T["gsxSettings.options.cateringDoorAft"].Value)],
+            // The service door GSX caters through (diagnostics GSX page, 2026-10-27): learned
+            // from GSX's service-door toggle by default, or pinned by hand.
+            ["cateringDoor"] = T =>
+            [
+                (GsxOptions.CateringDoorAuto, T["gsxSettings.options.cateringDoorAuto"].Value),
+                (GsxOptions.CateringDoorForward, T["gsxSettings.options.cateringDoorForward"].Value),
+                (GsxOptions.CateringDoorAft, T["gsxSettings.options.cateringDoorAft"].Value),
+            ],
             ["pcaMode"] = T => [("never", T["gsxSettings.options.never"].Value), ("always", T["gsxSettings.options.always"].Value), ("onlyJetway", T["gsxSettings.options.onlyJetway"].Value)],
             ["tugAnswer"] = T => [("ignore", T["gsxSettings.questions.tugOptions.ignore"].Value), ("no", T["gsxSettings.questions.tugOptions.no"].Value), ("yes", T["gsxSettings.questions.tugOptions.yes"].Value)],
             ["pushbackMode"] = T =>

@@ -141,8 +141,11 @@ public sealed class GsxDiagnosticsCollector : IDiagnosticsCollector
         }
 
         // Which service door the catering truck serves (the page places the CATERING box
-        // beside it): the user's mirror of their GSX profile, forward unless told otherwise.
-        page.Readout("catering_door", string.Equals(_options?.CurrentValue.CateringDoor, "aft", StringComparison.OrdinalIgnoreCase) ? "4R" : "1R");
+        // beside it): the user's pick, else the door GSX last asked for, else forward.
+        var cateringDoor = _options is null
+            ? Core.Configuration.GsxOptions.CateringDoorForward
+            : Core.Configuration.GsxOptions.EffectiveCateringDoor(_options.CurrentValue);
+        page.Readout("catering_door", cateringDoor == Core.Configuration.GsxOptions.CateringDoorAft ? "4R" : "1R");
 
         // Door markers on the hull: one readout per open door, "OPEN".
         foreach (var door in _doors.Read())

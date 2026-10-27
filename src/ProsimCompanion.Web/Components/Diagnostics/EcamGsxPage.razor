@@ -46,7 +46,9 @@
         ("REFUEL", refuel, 1),
         ("DEICE", deice, 2),
     };
-    // Door connectors run onto the door itself (its centre column) and end with a dot.
+    // Door connectors stop just outside the fuselage and end with a dot there, so the door
+    // marker's own colour stays visible (owner request 2026-10-27: the dot used to sit on the
+    // marker and hide whether the door was green or amber).
     var toLeftEdge = DoorLeftX - BoxRight;
     var toRightEdge = RightBoxLeft - DoorRightX;
 }
@@ -71,8 +73,11 @@
     <div class="abs door @(open ? "open st-caution" : "st-normal")" style="left:@(x)px;top:@(y)px"></div>
     if (open)
     {
-        @* The label sits above the marker, clear of the connector that ends on the door. *@
-        <div class="abs detail c-amber" style="left:@(labelLeft ? x - 30 : x - 2)px;top:@(y - 13)px;width:36px;@(labelLeft ? "text-align:right" : "")">@label</div>
+        @* The label sits above the marker, clear of the connector dot beside the door. Left
+           labels end on the marker's right edge, right labels start on its left edge, and
+           the text never wraps — "FWD CGO" once broke onto a second line over the marker
+           (owner screenshot 2026-10-27). *@
+        <div class="abs door-label c-amber" style="left:@(labelLeft ? x + DoorMarkerWidth - DoorLabelWidth : x)px;top:@(y - 13)px;width:@(DoorLabelWidth)px;@(labelLeft ? "text-align:right" : "")">@label</div>
     }
 }
 
@@ -278,8 +283,17 @@ else
     private static readonly int Door1RY = HullY(A320Anchors.Door1R.Y);
     private static readonly int Door4LY = HullY(A320Anchors.Door4L.Y);
     private static readonly int Door4RY = HullY(A320Anchors.Door4R.Y);
-    private static readonly int DoorLeftX = HullX(A320Anchors.Door1L.X);
-    private static readonly int DoorRightX = HullX(A320Anchors.Door1R.X);
+
+    // The door connectors end this far outside the fuselage line (stage px): the 8 px dot
+    // then clears the 11 px door marker, which straddles the line by up to 5 px on the right.
+    private const int DoorDotGap = 12;
+    private static readonly int DoorLeftX = FuselageLeftX - DoorDotGap;
+    private static readonly int DoorRightX = FuselageRightX + DoorDotGap;
+
+    // The door marker's outer width (7 px box + 2 px borders) and the one width every open-door
+    // label gets, wide enough for "FWD CGO" at 11 px without wrapping.
+    private const int DoorMarkerWidth = 11;
+    private const int DoorLabelWidth = 56;
     private static readonly int NoseX = HullX(A320Anchors.NoseTip.X);
     private static readonly int GpuY = HullY(A320Anchors.GpuReceptacle.Y);
     private static readonly int WingRightX = HullX(A320Anchors.RefuelPanel.X);

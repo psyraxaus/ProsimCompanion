@@ -31,6 +31,7 @@ public sealed class GsxDoorService : IDisposable
     private readonly GsxProsimWriter _writer;
     private readonly IOptionsMonitor<GsxOptions> _options;
     private readonly GsxDiagnosticsStore _diagnostics;
+    private readonly SettingsWriter _settings;
     private readonly ILogger<GsxDoorService> _logger;
     private readonly CancellationTokenSource _shutdown = new();
 
@@ -74,6 +75,7 @@ public sealed class GsxDoorService : IDisposable
         GsxServiceLifecycleTracker lifecycle,
         IOptionsMonitor<GsxOptions> options,
         GsxDiagnosticsStore diagnostics,
+        SettingsWriter settings,
         ILogger<GsxDoorService> logger)
     {
         ArgumentNullException.ThrowIfNull(prosim);
@@ -82,11 +84,13 @@ public sealed class GsxDoorService : IDisposable
         ArgumentNullException.ThrowIfNull(lifecycle);
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(diagnostics);
+        ArgumentNullException.ThrowIfNull(settings);
         ArgumentNullException.ThrowIfNull(logger);
 
         _simVars = simVars;
         _writer = writer;
         _options = options;
+        _settings = settings;
         _diagnostics = diagnostics;
         _logger = logger;
 
@@ -266,6 +270,22 @@ public sealed class GsxDoorService : IDisposable
     {
         try
         {
+            // The service-door toggles are read before any gate: GSX pulses SERVICE_1 (1R) or
+            // SERVICE_2 (4R) for the door its aircraft profile caters through, and that is the
+            // only way the app learns which door that is (gsx.cateringDoor = auto). Learning
+            // must work with door automation off too, so the edge is taken here, once, and the
+            // door write below reuses it.
+            var service1Rose = Rose(_toggleService1, ref _lastToggleService1);
+            var service2Rose = Rose(_toggleService2, ref _lastToggleService2);
+            if (service2Rose)
+            {
+                LearnCateringDoor(GsxOptions.CateringDoorAft, "4R", "service-2");
+            }
+            else if (service1Rose)
+            {
+                LearnCateringDoor(GsxOptions.CateringDoorForward, "1R", "service-1");
+            }
+
             if (!Enabled)
             {
                 return;
@@ -286,10 +306,15 @@ public sealed class GsxDoorService : IDisposable
 
             if (options.DoorCateringHandling)
             {
-                HandleToggle(_toggleService1, ref _lastToggleService1, () =>
-                    ToggleDoorAsync(_door1R, ProsimDataRefNames.Door1R, "1R", "GSX service-1 toggle"));
-                HandleToggle(_toggleService2, ref _lastToggleService2, () =>
-                    ToggleDoorAsync(_door4R, ProsimDataRefNames.Door4R, "4R", "GSX service-2 toggle"));
+                if (service1Rose)
+                {
+                    _ = ToggleDoorAsync(_door1R, ProsimDataRefNames.Door1R, "1R", "GSX service-1 toggle");
+                }
+
+                if (service2Rose)
+                {
+                    _ = ToggleDoorAsync(_door4R, ProsimDataRefNames.Door4R, "4R", "GSX service-2 toggle");
+                }
             }
 
             if (options.DoorStairHandling)
@@ -305,12 +330,46 @@ public sealed class GsxDoorService : IDisposable
 
     private static void HandleToggle(IDataRefSubscription<double> toggle, ref double last, Func<Task> action)
     {
+        if (Rose(toggle, ref last))
+        {
+            _ = action();
+        }
+    }
+
+    /// <summary>True on the 0 → non-zero edge of a GSX toggle LVAR; <paramref name="last"/>
+    /// keeps the previous reading so a value that stays high is one edge, not many.</summary>
+    private static bool Rose(IDataRefSubscription<double> toggle, ref double last)
+    {
         var value = toggle.Value;
         var rising = value != 0 && last == 0;
         last = value;
-        if (rising)
+        return rising;
+    }
+
+    /// <summary>Remember which service door GSX caters through (gsx.cateringDoorLearned) so
+    /// the diagnostics GSX page draws CATERING beside the right door next time too. Written
+    /// only when it changes — one line in the file per real change, none per pulse.</summary>
+    private void LearnCateringDoor(string door, string label, string toggle)
+    {
+        var options = _options.CurrentValue;
+        if (string.Equals(options.CateringDoorLearned, door, StringComparison.OrdinalIgnoreCase))
         {
-            _ = action();
+            return;
+        }
+
+        RecordDecision("doors", $"catering door learned: {label} (GSX {toggle} toggle)");
+        if (!string.Equals(options.CateringDoor, GsxOptions.CateringDoorAuto, StringComparison.OrdinalIgnoreCase))
+        {
+            _logger.LogInformation("GSX caters through {Door} but gsx.cateringDoor is {Pick}; the learned door is recorded, the pick stays", label, options.CateringDoor);
+        }
+
+        try
+        {
+            _settings.Set<GsxOptions, string?>(o => o.CateringDoorLearned, door);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            _logger.LogWarning(ex, "Could not save the learned catering door {Door} to settings.json", label);
         }
     }
 

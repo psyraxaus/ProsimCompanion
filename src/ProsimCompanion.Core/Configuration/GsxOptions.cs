@@ -502,13 +502,52 @@ public sealed class GsxOptions : IOptionSection
     [OptionField(FieldKind.Bool, "gsxSettings.doors.catering", DependsOn = "DoorAutomationEnabled")]
     public bool DoorCateringHandling { get; set; } = true;
 
-    /// <summary>Which starboard service door the catering truck serves in the user's GSX
-    /// aircraft profile: <c>forward</c> (1R, the usual A320 setup) or <c>aft</c> (4R). The app
-    /// cannot read GSX's profile, so the user mirrors it here; the diagnostics GSX page places
-    /// the CATERING box beside that door and draws its connector there (owner request
-    /// 2026-10-27).</summary>
+    /// <summary>Catering door choice: learn it from GSX.</summary>
+    public const string CateringDoorAuto = "auto";
+
+    /// <summary>Catering door choice: the forward service door (1R).</summary>
+    public const string CateringDoorForward = "forward";
+
+    /// <summary>Catering door choice: the aft service door (4R).</summary>
+    public const string CateringDoorAft = "aft";
+
+    /// <summary>Which starboard service door the catering truck serves: <c>auto</c> (the
+    /// default — learned from GSX, see <see cref="CateringDoorLearned"/>), <c>forward</c> (1R,
+    /// the usual A320 setup) or <c>aft</c> (4R). The door is set in the user's GSX aircraft
+    /// profile, which the app cannot read; GSX reveals it by pulsing
+    /// <c>AIRCRAFT_SERVICE_1_TOGGLE</c> (1R) or <c>AIRCRAFT_SERVICE_2_TOGGLE</c> (4R) when the
+    /// truck wants the door. The diagnostics GSX page places the CATERING box beside the
+    /// resolved door and draws its connector there (owner request 2026-10-27; auto-learning
+    /// added the same day after a flight where the truck came to 4R while the page showed 1R).</summary>
     [OptionField(FieldKind.Select, "gsxSettings.doors.cateringDoor", Choices = "cateringDoor")]
-    public string CateringDoor { get; set; } = "forward";
+    public string CateringDoor { get; set; } = CateringDoorAuto;
+
+    /// <summary>The service door GSX last asked for (<c>forward</c> or <c>aft</c>), written by
+    /// the door service when a service-door toggle pulses; null until GSX has asked once. Read
+    /// only while <see cref="CateringDoor"/> is <c>auto</c>. Not edited on a page — the Catering
+    /// door hint shows it.</summary>
+    public string? CateringDoorLearned { get; set; }
+
+    /// <summary>The door the catering truck is taken to serve, <c>forward</c> or <c>aft</c>:
+    /// the user's explicit pick, else the learned door, else forward (the usual A320 profile).
+    /// A static method, not a property, so the draft serializer never writes it to the file.</summary>
+    public static string EffectiveCateringDoor(GsxOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        if (string.Equals(options.CateringDoor, CateringDoorAft, StringComparison.OrdinalIgnoreCase))
+        {
+            return CateringDoorAft;
+        }
+
+        if (string.Equals(options.CateringDoor, CateringDoorForward, StringComparison.OrdinalIgnoreCase))
+        {
+            return CateringDoorForward;
+        }
+
+        return string.Equals(options.CateringDoorLearned, CateringDoorAft, StringComparison.OrdinalIgnoreCase)
+            ? CateringDoorAft
+            : CateringDoorForward;
+    }
 
     /// <summary>Cargo doors follow GSX boarding/deboarding (predecessor DoorCargoHandling —
     /// the CARGO_n toggles plus loader-finished closes).</summary>

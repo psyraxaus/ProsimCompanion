@@ -322,4 +322,25 @@ public sealed class GsxCateringDoorTests
 
         Assert.Equal(expected, page.Readout("catering_door"));
     }
+
+    /// <summary>Auto (the default) follows what GSX taught the door service; an explicit pick
+    /// beats the learned door; nothing learned yet means forward.</summary>
+    [Theory]
+    [InlineData("auto", null, "1R")]
+    [InlineData("auto", "aft", "4R")]
+    [InlineData("auto", "forward", "1R")]
+    [InlineData("forward", "aft", "1R")]
+    [InlineData("aft", "forward", "4R")]
+    public void CateringDoor_AutoFollowsTheLearnedDoor(string setting, string? learned, string expected)
+    {
+        var api = new Mock<IGsxRemoteApi>();
+        api.SetupGet(a => a.Readiness).Returns(GsxReadiness.Ready);
+        var collector = new GsxDiagnosticsCollector(
+            new GsxDiagnosticsStore(), api.Object, new DoorStateReader(new TableDataRefs()), new DepartureCycleState(),
+            options: new FixedOptionsMonitor<GsxOptions>(new GsxOptions { CateringDoor = setting, CateringDoorLearned = learned }));
+
+        var (page, _, _) = CollectorTestSupport.Run(collector);
+
+        Assert.Equal(expected, page.Readout("catering_door"));
+    }
 }

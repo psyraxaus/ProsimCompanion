@@ -2,13 +2,13 @@
   "gsxSettings": {
     "pageTitle": "Ground Services — ProsimCompanion",
     "heading": "Ground Services",
-    "options": { "never": "Never", "always": "Always", "onlyJetway": "Only jetway stands", "cateringDoorForward": "Forward service door (1R)", "cateringDoorAft": "Aft service door (4R)" },
+    "options": { "never": "Never", "always": "Always", "onlyJetway": "Only jetway stands", "cateringDoorAuto": "Auto (learn from GSX)", "cateringDoorForward": "Forward service door (1R)", "cateringDoorAft": "Aft service door (4R)" },
     "doors": {
       "title": "Doors",
       "automation": { "label": "Door automation", "hint": "Lets the app open and close doors for the ground services.", "more": "The door rules below only work while this is on." },
       "stairs": { "label": "Passenger doors follow stairs", "hint": "The rear passenger door opens when the stairs arrive and closes when they leave.", "more": "At stands without a jetway the front door opens too." },
       "catering": { "label": "Service doors follow catering", "hint": "The right-side service doors open and close for the catering truck." },
-      "cateringDoor": { "label": "Catering door", "hint": "The service door your GSX aircraft profile sends the catering truck to. The Diagnostics GSX page draws the catering box beside it." },
+      "cateringDoor": { "label": "Catering door", "hint": "The service door your GSX aircraft profile sends the catering truck to. Auto learns it the first time GSX asks for a door; pick a door to override. The Diagnostics GSX page draws the catering box beside it.", "learned": "Learned from GSX: {0}.", "notLearned": "Nothing learned yet: the forward door is assumed until GSX asks for one." },
       "cargo": { "label": "Cargo doors follow loading", "hint": "The cargo doors open for the loaders and close when each loader finishes." },
       "cargoOnBoarding": { "label": "Open cargo doors on boarding active", "hint": "Both cargo doors open shortly after boarding or deboarding starts." },
       "cargoOpenDelay": { "label": "Cargo door open delay", "hint": "Wait after boarding or deboarding begins." },

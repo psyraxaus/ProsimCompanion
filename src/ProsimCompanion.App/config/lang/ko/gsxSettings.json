@@ -2,13 +2,13 @@
   "gsxSettings": {
     "pageTitle": "지상 서비스 — ProsimCompanion",
     "heading": "지상 서비스",
-    "options": { "never": "안 함", "always": "항상", "onlyJetway": "탑승교 스탠드만", "cateringDoorForward": "전방 서비스 도어 (1R)", "cateringDoorAft": "후방 서비스 도어 (4R)" },
+    "options": { "never": "안 함", "always": "항상", "onlyJetway": "탑승교 스탠드만", "cateringDoorAuto": "자동 (GSX에서 학습)", "cateringDoorForward": "전방 서비스 도어 (1R)", "cateringDoorAft": "후방 서비스 도어 (4R)" },
     "doors": {
       "title": "도어",
       "automation": { "label": "도어 자동화", "hint": "지상 서비스를 위해 앱이 도어를 열고 닫을 수 있게 합니다.", "more": "아래 도어 규칙은 이 설정이 켜져 있을 때만 작동합니다." },
       "stairs": { "label": "승객 도어는 스텝카를 따름", "hint": "스텝카가 도착하면 후방 승객 도어가 열리고, 떠나면 닫힙니다.", "more": "탑승교가 없는 스탠드에서는 전방 도어도 열립니다." },
       "catering": { "label": "서비스 도어는 케이터링을 따름", "hint": "우측 서비스 도어가 케이터링 트럭을 위해 열리고 닫힙니다." },
-      "cateringDoor": { "label": "케이터링 도어", "hint": "GSX 항공기 프로필이 케이터링 트럭을 보내는 서비스 도어입니다. 진단의 GSX 페이지는 그 옆에 케이터링 상자를 그립니다." },
+      "cateringDoor": { "label": "케이터링 도어", "hint": "GSX 항공기 프로필이 케이터링 트럭을 보내는 서비스 도어입니다. 자동은 GSX가 처음 도어를 요청할 때 학습합니다. 도어를 직접 고르면 그 값이 우선합니다. 진단의 GSX 페이지는 그 옆에 케이터링 상자를 그립니다.", "learned": "GSX에서 학습함: {0}", "notLearned": "아직 학습하지 않음: GSX가 도어를 요청할 때까지 전방 도어로 간주합니다." },
       "cargo": { "label": "화물 도어는 적재를 따름", "hint": "화물 도어가 로더를 위해 열리고, 각 로더가 끝나면 닫힙니다." },
       "cargoOnBoarding": { "label": "탑승 진행 시 화물 도어 열기", "hint": "탑승 또는 하기가 시작된 직후 양쪽 화물 도어가 열립니다." },
       "cargoOpenDelay": { "label": "화물 도어 열기 지연", "hint": "탑승 또는 하기 시작 후 대기 시간." },

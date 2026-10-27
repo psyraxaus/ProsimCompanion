@@ -36,6 +36,7 @@ public sealed class OptionFieldCompletenessTests
         // Written by other surfaces or by the app itself.
         ["FlightStatusOptions.TileOrder"] = "dragged on the Flight Status page itself",
         ["GsxOptions.AutoPca"] = "legacy bool behind pcaMode (GsxPageRules.EffectivePcaMode)",
+        ["GsxOptions.CateringDoorLearned"] = "written by GsxDoorService from GSX's service-door toggle; the Catering door hint shows it",
         ["SpeechOptions.PttKey"] = "legacy flat PTT field, migrated into PttBinding",
         ["SpeechOptions.PttJoystickDevice"] = "legacy flat PTT field",
         ["SpeechOptions.PttJoystickButton"] = "legacy flat PTT field",

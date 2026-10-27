@@ -33,7 +33,7 @@ else if (CurrentSection == "doors")
         <OptionField Draft="_gsx" For="o => o.DoorAutomationEnabled" />
         <OptionField Draft="_gsx" For="o => o.DoorStairHandling" />
         <OptionField Draft="_gsx" For="o => o.DoorCateringHandling" />
-        <OptionField Draft="_gsx" For="o => o.CateringDoor" />
+        <OptionField Draft="_gsx" For="o => o.CateringDoor" Hint="@CateringDoorHint" />
         <OptionField Draft="_gsx" For="o => o.DoorCargoHandling" />
         <OptionField Draft="_gsx" For="o => o.DoorOpenOnBoardingActive" />
         <OptionField Draft="_gsx" For="o => o.CargoDoorOpenDelaySec" />
@@ -438,6 +438,17 @@ else if (CurrentSection == "connection")
             return groups;
         }
     }
+
+    /// <summary>The Catering door hint plus what the app has learned from GSX so far (the
+    /// learned door is written by the door service, never edited here).</summary>
+    private string CateringDoorHint
+        => T["gsxSettings.doors.cateringDoor.hint"].Value + " "
+            + (GsxMonitor.CurrentValue.CateringDoorLearned is { Length: > 0 } learned
+                ? T["gsxSettings.doors.cateringDoor.learned",
+                    T[string.Equals(learned, GsxOptions.CateringDoorAft, StringComparison.OrdinalIgnoreCase)
+                        ? "gsxSettings.options.cateringDoorAft"
+                        : "gsxSettings.options.cateringDoorForward"].Value].Value
+                : T["gsxSettings.doors.cateringDoor.notLearned"].Value);
 
     private string SmartButtonSwitchMore
         => T["gsxSettings.automation.smartButtonSwitch.more"].Value + " "

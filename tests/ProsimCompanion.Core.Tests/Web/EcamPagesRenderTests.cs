@@ -225,6 +225,26 @@ public sealed class EcamPagesRenderTests
     /// <summary>Markup with the whitespace between tags removed, so an assertion can span tags.</summary>
     private static string Flat(string html) => System.Text.RegularExpressions.Regex.Replace(html, ">\\s+<", "><");
 
+    /// <summary>Owner screenshot 2026-10-27: the connector dot sat on the door marker and hid
+    /// its colour, and "FWD CGO" wrapped onto the marker. The fuselage sides are x = 348 and
+    /// x = 380 on the stage (drawing 730 / 907 × 294 / 1593, from 213); the dots now end 12 px
+    /// outside them, and every label is one 56 px line.</summary>
+    [Fact]
+    public async Task GsxPage_DoorDotsSitOutsideTheFuselage_AndLabelsNeverWrap()
+    {
+        var html = await RenderAsync<EcamGsxPage>(new Dictionary<string, object?> { ["Snap"] = Populated() });
+
+        // Door 1L: marker at x = 349, y = 109; the jetway dot (8 px) ends at x = 340, clear of it.
+        Assert.Contains("class=\"abs door open st-caution\" style=\"left:349px;top:109px\"", html, StringComparison.Ordinal);
+        Assert.Contains("class=\"abs link-dot st-normal\" style=\"left:332px;top:109px\"", html, StringComparison.Ordinal);
+        // Door 1R (catering, forward): the dot starts at x = 388, past the marker's right edge (385).
+        Assert.Contains("style=\"left:388px;top:109px\"", html, StringComparison.Ordinal);
+
+        // The 1L label ends on the marker's right edge, one line wide, never 36 px.
+        Assert.Contains("class=\"abs door-label c-amber\" style=\"left:304px;top:96px;width:56px;text-align:right\">1L<", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("width:36px", html, StringComparison.Ordinal);
+    }
+
     [Fact]
     public async Task GsxPage_OpenDoorIsAmber_NotRequiredIsWhiteDashes_BarsHaveFigures()
     {

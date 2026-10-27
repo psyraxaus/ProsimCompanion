@@ -2,13 +2,13 @@
   "gsxSettings": {
     "pageTitle": "地上サービス — ProsimCompanion",
     "heading": "地上サービス",
-    "options": { "never": "しない", "always": "常に", "onlyJetway": "ブリッジ付きスポットのみ", "cateringDoorForward": "前方サービスドア (1R)", "cateringDoorAft": "後方サービスドア (4R)" },
+    "options": { "never": "しない", "always": "常に", "onlyJetway": "ブリッジ付きスポットのみ", "cateringDoorAuto": "自動 (GSX から学習)", "cateringDoorForward": "前方サービスドア (1R)", "cateringDoorAft": "後方サービスドア (4R)" },
     "doors": {
       "title": "ドア",
       "automation": { "label": "ドア自動化", "hint": "地上サービスのためにアプリがドアを開閉できるようにします。", "more": "下のドアルールはこれがオンのときだけ働きます。" },
       "stairs": { "label": "客室ドアはステアに従う", "hint": "ステアが到着すると後方客室ドアが開き、離れると閉じます。", "more": "ブリッジのないスポットでは前方ドアも開きます。" },
       "catering": { "label": "サービスドアはケータリングに従う", "hint": "右側のサービスドアがケータリングトラックのために開閉します。" },
-      "cateringDoor": { "label": "ケータリングドア", "hint": "GSX の機体プロファイルがケータリングトラックを向かわせるサービスドアです。診断の GSX ページはその横にケータリングの枠を描きます。" },
+      "cateringDoor": { "label": "ケータリングドア", "hint": "GSX の機体プロファイルがケータリングトラックを向かわせるサービスドアです。自動は GSX が最初にドアを要求したときに学習します。ドアを選ぶと上書きできます。診断の GSX ページはその横にケータリングの枠を描きます。", "learned": "GSX から学習済み: {0}", "notLearned": "まだ学習していません: GSX がドアを要求するまで前方ドアとみなします。" },
       "cargo": { "label": "カーゴドアは搭載に従う", "hint": "カーゴドアはローダーのために開き、各ローダーが終わると閉じます。" },
       "cargoOnBoarding": { "label": "搭乗開始時にカーゴドアを開く", "hint": "搭乗または降機が始まるとすぐに両方のカーゴドアが開きます。" },
       "cargoOpenDelay": { "label": "カーゴドア開放の遅延", "hint": "搭乗または降機の開始後の待ち時間。" },

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.8.0-rc.18
+
+Local build for the owner's next flight, 2026-10-27, on `feature/ecam-diagnostics` (over rc.17).
+
+- Fixed: **Diagnostics GSX page, door labels** (owner screenshot 2026-10-27): "FWD CGO" and "AFT CGO" wrapped onto a second line over the door marker. Every open-door label is now one line of fixed width, right-aligned to the marker on the left side and left-aligned on the right.
+- Changed: the jetway, stairs and catering connectors stop 12 px outside the fuselage line, dot and all, so the door marker's own colour (green closed, amber open) is visible again instead of being covered by the dot.
+- Added: **catering door learned from GSX** (owner flight 2026-10-27: the truck came to 4R while the page, reading the "forward" setting, drew it at 1R). `gsx.cateringDoor` gains **Auto** (now the default): the first time GSX pulses a service-door toggle (`SERVICE_1` = 1R, `SERVICE_2` = 4R) the door service records `gsx.cateringDoorLearned` in settings.json and the GSX page draws CATERING beside that door from then on. Forward / Aft still pin the door by hand; the Doors hint on Ground Services shows what was learned. Learning works with door automation off. Probe `catering-door-learned`.
+
 ## 0.8.0-rc.17
 
 Local build for the owner's hardware test, 2026-10-27, on `feature/ecam-diagnostics` (over rc.16).

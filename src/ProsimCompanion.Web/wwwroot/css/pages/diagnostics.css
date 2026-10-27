@@ -155,6 +155,8 @@
 .hull .hull-path { fill: var(--ecam-green); fill-rule: evenodd; stroke: var(--ecam-green); stroke-width: 2.5; stroke-linejoin: round; }
 .door { width: 7px; height: 10px; border: 2px solid var(--st); }
 .door.open { background: var(--ecam-amber); border-color: var(--ecam-amber); }
+/* Open-door label above its marker: one line, never wrapped ("FWD CGO" once broke onto the marker). */
+.door-label { font-size: 11px; line-height: 12px; white-space: nowrap; }
 .bar-track { height: 14px; border: 1px solid var(--st); }
 .bar-fill { height: 100%; background: var(--st); }
 

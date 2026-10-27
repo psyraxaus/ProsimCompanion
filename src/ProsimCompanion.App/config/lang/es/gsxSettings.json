@@ -2,13 +2,13 @@
   "gsxSettings": {
     "pageTitle": "Servicios de tierra — ProsimCompanion",
     "heading": "Servicios de tierra",
-    "options": { "never": "Nunca", "always": "Siempre", "onlyJetway": "Solo puestos con pasarela", "cateringDoorForward": "Puerta de servicio delantera (1R)", "cateringDoorAft": "Puerta de servicio trasera (4R)" },
+    "options": { "never": "Nunca", "always": "Siempre", "onlyJetway": "Solo puestos con pasarela", "cateringDoorAuto": "Automático (aprender de GSX)", "cateringDoorForward": "Puerta de servicio delantera (1R)", "cateringDoorAft": "Puerta de servicio trasera (4R)" },
     "doors": {
       "title": "Puertas",
       "automation": { "label": "Automatización de puertas", "hint": "Permite que la app abra y cierre puertas para los servicios de tierra.", "more": "Las reglas de puertas de abajo solo funcionan mientras esto está activado." },
       "stairs": { "label": "Las puertas de pasajeros siguen a las escaleras", "hint": "La puerta trasera de pasajeros se abre cuando llegan las escaleras y se cierra cuando se van.", "more": "En puestos sin pasarela también se abre la puerta delantera." },
       "catering": { "label": "Las puertas de servicio siguen al catering", "hint": "Las puertas de servicio del lado derecho se abren y cierran para el camión de catering." },
-      "cateringDoor": { "label": "Puerta de catering", "hint": "La puerta de servicio a la que tu perfil de avión de GSX envía el camión de catering. La página GSX de Diagnóstico dibuja la casilla de catering junto a ella." },
+      "cateringDoor": { "label": "Puerta de catering", "hint": "La puerta de servicio a la que tu perfil de avión de GSX envía el camión de catering. Automático la aprende la primera vez que GSX pide una puerta; elige una puerta para forzarla. La página GSX de Diagnóstico dibuja la casilla de catering junto a ella.", "learned": "Aprendida de GSX: {0}.", "notLearned": "Nada aprendido todavía: se asume la puerta delantera hasta que GSX pida una." },
       "cargo": { "label": "Las puertas de carga siguen a la carga", "hint": "Las puertas de carga se abren para los cargadores y se cierran cuando cada cargador termina." },
       "cargoOnBoarding": { "label": "Abrir las puertas de carga con el embarque activo", "hint": "Ambas puertas de carga se abren poco después de empezar el embarque o el desembarque." },
       "cargoOpenDelay": { "label": "Retardo de apertura de la puerta de carga", "hint": "Espera tras el inicio del embarque o el desembarque." },
