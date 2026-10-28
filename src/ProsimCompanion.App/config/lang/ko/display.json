@@ -62,7 +62,9 @@
       "saveFirst": "먼저 화면 설정을 저장하세요.",
       "confirm": "이 파일에 InitialZoom {0}을(를) 쓸까요? 먼저 백업을 만듭니다.",
       "yes": "예, 쓰기",
-      "cancel": "취소"
+      "cancel": "취소",
+      "cpWarning": "MSFS 2024용 ChasePlane이 설치되어 있습니다. 실행 중에는 매 프레임 카메라를 제어하므로 여기서 쓴 줌은 보이는 화면을 바꾸지 않습니다. Alt+1이나 재시작 후에도 마찬가지입니다.",
+      "cpWarningTarget": "대신 ChasePlane의 조종석 프리셋에서 시야각을 설정하세요. Developer Mode → Debug → Aircraft → Camera Blend의 Fov가 {0} rad가 될 때까지 줌을 조정합니다. 또는 ChasePlane을 종료하고 카메라 파일을 사용하세요."
     },
     "realism": {
       "label": "사실성",
@@ -139,7 +141,7 @@
       "title": "ChasePlane",
       "hint": "감지만",
       "notDetected": "이 PC에서 MSFS 2024용 ChasePlane이 감지되지 않았습니다.",
-      "detected": "MSFS 2024용 ChasePlane이 설치되어 있습니다. 조종석 프리셋은 자체 줌을 가지며 불러오면 기본 시점을 덮어씁니다. 이 페이지가 쓰는 파일은 ChasePlane이 보여 주는 것이 아닙니다.",
+      "detected": "MSFS 2024용 ChasePlane이 설치되어 있고 시뮬레이터와 함께 시작됩니다. 실행 중에는 매 프레임 카메라를 제어하므로 이 페이지가 쓰는 파일은 보이는 화면이 아닙니다. ChasePlane의 조종석 프리셋을 설정하기 전까지 Fov는 기본값에 머뭅니다.",
       "target": "ChasePlane에서 맞추려면 개발자 모드의 Fov가 {0} rad ({1}° 수직)가 될 때까지 조종석 프리셋의 줌을 조정하세요.",
       "advice": "가장 간단한 방법: 조종석 시점은 기본 그대로 두고 (ChasePlane 조종석 프리셋을 불러오지 않음) 외부 카메라에만 ChasePlane을 쓰세요. 여기서는 ChasePlane 파일에 절대 쓰지 않습니다."
     }

@@ -62,7 +62,9 @@
       "saveFirst": "Enregistre d'abord les réglages d'écran.",
       "confirm": "Écrire InitialZoom {0} dans ce fichier ? Une sauvegarde est faite d'abord.",
       "yes": "Oui, écrire",
-      "cancel": "Annuler"
+      "cancel": "Annuler",
+      "cpWarning": "ChasePlane pour MSFS 2024 est installé. Tant qu'il tourne, il pilote la caméra à chaque image : le zoom écrit ici ne change pas ce que tu vois, même après Alt+1 ou un redémarrage.",
+      "cpWarningTarget": "Règle plutôt le champ de vision dans le préréglage cockpit de ChasePlane : ajuste son zoom jusqu'à ce que Developer Mode → Debug → Aircraft → Camera Blend affiche Fov {0} rad. Ou ferme ChasePlane pour utiliser le fichier de caméra."
     },
     "realism": {
       "label": "Réalisme",
@@ -139,7 +141,7 @@
       "title": "ChasePlane",
       "hint": "Détection seulement",
       "notDetected": "ChasePlane pour MSFS 2024 n'a pas été détecté sur ce PC.",
-      "detected": "ChasePlane pour MSFS 2024 est installé. Ses préréglages cockpit ont leur propre zoom et remplacent la vue native quand tu les rappelles — le fichier que cette page écrit n'est pas ce que ChasePlane affiche.",
+      "detected": "ChasePlane pour MSFS 2024 est installé et démarre avec le simulateur. Tant qu'il tourne, il pilote la caméra à chaque image : le fichier que cette page écrit n'est pas ce que tu vois ; le Fov reste à la valeur par défaut tant que le préréglage cockpit de ChasePlane n'est pas réglé.",
       "target": "Pour l'aligner dans ChasePlane, ajuste le zoom du préréglage cockpit jusqu'à ce que le Fov du mode dev affiche {0} rad ({1}° vertical).",
       "advice": "Le plus simple : laisser la vue cockpit native (ne pas rappeler de préréglage cockpit ChasePlane) et utiliser ChasePlane pour les caméras extérieures. Rien ici n'écrit jamais dans les fichiers de ChasePlane."
     }

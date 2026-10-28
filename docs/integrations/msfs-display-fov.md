@@ -125,10 +125,12 @@ Parallel 42's ChasePlane for MSFS 2024 keeps its presets under
 `…\LocalState\WASM\MSFS2024\p42-util-chaseplane\work` (Store) or
 `%APPDATA%\Microsoft Flight Simulator 2024\WASM\MSFS2024\p42-util-chaseplane\work` (Steam).
 The format is undocumented and is **never written**; `MsfsPackageRoots.ChasePlaneDetected()` is
-a folder-exists probe and nothing more. A recalled CP cockpit preset carries its own zoom and
-overrides the native view, so the page's ChasePlane section shows the target dev-mode `Fov`
-(radians) to match by hand and suggests leaving the cockpit view native and using CP for the
-external cameras only.
+a folder-exists probe and nothing more. **Owner's rig 2026-10-29:** CP's Bridge and Manager are
+in the sim's `exe.xml` (`Disabled=False`), and while CP runs it drives the camera every frame —
+the LocalCache edit was correct and survived a restart, yet Camera Blend stayed at the 0.86 rad
+default after Alt+1. So the Apply section opens with a red banner when CP is detected: set the
+field of view in CP's cockpit preset until Camera Blend shows the page's target `Fov`, or close
+CP to use the camera file. The ChasePlane section says the same.
 
 ## Settings (`display`, `DisplayOptions`)
 

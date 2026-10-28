@@ -76,12 +76,13 @@ distance is always a compromise; the delta shows how big a one.
 
 ## ChasePlane
 
-If ChasePlane for MSFS 2024 is installed the **ChasePlane** section says so. Its cockpit
-presets carry their own zoom and override the native view when you recall one, so the file this
-page writes is not what ChasePlane shows. Either leave the cockpit view native (do not recall a
-ChasePlane cockpit preset) and use ChasePlane for the external cameras, or adjust the cockpit
-preset's zoom in ChasePlane until the dev-mode `Fov` reads the target the section shows. The
-app never writes to ChasePlane's files.
+If ChasePlane for MSFS 2024 is installed, the **Apply FOV** section opens with a warning and
+the **ChasePlane** section says so. ChasePlane starts with the sim and drives the camera every
+frame, so the file this page writes does not change what you see while it runs — not after
+Alt+1, not after a restart. Set the field of view in ChasePlane instead: select your cockpit
+preset and adjust its zoom until the dev-mode `Fov` reads the target the page shows, then save
+the preset. To use the camera file instead, close ChasePlane before you fly. The app never
+writes to ChasePlane's files.
 
 ## What is never touched
 

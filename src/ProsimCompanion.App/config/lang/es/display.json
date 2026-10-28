@@ -62,7 +62,9 @@
       "saveFirst": "Guarda primero los ajustes de pantalla.",
       "confirm": "¿Escribir InitialZoom {0} en este archivo? Antes se hace una copia de seguridad.",
       "yes": "Sí, escribir",
-      "cancel": "Cancelar"
+      "cancel": "Cancelar",
+      "cpWarning": "ChasePlane para MSFS 2024 está instalado. Mientras se ejecuta controla la cámara en cada fotograma, así que el zoom escrito aquí no cambia lo que ves, ni siquiera tras Alt+1 o un reinicio.",
+      "cpWarningTarget": "Ajusta el campo de visión en el preajuste de cabina de ChasePlane: cambia su zoom hasta que Developer Mode → Debug → Aircraft → Camera Blend muestre Fov {0} rad. O cierra ChasePlane para usar el archivo de cámara."
     },
     "realism": {
       "label": "Realismo",
@@ -139,7 +141,7 @@
       "title": "ChasePlane",
       "hint": "Solo detección",
       "notDetected": "ChasePlane para MSFS 2024 no se detectó en este PC.",
-      "detected": "ChasePlane para MSFS 2024 está instalado. Sus preajustes de cabina llevan su propio zoom y sustituyen la vista nativa cuando los recuperas — el archivo que escribe esta página no es lo que muestra ChasePlane.",
+      "detected": "ChasePlane para MSFS 2024 está instalado y arranca con el simulador. Mientras se ejecuta controla la cámara en cada fotograma, así que el archivo que escribe esta página no es lo que ves; el Fov se queda en el valor por defecto hasta que ajustes el preajuste de cabina de ChasePlane.",
       "target": "Para igualarlo en ChasePlane, ajusta el zoom del preajuste de cabina hasta que el Fov del modo dev muestre {0} rad ({1}° vertical).",
       "advice": "Lo más sencillo: deja la vista de cabina nativa (no recuperes un preajuste de cabina de ChasePlane) y usa ChasePlane para las cámaras exteriores. Aquí nunca se escribe en los archivos de ChasePlane."
     }

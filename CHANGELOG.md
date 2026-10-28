@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.0-rc.21
+
+Local build, 2026-10-29, on `feature/display-fov` (over rc.20).
+
+- Added: **ChasePlane warning on Apply FOV** (owner's rig 2026-10-29: the file edit was correct and survived a restart, but `Fov` stayed 0.86 because ChasePlane starts with the sim from `exe.xml` and drives the camera every frame). When ChasePlane's MSFS 2024 work folder exists, the Apply section opens with a red banner: the zoom written here does not change what you see while ChasePlane runs; set the field of view in ChasePlane's cockpit preset until Camera Blend shows the page's target `Fov`, or close ChasePlane to use the camera file. The ChasePlane section says the same.
+
 ## 0.8.0-rc.20
 
 Local build for the owner's second FOV try, 2026-10-29, on `feature/display-fov` (over rc.19).

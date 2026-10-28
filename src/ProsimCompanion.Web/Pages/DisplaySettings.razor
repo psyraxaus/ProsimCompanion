@@ -76,6 +76,20 @@
 }
 else if (CurrentSection == "apply")
 {
+    @if (_chasePlane)
+    {
+        @* Owner's rig 2026-10-29: ChasePlane starts with the sim (exe.xml) and drives the
+           camera every frame, so the zoom this page writes never reaches the screen while it
+           runs — Fov stayed 0.86 after Alt+1 and a restart. Say so before the button. *@
+        <div class="info-banner" role="alert">
+            <span aria-hidden="true">⚠</span>
+            <span>
+                <strong>@T["display.apply.cpWarning"]</strong>
+                @(Plan() is { } cpPlan ? T["display.apply.cpWarningTarget", Text(cpPlan.ExpectedFovRadians, 3)].Value : "")
+                <a href="settings/display/chaseplane">@T["display.cp.title"]</a>
+            </span>
+        </div>
+    }
     <Section Title="@T["display.apply.title"]" Hint="@T["display.apply.hint"]">
         <div class="field">
             <label class="field-label" for="display-realism">

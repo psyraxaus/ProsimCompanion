@@ -61,6 +61,8 @@
       "button": "Apply realistic FOV",
       "saveFirst": "Save the screen settings first.",
       "confirm": "Write InitialZoom {0} into this file? A backup is made first.",
+      "cpWarning": "ChasePlane for MSFS 2024 is installed. While it runs it drives the camera every frame, so the zoom written here does not change what you see — not even after Alt+1 or a restart.",
+      "cpWarningTarget": "Set the field of view in ChasePlane's cockpit preset instead: adjust its zoom until Developer Mode → Debug → Aircraft → Camera Blend shows Fov {0} rad. Or close ChasePlane to use the camera file.",
       "yes": "Yes, write it",
       "cancel": "Cancel"
     },
@@ -139,7 +141,7 @@
       "title": "ChasePlane",
       "hint": "Detection only",
       "notDetected": "ChasePlane for MSFS 2024 was not detected on this PC.",
-      "detected": "ChasePlane for MSFS 2024 is installed. Its cockpit presets carry their own zoom and override the native view when you recall them — the file this page writes is not what ChasePlane shows.",
+      "detected": "ChasePlane for MSFS 2024 is installed and starts with the sim. While it runs it drives the camera every frame, so the file this page writes is not what you see — the Fov stays at the sim default until ChasePlane's own cockpit preset is set.",
       "target": "To match it in ChasePlane, adjust the cockpit preset's zoom until the dev-mode Fov reads {0} rad ({1}° vertical).",
       "advice": "Simplest: leave the cockpit view native (do not recall a ChasePlane cockpit preset) and use ChasePlane for the external cameras. Nothing here ever writes to ChasePlane's files."
     }

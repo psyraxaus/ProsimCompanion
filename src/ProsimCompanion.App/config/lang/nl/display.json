@@ -62,7 +62,9 @@
       "saveFirst": "Sla eerst de scherminstellingen op.",
       "confirm": "InitialZoom {0} in dit bestand schrijven? Er wordt eerst een back-up gemaakt.",
       "yes": "Ja, schrijven",
-      "cancel": "Annuleren"
+      "cancel": "Annuleren",
+      "cpWarning": "ChasePlane voor MSFS 2024 is geïnstalleerd. Zolang het draait stuurt het elke frame de camera aan, dus de hier geschreven zoom verandert niets aan wat je ziet, ook niet na Alt+1 of een herstart.",
+      "cpWarningTarget": "Stel het gezichtsveld in plaats daarvan in de cockpit-preset van ChasePlane in: pas de zoom aan tot Developer Mode → Debug → Aircraft → Camera Blend Fov {0} rad toont. Of sluit ChasePlane om het camerabestand te gebruiken."
     },
     "realism": {
       "label": "Realisme",
@@ -139,7 +141,7 @@
       "title": "ChasePlane",
       "hint": "Alleen detectie",
       "notDetected": "ChasePlane voor MSFS 2024 is niet gevonden op deze pc.",
-      "detected": "ChasePlane voor MSFS 2024 is geïnstalleerd. Zijn cockpit-presets hebben hun eigen zoom en overschrijven de native weergave zodra je ze oproept — het bestand dat deze pagina schrijft is niet wat ChasePlane toont.",
+      "detected": "ChasePlane voor MSFS 2024 is geïnstalleerd en start met de simulator. Zolang het draait stuurt het elke frame de camera aan, dus het bestand dat deze pagina schrijft is niet wat je ziet; de Fov blijft op de standaardwaarde tot de cockpit-preset van ChasePlane zelf is ingesteld.",
       "target": "Om het in ChasePlane gelijk te krijgen, pas je de zoom van de cockpit-preset aan tot de dev-mode Fov {0} rad aangeeft ({1}° verticaal).",
       "advice": "Het eenvoudigst: laat de cockpitweergave native (roep geen ChasePlane-cockpit-preset op) en gebruik ChasePlane voor de buitencamera's. Hier wordt nooit naar de bestanden van ChasePlane geschreven."
     }

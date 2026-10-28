@@ -62,7 +62,9 @@
       "saveFirst": "先に画面の設定を保存してください。",
       "confirm": "このファイルに InitialZoom {0} を書き込みますか? 先にバックアップを作成します。",
       "yes": "はい、書き込む",
-      "cancel": "キャンセル"
+      "cancel": "キャンセル",
+      "cpWarning": "MSFS 2024 用の ChasePlane がインストールされています。動作中は毎フレームカメラを制御するため、ここで書き込んだズームは見え方を変えません。Alt+1 や再起動の後でも同じです。",
+      "cpWarningTarget": "代わりに ChasePlane のコックピットプリセットで視野角を設定してください。Developer Mode → Debug → Aircraft → Camera Blend の Fov が {0} rad になるまでズームを調整します。または ChasePlane を終了してカメラファイルを使います。"
     },
     "realism": {
       "label": "リアリズム",
@@ -139,7 +141,7 @@
       "title": "ChasePlane",
       "hint": "検出のみ",
       "notDetected": "この PC では MSFS 2024 用の ChasePlane は検出されませんでした。",
-      "detected": "MSFS 2024 用の ChasePlane がインストールされています。そのコックピットプリセットは独自のズームを持ち、呼び出すとネイティブの視点を上書きします。このページが書き込むファイルは ChasePlane が表示するものではありません。",
+      "detected": "MSFS 2024 用の ChasePlane がインストールされ、シミュレーターと一緒に起動します。動作中は毎フレームカメラを制御するため、このページが書き込むファイルは見え方に反映されません。ChasePlane 側のコックピットプリセットを設定するまで Fov は既定値のままです。",
       "target": "ChasePlane 側で合わせるには、開発者モードの Fov が {0} rad ({1}° 垂直) になるまでコックピットプリセットのズームを調整してください。",
       "advice": "いちばん簡単なのは、コックピット視点はネイティブのまま (ChasePlane のコックピットプリセットを呼び出さない) にして、外部カメラにだけ ChasePlane を使うことです。ここから ChasePlane のファイルに書き込むことは決してありません。"
     }
