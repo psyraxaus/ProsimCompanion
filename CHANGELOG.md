@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.0-rc.22
+
+Verification-flight build, 2026-10-29, on `feature/display-fov` (over rc.21). No app change; the build number marks the flight.
+
+- Agent: three verification probes added so every open GitHub issue has one — remote mixer agents (#178/#179, eyes-only), gate monitor STD on the wrong sim day (#139, watch), tug-push taxi-out flap (#138, watch). The last two have no fix yet; the probes only collect evidence.
+
 ## 0.8.0-rc.21
 
 Local build, 2026-10-29, on `feature/display-fov` (over rc.20).
