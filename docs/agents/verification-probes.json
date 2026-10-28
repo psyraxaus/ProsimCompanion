@@ -3921,6 +3921,72 @@
         "requires-human: the reminder did not step on the pilot's own words (the arbiter queues it; check the asr.utterance stamps around it)."
       ],
       "notes": "ChecklistControlWords.AtEdge (pure) hooked in UtteranceRouter.RouteUtterance before interpretation while awaiting/responsePending; SpokenChecklistEngine.AwaitAcceptedAsync Task.WhenAny loop with ReminderAfter = 60 s (internal static). Unverified live."
+    },
+    {
+      "id": "remote-mixer-agents",
+      "issue": 178,
+      "state": "open",
+      "kind": "requires-human",
+      "sources": [
+        "log"
+      ],
+      "checks": [
+        "requires-human: Settings → Audio Control → Remote Mixer shows one connection block per agent in mixer.agents[] (add / remove / rename) and the status card groups the live strip values per agent; with two agents both read Connected. A legacy single host/port/token config loads unchanged as the one agent (no block lost, no re-entry of the token).",
+        "assert-present (log): after start, ONE 'Mixer agents running: N (names)' line with N = the enabled agents; per agent a 'Mixer [<name>] connected to the mixer agent at ws://…; sending hello' then 'Mixer [<name>] connection: Connected'; then 'Mixer mappings bound: N over M agent(s)' with M = the agents the mappings name. An enabled agent with no 'connection: Connected' line is a dead agent — quote its last 'agent unavailable' / 'refused the session' warning.",
+        "requires-human (#178 acceptance): a Captain ACP knob moves ONLY the strip on the captain's PC (PC1), the First Officer's knob ONLY PC2 — watch both Voicemeeters. One agent switched off: the other keeps answering knob turns at once (no 'client stopped unexpectedly', no blocking), and its 'Mixer [<name>] agent unavailable at …; retrying quietly' repeats quietly at the backoff, never once per tick.",
+        "assert-absent (log): 'Mixer agent <name> is listed twice; only the first block runs' (config error); 'Mixer [<name>] set <parameter>=<value> failed: <code>' during a knob turn; 'Mixer [<name>] agent speaks protocol …; only … is supported' (bridge version mismatch — tell the user to update VoicemeeterBridge).",
+        "requires-human (#179): the mapping editors show the shared-target warning when two mappings name the same agent · strip; the manual's chapter 9.7 (two pilot PCs) and chapter 11 (two headsets) match what the page offers; the COM1/COM2 single-stream limit is explained on the page hint.",
+        "watch: how many distinct agent names appear in 'Mixer [<name>] …' lines — one name only on a rig configured with two means the second block never ran (check enabled)."
+      ],
+      "notes": "Shipped 2026-10-22 (branch feature/remote-mixer-agents, 0.7.0-rc.12; packages A–D on #178/#179 for Guenther's two-pilot rig). MixerClientHost runs one MixerClient per enabled MixerOptions.Agents entry (legacy flat host/port/token becomes agent 0); MixerMappingService routes each mapping to its agent coalescer. Nothing in the session event log — the log component lines above are the only telemetry; the knob routing itself is eyes-only. Unverified live on a two-agent rig; the owner's single-agent rig can only verify the legacy load and the per-agent log lines."
+    },
+    {
+      "id": "gate-std-sim-day",
+      "issue": 139,
+      "state": "open",
+      "kind": "watch",
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "watch (the #139 signature): any 'gate-status-changed' whose minutesToStd is below −720 or above 720 while an OFP is loaded (an 'ofp-imported' / 'ofp.loaded' event precedes it in the session). The 2026-09-27 EKCH leg (session-20260926-230132): 23:12:50Z Open -> FinalCall detail 'Final call', paxBoarded 0/129, minutesToStd −1412 — the OFP sched_out sat on the real-world date while the sim clock flew a morning departure. Quote state, previous, minutesToStd, paxBoarded and the sim clock vs the OFP's STD.",
+        "watch: a 'Gate monitor: FinalCall (was Open)' log line with pax 0/N — the BOARDING state skipped because FinalCallDue was already true; this is the same evidence gate-monitor-states reports as a failed chain, so report it ONCE under this probe and cross-reference.",
+        "watch: the loadsheet prelim 'STD minus N min' trigger firing the moment the OFP loads (see prelim-auto-trigger-waits-for-inputs) when the sim day differs from the OFP day — ScheduledDeparture is shared, so the same day mismatch moves the prelim trigger by whole days.",
+        "watch: the hero gate card's 'STD in −N min' text (requires-human) — a negative four-digit figure on the card during a turnaround is this bug, not a late flight.",
+        "A session whose sim clock and OFP share the date (|minutesToStd| under 720 all leg) does not exercise this probe — report it as not-exercised, not passed."
+      ],
+      "notes": "No fix as of 2026-10-29 (issue filed 2026-09-27 from the 0.5.0-rc.9 EKCH→EGLL leg). Fix direction from the issue: ScheduledDeparture.Effective re-anchors the OFP STD's time-of-day to the sim date when the two differ by more than ~12 h (the manual STD already does this, issue #95); SimbriefImportService.ParseOfp reads times.sched_out as an absolute epoch. When the fix ships flip this probe to assert-absent with a machine signature on gate-status-changed and add the 2026-09-27 session as the regression guard."
+    },
+    {
+      "id": "pushback-tug-taxi-flap",
+      "issue": 138,
+      "state": "open",
+      "kind": "watch",
+      "machine": {
+        "kind": "signature",
+        "signature": {
+          "source": "session",
+          "type": "phase-changed",
+          "contains": "",
+          "where": {
+            "previous": "TaxiOut",
+            "current": "PushbackAndStart"
+          },
+          "minCount": 1
+        }
+      },
+      "sources": [
+        "session"
+      ],
+      "checks": [
+        "watch (the #138 signature): a 'phase-changed' TaxiOut -> PushbackAndStart (rule engine-start) within 120 s after a PushbackAndStart -> TaxiOut (rule taxi-out) — the tug still pushing when the first engine reached idle. The 2026-09-27 EKCH leg (session-20260926-230132): 23:34:39Z PushbackAndStart -> TaxiOut 'engines running, rolling at 13 kt' with pushback:true, brake released; 23:34:50Z TaxiOut -> PushbackAndStart 'engine start (engine 1)'; the real taxi edge came at 23:41:17Z. Quote both edges with their snapshot (groundSpeedKt, enginesRunning, engineStarting, pushback, rawPushback, parkBrake) and the gsx-service Pushback / Departure events around them.",
+        "watch: a PushbackAndStart -> TaxiOut edge while the GSX 'Departure' (pushback) service is still Active in the gsx-service stream (no Completed / no bypassPinDisconnected gsx-handler before it) — the leading half of the flap even when no engine-start edge follows.",
+        "watch: the Flight Status pill flapping PUSHBACK -> TAXI OUT -> PUSHBACK (flight-status-pill-vs-text) and the GSX automation phase flapping TaxiOut -> PushBack in step — side effects of the same edge pair.",
+        "A leg with both engines started before the tug rolls, or a single-engine taxi only after the tug stopped, does not exercise this probe — report not-exercised. Any session that shows the flap is a candidate recording for tests/ProsimCompanion.Core.Tests/Flight/Recordings/ once a rule ships (FlightReplay must then show the flap removed).",
+        "Do NOT confuse with pushback-phase-hold (#161): that is PushbackAndStart -> Preflight with engines off; this is TaxiOut -> PushbackAndStart with an engine running."
+      ],
+      "notes": "No fix as of 2026-10-29 (issue filed 2026-09-27; same family as the 2026-09-26 flaps, sessions 031831/044756). The obvious gates do not work: groundservice.pushback stuck at 0 after the push (#104) so !PushbackActive cannot gate taxi-out, and the brake is released during the push so start-complete-hold cannot hold. Candidate directions in the issue (owner call, replayed, never a guessed threshold): both engines or one engine + a brake-set-since-push latch; a pushback rising-edge timer cleared on the first brake set; a GSX Departure-service-Active latch in the snapshot. The #161 pushback-hold rule (2026-10-10) deliberately left this path untouched. The machine block only marks the back-edge; the reducer hands watch probes to the LLM step, so the 120 s pairing is judged there."
     }
   ]
 }
