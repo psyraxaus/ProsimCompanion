@@ -1,0 +1,426 @@
+@page "/settings/display/{Section?}"
+@layout SettingsLayout
+@using System.Globalization
+@using ProsimCompanion.Core.Airports.Parking
+@using ProsimCompanion.Core.Display
+@using ProsimCompanion.Core.Profiles
+@inherits SettingsPageBase
+@inject IOptionsMonitor<DisplayOptions> DisplayMonitor
+@inject AircraftProfileService Profiles
+@inject IFovSimNudge Nudge
+@inject IStringLocalizer T
+
+@* Screen & FOV (2026-10-28, design claude/fov-tool-design.md): the pilot's physical screens
+   go in on the Displays section; the Apply section shows the 1:1 field of view they imply and
+   writes it as InitialZoom into the aircraft's saved pilot view (the LocalCache cameras.cfg
+   MSFS creates on Ctrl+F10 — never a package file), then nudges the sim. Multi Window and
+   ChasePlane are read-outs only. All the maths is FovCalculator, all the file work is
+   CamerasCfgEditor; this page only draws and confirms. *@
+
+<PageTitle>@T["display.pageTitle"]</PageTitle>
+<h1 class="sr-only">@T["display.heading"]</h1>
+
+@if (CurrentSection == "displays")
+{
+    <Section Title="@T["display.displays.title"]" Hint="@T["display.displays.hint"]">
+        <div class="field-hint" style="max-width:640px; margin-bottom:8px;">@T["display.displays.intro"]</div>
+        <div class="display-row-header">
+            <span>@T["display.row.role.label"]</span>
+            <span>@T["display.row.name.label"]</span>
+            <span>@(_metric ? T["display.row.diagonalCm"].Value : T["display.row.diagonal.label"].Value)</span>
+            <span title="@T["display.row.aspectWidth.hint"]">@T["display.row.aspect"]</span>
+            <span></span>
+            <span title="@T["display.row.distance.hint"]">@T["display.row.distance.label"]</span>
+            <span title="@T["display.row.yaw.hint"]">@T["display.row.yaw.label"]</span>
+            <span title="@T["display.row.centreAboveEye.hint"]">@T["display.row.centreAboveEye.label"]</span>
+            <span></span>
+        </div>
+        @if (_display.Value.Displays.Count == 0)
+        {
+            <div class="empty">@T["display.displays.none"]</div>
+        }
+        @foreach (var row in _display.Value.Displays)
+        {
+            <div class="display-row">
+                <select class="cell-select" @bind="row.Role" title="@T["display.row.role.hint"]">
+                    <option value="@DisplayRole.Main">@T["display.roleOptions.main"]</option>
+                    <option value="@DisplayRole.Left">@T["display.roleOptions.left"]</option>
+                    <option value="@DisplayRole.Right">@T["display.roleOptions.right"]</option>
+                    <option value="@DisplayRole.Overhead">@T["display.roleOptions.overhead"]</option>
+                    <option value="@DisplayRole.Other">@T["display.roleOptions.other"]</option>
+                </select>
+                <input class="cell-input @(string.IsNullOrWhiteSpace(row.Name) ? "invalid" : "")" @bind="row.Name" title="@T["display.row.name.hint"]" />
+                <input type="number" class="cell-input @(row.DiagonalInches > 0 ? "" : "invalid")" step="0.1" min="1" inputmode="decimal"
+                       value="@Text(Diagonal(row), 1)" @onchange="e => SetDiagonal(row, e)" title="@T["display.row.diagonal.hint"]" />
+                <input type="number" class="cell-input @(row.AspectWidth > 0 ? "" : "invalid")" step="1" min="1" @bind="row.AspectWidth" title="@T["display.row.aspectWidth.hint"]" aria-label="@T["display.row.aspectWidth.label"]" />
+                <input type="number" class="cell-input @(row.AspectHeight > 0 ? "" : "invalid")" step="1" min="1" @bind="row.AspectHeight" title="@T["display.row.aspectHeight.hint"]" aria-label="@T["display.row.aspectHeight.label"]" />
+                <input type="number" class="cell-input @(row.DistanceMetres > 0 ? "" : "invalid")" step="0.01" min="0.1" inputmode="decimal" @bind="row.DistanceMetres" title="@T["display.row.distance.hint"]" />
+                <input type="number" class="cell-input" step="0.1" inputmode="decimal" @bind="row.YawDegrees" title="@T["display.row.yaw.hint"]" />
+                <input type="number" class="cell-input" step="0.01" inputmode="decimal" @bind="row.CentreAboveEyeMetres" title="@T["display.row.centreAboveEye.hint"]" />
+                <button type="button" class="remove-btn" title="@T["display.row.removeTitle"]" aria-label="@T["display.row.removeTitle"]"
+                        @onclick="() => Remove(row)">×</button>
+            </div>
+        }
+        <div style="margin-top:8px; display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+            <button type="button" class="btn secondary" @onclick="AddRow">@T["display.displays.add"]</button>
+            <label style="display:flex; align-items:center; gap:6px;">
+                <input type="checkbox" class="checkbox" checked="@_metric" @onchange="e => _metric = e.Value is true" />
+                <span class="field-hint" style="margin:0;">@T["display.displays.metric"]</span>
+            </label>
+        </div>
+        @if (MainCount != 1)
+        {
+            <div class="field-hint field-hint-warn" style="margin-top:8px;">@T["display.displays.oneMain", MainCount]</div>
+        }
+    </Section>
+}
+else if (CurrentSection == "apply")
+{
+    <Section Title="@T["display.apply.title"]" Hint="@T["display.apply.hint"]">
+        <div class="field">
+            <label class="field-label" for="display-realism">
+                @T["display.realism.label"]
+                <FieldHint Hint="@T["display.realism.hint"]" More="@T["display.realism.more"]" />
+            </label>
+            <div class="field-control">
+                <span class="number-row">
+                    <input id="display-realism" type="range" class="display-slider" min="0" max="100" step="1"
+                           value="@RealismPercent" @oninput="OnRealism" />
+                    <span class="suffix">@RealismPercent %</span>
+                </span>
+            </div>
+        </div>
+        <OptionField Draft="_display" For="o => o.ApplyPitch" />
+    </Section>
+
+    <Section Title="@T["display.readout.title"]" Hint="@T["display.readout.hint"]">
+        @if (Plan() is { } plan)
+        {
+            <div class="display-readout">
+                <span class="row-label">@T["display.readout.panel"]</span><span class="row-value-mono">@Text(plan.Main.WidthMetres, 3) × @Text(plan.Main.HeightMetres, 3) m</span>
+                <span class="row-label">@T["display.readout.trueVfov"]</span><span class="row-value-mono">@Text(plan.TrueVerticalFovDegrees, 1)°</span>
+                <span class="row-label">@T["display.readout.hfov"]</span><span class="row-value-mono">@Text(plan.Main.HorizontalFovDegrees, 1)°</span>
+                <span class="row-label">@T["display.readout.appliedVfov"]</span><span class="row-value-mono">@Text(plan.AppliedVerticalFovDegrees, 1)°</span>
+                <span class="row-label">@T["display.readout.zoom"]</span><span class="row-value-mono">@Text(plan.InitialZoom, 4)</span>
+                <span class="row-label">@T["display.readout.fovRad"]</span><span class="row-value-mono">@Text(plan.ExpectedFovRadians, 4) rad</span>
+                <span class="row-label">@T["display.readout.pitch"]</span><span class="row-value-mono">@Text(plan.PitchDegrees, 1)° @(_display.Value.ApplyPitch ? "" : T["display.readout.pitchNotWritten"].Value)</span>
+            </div>
+        }
+        else
+        {
+            <div class="field-hint field-hint-warn">@_planProblem</div>
+        }
+    </Section>
+
+    <Section Title="@T["display.file.title"]" Hint="@T["display.file.hint"]">
+        <div class="field-hint" style="max-width:640px;">
+            @(string.IsNullOrWhiteSpace(_hint) ? T["display.file.hintNone"].Value : T["display.file.hintTitle", _hint].Value)
+        </div>
+        @if (_roots.Count == 0)
+        {
+            <div class="field-hint field-hint-warn" style="margin-top:8px;">@T["display.file.noRoot"]</div>
+        }
+        else if (_candidates.Count == 0)
+        {
+            <div class="field-hint" style="margin-top:8px; max-width:640px;">
+                <strong>@T["display.file.noneTitle"]</strong>
+                <ol class="display-steps">
+                    <li>@T["display.file.step1"]</li>
+                    <li>@T["display.file.step2"]</li>
+                    <li>@T["display.file.step3"]</li>
+                    <li>@T["display.file.step4"]</li>
+                </ol>
+            </div>
+        }
+        else
+        {
+            <div class="field">
+                <label class="field-label" for="display-file">@T["display.file.label"] <FieldHint Hint="@T["display.file.pickHint"]" /></label>
+                <div class="field-control">
+                    <select id="display-file" class="cell-select" style="max-width:640px;" value="@_chosen" @onchange="e => _chosen = e.Value as string">
+                        @foreach (var file in _candidates)
+                        {
+                            <option value="@file">@file</option>
+                        }
+                    </select>
+                </div>
+            </div>
+        }
+        <div style="margin-top:8px; display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+            <button type="button" class="btn secondary" @onclick="Scan">@T["display.file.refresh"]</button>
+            @if (_candidates.Count > 0 && !_confirming)
+            {
+                <button type="button" class="btn primary" disabled="@(!CanApply)" @onclick="() => _confirming = true">@T["display.apply.button"]</button>
+            }
+            @if (_display.IsDirty)
+            {
+                <span class="field-hint" style="margin:0;">@T["display.apply.saveFirst"]</span>
+            }
+        </div>
+        @if (_confirming && Plan() is { } confirmPlan && _chosen is not null)
+        {
+            <div class="info-banner" role="status" style="margin-top:10px;">
+                <span aria-hidden="true">ⓘ</span>
+                <span>
+                    @T["display.apply.confirm", Text(confirmPlan.InitialZoom, 4)]
+                    <span class="display-path">@_chosen</span>
+                    <span style="display:inline-flex; gap:8px; margin-left:10px;">
+                        <button type="button" class="btn primary" style="padding:2px 10px;" disabled="@_applying" @onclick="ApplyAsync">@T["display.apply.yes"]</button>
+                        <button type="button" class="btn secondary" style="padding:2px 10px;" disabled="@_applying" @onclick="() => _confirming = false">@T["display.apply.cancel"]</button>
+                    </span>
+                </span>
+            </div>
+        }
+        @if (_error is not null)
+        {
+            <div class="field-hint field-hint-warn" style="margin-top:8px;">@_error</div>
+        }
+        @if (_outcome is { } done)
+        {
+            <div class="display-readout" style="margin-top:10px;">
+                <span class="row-label">@T["display.result.blocks"]</span><span class="row-value-mono">@done.Blocks</span>
+                <span class="row-label">@T["display.result.zoom"]</span><span class="row-value-mono">@Text(done.InitialZoom, 4)</span>
+                <span class="row-label">@T["display.result.backup"]</span><span class="display-path">@done.Backup</span>
+                <span class="row-label">@T["display.result.live"]</span><span>@(done.Nudged ? T["display.result.nudgeOk"].Value : T["display.result.nudgeFailed"].Value)</span>
+            </div>
+            <div class="field-hint" style="margin-top:8px; max-width:640px;">
+                <strong>@T["display.result.verifyTitle"]</strong>
+                <ol class="display-steps">
+                    <li>@T["display.result.verify1"]</li>
+                    <li>@T["display.result.verify2"]</li>
+                    <li>@T["display.result.verify3", Text(done.FovRadians, 3)]</li>
+                </ol>
+            </div>
+        }
+    </Section>
+}
+else if (CurrentSection == "multiwindow")
+{
+    <Section Title="@T["display.multi.title"]" Hint="@T["display.multi.hint"]">
+        <div class="field-hint" style="max-width:640px; margin-bottom:8px;">@T["display.multi.note"]</div>
+        @if (Plan() is { } plan)
+        {
+            <div class="field-hint" style="margin-bottom:8px;">@T["display.multi.shared", Text(plan.AppliedVerticalFovDegrees, 1)]</div>
+            @if (plan.Rows.Count == 0)
+            {
+                <div class="empty">@T["display.multi.none"]</div>
+            }
+            else
+            {
+                <div class="table-scroll">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>@T["display.multi.col.display"]</th>
+                                <th>@T["display.multi.col.lateral"]</th>
+                                <th>@T["display.multi.col.vertical"]</th>
+                                <th>@T["display.multi.col.ideal"]</th>
+                                <th>@T["display.multi.col.delta"]</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var row in plan.Rows)
+                            {
+                                <tr>
+                                    <td>@row.Display.Name (@RoleLabel(row.Display.Role))</td>
+                                    <td class="mono">@Text(row.LateralRotationDegrees, 1)°</td>
+                                    <td class="mono">@Text(row.VerticalRotationDegrees, 1)°</td>
+                                    <td class="mono">@Text(row.IdealVerticalFovDegrees, 1)°</td>
+                                    <td class="mono">@(row.DeltaFromAppliedDegrees >= 0 ? "+" : "")@Text(row.DeltaFromAppliedDegrees, 1)°</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        }
+        else
+        {
+            <div class="field-hint field-hint-warn">@_planProblem</div>
+        }
+    </Section>
+}
+else if (CurrentSection == "chaseplane")
+{
+    <Section Title="@T["display.cp.title"]" Hint="@T["display.cp.hint"]">
+        @if (!_chasePlane)
+        {
+            <div class="field-hint">@T["display.cp.notDetected"]</div>
+        }
+        else
+        {
+            <div class="field-hint" style="max-width:640px;">@T["display.cp.detected"]</div>
+            @if (Plan() is { } plan)
+            {
+                <div class="field-hint" style="margin-top:8px;">@T["display.cp.target", Text(plan.ExpectedFovRadians, 3), Text(plan.AppliedVerticalFovDegrees, 1)]</div>
+            }
+            <div class="field-hint" style="margin-top:8px; max-width:640px;">@T["display.cp.advice"]</div>
+        }
+    </Section>
+}
+
+<DirtyBar Visible="@BarVisible"
+          Message="@BarMessage"
+          Tone="BarTone"
+          OnSave="Save"
+          OnDiscard="Discard" />
+
+@code {
+    [Parameter]
+    public string? Section { get; set; }
+
+    private string CurrentSection => SettingsNav.ResolveSection(SettingsNav.DisplaySections, Section);
+
+    private OptionsDraft<DisplayOptions> _display = default!;
+    private bool _metric;
+    private IReadOnlyList<string> _roots = [];
+    private IReadOnlyList<string> _candidates = [];
+    private string? _chosen;
+    private string? _hint;
+    private bool _chasePlane;
+    private bool _confirming;
+    private bool _applying;
+    private string? _error;
+    private string? _planProblem;
+    private ApplyOutcome? _outcome;
+
+    /// <summary>What the last Apply did, for the result card.</summary>
+    private sealed record ApplyOutcome(int Blocks, string Backup, bool Nudged, double InitialZoom, double FovRadians);
+
+    protected override void OnInitialized()
+    {
+        _display = Draft(DisplayMonitor);
+        _chasePlane = MsfsPackageRoots.ChasePlaneDetected();
+        Scan();
+    }
+
+    protected override void OnDiscarded()
+    {
+        _confirming = false;
+        _error = null;
+    }
+
+    private int MainCount => _display.Value.Displays.Count(d => d.Role == DisplayRole.Main);
+
+    private bool CanApply => !_display.IsDirty && !_applying && _chosen is not null && Plan() is not null;
+
+    /// <summary>The plan for the draft as it stands, or null with the reason in
+    /// <see cref="_planProblem"/>: not exactly one Main, or a size that cannot be computed.</summary>
+    private FovPlan? Plan()
+    {
+        _planProblem = null;
+        if (MainCount != 1)
+        {
+            _planProblem = T["display.displays.oneMain", MainCount].Value;
+            return null;
+        }
+
+        try
+        {
+            return FovCalculator.Plan(_display.Value);
+        }
+        catch (ArgumentOutOfRangeException)
+        {
+            _planProblem = T["display.readout.invalid"].Value;
+            return null;
+        }
+    }
+
+    // ---- the Displays grid ----
+
+    private double Diagonal(DisplayEntry row) => _metric ? row.DiagonalInches * 2.54 : row.DiagonalInches;
+
+    private void SetDiagonal(DisplayEntry row, ChangeEventArgs e)
+    {
+        if (double.TryParse(e.Value as string, NumberStyles.Float, CultureInfo.InvariantCulture, out var value) && value > 0)
+        {
+            row.DiagonalInches = _metric ? value / 2.54 : value;
+            _display.MarkEdited();
+        }
+    }
+
+    private void AddRow()
+    {
+        var role = MainCount == 0 ? DisplayRole.Main : DisplayRole.Other;
+        _display.Value.Displays.Add(new DisplayEntry { Name = role == DisplayRole.Main ? "Main" : "", Role = role });
+    }
+
+    private void Remove(DisplayEntry row) => _display.Value.Displays.Remove(row);
+
+    // ---- realism ----
+
+    private int RealismPercent => (int)Math.Round(_display.Value.Realism * 100);
+
+    private void OnRealism(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value as string, NumberStyles.Integer, CultureInfo.InvariantCulture, out var percent))
+        {
+            _display.Value.Realism = Math.Clamp(percent, 0, 100) / 100.0;
+            _display.MarkEdited();
+        }
+    }
+
+    // ---- the file ----
+
+    /// <summary>Looks for saved pilot views under every MSFS 2024 LocalCache on this PC,
+    /// narrowed to the aircraft ProSim reports when a folder name matches it.</summary>
+    private void Scan()
+    {
+        _hint = Profiles.AircraftTitle;
+        _roots = MsfsPackageRoots.DetectLocalCache2024();
+        _candidates = _roots.SelectMany(root => CamerasCfgEditor.FindCandidateFiles(root, _hint)).ToList();
+        if (_chosen is null || !_candidates.Contains(_chosen, StringComparer.OrdinalIgnoreCase))
+        {
+            _chosen = _candidates.FirstOrDefault();
+        }
+    }
+
+    private async Task ApplyAsync()
+    {
+        if (Plan() is not { } plan || _chosen is not { } path)
+        {
+            return;
+        }
+
+        _applying = true;
+        _error = null;
+        _outcome = null;
+        try
+        {
+            var content = CamerasCfgEditor.ReadRaw(path);
+            var edit = CamerasCfgEditor.Apply(content, plan.InitialZoom, _display.Value.ApplyPitch ? plan.PitchDegrees : null);
+            if (edit.BlocksChanged == 0)
+            {
+                _error = T["display.result.noBlocks"].Value;
+                return;
+            }
+
+            var backup = CamerasCfgEditor.WriteWithBackup(path, edit.Content);
+            var nudged = await Nudge.NudgeAsync();
+            _outcome = new ApplyOutcome(edit.BlocksChanged, backup, nudged, plan.InitialZoom, plan.ExpectedFovRadians);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidOperationException)
+        {
+            _error = T["display.result.failed", ex.Message].Value;
+        }
+        finally
+        {
+            _applying = false;
+            _confirming = false;
+        }
+    }
+
+    // ---- formatting ----
+
+    private static string Text(double value, int decimals)
+        => value.ToString("F" + decimals.ToString(CultureInfo.InvariantCulture), CultureInfo.InvariantCulture);
+
+    private string RoleLabel(DisplayRole role) => role switch
+    {
+        DisplayRole.Main => T["display.roleOptions.main"].Value,
+        DisplayRole.Left => T["display.roleOptions.left"].Value,
+        DisplayRole.Right => T["display.roleOptions.right"].Value,
+        DisplayRole.Overhead => T["display.roleOptions.overhead"].Value,
+        _ => T["display.roleOptions.other"].Value,
+    };
+}

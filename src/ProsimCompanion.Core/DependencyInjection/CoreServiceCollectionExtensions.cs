@@ -64,6 +64,9 @@ public static class CoreServiceCollectionExtensions
         // state store lives in Core so the status feed and the page read it with ProSim absent.
         services.AddOptionSection<CockpitSwitchesOptions>(configuration);
         services.AddSingleton<State.CockpitSwitchStateStore>();
+        // Display & FOV (2026-10-28): the pilot's screens and the realism blend behind the
+        // one-button cameras.cfg rewrite; the maths and the editor are pure Core.
+        services.AddOptionSection<DisplayOptions>(configuration);
         services.AddOptionSection<TechLogOptions>(configuration);
         services.AddOptionSection<LogbookOptions>(configuration);
         services.AddOptionSection<DebriefOptions>(configuration);

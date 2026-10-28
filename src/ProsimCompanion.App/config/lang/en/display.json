@@ -1,0 +1,141 @@
+{
+  "display": {
+    "pageTitle": "Screen & FOV — ProsimCompanion",
+    "heading": "Screen & FOV",
+    "displays": {
+      "title": "Your screens",
+      "hint": "Measure once, save",
+      "intro": "One row per physical screen. The Main screen is the forward window: its size and distance decide the field of view the sim gets. Side and overhead screens are listed for the Multi Window read-out only.",
+      "none": "No screens yet. Add the forward one first.",
+      "add": "Add a screen",
+      "metric": "Show the diagonal in centimetres",
+      "oneMain": "Exactly one screen must have the role Main — {0} found. Nothing can be applied until that is fixed."
+    },
+    "row": {
+      "aspect": "Aspect W : H",
+      "diagonalCm": "Diagonal (cm)",
+      "removeTitle": "Remove this screen",
+      "role": {
+        "label": "Role",
+        "hint": "Main = the forward window. Left, Right and Overhead are Multi Window screens."
+      },
+      "name": {
+        "label": "Name",
+        "hint": "A label for this list, for example Main or Left TV."
+      },
+      "diagonal": {
+        "label": "Diagonal (in)",
+        "hint": "The screen size on the box, in inches. Tick the box below to enter centimetres instead."
+      },
+      "aspectWidth": {
+        "label": "Aspect width",
+        "hint": "The shape of the screen: 16 and 9 for a 16:9 TV, 21 and 9 for an ultrawide, 4 and 3 for an old monitor."
+      },
+      "aspectHeight": {
+        "label": "Aspect height",
+        "hint": "The second number of the aspect ratio (9 of 16:9)."
+      },
+      "distance": {
+        "label": "Distance (m)",
+        "hint": "From your eye to the centre of the screen, in metres, measured straight at it."
+      },
+      "yaw": {
+        "label": "Yaw (°)",
+        "hint": "Where the screen's centre is, left or right of straight ahead. 0 for the forward screen; positive = to the right."
+      },
+      "centreAboveEye": {
+        "label": "Centre above eye (m)",
+        "hint": "How far the screen's centre sits above your eye, in metres. Negative when it is below. 0 when it is level."
+      }
+    },
+    "roleOptions": {
+      "main": "Main",
+      "left": "Left",
+      "right": "Right",
+      "overhead": "Overhead",
+      "other": "Other"
+    },
+    "apply": {
+      "title": "How real",
+      "hint": "Save, then apply",
+      "button": "Apply realistic FOV",
+      "saveFirst": "Save the screen settings first.",
+      "confirm": "Write InitialZoom {0} into this file? A backup is made first.",
+      "yes": "Yes, write it",
+      "cancel": "Cancel"
+    },
+    "realism": {
+      "label": "Realism",
+      "hint": "100 % = the view is life-size on your Main screen. 0 % = the sim's default view. Anything between is a blend.",
+      "more": "A hardware cockpit with the TV as the forward window wants 100 %, even though that is much tighter than the default — you see exactly what you would see through the real window. A desk setup may prefer less so more of the world stays in view."
+    },
+    "applyPitch": {
+      "label": "Also tilt the camera",
+      "hint": "Writes the camera pitch so a screen whose centre is above or below your eye is looked at straight. Off keeps the pitch of your saved view."
+    },
+    "readout": {
+      "title": "What will be written",
+      "hint": "Computed from the Main screen",
+      "panel": "Panel size",
+      "trueVfov": "True vertical FOV",
+      "hfov": "Horizontal FOV",
+      "appliedVfov": "Applied vertical FOV",
+      "zoom": "InitialZoom",
+      "fovRad": "Expected dev-mode Fov",
+      "pitch": "Camera pitch",
+      "pitchNotWritten": "(not written — tilt is off)",
+      "invalid": "A screen has a size, aspect or distance of zero. Fix it on the Displays section."
+    },
+    "file": {
+      "title": "The saved pilot view",
+      "hint": "Only this file is ever changed",
+      "label": "File",
+      "pickHint": "The custom camera file MSFS 2024 saved for this aircraft. Newest first. Files under Official and Community are never touched.",
+      "hintTitle": "Aircraft reported by ProSim: {0}. Folders whose name matches it are listed first; if none matches, every aircraft is shown.",
+      "hintNone": "ProSim has not reported an aircraft yet, so every aircraft folder is listed.",
+      "noRoot": "No MSFS 2024 LocalCache folder was found on this PC. Run the app on the PC that runs the simulator.",
+      "noneTitle": "No saved pilot view yet. Make one first:",
+      "step1": "Load the aircraft in MSFS 2024.",
+      "step2": "Put the cockpit view where you want it.",
+      "step3": "Press Ctrl+F10 (VFR Pilot View Save). MSFS creates the camera file.",
+      "step4": "Come back here and press Refresh.",
+      "refresh": "Refresh"
+    },
+    "result": {
+      "blocks": "Camera blocks changed",
+      "zoom": "InitialZoom written",
+      "backup": "Backup",
+      "live": "In the sim",
+      "nudgeOk": "Applied live — the cockpit view was reset.",
+      "nudgeFailed": "Not applied live. It takes effect on the next aircraft load.",
+      "noBlocks": "The file holds no cockpit pilot view, so nothing was written. Save the view in the sim (Ctrl+F10) and refresh.",
+      "failed": "Could not write the file: {0}",
+      "verifyTitle": "Check it in the sim:",
+      "verify1": "Options → General → Developers → Developer Mode on.",
+      "verify2": "Dev menu: Debug → Aircraft → Camera Blend.",
+      "verify3": "Fov should read {0} rad."
+    },
+    "multi": {
+      "title": "Multi Window",
+      "hint": "Read-out only",
+      "note": "MSFS 2024 renders every window with one field of view: the Main screen's. Type these rotations into the Multi Window dialog; the FOV you see there is what the Apply section wrote. The delta shows how far a side screen of a different size is from its own ideal.",
+      "shared": "Shared vertical FOV for every window: {0}°",
+      "none": "No side or overhead screens configured.",
+      "col": {
+        "display": "Screen",
+        "lateral": "Lateral rotation",
+        "vertical": "Vertical rotation",
+        "ideal": "Ideal vertical FOV",
+        "delta": "Delta from applied"
+      }
+    },
+    "cp": {
+      "title": "ChasePlane",
+      "hint": "Detection only",
+      "notDetected": "ChasePlane for MSFS 2024 was not detected on this PC.",
+      "detected": "ChasePlane for MSFS 2024 is installed. Its cockpit presets carry their own zoom and override the native view when you recall them — the file this page writes is not what ChasePlane shows.",
+      "target": "To match it in ChasePlane, adjust the cockpit preset's zoom until the dev-mode Fov reads {0} rad ({1}° vertical).",
+      "advice": "Simplest: leave the cockpit view native (do not recall a ChasePlane cockpit preset) and use ChasePlane for the external cameras. Nothing here ever writes to ChasePlane's files."
+    }
+  }
+}

@@ -87,6 +87,11 @@
     "nav": {
       "setup": "セットアップ",
       "cockpit": "コックピットスイッチ",
+      "display": "画面と FOV",
+      "display.displays": "ディスプレイ",
+      "display.apply": "FOV を適用",
+      "display.multiwindow": "Multi Window",
+      "display.chaseplane": "ChasePlane",
       "hardware": "ハードウェア",
       "hardware.skalarki": "Skalarki パネル",
       "gsx": "地上サービス",

@@ -87,6 +87,11 @@
     "nav": {
       "setup": "Einrichtung",
       "cockpit": "Cockpit-Schalter",
+      "display": "Bildschirm & FOV",
+      "display.displays": "Bildschirme",
+      "display.apply": "FOV anwenden",
+      "display.multiwindow": "Multi Window",
+      "display.chaseplane": "ChasePlane",
       "hardware": "Hardware",
       "hardware.skalarki": "Skalarki-Panels",
       "gsx": "Bodendienste",

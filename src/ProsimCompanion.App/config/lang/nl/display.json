@@ -1,0 +1,141 @@
+{
+  "display": {
+    "pageTitle": "Scherm & FOV — ProsimCompanion",
+    "heading": "Scherm & FOV",
+    "displays": {
+      "title": "Je schermen",
+      "hint": "Eén keer meten, opslaan",
+      "intro": "Eén regel per fysiek scherm. Het hoofdscherm is het voorraam: de grootte en afstand ervan bepalen het gezichtsveld dat de simulator krijgt. Zij- en bovenschermen staan alleen in de lijst voor de Multi Window-uitlezing.",
+      "none": "Nog geen schermen. Voeg eerst het voorste toe.",
+      "add": "Scherm toevoegen",
+      "metric": "Diagonaal in centimeters tonen",
+      "oneMain": "Precies één scherm moet de rol Hoofd hebben — {0} gevonden. Er kan niets worden toegepast tot dat klopt."
+    },
+    "row": {
+      "aspect": "Verhouding B : H",
+      "diagonalCm": "Diagonaal (cm)",
+      "removeTitle": "Dit scherm verwijderen",
+      "role": {
+        "label": "Rol",
+        "hint": "Hoofd = het voorraam. Links, Rechts en Boven zijn Multi Window-schermen."
+      },
+      "name": {
+        "label": "Naam",
+        "hint": "Een label voor deze lijst, bijvoorbeeld Hoofd of Tv links."
+      },
+      "diagonal": {
+        "label": "Diagonaal (inch)",
+        "hint": "De schermmaat van de doos, in inch. Vink het vakje hieronder aan om centimeters in te voeren."
+      },
+      "aspectWidth": {
+        "label": "Verhouding breedte",
+        "hint": "De vorm van het scherm: 16 en 9 voor een 16:9-tv, 21 en 9 voor ultrawide, 4 en 3 voor een oude monitor."
+      },
+      "aspectHeight": {
+        "label": "Verhouding hoogte",
+        "hint": "Het tweede getal van de beeldverhouding (9 van 16:9)."
+      },
+      "distance": {
+        "label": "Afstand (m)",
+        "hint": "Van je oog tot het midden van het scherm, in meters, recht ernaar gemeten."
+      },
+      "yaw": {
+        "label": "Gier (°)",
+        "hint": "Waar het midden van het scherm zit, links of rechts van recht vooruit. 0 voor het voorste scherm; positief = rechts."
+      },
+      "centreAboveEye": {
+        "label": "Midden boven oog (m)",
+        "hint": "Hoe ver het midden van het scherm boven je oog zit, in meters. Negatief als het eronder zit. 0 als het gelijk ligt."
+      }
+    },
+    "roleOptions": {
+      "main": "Hoofd",
+      "left": "Links",
+      "right": "Rechts",
+      "overhead": "Boven",
+      "other": "Overig"
+    },
+    "apply": {
+      "title": "Hoe realistisch",
+      "hint": "Opslaan, dan toepassen",
+      "button": "Realistische FOV toepassen",
+      "saveFirst": "Sla eerst de scherminstellingen op.",
+      "confirm": "InitialZoom {0} in dit bestand schrijven? Er wordt eerst een back-up gemaakt.",
+      "yes": "Ja, schrijven",
+      "cancel": "Annuleren"
+    },
+    "realism": {
+      "label": "Realisme",
+      "hint": "100 % = het beeld is op je hoofdscherm op ware grootte. 0 % = de standaardweergave van de simulator. Alles ertussen is een mengeling.",
+      "more": "Een hardwarecockpit met de tv als voorraam wil 100 %, ook al is dat veel krapper dan de standaard — je ziet precies wat je door het echte raam zou zien. Aan een bureau is minder vaak prettiger zodat meer van de wereld in beeld blijft."
+    },
+    "applyPitch": {
+      "label": "Camera ook kantelen",
+      "hint": "Schrijft de camerahelling zodat een scherm waarvan het midden boven of onder je oog zit recht wordt aangekeken. Uit behoudt de helling van je opgeslagen weergave."
+    },
+    "readout": {
+      "title": "Wat er wordt geschreven",
+      "hint": "Berekend uit het hoofdscherm",
+      "panel": "Paneelgrootte",
+      "trueVfov": "Echte verticale FOV",
+      "hfov": "Horizontale FOV",
+      "appliedVfov": "Toegepaste verticale FOV",
+      "zoom": "InitialZoom",
+      "fovRad": "Verwachte dev-mode Fov",
+      "pitch": "Camerahelling",
+      "pitchNotWritten": "(niet geschreven — kantelen staat uit)",
+      "invalid": "Een scherm heeft een grootte, verhouding of afstand van nul. Corrigeer dat in de sectie Schermen."
+    },
+    "file": {
+      "title": "De opgeslagen pilotenweergave",
+      "hint": "Alleen dit bestand wordt ooit gewijzigd",
+      "label": "Bestand",
+      "pickHint": "Het aangepaste camerabestand dat MSFS 2024 voor dit vliegtuig heeft opgeslagen. Nieuwste eerst. Bestanden onder Official en Community worden nooit aangeraakt.",
+      "hintTitle": "Door ProSim gemeld vliegtuig: {0}. Mappen waarvan de naam past staan vooraan; past er geen, dan worden alle vliegtuigen getoond.",
+      "hintNone": "ProSim heeft nog geen vliegtuig gemeld, dus alle vliegtuigmappen staan in de lijst.",
+      "noRoot": "Geen MSFS 2024 LocalCache-map gevonden op deze pc. Draai de app op de pc waarop de simulator draait.",
+      "noneTitle": "Nog geen opgeslagen pilotenweergave. Maak er eerst een:",
+      "step1": "Laad het vliegtuig in MSFS 2024.",
+      "step2": "Zet de cockpitweergave zoals je hem wilt.",
+      "step3": "Druk op Ctrl+F10 (VFR Pilot View Save). MSFS maakt het camerabestand aan.",
+      "step4": "Kom hier terug en druk op Vernieuwen.",
+      "refresh": "Vernieuwen"
+    },
+    "result": {
+      "blocks": "Gewijzigde camerablokken",
+      "zoom": "Geschreven InitialZoom",
+      "backup": "Back-up",
+      "live": "In de simulator",
+      "nudgeOk": "Live toegepast — de cockpitweergave is gereset.",
+      "nudgeFailed": "Niet live toegepast. Het gaat in bij het volgende laden van het vliegtuig.",
+      "noBlocks": "Het bestand bevat geen cockpit-pilotenweergave, dus er is niets geschreven. Sla de weergave op in de simulator (Ctrl+F10) en vernieuw.",
+      "failed": "Het bestand kon niet worden geschreven: {0}",
+      "verifyTitle": "Controleer het in de simulator:",
+      "verify1": "Opties → Algemeen → Ontwikkelaars → Developer Mode aan.",
+      "verify2": "Dev-menu: Debug → Aircraft → Camera Blend.",
+      "verify3": "Fov moet {0} rad aangeven."
+    },
+    "multi": {
+      "title": "Multi Window",
+      "hint": "Alleen uitlezing",
+      "note": "MSFS 2024 rendert elk venster met één gezichtsveld: dat van het hoofdscherm. Typ deze rotaties in het Multi Window-dialoogvenster; de FOV die je daar ziet is wat de sectie Toepassen heeft geschreven. De delta laat zien hoe ver een zijscherm van een ander formaat van zijn eigen ideaal af zit.",
+      "shared": "Gedeelde verticale FOV voor elk venster: {0}°",
+      "none": "Geen zij- of bovenschermen ingesteld.",
+      "col": {
+        "display": "Scherm",
+        "lateral": "Zijwaartse rotatie",
+        "vertical": "Verticale rotatie",
+        "ideal": "Ideale verticale FOV",
+        "delta": "Delta t.o.v. toegepast"
+      }
+    },
+    "cp": {
+      "title": "ChasePlane",
+      "hint": "Alleen detectie",
+      "notDetected": "ChasePlane voor MSFS 2024 is niet gevonden op deze pc.",
+      "detected": "ChasePlane voor MSFS 2024 is geïnstalleerd. Zijn cockpit-presets hebben hun eigen zoom en overschrijven de native weergave zodra je ze oproept — het bestand dat deze pagina schrijft is niet wat ChasePlane toont.",
+      "target": "Om het in ChasePlane gelijk te krijgen, pas je de zoom van de cockpit-preset aan tot de dev-mode Fov {0} rad aangeeft ({1}° verticaal).",
+      "advice": "Het eenvoudigst: laat de cockpitweergave native (roep geen ChasePlane-cockpit-preset op) en gebruik ChasePlane voor de buitencamera's. Hier wordt nooit naar de bestanden van ChasePlane geschreven."
+    }
+  }
+}

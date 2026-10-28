@@ -1,0 +1,141 @@
+{
+  "display": {
+    "pageTitle": "Écran et FOV — ProsimCompanion",
+    "heading": "Écran et FOV",
+    "displays": {
+      "title": "Tes écrans",
+      "hint": "Mesure une fois, enregistre",
+      "intro": "Une ligne par écran physique. L'écran principal est la fenêtre avant : sa taille et sa distance décident du champ de vision que reçoit le simulateur. Les écrans latéraux et supérieurs ne figurent ici que pour la lecture Multi Window.",
+      "none": "Aucun écran pour l'instant. Ajoute d'abord celui de face.",
+      "add": "Ajouter un écran",
+      "metric": "Afficher la diagonale en centimètres",
+      "oneMain": "Exactement un écran doit avoir le rôle Principal — {0} trouvé(s). Rien ne peut être appliqué tant que ce n'est pas corrigé."
+    },
+    "row": {
+      "aspect": "Format L : H",
+      "diagonalCm": "Diagonale (cm)",
+      "removeTitle": "Retirer cet écran",
+      "role": {
+        "label": "Rôle",
+        "hint": "Principal = la fenêtre avant. Gauche, Droite et Supérieur sont des écrans Multi Window."
+      },
+      "name": {
+        "label": "Nom",
+        "hint": "Une étiquette pour cette liste, par exemple Principal ou TV gauche."
+      },
+      "diagonal": {
+        "label": "Diagonale (po)",
+        "hint": "La taille d'écran indiquée sur la boîte, en pouces. Coche la case plus bas pour saisir des centimètres."
+      },
+      "aspectWidth": {
+        "label": "Format largeur",
+        "hint": "La forme de l'écran : 16 et 9 pour une TV 16:9, 21 et 9 pour un ultra-large, 4 et 3 pour un vieux moniteur."
+      },
+      "aspectHeight": {
+        "label": "Format hauteur",
+        "hint": "Le second nombre du format (9 de 16:9)."
+      },
+      "distance": {
+        "label": "Distance (m)",
+        "hint": "De ton œil au centre de l'écran, en mètres, mesurée bien en face."
+      },
+      "yaw": {
+        "label": "Lacet (°)",
+        "hint": "Où se trouve le centre de l'écran, à gauche ou à droite de l'axe. 0 pour l'écran avant ; positif = à droite."
+      },
+      "centreAboveEye": {
+        "label": "Centre au-dessus de l'œil (m)",
+        "hint": "De combien le centre de l'écran est au-dessus de ton œil, en mètres. Négatif s'il est en dessous. 0 s'il est à niveau."
+      }
+    },
+    "roleOptions": {
+      "main": "Principal",
+      "left": "Gauche",
+      "right": "Droite",
+      "overhead": "Supérieur",
+      "other": "Autre"
+    },
+    "apply": {
+      "title": "Niveau de réalisme",
+      "hint": "Enregistre, puis applique",
+      "button": "Appliquer le FOV réaliste",
+      "saveFirst": "Enregistre d'abord les réglages d'écran.",
+      "confirm": "Écrire InitialZoom {0} dans ce fichier ? Une sauvegarde est faite d'abord.",
+      "yes": "Oui, écrire",
+      "cancel": "Annuler"
+    },
+    "realism": {
+      "label": "Réalisme",
+      "hint": "100 % = la vue est grandeur nature sur ton écran principal. 0 % = la vue par défaut du simulateur. Entre les deux, un mélange.",
+      "more": "Un cockpit matériel avec la TV comme fenêtre avant veut 100 %, même si c'est bien plus serré que la valeur par défaut — tu vois exactement ce que tu verrais par la vraie fenêtre. Sur un bureau, on préfère souvent moins pour garder plus de monde en vue."
+    },
+    "applyPitch": {
+      "label": "Incliner aussi la caméra",
+      "hint": "Écrit le tangage de la caméra pour qu'un écran dont le centre est au-dessus ou en dessous de ton œil soit regardé en face. Désactivé, le tangage de ta vue enregistrée est conservé."
+    },
+    "readout": {
+      "title": "Ce qui sera écrit",
+      "hint": "Calculé depuis l'écran principal",
+      "panel": "Taille de la dalle",
+      "trueVfov": "FOV vertical réel",
+      "hfov": "FOV horizontal",
+      "appliedVfov": "FOV vertical appliqué",
+      "zoom": "InitialZoom",
+      "fovRad": "Fov attendu en mode dev",
+      "pitch": "Tangage caméra",
+      "pitchNotWritten": "(non écrit — l'inclinaison est désactivée)",
+      "invalid": "Un écran a une taille, un format ou une distance à zéro. Corrige-le dans la section Écrans."
+    },
+    "file": {
+      "title": "La vue pilote enregistrée",
+      "hint": "Seul ce fichier est jamais modifié",
+      "label": "Fichier",
+      "pickHint": "Le fichier de caméra personnalisée que MSFS 2024 a enregistré pour cet avion. Le plus récent d'abord. Les fichiers sous Official et Community ne sont jamais touchés.",
+      "hintTitle": "Avion signalé par ProSim : {0}. Les dossiers dont le nom correspond sont listés en premier ; si aucun ne correspond, tous les avions sont affichés.",
+      "hintNone": "ProSim n'a pas encore signalé d'avion, donc tous les dossiers d'avion sont listés.",
+      "noRoot": "Aucun dossier LocalCache de MSFS 2024 trouvé sur ce PC. Lance l'application sur le PC qui fait tourner le simulateur.",
+      "noneTitle": "Pas encore de vue pilote enregistrée. Crée-en une d'abord :",
+      "step1": "Charge l'avion dans MSFS 2024.",
+      "step2": "Place la vue cockpit comme tu la veux.",
+      "step3": "Appuie sur Ctrl+F10 (VFR Pilot View Save). MSFS crée le fichier de caméra.",
+      "step4": "Reviens ici et appuie sur Actualiser.",
+      "refresh": "Actualiser"
+    },
+    "result": {
+      "blocks": "Blocs caméra modifiés",
+      "zoom": "InitialZoom écrit",
+      "backup": "Sauvegarde",
+      "live": "Dans le simulateur",
+      "nudgeOk": "Appliqué en direct — la vue cockpit a été réinitialisée.",
+      "nudgeFailed": "Pas appliqué en direct. Ce sera pris en compte au prochain chargement de l'avion.",
+      "noBlocks": "Le fichier ne contient aucune vue pilote cockpit, rien n'a été écrit. Enregistre la vue dans le simulateur (Ctrl+F10) puis actualise.",
+      "failed": "Impossible d'écrire le fichier : {0}",
+      "verifyTitle": "Vérifie dans le simulateur :",
+      "verify1": "Options → Général → Développeurs → Developer Mode activé.",
+      "verify2": "Menu dev : Debug → Aircraft → Camera Blend.",
+      "verify3": "Fov doit afficher {0} rad."
+    },
+    "multi": {
+      "title": "Multi Window",
+      "hint": "Lecture seule",
+      "note": "MSFS 2024 rend chaque fenêtre avec un seul champ de vision : celui de l'écran principal. Saisis ces rotations dans la boîte de dialogue Multi Window ; le FOV que tu y vois est celui que la section Appliquer a écrit. Le delta montre à quel point un écran latéral d'une autre taille s'écarte de son propre idéal.",
+      "shared": "FOV vertical partagé par toutes les fenêtres : {0}°",
+      "none": "Aucun écran latéral ou supérieur configuré.",
+      "col": {
+        "display": "Écran",
+        "lateral": "Rotation latérale",
+        "vertical": "Rotation verticale",
+        "ideal": "FOV vertical idéal",
+        "delta": "Écart par rapport à l'appliqué"
+      }
+    },
+    "cp": {
+      "title": "ChasePlane",
+      "hint": "Détection seulement",
+      "notDetected": "ChasePlane pour MSFS 2024 n'a pas été détecté sur ce PC.",
+      "detected": "ChasePlane pour MSFS 2024 est installé. Ses préréglages cockpit ont leur propre zoom et remplacent la vue native quand tu les rappelles — le fichier que cette page écrit n'est pas ce que ChasePlane affiche.",
+      "target": "Pour l'aligner dans ChasePlane, ajuste le zoom du préréglage cockpit jusqu'à ce que le Fov du mode dev affiche {0} rad ({1}° vertical).",
+      "advice": "Le plus simple : laisser la vue cockpit native (ne pas rappeler de préréglage cockpit ChasePlane) et utiliser ChasePlane pour les caméras extérieures. Rien ici n'écrit jamais dans les fichiers de ChasePlane."
+    }
+  }
+}

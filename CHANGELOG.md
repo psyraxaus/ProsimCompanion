@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased (feature/display-fov)
+
+- Added: **Settings → Screen & FOV** (owner design 2026-10-28, `claude/fov-tool-design.md`): enter your physical screens (size, aspect, eye distance, yaw, height); the page computes the life-size vertical field of view (`InitialZoom = tan(vFOV) / 3.3125`, 52" 16:9 at 1.5 m → 24.4°, zoom 0.1367), blends it with the sim default through a realism slider, and **Apply realistic FOV** rewrites only the `InitialZoom` line (and the pitch of `InitialPbh` when *Also tilt the camera* is on) of the cockpit pilot-view blocks in the aircraft's saved `cameras.cfg` under the MSFS 2024 LocalCache — backed up beside the file (last five kept), written atomically, every other byte, line ending and BOM preserved. Package files under `Official` / `Community` and ChasePlane's folder are refused by construction. After the write the app nudges the sim (cockpit zoom 50 %, cockpit view reset — both on the SimVar allow-list) so the change shows without a reload, and shows the Developer Mode → Camera Blend `Fov` value to verify. Multi Window section: per-screen lateral/vertical rotations and the delta from the shared FOV (read-out only). ChasePlane section: detection and the target `Fov` to match by hand. Seven language packs, manual chapter 14, `docs/integrations/msfs-display-fov.md`. Unverified live.
+
 ## 0.8.0-rc.18
 
 Local build for the owner's next flight, 2026-10-27, on `feature/ecam-diagnostics` (over rc.17).

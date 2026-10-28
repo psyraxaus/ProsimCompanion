@@ -92,6 +92,16 @@ public static class SettingsNav
         ("mixer", "Remote Mixer"),
         ("advanced", "Housekeeping"));
 
+    // Screen & FOV (2026-10-28): the pilot's physical screens, the one-button cameras.cfg
+    // rewrite, and the Multi Window / ChasePlane read-outs. The group key stays "display"
+    // (route settings/display); the label says "Screen" so the rail does not read as a twin
+    // of "Display & Flight Data" two lines down.
+    public static readonly SettingsNavItem[] DisplaySections = Items("settings/display",
+        ("displays", "Displays"),
+        ("apply", "Apply FOV"),
+        ("multiwindow", "Multi Window"),
+        ("chaseplane", "ChasePlane"));
+
     public static readonly SettingsNavGroup[] Groups =
     [
         new("setup", "Setup", "settings", []),
@@ -100,6 +110,7 @@ public static class SettingsNav
         new("audio", "Audio Control", "settings/audio", AudioSections),
         // Cockpit switches (2026-10-24): the Stream Deck's Korry buttons, toggles and knobs.
         new("cockpit", "Cockpit Switches", "settings/cockpit", []),
+        new("display", "Screen & FOV", "settings/display", DisplaySections),
         // Hardware (2026-10-27): the Skalarki Profiler link behind the PANELS diagnostics page.
         new("hardware", "Hardware", "settings/hardware/skalarki",
         [

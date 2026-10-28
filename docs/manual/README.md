@@ -32,6 +32,7 @@ kept there so a broken web configuration can always be repaired.
 | [Remote mixer](09-remote-mixer.md) | Voicemeeters on other PCs (the vPilot box, or one PC per pilot) driven from the cockpit through VoicemeeterBridge agents: setup on every PC, one agent block each, knob and REC-button mappings, the status card, the two-pilot-PC example |
 | [Two headsets](11-two-headsets.md) | The VoiceMeeter layout for two headsets with online ATC: one fader per strip or bus, a bus per headset, how to get INT on its own knob, why VHF2 cannot have its own bus |
 | [Diagnostics: the ECAM-style system pages](13-diagnostics.md) | The pages under Settings → Diagnostics (VOICE, SIM, REMOTE, GSX, STATUS, and PANELS for Skalarki hardware): how to read green / amber / red / `XX` / `- - -`, what the common cautions mean and what to do, the sidebar badge, the bundle |
+| [Screen & FOV: a life-size view on your TV](14-screen-fov.md) | Enter your screen's size and distance, see the true field of view, press one button to write it into MSFS 2024's saved pilot view (with a backup), and check it in Developer Mode; Multi Window rotations and the ChasePlane caveat |
 | [Stream Deck on another PC: cockpit switches and camera views](12-remote-streamdeck.md) | Running the plugin on a second PC; Cockpit Switch keys that press ProSim switches you have no hardware for (Korry buttons, toggles, knobs, drawn like the real overhead); Camera View keys that change ChasePlane views through the vJoy relay |
 
 ## Design principles (what to expect)

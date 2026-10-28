@@ -31,6 +31,12 @@ public static class SimWriteGate
         "L:SIAI_CONTROL_PTT_INTERCOM2",
         "L:SIAI_CONTROL_PTT_INTERCOM3",
         "L:SIAI_CONTROL_PTT_GROUP",
+        // Display & FOV page (2026-10-28, claude/fov-tool-design.md): after rewriting the
+        // saved pilot view's InitialZoom in cameras.cfg the page nudges the sim so the new
+        // zoom shows without an aircraft reload — zoom slider back to 50 %, then a cockpit
+        // view reset. Camera state only; nothing that touches the aircraft.
+        "COCKPIT CAMERA ZOOM",
+        "CAMERA ACTION COCKPIT VIEW RESET",
     ];
 
     /// <summary>True when the name may be written by this application.</summary>

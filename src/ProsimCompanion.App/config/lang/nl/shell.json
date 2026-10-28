@@ -87,6 +87,11 @@
     "nav": {
       "setup": "Setup",
       "cockpit": "Cockpitschakelaars",
+      "display": "Scherm & FOV",
+      "display.displays": "Schermen",
+      "display.apply": "FOV toepassen",
+      "display.multiwindow": "Multi Window",
+      "display.chaseplane": "ChasePlane",
       "hardware": "Hardware",
       "hardware.skalarki": "Skalarki-panelen",
       "gsx": "Grondservices",

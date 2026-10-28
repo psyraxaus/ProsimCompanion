@@ -83,6 +83,44 @@ public static class MsfsPackageRoots
         return null;
     }
 
+    /// <summary>
+    /// The MSFS 2024 <c>LocalCache</c> folders that exist on this machine — where the sim writes
+    /// a pilot's saved custom cameras (<c>SimObjects\Airplanes\&lt;aircraft&gt;\…\cameras.cfg</c>,
+    /// the Display &amp; FOV page). Store: <c>%LOCALAPPDATA%\Packages\Microsoft.Limitless_…\LocalCache</c>;
+    /// Steam: <c>%APPDATA%\Microsoft Flight Simulator 2024\LocalCache</c> (per the design doc,
+    /// unverified on a Steam install). MSFS 2020 is deliberately not listed: the feature
+    /// targets 2024 only. A sibling of <see cref="Detect"/>, which keeps answering with the
+    /// package roots.
+    /// </summary>
+    public static IReadOnlyList<string> DetectLocalCache2024()
+    {
+        var local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        var roaming = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+        return new[]
+            {
+                Path.Combine(local, "Packages", "Microsoft.Limitless_8wekyb3d8bbwe", "LocalCache"),
+                Path.Combine(roaming, "Microsoft Flight Simulator 2024", "LocalCache"),
+            }
+            .Where(SafeDirectoryExists)
+            .Select(p => Path.GetFullPath(p).TrimEnd(Path.DirectorySeparatorChar))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    /// <summary>
+    /// True when Parallel 42's ChasePlane for MSFS 2024 has a work folder on this machine
+    /// (<c>…\LocalState\WASM\MSFS2024\p42-util-chaseplane\work</c> for the Store build,
+    /// <c>%APPDATA%\Microsoft Flight Simulator 2024\WASM\MSFS2024\p42-util-chaseplane\work</c>
+    /// for Steam). Detection only: its preset format is undocumented and is never written.
+    /// </summary>
+    public static bool ChasePlaneDetected()
+    {
+        var local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        var roaming = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+        return SafeDirectoryExists(Path.Combine(local, "Packages", "Microsoft.Limitless_8wekyb3d8bbwe", "LocalState", "WASM", "MSFS2024", "p42-util-chaseplane", "work"))
+               || SafeDirectoryExists(Path.Combine(roaming, "Microsoft Flight Simulator 2024", "WASM", "MSFS2024", "p42-util-chaseplane", "work"));
+    }
+
     public static bool SafeDirectoryExists(string? path)
     {
         try

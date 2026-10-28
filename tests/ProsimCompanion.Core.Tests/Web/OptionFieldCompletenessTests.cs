@@ -102,6 +102,8 @@ public sealed class OptionFieldCompletenessTests
         ["SkalarkiOptions.DeviceLabels"] = "the per-board label fields on the Skalarki settings page",
         ["MixerAgentOptions.PanelStrips"] = "the per-agent status-panel tick boxes (#178)",
         ["MixerAgentOptions.PanelBuses"] = "the per-agent status-panel tick boxes (#178)",
+        // Screen & FOV (2026-10-28): the blend is a 0–100 % slider over a 0–1 double.
+        ["DisplayOptions.Realism"] = "the realism slider on the Screen & FOV page's Apply section",
         ["AircraftProfile.*"] = "the Aircraft Profiles page's own editor",
     };
 

@@ -87,6 +87,11 @@
     "nav": {
       "setup": "Configuración",
       "cockpit": "Interruptores de cabina",
+      "display": "Pantalla y FOV",
+      "display.displays": "Pantallas",
+      "display.apply": "Aplicar FOV",
+      "display.multiwindow": "Multi Window",
+      "display.chaseplane": "ChasePlane",
       "hardware": "Hardware",
       "hardware.skalarki": "Paneles Skalarki",
       "gsx": "Servicios de tierra",

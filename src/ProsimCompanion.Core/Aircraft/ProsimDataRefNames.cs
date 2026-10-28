@@ -1046,6 +1046,16 @@ public static class ProsimDataRefNames
         /// (owner report 2026-10-25: "good morning" at sim 16:35). MSFS SimVar, not an L:var.</summary>
         public static readonly SimVarRef<double> LocalTimeSeconds = new("LOCAL TIME", "seconds", DataRefTier.Infrequent, 0.0);
 
+        /// <summary>The cockpit camera zoom slider, 0–100 % relative to the view's own
+        /// <c>InitialZoom</c>. Written back to 50 after the Display &amp; FOV page rewrites
+        /// <c>cameras.cfg</c> so the new zoom shows without an aircraft reload
+        /// (docs/integrations/msfs-display-fov.md).</summary>
+        public static readonly SimVarRef<double> CockpitCameraZoom = new("COCKPIT CAMERA ZOOM", "percent", DataRefTier.Infrequent, 50.0);
+
+        /// <summary>Set to 1 to reset the cockpit view to its saved definition — the second
+        /// half of the Display &amp; FOV nudge.</summary>
+        public static readonly SimVarRef<bool> CameraActionCockpitViewReset = new("CAMERA ACTION COCKPIT VIEW RESET", "Bool", DataRefTier.Infrequent, false);
+
         public const string Eng1Combustion = "ENG COMBUSTION:1";
         public const string Eng2Combustion = "ENG COMBUSTION:2";
         public const string DoorPointFwd = "INTERACTIVE POINT OPEN:8";

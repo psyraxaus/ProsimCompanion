@@ -1,0 +1,141 @@
+{
+  "display": {
+    "pageTitle": "Bildschirm & FOV — ProsimCompanion",
+    "heading": "Bildschirm & FOV",
+    "displays": {
+      "title": "Deine Bildschirme",
+      "hint": "Einmal messen, speichern",
+      "intro": "Eine Zeile pro physischem Bildschirm. Der Hauptbildschirm ist das vordere Fenster: seine Größe und sein Abstand bestimmen das Sichtfeld, das der Simulator bekommt. Seiten- und Overhead-Bildschirme stehen nur für die Multi-Window-Anzeige in der Liste.",
+      "none": "Noch keine Bildschirme. Füge zuerst den vorderen hinzu.",
+      "add": "Bildschirm hinzufügen",
+      "metric": "Diagonale in Zentimetern anzeigen",
+      "oneMain": "Genau ein Bildschirm muss die Rolle Haupt haben — {0} gefunden. Bis das stimmt, kann nichts angewendet werden."
+    },
+    "row": {
+      "aspect": "Seitenverhältnis B : H",
+      "diagonalCm": "Diagonale (cm)",
+      "removeTitle": "Diesen Bildschirm entfernen",
+      "role": {
+        "label": "Rolle",
+        "hint": "Haupt = das vordere Fenster. Links, Rechts und Overhead sind Multi-Window-Bildschirme."
+      },
+      "name": {
+        "label": "Name",
+        "hint": "Eine Bezeichnung für diese Liste, zum Beispiel Haupt oder TV links."
+      },
+      "diagonal": {
+        "label": "Diagonale (Zoll)",
+        "hint": "Die Bildschirmgröße laut Verpackung, in Zoll. Hake unten das Kästchen an, um stattdessen Zentimeter einzugeben."
+      },
+      "aspectWidth": {
+        "label": "Seitenverhältnis Breite",
+        "hint": "Die Form des Bildschirms: 16 und 9 für einen 16:9-Fernseher, 21 und 9 für Ultrawide, 4 und 3 für einen alten Monitor."
+      },
+      "aspectHeight": {
+        "label": "Seitenverhältnis Höhe",
+        "hint": "Die zweite Zahl des Seitenverhältnisses (9 bei 16:9)."
+      },
+      "distance": {
+        "label": "Abstand (m)",
+        "hint": "Von deinem Auge zur Bildschirmmitte, in Metern, gerade darauf gemessen."
+      },
+      "yaw": {
+        "label": "Gier (°)",
+        "hint": "Wo die Bildschirmmitte liegt, links oder rechts von geradeaus. 0 für den vorderen Bildschirm; positiv = rechts."
+      },
+      "centreAboveEye": {
+        "label": "Mitte über Auge (m)",
+        "hint": "Wie weit die Bildschirmmitte über deinem Auge liegt, in Metern. Negativ, wenn darunter. 0, wenn auf gleicher Höhe."
+      }
+    },
+    "roleOptions": {
+      "main": "Haupt",
+      "left": "Links",
+      "right": "Rechts",
+      "overhead": "Overhead",
+      "other": "Sonstige"
+    },
+    "apply": {
+      "title": "Wie realistisch",
+      "hint": "Speichern, dann anwenden",
+      "button": "Realistisches FOV anwenden",
+      "saveFirst": "Speichere zuerst die Bildschirm-Einstellungen.",
+      "confirm": "InitialZoom {0} in diese Datei schreiben? Vorher wird eine Sicherung angelegt.",
+      "yes": "Ja, schreiben",
+      "cancel": "Abbrechen"
+    },
+    "realism": {
+      "label": "Realismus",
+      "hint": "100 % = die Sicht ist auf deinem Hauptbildschirm lebensgroß. 0 % = die Standardsicht des Simulators. Alles dazwischen ist eine Mischung.",
+      "more": "Ein Hardware-Cockpit mit dem Fernseher als vorderem Fenster will 100 %, auch wenn das viel enger ist als der Standard — du siehst genau das, was du durch das echte Fenster sehen würdest. Am Schreibtisch ist weniger oft angenehmer, damit mehr von der Welt im Blick bleibt."
+    },
+    "applyPitch": {
+      "label": "Kamera auch neigen",
+      "hint": "Schreibt die Kameraneigung, damit ein Bildschirm, dessen Mitte über oder unter deinem Auge liegt, gerade angeschaut wird. Aus behält die Neigung deiner gespeicherten Ansicht."
+    },
+    "readout": {
+      "title": "Was geschrieben wird",
+      "hint": "Berechnet aus dem Hauptbildschirm",
+      "panel": "Panelgröße",
+      "trueVfov": "Echtes vertikales FOV",
+      "hfov": "Horizontales FOV",
+      "appliedVfov": "Angewendetes vertikales FOV",
+      "zoom": "InitialZoom",
+      "fovRad": "Erwartetes Dev-Mode-Fov",
+      "pitch": "Kameraneigung",
+      "pitchNotWritten": "(nicht geschrieben — Neigen ist aus)",
+      "invalid": "Ein Bildschirm hat Größe, Seitenverhältnis oder Abstand null. Korrigiere das im Abschnitt Bildschirme."
+    },
+    "file": {
+      "title": "Die gespeicherte Pilotenansicht",
+      "hint": "Nur diese Datei wird je geändert",
+      "label": "Datei",
+      "pickHint": "Die Kameradatei, die MSFS 2024 für dieses Flugzeug gespeichert hat. Neueste zuerst. Dateien unter Official und Community werden nie angefasst.",
+      "hintTitle": "Von ProSim gemeldetes Flugzeug: {0}. Ordner, deren Name dazu passt, stehen zuerst; passt keiner, werden alle Flugzeuge gezeigt.",
+      "hintNone": "ProSim hat noch kein Flugzeug gemeldet, deshalb werden alle Flugzeugordner gelistet.",
+      "noRoot": "Auf diesem PC wurde kein MSFS-2024-LocalCache-Ordner gefunden. Starte die App auf dem PC, auf dem der Simulator läuft.",
+      "noneTitle": "Noch keine gespeicherte Pilotenansicht. Lege zuerst eine an:",
+      "step1": "Lade das Flugzeug in MSFS 2024.",
+      "step2": "Stelle die Cockpitansicht so ein, wie du sie willst.",
+      "step3": "Drücke Strg+F10 (VFR Pilot View Save). MSFS legt die Kameradatei an.",
+      "step4": "Komm hierher zurück und drücke Aktualisieren.",
+      "refresh": "Aktualisieren"
+    },
+    "result": {
+      "blocks": "Geänderte Kamerablöcke",
+      "zoom": "Geschriebenes InitialZoom",
+      "backup": "Sicherung",
+      "live": "Im Simulator",
+      "nudgeOk": "Live angewendet — die Cockpitansicht wurde zurückgesetzt.",
+      "nudgeFailed": "Nicht live angewendet. Es greift beim nächsten Laden des Flugzeugs.",
+      "noBlocks": "Die Datei enthält keine Cockpit-Pilotenansicht, es wurde nichts geschrieben. Speichere die Ansicht im Simulator (Strg+F10) und aktualisiere.",
+      "failed": "Die Datei konnte nicht geschrieben werden: {0}",
+      "verifyTitle": "Im Simulator prüfen:",
+      "verify1": "Optionen → Allgemein → Entwickler → Developer Mode ein.",
+      "verify2": "Dev-Menü: Debug → Aircraft → Camera Blend.",
+      "verify3": "Fov sollte {0} rad anzeigen."
+    },
+    "multi": {
+      "title": "Multi Window",
+      "hint": "Nur Anzeige",
+      "note": "MSFS 2024 rendert jedes Fenster mit einem einzigen Sichtfeld: dem des Hauptbildschirms. Trage diese Drehungen im Multi-Window-Dialog ein; das FOV dort ist das, was der Abschnitt Anwenden geschrieben hat. Das Delta zeigt, wie weit ein Seitenbildschirm anderer Größe von seinem eigenen Ideal entfernt ist.",
+      "shared": "Gemeinsames vertikales FOV für jedes Fenster: {0}°",
+      "none": "Keine Seiten- oder Overhead-Bildschirme eingerichtet.",
+      "col": {
+        "display": "Bildschirm",
+        "lateral": "Seitliche Drehung",
+        "vertical": "Vertikale Drehung",
+        "ideal": "Ideales vertikales FOV",
+        "delta": "Delta zum angewendeten"
+      }
+    },
+    "cp": {
+      "title": "ChasePlane",
+      "hint": "Nur Erkennung",
+      "notDetected": "ChasePlane für MSFS 2024 wurde auf diesem PC nicht gefunden.",
+      "detected": "ChasePlane für MSFS 2024 ist installiert. Seine Cockpit-Presets haben ihren eigenen Zoom und überschreiben die native Ansicht, sobald du sie aufrufst — die Datei, die diese Seite schreibt, ist nicht das, was ChasePlane zeigt.",
+      "target": "Zum Angleichen in ChasePlane den Zoom des Cockpit-Presets so lange ändern, bis das Dev-Mode-Fov {0} rad anzeigt ({1}° vertikal).",
+      "advice": "Am einfachsten: die Cockpitansicht nativ lassen (kein ChasePlane-Cockpit-Preset aufrufen) und ChasePlane für die Außenkameras nutzen. Hier wird nie in ChasePlane-Dateien geschrieben."
+    }
+  }
+}

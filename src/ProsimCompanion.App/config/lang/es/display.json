@@ -1,0 +1,141 @@
+{
+  "display": {
+    "pageTitle": "Pantalla y FOV — ProsimCompanion",
+    "heading": "Pantalla y FOV",
+    "displays": {
+      "title": "Tus pantallas",
+      "hint": "Mide una vez, guarda",
+      "intro": "Una fila por pantalla física. La pantalla principal es la ventana frontal: su tamaño y distancia deciden el campo de visión que recibe el simulador. Las pantallas laterales y superiores solo aparecen para la lectura de Multi Window.",
+      "none": "Aún no hay pantallas. Añade primero la frontal.",
+      "add": "Añadir pantalla",
+      "metric": "Mostrar la diagonal en centímetros",
+      "oneMain": "Exactamente una pantalla debe tener el rol Principal — se encontraron {0}. No se puede aplicar nada hasta corregirlo."
+    },
+    "row": {
+      "aspect": "Relación An : Al",
+      "diagonalCm": "Diagonal (cm)",
+      "removeTitle": "Quitar esta pantalla",
+      "role": {
+        "label": "Rol",
+        "hint": "Principal = la ventana frontal. Izquierda, Derecha y Superior son pantallas de Multi Window."
+      },
+      "name": {
+        "label": "Nombre",
+        "hint": "Una etiqueta para esta lista, por ejemplo Principal o TV izquierda."
+      },
+      "diagonal": {
+        "label": "Diagonal (pulg)",
+        "hint": "El tamaño de pantalla de la caja, en pulgadas. Marca la casilla de abajo para introducir centímetros."
+      },
+      "aspectWidth": {
+        "label": "Relación ancho",
+        "hint": "La forma de la pantalla: 16 y 9 para una TV 16:9, 21 y 9 para una ultrapanorámica, 4 y 3 para un monitor antiguo."
+      },
+      "aspectHeight": {
+        "label": "Relación alto",
+        "hint": "El segundo número de la relación de aspecto (9 de 16:9)."
+      },
+      "distance": {
+        "label": "Distancia (m)",
+        "hint": "De tu ojo al centro de la pantalla, en metros, medida de frente."
+      },
+      "yaw": {
+        "label": "Guiñada (°)",
+        "hint": "Dónde está el centro de la pantalla, a la izquierda o a la derecha del frente. 0 para la pantalla frontal; positivo = a la derecha."
+      },
+      "centreAboveEye": {
+        "label": "Centro sobre el ojo (m)",
+        "hint": "Cuánto queda el centro de la pantalla por encima de tu ojo, en metros. Negativo si está por debajo. 0 si está a la misma altura."
+      }
+    },
+    "roleOptions": {
+      "main": "Principal",
+      "left": "Izquierda",
+      "right": "Derecha",
+      "overhead": "Superior",
+      "other": "Otra"
+    },
+    "apply": {
+      "title": "Cuánto realismo",
+      "hint": "Guarda y luego aplica",
+      "button": "Aplicar FOV realista",
+      "saveFirst": "Guarda primero los ajustes de pantalla.",
+      "confirm": "¿Escribir InitialZoom {0} en este archivo? Antes se hace una copia de seguridad.",
+      "yes": "Sí, escribir",
+      "cancel": "Cancelar"
+    },
+    "realism": {
+      "label": "Realismo",
+      "hint": "100 % = la vista es a tamaño real en tu pantalla principal. 0 % = la vista por defecto del simulador. Entre medias, una mezcla.",
+      "more": "Una cabina de hardware con la TV como ventana frontal quiere 100 %, aunque sea mucho más cerrado que el valor por defecto — ves exactamente lo que verías por la ventana real. En un escritorio suele preferirse menos para mantener más mundo a la vista."
+    },
+    "applyPitch": {
+      "label": "Inclinar también la cámara",
+      "hint": "Escribe el cabeceo de la cámara para que una pantalla con el centro por encima o por debajo de tu ojo se mire de frente. Desactivado, se conserva el cabeceo de tu vista guardada."
+    },
+    "readout": {
+      "title": "Lo que se escribirá",
+      "hint": "Calculado desde la pantalla principal",
+      "panel": "Tamaño del panel",
+      "trueVfov": "FOV vertical real",
+      "hfov": "FOV horizontal",
+      "appliedVfov": "FOV vertical aplicado",
+      "zoom": "InitialZoom",
+      "fovRad": "Fov esperado en modo dev",
+      "pitch": "Cabeceo de cámara",
+      "pitchNotWritten": "(no se escribe — la inclinación está desactivada)",
+      "invalid": "Una pantalla tiene tamaño, relación o distancia cero. Corrígelo en la sección Pantallas."
+    },
+    "file": {
+      "title": "La vista de piloto guardada",
+      "hint": "Solo este archivo se modifica",
+      "label": "Archivo",
+      "pickHint": "El archivo de cámara personalizada que MSFS 2024 guardó para este avión. El más reciente primero. Los archivos bajo Official y Community nunca se tocan.",
+      "hintTitle": "Avión reportado por ProSim: {0}. Las carpetas cuyo nombre coincide aparecen primero; si ninguna coincide, se muestran todos los aviones.",
+      "hintNone": "ProSim aún no ha reportado un avión, así que se listan todas las carpetas de avión.",
+      "noRoot": "No se encontró una carpeta LocalCache de MSFS 2024 en este PC. Ejecuta la aplicación en el PC que corre el simulador.",
+      "noneTitle": "Aún no hay vista de piloto guardada. Crea una primero:",
+      "step1": "Carga el avión en MSFS 2024.",
+      "step2": "Coloca la vista de cabina donde la quieras.",
+      "step3": "Pulsa Ctrl+F10 (VFR Pilot View Save). MSFS crea el archivo de cámara.",
+      "step4": "Vuelve aquí y pulsa Actualizar.",
+      "refresh": "Actualizar"
+    },
+    "result": {
+      "blocks": "Bloques de cámara cambiados",
+      "zoom": "InitialZoom escrito",
+      "backup": "Copia de seguridad",
+      "live": "En el simulador",
+      "nudgeOk": "Aplicado en vivo — la vista de cabina se reinició.",
+      "nudgeFailed": "No se aplicó en vivo. Tendrá efecto en la próxima carga del avión.",
+      "noBlocks": "El archivo no contiene ninguna vista de piloto de cabina, así que no se escribió nada. Guarda la vista en el simulador (Ctrl+F10) y actualiza.",
+      "failed": "No se pudo escribir el archivo: {0}",
+      "verifyTitle": "Compruébalo en el simulador:",
+      "verify1": "Opciones → General → Desarrolladores → Developer Mode activado.",
+      "verify2": "Menú dev: Debug → Aircraft → Camera Blend.",
+      "verify3": "Fov debería mostrar {0} rad."
+    },
+    "multi": {
+      "title": "Multi Window",
+      "hint": "Solo lectura",
+      "note": "MSFS 2024 renderiza cada ventana con un único campo de visión: el de la pantalla principal. Escribe estas rotaciones en el diálogo Multi Window; el FOV que ves allí es el que escribió la sección Aplicar. El delta muestra cuánto se aleja una pantalla lateral de otro tamaño de su propio ideal.",
+      "shared": "FOV vertical compartido por todas las ventanas: {0}°",
+      "none": "No hay pantallas laterales ni superiores configuradas.",
+      "col": {
+        "display": "Pantalla",
+        "lateral": "Rotación lateral",
+        "vertical": "Rotación vertical",
+        "ideal": "FOV vertical ideal",
+        "delta": "Delta respecto al aplicado"
+      }
+    },
+    "cp": {
+      "title": "ChasePlane",
+      "hint": "Solo detección",
+      "notDetected": "ChasePlane para MSFS 2024 no se detectó en este PC.",
+      "detected": "ChasePlane para MSFS 2024 está instalado. Sus preajustes de cabina llevan su propio zoom y sustituyen la vista nativa cuando los recuperas — el archivo que escribe esta página no es lo que muestra ChasePlane.",
+      "target": "Para igualarlo en ChasePlane, ajusta el zoom del preajuste de cabina hasta que el Fov del modo dev muestre {0} rad ({1}° vertical).",
+      "advice": "Lo más sencillo: deja la vista de cabina nativa (no recuperes un preajuste de cabina de ChasePlane) y usa ChasePlane para las cámaras exteriores. Aquí nunca se escribe en los archivos de ChasePlane."
+    }
+  }
+}

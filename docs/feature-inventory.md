@@ -225,6 +225,13 @@ through with a note if deliberately dropped. Sources: Prosim2GSX 0.9.0, ProsimIn
       (touch one control per board), LAMP TEST, two-click HW RESET, Settings → Hardware →
       Skalarki Panels with Test connection and board tick boxes, layout per cockpit family in
       `skalarki-layout.json` — new, no predecessor equivalent, Unverified on hardware
+- [x] Screen & FOV page (2026-10-28): the pilot's physical screens (size, aspect, distance,
+      yaw, height) → the 1:1 vertical FOV, a realism blend, one button that rewrites
+      `InitialZoom` (and optionally the pitch) in the aircraft's saved pilot view under the
+      MSFS 2024 LocalCache (backup, atomic, never a package file), a SimConnect zoom/reset
+      nudge, Multi Window rotation read-out, ChasePlane detection
+      (`docs/integrations/msfs-display-fov.md`) — new, no predecessor equivalent,
+      Unverified live
 - [x] GSX voice control ("commence ground services", "request boarding", "cabin crew start
       boarding", …) via the command registry (gsx.voiceControlEnabled)
 - [x] Voice-gated ground ops (ADR-0006, issues #50–#53): prep gate (gsx.groundPrepActivation),

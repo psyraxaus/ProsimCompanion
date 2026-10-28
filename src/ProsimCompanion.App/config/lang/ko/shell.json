@@ -87,6 +87,11 @@
     "nav": {
       "setup": "설정 마법사",
       "cockpit": "조종석 스위치",
+      "display": "화면 및 FOV",
+      "display.displays": "디스플레이",
+      "display.apply": "FOV 적용",
+      "display.multiwindow": "Multi Window",
+      "display.chaseplane": "ChasePlane",
       "hardware": "하드웨어",
       "hardware.skalarki": "Skalarki 패널",
       "gsx": "지상 서비스",

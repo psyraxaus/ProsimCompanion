@@ -26,6 +26,9 @@ public static class SimServiceCollectionExtensions
         services.AddSingleton<Core.Airports.Parking.IAirportParkingSource>(
             provider => provider.GetRequiredService<Facilities.AirportFacilityService>());
         services.AddHostedService<SimConnectService>();
+        // Display & FOV page (2026-10-28): the best-effort camera nudge after a cameras.cfg
+        // rewrite. Lazy — subscribes its two camera SimVars on the first Apply, never at startup.
+        services.AddSingleton<Core.Display.IFovSimNudge, FovSimNudge>();
         // Session detection (camera state + Sim/Pause_EX1 events): publishes SimSessionStore,
         // the gate that keeps GSX ground prep from firing while MSFS is on the main menu.
         services.AddHostedService<SimSessionService>();

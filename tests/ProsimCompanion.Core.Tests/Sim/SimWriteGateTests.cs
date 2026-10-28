@@ -12,6 +12,21 @@ public sealed class SimWriteGateTests
     public void IsAllowed_GsxLvars_ReturnTrue(string name)
         => Assert.True(SimWriteGate.IsAllowed(name));
 
+    /// <summary>Screen &amp; FOV (2026-10-28): the two camera SimVars of the post-apply nudge,
+    /// exact names only.</summary>
+    [Theory]
+    [InlineData("COCKPIT CAMERA ZOOM")]
+    [InlineData("camera action cockpit view reset")]
+    public void IsAllowed_FovNudgeCameraVars_ReturnTrue(string name)
+        => Assert.True(SimWriteGate.IsAllowed(name));
+
+    [Theory]
+    [InlineData("COCKPIT CAMERA ZOOM:1")]
+    [InlineData("CAMERA ACTION COCKPIT VIEW SAVE:0")]
+    [InlineData("COCKPIT CAMERA HEADLOOK")]
+    public void IsAllowed_OtherCameraVars_ReturnFalse(string name)
+        => Assert.False(SimWriteGate.IsAllowed(name));
+
     [Theory]
     [InlineData("PLANE ALTITUDE")]                 // never write flight dynamics
     [InlineData("L:S_OH_EXT_LT_BEACON")]           // cockpit switches are ProSim's domain

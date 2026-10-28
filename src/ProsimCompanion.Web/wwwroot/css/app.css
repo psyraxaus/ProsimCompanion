@@ -2138,3 +2138,27 @@ split-flap { display: inline-flex; align-items: center; justify-content: center;
 }
 .cockpit-row-more label { font-size: 12px; color: var(--text-secondary); }
 .cockpit-row-more .cell-input { max-width: 420px; }
+
+/* ---------------------------------------------------- Screen & FOV settings page */
+.display-row-header,
+.display-row {
+  display: grid;
+  grid-template-columns: 110px minmax(110px, 1fr) 90px 56px 56px 80px 80px 90px 32px;
+  gap: 8px;
+  align-items: center;
+  padding: 4px 0;
+}
+.display-row-header {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+}
+.display-row .cell-input, .display-row .cell-select { width: 100%; min-width: 0; }
+.display-readout { display: grid; grid-template-columns: 220px 1fr; gap: 4px 12px; max-width: 640px; }
+.display-readout .row-label { font-size: 12px; }
+.display-slider { width: 260px; max-width: 100%; accent-color: var(--accent); }
+.display-steps { margin: 6px 0 0 18px; padding: 0; font-size: 12px; color: var(--text-secondary); }
+.display-steps li { margin: 2px 0; }
+.display-path { font-family: var(--font-mono); font-size: 11px; word-break: break-all; }

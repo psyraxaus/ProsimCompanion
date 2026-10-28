@@ -39,6 +39,15 @@ public static class FieldChoiceCatalog
             ["phraseology"] = _ => [("icao", "ICAO"), ("faa", "FAA")],
             // Skalarki descriptor catalogues are SDK names, not prose (ADR-0014 exception).
             ["skalarkiCatalogue"] = _ => [("a32X", "A32X"), ("a33X", "A33X"), ("b73X", "B73X"), ("b77X", "B77X")],
+            // Screen & FOV (2026-10-28): where a physical display sits. Values are DisplayRole's camelCase names.
+            ["displayRole"] = T =>
+            [
+                ("main", T["display.roleOptions.main"].Value),
+                ("left", T["display.roleOptions.left"].Value),
+                ("right", T["display.roleOptions.right"].Value),
+                ("overhead", T["display.roleOptions.overhead"].Value),
+                ("other", T["display.roleOptions.other"].Value),
+            ],
             ["personaExperience"] = T => [("junior", T["speechSettings.options.experience.junior"].Value), ("standard", T["speechSettings.options.experience.standard"].Value), ("senior", T["speechSettings.options.experience.senior"].Value)],
             ["personaFormality"] = T => [("casual", T["speechSettings.options.formality.casual"].Value), ("standard", T["speechSettings.options.formality.standard"].Value), ("formal", T["speechSettings.options.formality.formal"].Value)],
             ["debriefVerbosity"] = T => [("full", T["speechSettings.options.verbosity.full"].Value), ("brief", T["speechSettings.options.verbosity.brief"].Value)],
