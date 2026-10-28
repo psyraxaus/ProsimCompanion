@@ -25,13 +25,16 @@ Settings → Screen & FOV → **Displays**: one line per physical screen.
 
 Save.
 
-## 2. Save a pilot view in the sim (once per aircraft)
+## 2. Save a cockpit camera in the sim (once per aircraft)
 
-MSFS only creates the file this page edits when you save a view:
+MSFS only creates the file this page edits when you save a custom camera:
 
 1. Load the aircraft in MSFS 2024.
 2. Put the cockpit view where you want it (eye point, not zoom — the zoom is what the page sets).
-3. Press **Ctrl+F10** (VFR Pilot View Save).
+3. Press **Ctrl+Alt+1** (save custom camera 1). You recall it later with **Alt+1**.
+
+The sim's built-in pilot view lives in the aircraft package and is never edited; the saved
+custom camera is the one that carries your field of view.
 
 ## 3. Apply
 
@@ -45,22 +48,23 @@ Settings → Screen & FOV → **Apply FOV**.
 - **What will be written** shows the panel size, the true and applied vertical field of view,
   the `InitialZoom` that will go into the file and the `Fov` in radians you should see in
   Developer Mode afterwards.
-- **The saved pilot view** lists the camera file(s) MSFS saved for the aircraft ProSim reports
-  (newest first). Press **Refresh** after step 2 if it says there is none yet.
+- **The saved cockpit camera** lists the camera file(s) MSFS saved for the aircraft ProSim
+  reports (newest first). Press **Refresh** after step 2 if it says there is none yet.
 - Press **Apply realistic FOV**, check the zoom and the path in the confirmation line, and
   press **Yes, write it**. The page backs the file up beside itself first
-  (`cameras.cfg.bak-<date>`, the last five are kept), changes only the zoom (and the pitch, if
-  ticked) of the cockpit pilot views, then asks the sim to reset the cockpit view so the change
-  shows at once. If the sim was not connected it says so — the view is right after the next
-  aircraft load.
+  (`cameras.cfg.bak-<date>`, the last five are kept) and changes only the zoom (and the pitch,
+  if ticked) of the saved cockpit cameras. The result card names the key that loads each
+  camera (**Alt+1** for camera 1). If nothing in the file qualified, the card lists every
+  camera block it found so you can see what the sim wrote.
 
 ## 4. Check it
 
-In MSFS: Options → General → Developers → **Developer Mode** on. In the dev menu bar:
-**Debug → Aircraft → Camera Blend**. The `Fov` line is the live vertical field of view in
-radians; it should read the page's "Expected dev-mode Fov" (0.426 rad for a 52" 16:9 screen at
-1.5 m). Reading it once *before* you apply (about 0.86 rad for the default view) makes the
-difference obvious.
+Press **Alt+1** to load the camera. If the view does not change, reload the aircraft (the sim
+reads the file when the aircraft loads) and press Alt+1 again. Then, in MSFS: Options → General
+→ Developers → **Developer Mode** on. In the dev menu bar: **Debug → Aircraft → Camera
+Blend**. The `Fov` line is the live vertical field of view in radians; it should read the
+page's "Expected dev-mode Fov" (0.449 rad for a 55" 16:9 screen at 1.5 m). Reading it once
+*before* you apply (about 0.86 rad for the default view) makes the difference obvious.
 
 ## Multi Window
 
@@ -82,6 +86,6 @@ app never writes to ChasePlane's files.
 ## What is never touched
 
 Only the saved-camera `cameras.cfg` under your MSFS 2024 LocalCache folder is edited, and only
-the `InitialZoom` (and optionally `InitialPbh` pitch) lines of the cockpit pilot views in it.
+the `InitialZoom` (and optionally `InitialPbh` pitch) lines of the cockpit cameras in it.
 Aircraft package files under `Official` and `Community`, and ChasePlane's folder, are refused
 by the app itself. Every write makes a backup first.

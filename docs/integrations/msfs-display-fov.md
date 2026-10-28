@@ -48,27 +48,54 @@ in a per-aircraft custom-camera file under the sim's **LocalCache**:
 | Store / Xbox app | `%LOCALAPPDATA%\Packages\Microsoft.Limitless_8wekyb3d8bbwe\LocalCache` |
 | Steam | `%APPDATA%\Microsoft Flight Simulator 2024\LocalCache` (from the design doc — **unverified** on a Steam install) |
 
-The file is `<root>\SimObjects\Airplanes\<aircraft folder>\…\cameras.cfg`, observed nested as
-`…\presets\<creator>\<livery>\config\cameras.CFG` for Asobo aircraft; third-party layouts may
-differ, so the search is recursive and case-insensitive. `MsfsPackageRoots.DetectLocalCache2024()`
-lists the roots that exist (a sibling of `Detect()`, which keeps answering with the package roots
-for the GSX profile reader); `CamerasCfgEditor.FindCandidateFiles(root, hint)` narrows to the
-aircraft folders whose name and the ProSim aircraft title contain one another and lists every
-aircraft when none matches, newest file first. The file **only exists after the pilot has saved
-the view once in the sim (Ctrl+F10, VFR Pilot View Save)** — that is what gives the block the
-right GUID and eye-point XYZ for the loaded aircraft. Until then the page shows those steps
-instead of the button.
+The file is `<root>\SimObjects\Airplanes\<aircraft folder>\…\cameras.cfg`. On the owner's sim
+PC (2026-10-29) it sits directly in the aircraft folder:
+`LocalCache\SimObjects\Airplanes\Prosim-a322-cfm\cameras.CFG`, beside `state.CFG`; the
+`…\presets\<creator>\<livery>\config\` nesting the forums describe for Asobo aircraft was not
+seen, so the search is recursive and case-insensitive to cover both.
+`MsfsPackageRoots.DetectLocalCache2024()` lists the roots that exist (a sibling of `Detect()`,
+which keeps answering with the package roots for the GSX profile reader);
+`CamerasCfgEditor.FindCandidateFiles(root, hint)` narrows to the aircraft folders whose name and
+the ProSim aircraft title contain one another and lists every aircraft when none matches,
+newest file first.
 
-The edit is surgical: within every block whose `Category` is `Cockpit` and whose
-`SubCategoryItem` is `VFRPilot`, `IFRPilot`, `LandingPilot` or `ClosePilot` (case ignored,
-quotes optional, spaces around `=` tolerated, keys in any order — two passes, since the keys
-that qualify a block may follow its zoom line), only the value of `InitialZoom=` changes
-(formatted with up to four decimals), plus the first component of `InitialPbh=` when "Also
-tilt the camera" is on — bank and heading keep their original text and separators. Every other
-byte survives: unknown keys, comments, ordering, the line-ending style (CRLF or LF, detected per
-line) and a BOM (the file is read as raw bytes so the BOM stays a character of the text and is
-written back as such). A file with no qualifying block changes zero blocks and the page reports
-that, never success.
+**What MSFS 2024 actually writes** (archaeology, owner's sim PC 2026-10-29 — the design doc's
+"Ctrl+F10 saves a VFRPilot block" did nothing on that install): the file holds the **custom
+cameras** saved with Ctrl+Alt+1 … 9, recalled with Alt+1 … 9. One block each:
+
+```
+[CAMERADEFINITION.0]
+Title="1"                      ; the slot — Alt+1 recalls it
+Guid="{…}"
+Origin="Virtual Cockpit"
+AllowZoom=1
+InitialZoom=0.35               ; the sim's default, whatever the slider showed
+Category="Cockpit"
+SubCategory="Custom"
+SubCategoryItem="None"
+InitialXyz= -0.000218, 0.700349, 0.019997
+InitialPbh= 0.999755, 0.055953, -0
+```
+
+CRLF, no BOM, `major=1` / `minor=0` in `[VERSION]`. The built-in pilot views (`DefaultPilot`
+for the ProSim A322, `LandingPilot`, and Asobo's `VFRPilot` / `IFRPilot` / `ClosePilot`) only
+ever live in the package's own `cameras.cfg` under `Community\prosim-a322\…`, which is
+read-only to this feature. So the pilot saves a custom camera once, the page sets that camera's
+zoom, and the pilot recalls it with Alt+N — the result card names the chord. Until a file
+exists the page shows those steps instead of the button.
+
+The edit is surgical: within every block whose `Category` is `Cockpit` and which is either a
+custom camera (`SubCategory` = `Custom`) or a pilot view (`SubCategoryItem` in `DefaultPilot`,
+`VFRPilot`, `IFRPilot`, `LandingPilot`, `ClosePilot`) — case ignored, quotes optional, spaces
+around `=` tolerated, keys in any order; two passes, since the keys that qualify a block may
+follow its zoom line — only the value of `InitialZoom=` changes (formatted with up to four
+decimals), plus the first component of `InitialPbh=` when "Also tilt the camera" is on — bank
+and heading keep their original text and separators. Every other byte survives: unknown keys,
+comments, ordering, the line-ending style (CRLF or LF, detected per line) and a BOM (the file
+is read as raw bytes so the BOM stays a character of the text and is written back as such). A
+file with no qualifying block changes zero blocks; the page then lists every camera block
+`CamerasCfgEditor.Describe` found (header, title, category, sub-category, item) so the pilot
+sees what the sim wrote instead of a bare refusal.
 
 **Write safety.** `CamerasCfgEditor.IsWritablePath` admits only a `cameras.cfg` whose full
 path contains `\LocalCache\SimObjects\Airplanes\` and contains neither `\Official\`,
@@ -81,8 +108,10 @@ original. The page asks for confirmation (showing the zoom and the path) before 
 ## The sim nudge (`Sim/FovSimNudge.cs`, `IFovSimNudge`)
 
 After the write, best effort and never a reason to refuse it: `COCKPIT CAMERA ZOOM` = 50
-(`percent`) then `CAMERA ACTION COCKPIT VIEW RESET` = 1 (`Bool`), so the new zoom shows without
-reloading the aircraft. Both names are on `SimWriteGate.AllowedExact` (camera state only,
+(`percent`) then `CAMERA ACTION COCKPIT VIEW RESET` = 1 (`Bool`). For a custom camera this is
+only a zoom-slider reset: the sim reads `cameras.cfg` when the aircraft loads and the camera is
+applied when the pilot recalls it (Alt+N), so the page's verification steps start with "press
+Alt+N; if nothing changes, reload the aircraft". Both names are on `SimWriteGate.AllowedExact` (camera state only,
 nothing on the aircraft). Each is subscribed through its typed descriptor
 (`ProsimDataRefNames.SimVars.CockpitCameraZoom` / `CameraActionCockpitViewReset`) on the first
 Apply — that fixes the SimConnect unit, where a bare write would register the name as a plain
@@ -116,16 +145,18 @@ does not read as a twin of "Display & Flight Data"), sections `displays` / `appl
 
 ## Verification (dev-mode `Fov` before and after)
 
-1. Load the aircraft, position the cockpit view, Ctrl+F10. Options → General → Developers →
-   Developer Mode on; Debug → Aircraft → Camera Blend: note `Fov` (≈ 0.86 rad for a 49° view).
+1. Load the aircraft, position the cockpit view, Ctrl+Alt+1. Options → General → Developers →
+   Developer Mode on; Debug → Aircraft → Camera Blend: note `Fov` (≈ 0.86 rad for the 0.35
+   default). The ProSim A322 CFM LocalCache file on the owner's PC held one such camera, "1".
 2. Settings → Screen & FOV → Displays: enter the screen, Save. Apply FOV: check the readout,
-   Refresh, pick the file, Apply, confirm.
-3. Camera Blend `Fov` should now read the page's "Expected dev-mode Fov" (0.426 rad for the
-   reference rig). If the nudge was refused, reload the aircraft and read it again.
+   Refresh, pick the file, Apply, confirm. The result card says "Load the camera with Alt+1".
+3. Alt+1 (reload the aircraft first if the view does not change). Camera Blend `Fov` should now
+   read the page's "Expected dev-mode Fov" (0.449 rad for a 55" 16:9 at 1.5 m).
 
-Still to be verified on the owner's rig before relying on it: the edited LocalCache file survives
-a sim restart for the ProSim A320 visual model; a 24.4° view is not clamped in single-window
-mode; the Steam-edition LocalCache path; that MSFS 2024 accepts both nudge writes.
+Still to be verified on the owner's rig before relying on it: Alt+1 applies the new zoom (and
+whether an aircraft reload is needed first); the edited LocalCache file survives a sim restart;
+a ~25° view is not clamped in single-window mode; the Steam-edition LocalCache path; whether
+MSFS 2024 accepts the two nudge writes.
 
 ## Out of scope
 

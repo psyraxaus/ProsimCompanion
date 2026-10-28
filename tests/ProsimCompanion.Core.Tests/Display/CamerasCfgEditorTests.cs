@@ -49,21 +49,32 @@ public sealed class CamerasCfgEditorTests
         "SubCategoryItem = \"VFRPilot\"",
         "InitialPbh = 0, 0, 0",
         "InitialZoom = 0.35",
+        "",
+        // What MSFS 2024 really writes for Ctrl+Alt+1 (owner's sim PC, 2026-10-29).
+        "[CAMERADEFINITION.4]",
+        "Title=\"1\"",
+        "Category=\"Cockpit\"",
+        "SubCategory=\"Custom\"",
+        "SubCategoryItem=\"None\"",
+        "InitialPbh= 0.999755, 0.055953, -0",
+        "InitialZoom=0.35",
     ];
 
     private static string Fixture(string ending) => string.Join(ending, FixtureLines) + ending;
 
     [Fact]
-    public void Apply_ChangesOnlyTheTwoPilotViewBlocks()
+    public void Apply_ChangesThePilotViewsAndTheCustomCockpitCamera_NothingElse()
     {
         var edit = CamerasCfgEditor.Apply(Fixture("\n"), 0.1367, null);
 
-        Assert.Equal(2, edit.BlocksChanged);
+        Assert.Equal(3, edit.BlocksChanged);
         var lines = edit.Content.Split('\n');
         Assert.Equal("InitialZoom = 0.1367", lines[15]);
         Assert.Equal("InitialZoom=0.1367 ; keep this comment", lines[22]);
-        Assert.Equal("InitialZoom = 0.35", lines[29]); // Custom1 is not a pilot view
+        Assert.Equal("InitialZoom = 0.35", lines[29]); // Custom1 item without the Custom sub-category: not a saved camera
         Assert.Equal("InitialZoom = 0.35", lines[36]); // Chase category
+        Assert.Equal("InitialZoom=0.1367", lines[44]); // the Ctrl+Alt+1 camera
+        Assert.Equal(["VFR Pilot", "Landing Pilot", "1"], edit.Changed.Select(b => b.Title));
     }
 
     [Fact]
@@ -76,7 +87,7 @@ public sealed class CamerasCfgEditorTests
         Assert.Equal(before.Length + 1, after.Length); // the trailing newline makes one empty last entry
         for (var i = 0; i < before.Length; i++)
         {
-            if (i is 15 or 22)
+            if (i is 15 or 22 or 44)
             {
                 continue;
             }
@@ -107,8 +118,8 @@ public sealed class CamerasCfgEditorTests
 
         var edit = CamerasCfgEditor.Apply(content, 0.2, null);
 
-        Assert.Equal(2, edit.BlocksChanged);
-        Assert.EndsWith("InitialZoom = 0.35", edit.Content, StringComparison.Ordinal);
+        Assert.Equal(3, edit.BlocksChanged);
+        Assert.EndsWith("InitialZoom=0.2", edit.Content, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -118,7 +129,7 @@ public sealed class CamerasCfgEditorTests
 
         var edit = CamerasCfgEditor.Apply(content, 0.2, null);
 
-        Assert.Equal(2, edit.BlocksChanged);
+        Assert.Equal(3, edit.BlocksChanged);
         Assert.StartsWith("\uFEFF[VERSION]\r\n", edit.Content, StringComparison.Ordinal);
     }
 
@@ -155,6 +166,7 @@ public sealed class CamerasCfgEditorTests
         Assert.Equal("InitialPbh = -7.6 ,  0.0 ,180", lines[21]); // odd spacing of bank/heading kept
         Assert.Equal("InitialPbh = 0, 0, 0", lines[28]);          // Custom1 untouched
         Assert.Equal("InitialPbh = 0, 0, 0", lines[35]);          // Chase untouched
+        Assert.Equal("InitialPbh= -7.6, 0.055953, -0", lines[43]); // the sim's own "-0" heading kept
     }
 
     [Fact]
@@ -171,6 +183,46 @@ public sealed class CamerasCfgEditorTests
         Assert.Contains("InitialZoom = 0.1367", CamerasCfgEditor.Apply(Fixture("\n"), 0.136724, null).Content, StringComparison.Ordinal);
         Assert.Contains("InitialZoom = 0.35", CamerasCfgEditor.Apply(Fixture("\n"), 0.35, null).Content, StringComparison.Ordinal);
         Assert.Contains("InitialZoom = 1", CamerasCfgEditor.Apply(Fixture("\n"), 1.0, null).Content, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Describe_ListsEveryCameraBlock_AndSaysWhichQualify()
+    {
+        var blocks = CamerasCfgEditor.Describe("﻿" + Fixture("\r\n"));
+
+        Assert.Equal(5, blocks.Count);
+        Assert.Equal("[CAMERADEFINITION.0] \"VFR Pilot\" Category=Cockpit SubCategory=Pilot SubCategoryItem=VFRPilot", blocks[0].ToString());
+        Assert.True(blocks[0].Qualifies);
+        Assert.True(blocks[1].Qualifies);
+        Assert.Equal("Custom1", blocks[2].SubCategoryItem);
+        Assert.False(blocks[2].Qualifies);
+        Assert.Equal("Chase", blocks[3].Category);
+        Assert.False(blocks[3].Qualifies);
+        Assert.Equal("[CAMERADEFINITION.4] \"1\" Category=Cockpit SubCategory=Custom SubCategoryItem=None", blocks[4].ToString());
+        Assert.True(blocks[4].Qualifies);
+        Assert.Empty(CamerasCfgEditor.Describe("[VERSION]\nMajor = 1\n"));
+        Assert.Equal("[CAMERADEFINITION.5] \"\" Category=? SubCategory=? SubCategoryItem=?", Assert.Single(CamerasCfgEditor.Describe("[CAMERADEFINITION.5]\nInitialZoom = 0.3\n")).ToString());
+    }
+
+    /// <summary>The exact file the owner's MSFS 2024 wrote for Ctrl+Alt+1 on the ProSim A322
+    /// CFM (LocalCache, 2026-03-07): one custom cockpit camera, no pilot view at all.</summary>
+    [Fact]
+    public void Apply_TheRealMsfs2024CustomCameraFile_ChangesItsOneBlock()
+    {
+        var content = string.Join("\r\n",
+        [
+            "[VERSION]", "major=1", "minor=0",
+            "[CAMERADEFINITION.0]", "Title=\"1\"", "Guid=\"{10962113-24CA-433C-8090-CBC92C9280B7}\"", "UITitle=\"1\"",
+            "Origin=\"Virtual Cockpit\"", "AllowZoom=1", "InitialZoom=0.35", "Category=\"Cockpit\"", "SubCategory=\"Custom\"",
+            "SubCategoryItem=\"None\"", "InitialXyz= -0.000218, 0.700349, 0.019997", "InitialPbh= 0.999755, 0.055953, -0",
+        ]) + "\r\n";
+
+        var edit = CamerasCfgEditor.Apply(content, 0.1454, null);
+
+        Assert.Equal(1, edit.BlocksChanged);
+        Assert.Equal("1", Assert.Single(edit.Changed).Title);
+        Assert.Contains("\r\nInitialZoom=0.1454\r\n", edit.Content, StringComparison.Ordinal);
+        Assert.Contains("InitialPbh= 0.999755, 0.055953, -0\r\n", edit.Content, StringComparison.Ordinal);
     }
 
     [Fact]

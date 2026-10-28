@@ -175,6 +175,22 @@ else if (CurrentSection == "apply")
         {
             <div class="field-hint field-hint-warn" style="margin-top:8px;">@_error</div>
         }
+        @if (_blocksFound is { } found)
+        {
+            <div class="field-hint" style="margin-top:8px; max-width:640px;">
+                @(found.Count == 0 ? T["display.result.blocksNone"].Value : T["display.result.blocksFound", found.Count].Value)
+                @if (found.Count > 0)
+                {
+                    <ul class="display-steps">
+                        @foreach (var block in found)
+                        {
+                            <li class="display-path">@block.ToString()</li>
+                        }
+                    </ul>
+                    <span>@T["display.result.blocksWanted"]</span>
+                }
+            </div>
+        }
         @if (_outcome is { } done)
         {
             <div class="display-readout" style="margin-top:10px;">
@@ -182,10 +198,15 @@ else if (CurrentSection == "apply")
                 <span class="row-label">@T["display.result.zoom"]</span><span class="row-value-mono">@Text(done.InitialZoom, 4)</span>
                 <span class="row-label">@T["display.result.backup"]</span><span class="display-path">@done.Backup</span>
                 <span class="row-label">@T["display.result.live"]</span><span>@(done.Nudged ? T["display.result.nudgeOk"].Value : T["display.result.nudgeFailed"].Value)</span>
+                @if (done.RecallKeys.Count > 0)
+                {
+                    <span class="row-label">@T["display.result.recall"]</span><span class="row-value-mono">@string.Join(", ", done.RecallKeys)</span>
+                }
             </div>
             <div class="field-hint" style="margin-top:8px; max-width:640px;">
                 <strong>@T["display.result.verifyTitle"]</strong>
                 <ol class="display-steps">
+                    <li>@(done.RecallKeys.Count > 0 ? T["display.result.verify0", done.RecallKeys[0]].Value : T["display.result.verify0reload"].Value)</li>
                     <li>@T["display.result.verify1"]</li>
                     <li>@T["display.result.verify2"]</li>
                     <li>@T["display.result.verify3", Text(done.FovRadians, 3)]</li>
@@ -283,9 +304,11 @@ else if (CurrentSection == "chaseplane")
     private string? _error;
     private string? _planProblem;
     private ApplyOutcome? _outcome;
+    private IReadOnlyList<CamerasCfgBlock>? _blocksFound;
 
-    /// <summary>What the last Apply did, for the result card.</summary>
-    private sealed record ApplyOutcome(int Blocks, string Backup, bool Nudged, double InitialZoom, double FovRadians);
+    /// <summary>What the last Apply did, for the result card. <paramref name="RecallKeys"/> are
+    /// the Alt+N chords of the custom cameras that changed (their Title is the slot).</summary>
+    private sealed record ApplyOutcome(int Blocks, string Backup, bool Nudged, double InitialZoom, double FovRadians, IReadOnlyList<string> RecallKeys);
 
     protected override void OnInitialized()
     {
@@ -298,6 +321,7 @@ else if (CurrentSection == "chaseplane")
     {
         _confirming = false;
         _error = null;
+        _blocksFound = null;
     }
 
     private int MainCount => _display.Value.Displays.Count(d => d.Role == DisplayRole.Main);
@@ -385,19 +409,29 @@ else if (CurrentSection == "chaseplane")
         _applying = true;
         _error = null;
         _outcome = null;
+        _blocksFound = null;
         try
         {
             var content = CamerasCfgEditor.ReadRaw(path);
             var edit = CamerasCfgEditor.Apply(content, plan.InitialZoom, _display.Value.ApplyPitch ? plan.PitchDegrees : null);
             if (edit.BlocksChanged == 0)
             {
+                // Show what IS in the file: the sim's own vocabulary decides, and a file that
+                // exists but holds no pilot view is exactly the case the pilot cannot see into.
                 _error = T["display.result.noBlocks"].Value;
+                _blocksFound = CamerasCfgEditor.Describe(content);
                 return;
             }
 
             var backup = CamerasCfgEditor.WriteWithBackup(path, edit.Content);
             var nudged = await Nudge.NudgeAsync();
-            _outcome = new ApplyOutcome(edit.BlocksChanged, backup, nudged, plan.InitialZoom, plan.ExpectedFovRadians);
+            // A custom camera's Title is its slot: "1" is recalled with Alt+1. Pilot views
+            // (VFRPilot …) have no chord; the sim shows them on its own.
+            var recall = edit.Changed
+                .Where(b => string.Equals(b.SubCategory, CamerasCfgEditor.CustomSubCategory, StringComparison.OrdinalIgnoreCase) && b.Title.Length > 0)
+                .Select(b => "Alt+" + b.Title)
+                .ToList();
+            _outcome = new ApplyOutcome(edit.BlocksChanged, backup, nudged, plan.InitialZoom, plan.ExpectedFovRadians, recall);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidOperationException)
         {

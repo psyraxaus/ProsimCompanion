@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.0-rc.20
+
+Local build for the owner's second FOV try, 2026-10-29, on `feature/display-fov` (over rc.19).
+
+- Fixed: **"The file holds no cockpit pilot view"** on the owner's first try. MSFS 2024 writes the LocalCache `cameras.CFG` for the **custom cameras** saved with Ctrl+Alt+1 … 9 (`Category="Cockpit"`, `SubCategory="Custom"`, `SubCategoryItem="None"`, `Title="1"`); Ctrl+F10 wrote nothing, and the built-in pilot views only live in the aircraft package. The editor now treats a custom cockpit camera as a qualifying block (pilot views still qualify, `DefaultPilot` added), the page's instructions say Ctrl+Alt+1, the result card names the recall chord (Alt+1) and starts its check list with it, and the sim-nudge line no longer claims the view was applied live.
+- Added: when nothing in the file qualifies, the Apply section lists every camera block it found (header, title, category, sub-category, item) so the pilot sees what the sim wrote.
+
 ## 0.8.0-rc.19
 
 Local build for the owner's first FOV test, 2026-10-28, on `feature/display-fov` (over rc.18).
