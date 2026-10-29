@@ -96,7 +96,28 @@ legacy departure gate are inert) and answers every ATC COM1 line the frequency m
   greetings ("Hej", "God kvall", "Have a good evening") and the winds; "Flight-level-140" → FL140
   (leading zero dropped, FL070 → FL70), "hold-short-of" → "hold short of", "A1" → "Alpha-one".
   Nothing left ("Identified. Good evening") = no transmission. A hand-off ("Contact X on Y") →
-  "Contacting X on Y." No callsign on read-backs — exactly the copilot's habit.
+  "Contacting X on Y." **Every read-back and hand-off answer ends with the callsign** (owner
+  request 2026-10-29, standard RT): "Push and start approved. Face South-East,
+  Speedbird-eight-five-zero." / "Contacting Tower on 118.505, Speedbird-eight-five-zero." — the
+  copilot's own habit was no callsign; a blank callsign leaves the line bare. EGLL 2026-10-29
+  corrections: "Winds calm" / "wind light and variable" is winds too (dropped like "winds 160 at
+  28"); a thousands separator survives the comma split ("climb altitude 6,000" went out as
+  "6, 000"); a broadcast ("All aircraft be advised …", "Attention all aircraft …", "All
+  stations …") gets NO read-back (the FO had answered the ATIS broadcast with "QNH 1028").
+- **Stands are spelled digit by digit** on every transmission (`RadioSpeech.Stand`, owner
+  2026-10-29: SI's ATC voice and the FO both read "stand 311" as "three hundred and eleven"):
+  "311" → "three-one-one", "546R" → "five-four-six-Romeo", "B16" → "Bravo-one-six" — SI's own
+  hyphenated callsign style, which `RadioSpeech.Spoken` turns into spaces for the FO voice. A
+  compact designator only (`^[A-Z]{0,2}\d{1,3}[A-Z]{0,2}$`); SI's "PIER 2 GATE STAND 208" and a
+  GSX "Dock 4" go out as written. Applied in `AtcRequestTemplate` ({gate}) and the check-in
+  composer ("request taxi to stand Bravo-one-six"). The FO's own voice for a pilot request now
+  goes through `RadioSpeech.Spoken` too ("runway 27R" → "two seven right"); sayAs keeps the text.
+- The holding-point call (`atc-requests.json`, Tower): phrases *request departure*, *request
+  takeoff clearance*, *request takeoff*, *ready for departure*, *request departure clearance*,
+  *call tower ready for departure*, *call the tower* → "Tower, {callsign}, holding point runway
+  {runway}, ready for departure" (ICAO; FAA keeps "holding short"). With the FO working the
+  radios the legacy `SIAI_COPILOT=1` hand-back after this request no longer fires (2026-10-29 —
+  it would have put the SI copilot on the takeoff clearance beside our FO).
 - **Tune** on a hand-off through the Core `IRadioTuner` (standby → verify → swap) when
   `tuneOnHandoff`; a failed tune is spoken ("Could not tune …, Captain — the radios are yours").
 - **Check-in** `checkInDelaySeconds` (8) later (`CheckInComposer`): "Good evening, Finnair-niner-

@@ -3026,7 +3026,7 @@
       "checks": [
         "assert-absent: any 'sayintentions.request' whose message contains 'stand ,', 'gate ,', ', ,' or ends in ',' — a clause whose value is unknown is dropped whole by AtcRequestTemplate (all four requests of the 2026-10-10 flight read 'Ground, Finnair-one-three-six-one, stand , request push and start').",
         "watch: the event's standFrom field — 'sayintentions' (flight.json assigned_gate), 'gsx' (the pushback advisor's resolved stand or the GSX gate context, label stripped: 'stand 208') or 'none' (clause dropped). Note which one each ground request used; 'none' with GSX parked at a named stand means the fallback did not see it.",
-        "requires-human: SayIntentions ATC accepted the stand as transmitted (a GSX 'Stand 546R' reads 'stand 546R')."
+        "requires-human: SayIntentions ATC accepted the stand as transmitted — spelled digit by digit since 2026-10-29 (a GSX 'Stand 546R' reads 'stand five-four-six-Romeo', 'Stand 311' 'stand three-one-one'; SI's own 'PIER 2 GATE STAND 208' and a GSX 'Dock 4' go out as written). assert-absent: a 'sayintentions.request' message with 'stand <digits>' or 'gate <digits>' where <digits> is two or more bare digits."
       ],
       "notes": "Added 2026-10-11 (issue #140). The templater is pure (AtcRequestTemplate, tests with the shipped atc-requests.json strings); the fallback order is flight.json first, then PushbackChoiceStore.Stand, then GsxDiagnosticsStore.GateContextKey's last '|' segment, ground phases only."
     },

@@ -35,6 +35,23 @@ public static partial class ReadbackComposer
     [GeneratedRegex(@",?\s*\bwinds?\b[^,.]*?(\d{3})\s+at\s+\d+(?:\s+gusting\s+\d+)?(?:\s+knots)?", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex Winds();
 
+    // "Winds calm" / "wind light and variable" (EGLL 2026-10-29: "Runway 27R, Winds calm, cleared
+    // for takeoff" was read back winds and all — the digit form above never matched).
+    [GeneratedRegex(@",?\s*\bwinds?\s+(?:calm|light and variable|variable)\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    private static partial Regex WindsCalm();
+
+    // A thousands separator ("6,000") must survive the comma split below (EGLL 2026-10-29:
+    // "climb altitude 6,000" went out as "Climb altitude 6, 000.").
+    [GeneratedRegex(@"(\d),(\d{3})\b", RegexOptions.CultureInvariant)]
+    private static partial Regex Thousands();
+
+    // Broadcasts are not addressed to us and get no read-back (EGLL 2026-10-29: the FO read
+    // "All aircraft be advised, information Sierra is now current. QNH 1028" back as "QNH 1028").
+    [GeneratedRegex(@"^\s*(?:attention[,\s]+)?all\s+(?:aircraft|stations)\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    private static partial Regex Broadcast();
+
+    private const char ThousandsMark = '\u0001';
+
     [GeneratedRegex(@"\b([A-Z])(\d{1,2})\b", RegexOptions.CultureInvariant)]
     private static partial Regex Taxiway();
 
@@ -48,7 +65,10 @@ public static partial class ReadbackComposer
         "have a good", "have a nice", "welcome", "roger", "thank you", "thanks", "copy",
     ];
 
-    /// <summary>The read-back of <paramref name="atcText"/>, or null when nothing needs one.</summary>
+    /// <summary>The read-back of <paramref name="atcText"/>, or null when nothing needs one.
+    /// Every read-back and hand-off answer ENDS with the callsign (owner request 2026-10-29,
+    /// standard RT: "Push and start approved, face South-East, Speedbird-eight-five-zero.") — a
+    /// blank callsign leaves the line as it was.</summary>
     /// <param name="atcText">ATC's line as the comms history gives it (the English form).</param>
     /// <param name="callsign">Our callsign as SayIntentions writes it ("Finnair-niner-six-two").</param>
     /// <param name="station">The station's long name when known ("Kastrup Tower") — stripped
@@ -61,11 +81,16 @@ public static partial class ReadbackComposer
         }
 
         var text = atcText.Trim();
+        if (Broadcast().IsMatch(text))
+        {
+            return null; // "All aircraft be advised …" — an ATIS-style broadcast, not for us
+        }
+
         if (Handoff().Match(text) is { Success: true } handoff
             && HandoffParser.ToKhz(handoff.Groups["freq"].Value) is { } khz)
         {
             var name = TitleCase(handoff.Groups["station"].Value.Trim());
-            var transmit = $"Contacting {name} on {handoff.Groups["freq"].Value}.";
+            var transmit = WithCallsign($"Contacting {name} on {handoff.Groups["freq"].Value}.", callsign);
             return new Readback(transmit, RadioSpeech.Spoken(transmit), ReadbackKind.Handoff, name, khz);
         }
 
@@ -75,10 +100,13 @@ public static partial class ReadbackComposer
             var clause = StripCallsign(raw, callsign);
             clause = StripStation(clause, station);
             clause = Winds().Replace(clause, "");
+            clause = WindsCalm().Replace(clause, "");
+            clause = Thousands().Replace(clause, $"$1{ThousandsMark}$2");
 
             // Segment by comma: greetings and "Identified" go; an unknown station's
             // self-identification ("Kastrup Tower", first, short, no digits) goes too.
             var segments = clause.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Select(s => s.Replace(ThousandsMark, ','))
                 .Where(s => s.Length > 0 && !IsNoise(s))
                 .ToList();
             if (segments.Count > 1 && !LooksLikeInstruction(segments[0]) && segments[0].Split(' ').Length <= 3)
@@ -105,8 +133,21 @@ public static partial class ReadbackComposer
             return null;
         }
 
-        var joined = string.Join(" ", clauses);
+        var joined = WithCallsign(string.Join(" ", clauses), callsign);
         return new Readback(joined, RadioSpeech.Spoken(joined), ReadbackKind.Readback);
+    }
+
+    /// <summary>"Climb FL140." + "Speedbird-eight-five-zero" → "Climb FL140, Speedbird-eight-five-zero."
+    /// The callsign closes the transmission the way a crew does; a blank callsign changes nothing.</summary>
+    internal static string WithCallsign(string transmit, string? callsign)
+    {
+        if (string.IsNullOrWhiteSpace(callsign) || string.IsNullOrWhiteSpace(transmit))
+        {
+            return transmit;
+        }
+
+        var body = transmit.TrimEnd().TrimEnd('.', ',', ';');
+        return $"{body}, {callsign.Trim()}.";
     }
 
     /// <summary>Splits on sentence ends; a clause that is only a greeting or "Identified" is
@@ -326,7 +367,7 @@ public static class CheckInComposer
         if (c.OnGround && c.Phase is FlightPhase.TaxiIn or FlightPhase.LandingRollout or FlightPhase.Shutdown)
         {
             var runway = c.ArrivalRunway is { Length: > 0 } rwy ? $"runway {rwy} vacated, " : "";
-            var stand = c.Gate is { Length: > 0 } gate ? $"request taxi to stand {gate}." : "request taxi.";
+            var stand = c.Gate is { Length: > 0 } gate ? $"request taxi to stand {RadioSpeech.Stand(gate)}." : "request taxi.";
             body = runway + stand;
         }
         else if (c.OnGround && c.Phase == FlightPhase.TaxiOut)
@@ -337,7 +378,7 @@ public static class CheckInComposer
         }
         else if (c.OnGround)
         {
-            body = c.Gate is { Length: > 0 } gate ? $"stand {gate}." : "on the ground.";
+            body = c.Gate is { Length: > 0 } gate ? $"stand {RadioSpeech.Stand(gate)}." : "on the ground.";
         }
         else
         {
@@ -395,6 +436,39 @@ public static partial class RadioSpeech
 
     [GeneratedRegex(@"\b(squawk|QNH|heading)\s+(\d{3,4})\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex DigitGroups();
+
+    [GeneratedRegex(@"^[A-Z]{0,2}\d{1,3}[A-Z]{0,2}$", RegexOptions.CultureInvariant)]
+    private static partial Regex CompactStand();
+
+    /// <summary>A stand or gate designator spelled digit by digit for the radio (owner request
+    /// 2026-10-29: SayIntentions' ATC voice and the FO both read "stand 311" as "three hundred
+    /// and eleven"): "311" → "three-one-one", "546R" → "five-four-six-Romeo", "B16" →
+    /// "Bravo-one-six" — SI's own hyphenated callsign style, which <see cref="Spoken"/> turns
+    /// into spaces for the FO voice. Anything longer than a compact designator (SI's
+    /// "PIER 2 GATE STAND 208", a blank) is returned as written.</summary>
+    public static string Stand(string? stand)
+    {
+        if (string.IsNullOrWhiteSpace(stand))
+        {
+            return stand ?? "";
+        }
+
+        var compact = stand.Trim().ToUpperInvariant();
+        if (!CompactStand().IsMatch(compact))
+        {
+            return stand.Trim();
+        }
+
+        var words = new List<string>(compact.Length);
+        foreach (var c in compact)
+        {
+            words.Add(c is >= '0' and <= '9'
+                ? Core.Speech.NatoPhonetics.DigitWords[c - '0']
+                : Core.Speech.NatoPhonetics.Word(c) ?? c.ToString());
+        }
+
+        return string.Join("-", words);
+    }
 
     public static string Spoken(string transmit)
     {

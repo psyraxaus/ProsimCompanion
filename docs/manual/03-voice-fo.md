@@ -275,12 +275,17 @@ without HL).
 
 Settings → Voice First Officer → SayIntentions → **FO works the radios** (off by default). The
 SayIntentions copilot is switched off and your FO does its job in one voice: every ATC
-instruction is read back the copilot's way (*"Climb FL140."*, *"Contacting Tower on
-119.355."*), COM1 is tuned on a hand-off (standby first, then swap), and eight seconds later the
-FO checks in on the new frequency: *"Good evening, Finnair 962, climbing through FL180 for FL210
-on KEMA5C."* — the greeting from the sim's local clock, the level from ProSim, the cleared level
-from ATC's last instruction, the SID or STAR from SayIntentions. Your own calls (clearance, push,
-taxi, takeoff requests) stay the voice requests below. Say *"I have the radios"* to answer ATC
+instruction is read back and closed with your callsign (*"Climb FL140, Speedbird 850."*,
+*"Contacting Tower on 119.355, Speedbird 850."*), COM1 is tuned on a hand-off (standby first,
+then swap), and eight seconds later the FO checks in on the new frequency: *"Good evening,
+Finnair 962, climbing through FL180 for FL210 on KEMA5C."* — the greeting from the sim's local
+clock, the level from ProSim, the cleared level from ATC's last instruction, the SID or STAR from
+SayIntentions. Broadcasts to all aircraft (an ATIS change) get no read-back. Stands are always
+spelled digit by digit on the radio (*"stand three one one"*, never "three hundred and eleven").
+Your own calls (clearance, push, taxi, takeoff requests) stay the voice requests below; at the
+holding point say *"ready for departure"*, *"request departure"* or *"request takeoff"* and the
+FO calls Tower: *"Tower, Speedbird 850, holding point runway 27R, ready for departure."* Say
+*"I have the radios"* to answer ATC
 yourself and *"you have the radios"* to hand back. Leave **FO speaks the transmission** on: ATC
 hears the text, SayIntentions itself stays silent, so you hear each call once, in the FO voice.
 The comms hand-over by phase is ignored while this is on.

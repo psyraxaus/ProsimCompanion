@@ -37,13 +37,21 @@ public sealed class AtcRequestTemplateTests
         Assert.Equal("Ground, Finnair-one-three-six-one, stand PIER 2 GATE STAND 208, request push and start", text);
     }
 
+    // The stand is spelled digit by digit (owner 2026-10-29: "stand 311" was voiced "three
+    // hundred and eleven" by SI's ATC and by the FO); a GSX "Dock 4" is not a compact designator.
     [Theory]
-    [InlineData(PushIcao, "Gate 208", "Ground, Finnair-one-three-six-one, stand 208, request push and start")]
-    [InlineData(PushIcao, "Stand 546R", "Ground, Finnair-one-three-six-one, stand 546R, request push and start")]
-    [InlineData(PushFaa, "Gate 35", "Ground, Finnair-one-three-six-one, gate 35, request push and start")]
+    [InlineData(PushIcao, "Gate 208", "Ground, Finnair-one-three-six-one, stand two-zero-eight, request push and start")]
+    [InlineData(PushIcao, "Stand 546R", "Ground, Finnair-one-three-six-one, stand five-four-six-Romeo, request push and start")]
+    [InlineData(PushIcao, "Stand 311", "Ground, Finnair-one-three-six-one, stand three-one-one, request push and start")]
+    [InlineData(PushFaa, "Gate 35", "Ground, Finnair-one-three-six-one, gate three-five, request push and start")]
     [InlineData(PushFaa, "Dock 4", "Ground, Finnair-one-three-six-one, gate Dock 4, request push and start")]
-    public void GsxStandName_DropsItsOwnLabelBehindTheTemplateLabel(string template, string gsxStand, string expected)
+    public void GsxStandName_DropsItsOwnLabel_AndSpellsTheDigits(string template, string gsxStand, string expected)
         => Assert.Equal(expected, AtcRequestTemplate.Fill(template, new AtcRequestValues(Callsign, gsxStand, null, null, null)));
+
+    [Fact]
+    public void SpelledStand_IsSpokenWithSpaces_ByTheFoVoice()
+        => Assert.Equal("Ground, Finnair one three six one, stand three one one, request push and start",
+            RadioSpeech.Spoken(AtcRequestTemplate.Fill(PushIcao, new AtcRequestValues(Callsign, "Stand 311", null, null, null))));
 
     [Fact]
     public void Runway_Filled_AndDroppedWhenUnknown()

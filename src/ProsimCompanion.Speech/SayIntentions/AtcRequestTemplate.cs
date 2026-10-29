@@ -63,7 +63,9 @@ internal static partial class AtcRequestTemplate
                     return "";
                 }
 
-                return name == "gate" ? StripStandLabel(clause, match.Index, value) : value;
+                // The stand is spelled digit by digit (owner request 2026-10-29: "stand 311"
+                // was voiced "three hundred and eleven" by SI's ATC and by the FO alike).
+                return name == "gate" ? RadioSpeech.Stand(StripStandLabel(clause, match.Index, value)) : value;
             });
 
             if (missing)

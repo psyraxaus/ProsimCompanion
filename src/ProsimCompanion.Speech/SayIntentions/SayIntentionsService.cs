@@ -383,8 +383,10 @@ public sealed class SayIntentionsService : IVoiceFeature, Core.Hosting.IStartupM
             // SayIntentions itself voices sayAs audibly (live-verify) — double audio.
             if (options.FoSpeaksTransmission)
             {
+                // RadioSpeech (2026-10-29): "runway 27R" → "two seven right", the spelled stand's
+                // hyphens → spaces, as for every FO read-back; sayAs still gets the text form.
                 await _arbiter.EnqueueAsync(new SpeechRequest(
-                    message,
+                    RadioSpeech.Spoken(message),
                     SpeechPriority.Normal,
                     Ttl: TimeSpan.FromSeconds(30),
                     Tag: "sayintentions.tx")).ConfigureAwait(false);
@@ -403,7 +405,10 @@ public sealed class SayIntentionsService : IVoiceFeature, Core.Hosting.IStartupM
             // Legacy gate only: the takeoff request hands the radios back so the SI copilot
             // reads the clearance back. Under the hand-over the captain keeps them through
             // the takeoff clearance and the first departure hand-off (issue #171, step d).
-            if (request.IsDeparture && !options.CommsHandover.Enabled)
+            // With the FO working the radios (2026-10-29) the hand-back must not happen
+            // either — SIAI_COPILOT=1 would put the SI copilot on the takeoff clearance
+            // beside our own FO.
+            if (request.IsDeparture && !options.CommsHandover.Enabled && !options.FoRadios.Enabled)
             {
                 lock (_gate)
                 {
