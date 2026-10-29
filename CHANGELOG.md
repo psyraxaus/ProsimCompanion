@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.8.0-rc.23
+
+Local build, 2026-10-29, on `feature/display-fov` (over rc.22), from the owner's first verification leg (EGLL→LKPR, Speedbird 850).
+
+- Fixed: **"Good afternoon" at a morning sim clock.** Both EGLL briefings (sim 04:50 and 05:35) opened "Good afternoon": the LLM copied the example word in its instructions. The instructions now quote the exact greeting for the sim's local time and no other word, every streamed sentence passes a greeting check that puts the right word back (or drops the greeting when the sim clock is unknown), and "morning" now starts at 04:00 for dawn departures. The briefing event records the time-of-day word.
+- Changed: **the FO closes every ATC read-back with the callsign** — *"Push and start approved, face South-East, Speedbird eight five zero."*, *"Contacting Tower on 118.505, Speedbird eight five zero."* Broadcasts to all aircraft (an ATIS change) get no read-back any more; "winds calm" is dropped like the digit winds; "climb altitude 6,000" no longer goes out as "6, 000".
+- Changed: **stands are spelled digit by digit on the radio** — "stand three one one", never "three hundred and eleven" — on every pilot request and the FO's taxi-in call. The FO's own voice for a request now also says "runway two seven right" instead of "27R".
+- Added: **SID and STAR spoken by name** — *"Brookmans Park seven Foxtrot"* for BPK7F, *"Logan two Hotel"* for LOGAN2H — in the briefing and the FO's radio check-ins. Names come from the SimBrief plan's fixes first, then the Navigraph database (same-region, nearest navaid; never a guess across regions); a fix neither knows is spoken as a word (*"Fisha one"*) or in NATO letters.
+- Added: more ways to call Tower at the holding point — *"ready for departure"*, *"request takeoff"*, *"request departure clearance"*, *"call tower ready for departure"* — beside *"request departure"* / *"request takeoff clearance"*; the ICAO call now reads "holding point runway 27R". With **FO works the radios** on, the request no longer hands the radios back to the SayIntentions copilot.
+- Agent: probes briefing-greeting-sim-clock and procedure-spoken-names; si-fo-radios and si-request-stand-fragment extended.
+
 ## 0.8.0-rc.22
 
 Verification-flight build, 2026-10-29, on `feature/display-fov` (over rc.21). No app change; the build number marks the flight.
