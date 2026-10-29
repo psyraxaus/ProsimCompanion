@@ -157,13 +157,17 @@ public sealed record OfpData
 /// <param name="TimeFromTakeoff">Planned elapsed time at the fix (<c>time_total</c>); null when absent.</param>
 /// <param name="AltitudeFt">Planned altitude at the fix; null when absent.</param>
 /// <param name="IsProcedure">Part of the SID or STAR (<c>is_sid_star</c>).</param>
+/// <param name="Name">The fix's name as SimBrief prints it ("BROOKMANS PARK" for BPK, "TOP OF
+/// CLIMB" for TOC; a 5-letter waypoint repeats its ident) — the spoken SID/STAR name source
+/// (owner request 2026-10-29). Null when the OFP had none.</param>
 public sealed record OfpFix(
     string Ident,
     Flight.GeoPoint Position,
     double? PlannedFuelOnBoardKg,
     TimeSpan? TimeFromTakeoff,
     double? AltitudeFt,
-    bool IsProcedure);
+    bool IsProcedure,
+    string? Name = null);
 
 /// <summary>
 /// Holds the most recently fetched OFP for every consumer (loadsheets, FMS sync, web pages).

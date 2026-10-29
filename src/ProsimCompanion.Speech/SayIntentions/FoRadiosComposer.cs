@@ -344,7 +344,9 @@ public sealed record CheckInContext(
     string? Star,
     string? DepartureRunway,
     string? ArrivalRunway,
-    string? Gate);
+    string? Gate,
+    string? SidSpoken = null,
+    string? StarSpoken = null);
 
 /// <summary>
 /// The check-in call after a hand-off, shaped on the SI copilot's own (2026-10-25 transcript):
@@ -391,12 +393,14 @@ public static class CheckInComposer
                     break;
                 case FlightPhase.Descent:
                 case FlightPhase.Approach:
-                    var star = c.Star is { Length: > 0 } s ? $" on {s}" : "";
+                    // The crew's name for the procedure when known ("on Brookmans Park seven
+                    // Foxtrot", 2026-10-29); the bare identifier otherwise, as the copilot said it.
+                    var star = (c.StarSpoken is { Length: > 0 } ? c.StarSpoken : c.Star) is { Length: > 0 } s ? $" on {s}" : "";
                     var inbound = c.Phase == FlightPhase.Approach && c.ArrivalRunway is { Length: > 0 } r ? $", inbound runway {r}" : "";
                     body = $"descending through {level}{cleared}{star}{inbound}.";
                     break;
                 default:
-                    var sid = c.Sid is { Length: > 0 } d ? $" on {d}" : "";
+                    var sid = (c.SidSpoken is { Length: > 0 } ? c.SidSpoken : c.Sid) is { Length: > 0 } d ? $" on {d}" : "";
                     body = $"climbing through {level}{cleared}{sid}.";
                     break;
             }

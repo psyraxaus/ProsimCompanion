@@ -292,6 +292,152 @@ public sealed class DfdNavDataProvider
         return (latitude.Value, longitude.Value, elevation);
     }
 
+    /// <summary>One name-bearing table: the identifier / name / coordinate columns and, for
+    /// terminal tables, the column that names the airport the row belongs to.</summary>
+    private sealed record FixNameTable(string Table, string Ident, string Name, string Latitude, string Longitude, string? Airport);
+
+    // Probed in this order: a VOR/DME wins over a waypoint of the same ident (the enroute
+    // waypoint "BPK" is an Australian weather radar; the VOR is Brookmans Park). Column names
+    // verified against the owner's DFD 2026-10-29 (new schema); the legacy names are the
+    // Navigraph v1 documentation's — a wrong one just fails that query (null) and moves on.
+    private static readonly FixNameTable[] NewFixNameTables =
+    [
+        new("tbl_d_vhfnavaids", "navaid_identifier", "navaid_name", "navaid_latitude", "navaid_longitude", null),
+        new("tbl_db_enroute_ndbnavaids", "navaid_identifier", "navaid_name", "navaid_latitude", "navaid_longitude", null),
+        new("tbl_pn_terminal_ndbnavaids", "navaid_identifier", "navaid_name", "navaid_latitude", "navaid_longitude", "airport_identifier"),
+        new("tbl_pc_terminal_waypoints", "waypoint_identifier", "waypoint_name", "waypoint_latitude", "waypoint_longitude", "region_code"),
+        new("tbl_ea_enroute_waypoints", "waypoint_identifier", "waypoint_name", "waypoint_latitude", "waypoint_longitude", null),
+    ];
+
+    private static readonly FixNameTable[] LegacyFixNameTables =
+    [
+        new("tbl_vhfnavaids", "vor_identifier", "vor_name", "vor_latitude", "vor_longitude", null),
+        new("tbl_enroute_ndbnavaids", "ndb_identifier", "ndb_name", "ndb_latitude", "ndb_longitude", null),
+        new("tbl_terminal_ndbnavaids", "ndb_identifier", "ndb_name", "ndb_latitude", "ndb_longitude", "airport_identifier"),
+        new("tbl_terminal_waypoints", "waypoint_identifier", "waypoint_name", "waypoint_latitude", "waypoint_longitude", "region_code"),
+        new("tbl_enroute_waypoints", "waypoint_identifier", "waypoint_name", "waypoint_latitude", "waypoint_longitude", null),
+    ];
+
+    /// <summary>The stored name of a fix / navaid identifier ("BPK" → "BROOKMANS PARK"), or null
+    /// when the DFD, the ident or a name is absent (owner request 2026-10-29, the spoken SID /
+    /// STAR). Identifiers repeat world-wide (three "LAM" VORs), so with <paramref name="nearAirport"/>
+    /// known only rows of a terminal table for that airport, or rows in the airport's ICAO
+    /// region (first two letters), are considered — the nearest to the airport's reference
+    /// point when several remain. Without an airport an ambiguous ident is null, never a guess.</summary>
+    public string? FixName(string? ident, string? nearAirport)
+    {
+        if (string.IsNullOrWhiteSpace(ident))
+        {
+            return null;
+        }
+
+        using var connection = Open();
+        if (connection is null)
+        {
+            return null;
+        }
+
+        var schema = DetectSchema(connection);
+        var id = ident.Trim().ToUpperInvariant();
+        var airport = string.IsNullOrWhiteSpace(nearAirport) ? null : nearAirport.Trim().ToUpperInvariant();
+        var region = airport is { Length: >= 2 } ? airport[..2] : null;
+        (double Latitude, double Longitude)? reference = null;
+        if (airport is not null)
+        {
+            var latitude = ScalarDouble(connection, $"SELECT airport_ref_latitude FROM {schema.Airports} WHERE airport_identifier=@a LIMIT 1", ("@a", airport));
+            var longitude = ScalarDouble(connection, $"SELECT airport_ref_longitude FROM {schema.Airports} WHERE airport_identifier=@a LIMIT 1", ("@a", airport));
+            if (latitude is { } lat && longitude is { } lon)
+            {
+                reference = (lat, lon);
+            }
+        }
+
+        foreach (var table in schema == NewSchema ? NewFixNameTables : LegacyFixNameTables)
+        {
+            var rows = FixNameRows(connection, table, id);
+            if (rows.Count == 0)
+            {
+                continue;
+            }
+
+            IEnumerable<FixNameRow> candidates = rows;
+            if (airport is not null && table.Airport is not null)
+            {
+                candidates = rows.Where(r => string.Equals(r.Airport, airport, StringComparison.OrdinalIgnoreCase));
+            }
+            else if (region is not null)
+            {
+                candidates = rows.Where(r => string.Equals(r.Region, region, StringComparison.OrdinalIgnoreCase));
+            }
+
+            var list = candidates.ToList();
+            if (list.Count == 0)
+            {
+                continue;
+            }
+
+            if (list.Count > 1)
+            {
+                if (reference is not { } here)
+                {
+                    continue; // ambiguous and nothing to rank by — a wrong name is worse than none
+                }
+
+                list = list
+                    .Where(r => r.Latitude is not null && r.Longitude is not null)
+                    .OrderBy(r => Math.Pow(r.Latitude!.Value - here.Latitude, 2) + Math.Pow((r.Longitude!.Value - here.Longitude) * Math.Cos(here.Latitude * Math.PI / 180), 2))
+                    .ToList();
+                if (list.Count == 0)
+                {
+                    continue;
+                }
+            }
+
+            return list[0].Name;
+        }
+
+        return null;
+    }
+
+    private sealed record FixNameRow(string Name, string? Region, double? Latitude, double? Longitude, string? Airport);
+
+    /// <summary>Every row of <paramref name="table"/> for the ident with a non-blank name; a
+    /// failed query (legacy column names, a missing table) is an empty list.</summary>
+    private List<FixNameRow> FixNameRows(SqliteConnection connection, FixNameTable table, string ident)
+    {
+        var rows = new List<FixNameRow>();
+        var airportColumn = table.Airport ?? "NULL";
+        var sql = $"SELECT {table.Name}, icao_code, {table.Latitude}, {table.Longitude}, {airportColumn} FROM {table.Table} WHERE {table.Ident}=@i";
+        try
+        {
+            using var cmd = connection.CreateCommand();
+            cmd.CommandText = sql;
+            cmd.Parameters.AddWithValue("@i", ident);
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+            {
+                var name = reader.IsDBNull(0) ? null : reader.GetValue(0)?.ToString()?.Trim();
+                if (string.IsNullOrEmpty(name))
+                {
+                    continue;
+                }
+
+                rows.Add(new FixNameRow(
+                    name,
+                    reader.IsDBNull(1) ? null : reader.GetValue(1)?.ToString()?.Trim(),
+                    reader.IsDBNull(2) ? null : Convert.ToDouble(reader.GetValue(2), CultureInfo.InvariantCulture),
+                    reader.IsDBNull(3) ? null : Convert.ToDouble(reader.GetValue(3), CultureInfo.InvariantCulture),
+                    reader.IsDBNull(4) ? null : reader.GetValue(4)?.ToString()?.Trim()));
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "DFD query failed: {Sql}", sql);
+        }
+
+        return rows;
+    }
+
     /// <summary>A runway's threshold position, true bearing and length (<c>runway_latitude</c>
     /// / <c>runway_longitude</c> / <c>runway_true_bearing</c> / <c>runway_length</c>; same column
     /// names in both schema generations), or null when the DFD, the airport, the runway or a

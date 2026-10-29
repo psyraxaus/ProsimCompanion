@@ -296,7 +296,10 @@ comes from MSFS, not from the PC clock, and when MSFS is not running the FO open
 "Captain," and no time-of-day greeting at all.
 
 - *"Brief the departure"* / *"brief the arrival"* — composed from the FMS plan, Navigraph
-  DFD procedures, live weather and your minima. With an LLM configured the wording is
+  DFD procedures, live weather and your minima. The SID and STAR are spoken the way a crew says
+  them — *"Brookmans Park seven Foxtrot"* for BPK7F, *"Logan two Hotel"* for LOGAN2H — using the
+  fix names from your SimBrief plan, then the Navigraph database; a fix neither knows is
+  spelled phonetically. The FO's radio check-ins use the same names. With an LLM configured the wording is
   natural and the FO starts speaking after the model's first sentence, not after the whole
   reply (Settings → Voice First Officer → LLM Styling → **Speak while the model writes**, on by
   default; the same switch covers the debrief). Every sentence is checked before it is spoken

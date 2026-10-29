@@ -442,7 +442,11 @@ public sealed class BriefingService : IVoiceFeature, IDisposable
             Emergency: departure && options.TakeoffEmergencyBrief ? BuildEmergencyFacts(ids, nav, wx, flexTemp, perf, options) : null,
             GoAround: !departure && options.ArrivalGoAroundBrief ? BuildGoAroundFacts(ids) : null,
             WindLimits: WindLimitsFor(departure, nav, wx),
-            TimeOfDay: _localTime?.LocalTimeOfDay is { } localTime ? Core.Aircraft.TimeOfDayGreeting.Word(localTime) : null);
+            TimeOfDay: _localTime?.LocalTimeOfDay is { } localTime ? Core.Aircraft.TimeOfDayGreeting.Word(localTime) : null,
+            // The crew's names for the procedures (2026-10-29): the OFP navlog / DFD fix name
+            // behind the identifier, phonetic when neither knows it.
+            SidSpoken: ids.Sid is { Length: > 0 } ? _spokenText.Procedure(ids.Sid, ids.Airport) : null,
+            StarSpoken: ids.Star is { Length: > 0 } ? _spokenText.Procedure(ids.Star, ids.Airport) : null);
     }
 
     /// <summary>The emergency half's facts (issue #180). Every source is optional: no DFD = no

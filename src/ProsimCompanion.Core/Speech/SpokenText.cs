@@ -28,6 +28,12 @@ public interface ISpokenText
     /// <see cref="NatoPhonetics.SpeakIdentifier"/>.</summary>
     string Identifier(string? identifier);
 
+    /// <summary>A SID / STAR the way a crew says it ("BPK7F" → "Brookmans Park seven Foxtrot",
+    /// owner request 2026-10-29) — the base fix's name from <see cref="IFixNames"/> when one is
+    /// registered and knows it, <see cref="ProcedureSpeech"/>'s phonetic fallback otherwise.
+    /// <paramref name="airport"/> disambiguates shared identifiers. Empty for blank input.</summary>
+    string Procedure(string? identifier, string? airport = null);
+
     /// <summary>"110.30" → "one one zero decimal three zero" (ICAO digits, 9 = "niner").</summary>
     string Frequency(string? frequency);
 }
@@ -38,8 +44,17 @@ public interface ISpokenText
 public sealed class SpokenText : ISpokenText
 {
     private readonly IAirportNames? _airportNames;
+    private readonly IFixNames? _fixNames;
 
-    public SpokenText(IAirportNames? airportNames = null) => _airportNames = airportNames;
+    public SpokenText(IAirportNames? airportNames = null, IFixNames? fixNames = null)
+    {
+        _airportNames = airportNames;
+        _fixNames = fixNames;
+    }
+
+    /// <inheritdoc />
+    public string Procedure(string? identifier, string? airport = null)
+        => ProcedureSpeech.Speak(identifier, ident => _fixNames?.Name(ident, airport));
 
     /// <inheritdoc />
     public string? Runway(string? designator) => RunwayOrNull(designator);

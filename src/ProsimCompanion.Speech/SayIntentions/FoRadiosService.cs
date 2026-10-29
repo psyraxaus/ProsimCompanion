@@ -36,6 +36,7 @@ public sealed class FoRadiosService : Core.Hosting.IStartupModule, IDisposable
     private readonly IFlightPhaseSource? _phase;
     private readonly IFlightDataSource? _flightData;
     private readonly ISimLocalTime? _localTime;
+    private readonly Core.Speech.ISpokenText? _spokenText;
     private readonly RadioClearGate _radioGate;
     private readonly SemaphoreSlim _transmitGate = new(1, 1);
     private readonly CancellationTokenSource _shutdown = new();
@@ -58,7 +59,8 @@ public sealed class FoRadiosService : Core.Hosting.IStartupModule, IDisposable
         IFlightPhaseSource? phase = null,
         IFlightDataSource? flightData = null,
         ISimLocalTime? localTime = null,
-        ISimVars? simVars = null)
+        ISimVars? simVars = null,
+        Core.Speech.ISpokenText? spokenText = null)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(monitor);
@@ -75,6 +77,7 @@ public sealed class FoRadiosService : Core.Hosting.IStartupModule, IDisposable
         _phase = phase;
         _flightData = flightData;
         _localTime = localTime;
+        _spokenText = spokenText;
         _radioGate = new RadioClearGate(simVars, logger);
     }
 
@@ -342,6 +345,10 @@ public sealed class FoRadiosService : Core.Hosting.IStartupModule, IDisposable
             Star: flight.Star,
             DepartureRunway: flight.DepartureRunway,
             ArrivalRunway: flight.ArrivalRunway,
-            Gate: flight.Gate);
+            Gate: flight.Gate,
+            // The crew's names for the procedures (2026-10-29) — flight.json names no airport,
+            // so the OFP navlog tier answers and the DFD tier only when the ident is unique.
+            SidSpoken: flight.Sid is { Length: > 0 } ? _spokenText?.Procedure(flight.Sid) : null,
+            StarSpoken: flight.Star is { Length: > 0 } ? _spokenText?.Procedure(flight.Star) : null);
     }
 }

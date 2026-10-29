@@ -551,7 +551,8 @@ public sealed class SimbriefImportService : ISimbriefImporter, IDisposable
                 fuel is null ? null : kg(fuel),
                 time > 0 ? TimeSpan.FromSeconds(time) : null,
                 altitude > 0 ? altitude : null,
-                ReadString(fix["is_sid_star"]) == "1" || (fix["is_sid_star"] is JsonValue flag && flag.TryGetValue<int>(out var i) && i == 1)));
+                ReadString(fix["is_sid_star"]) == "1" || (fix["is_sid_star"] is JsonValue flag && flag.TryGetValue<int>(out var i) && i == 1),
+                ReadString(fix["name"])));
         }
 
         return result;

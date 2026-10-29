@@ -36,6 +36,9 @@ public sealed class SimbriefNavlogTests
         Assert.Equal(6000, det.AltitudeFt);
         Assert.True(det.IsProcedure);
         Assert.False(ofp.Navlog[2].IsProcedure);
+        // The fix name rides along (2026-10-29): the spoken SID/STAR name source.
+        Assert.Equal("DETLING", det.Name);
+        Assert.Equal("TOP OF CLIMB", ofp.Navlog[1].Name);
         // The destination row closes the plan at the planned landing fuel.
         Assert.Equal(3050, ofp.Navlog[^1].PlannedFuelOnBoardKg);
     }

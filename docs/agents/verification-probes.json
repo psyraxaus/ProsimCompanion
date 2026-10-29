@@ -4004,6 +4004,24 @@
         "watch: timeOfDay null while MSFS was live (LOCAL TIME SimVar stale > 30 s or unregistered) — report with the subsystem-status around the briefing."
       ],
       "notes": "Fixed 2026-10-29: BriefingComposer.SystemPrompt(departure, timeOfDay) quotes the exact greeting and no other word; BriefingComposer.FixGreeting (pure) rewrites a wrong or clock-less opening and is applied through the new NarrationPlan.Rewrite hook (every streamed sentence) and to the whole non-streamed narrative; TimeOfDayGreeting now starts 'morning' at 04:00 (dawn departures). Unverified live."
+    },
+    {
+      "id": "procedure-spoken-names",
+      "issue": 0,
+      "state": "open",
+      "kind": "assert-present",
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "Owner request 2026-10-29 (EGLL BPK7F): the SID / STAR is spoken the crew's way — 'Brookmans Park seven Foxtrot', not 'Bravo Papa Kilo seven Foxtrot' or 'B P K'. Trigger = a briefing.spoken whose plan carries a SID / STAR, or a sayintentions.checkin after a hand-off in the climb / descent.",
+        "assert-present: the 'briefing.spoken' narrative names the SID (departure) / STAR (arrival) by its fix NAME followed by the number word and the NATO designator ('Brookmans Park seven Foxtrot', 'Logan two Hotel') whenever the OFP navlog (ofp-imported in the session) or the DFD knows the base fix; the 'sayintentions.checkin' transmit says 'on <that same name>'. A narrative that spells the base fix letter by letter while the navlog held that fix with a different name = fail.",
+        "assert-present (fallback): with no OFP and no DFD the briefing still speaks the SID as a word (4+ letters: 'Fisha one') or NATO letters (shorter: 'Bravo Papa Kilo seven Foxtrot') — never the bare identifier.",
+        "assert-absent: a WRONG name — the DFD tier must not name a same-ident navaid from another region ('Lamezia' for LAM at EGLL, 'Buckland Prk Weathr Radar' for BPK); quote the briefing text and the OFP navlog row.",
+        "requires-human: the name sounded right in the voice (title-cased 'Brookmans Park', not an all-caps spelling); the LLM-streamed briefing kept the name (the sid section's AnyOf lead word is the name's first word)."
+      ],
+      "notes": "Shipped 2026-10-29: Core ProcedureSpeech (pure) + IFixNames seam; OfpFixNames (SimBrief navlog 'name' now parsed into OfpFix.Name) first, DfdFixNames / DfdNavDataProvider.FixName (navaid → NDB → terminal → enroute waypoint, region + nearest-to-airport ranking; column names verified against the owner's DFD) second; ISpokenText.Procedure; BriefingFacts.SidSpoken/StarSpoken; CheckInContext.SidSpoken/StarSpoken (flight.json names no airport, so the DFD tier answers only unique idents there). Unverified live."
     }
   ]
 }

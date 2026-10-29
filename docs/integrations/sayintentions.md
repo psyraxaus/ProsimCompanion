@@ -124,8 +124,19 @@ legacy departure gate are inert) and answers every ATC COM1 line the frequency m
   six-two, climbing through 2,500 on KEMA5C." / "… climbing through FL180 for FL210 on KEMA5C." /
   "… maintaining FL370." (copilot wording, verified in the transcript); descent / approach mirror
   it with the STAR and "inbound runway 15"; TaxiOut "taxiing to holding point runway 22R";
-  TaxiIn "runway 15 vacated, request taxi to stand B16" — the arrival forms are **unverified**
-  (no arrival in the transcript). The greeting is the sim's local time of day (`ISimLocalTime`),
+  TaxiIn "runway 15 vacated, request taxi to stand Bravo-one-six" — the arrival forms are **unverified**
+  (no arrival in the transcript). The SID / STAR is spoken the crew's way (owner request
+  2026-10-29): "on Brookmans Park seven Foxtrot", not "on BPK7F" — `ISpokenText.Procedure`
+  over the Core `IFixNames` seam (`ProcedureSpeech`, pure): the OFP navlog's fix names first
+  (`OfpFixNames` — SimBrief prints "BROOKMANS PARK" beside BPK, and the route's own fixes are
+  unambiguous), the DFD's navaid / waypoint name columns behind it (`DfdFixNames` →
+  `DfdNavDataProvider.FixName`: VOR, NDB, terminal waypoint, enroute waypoint; rows filtered
+  to the airport's ICAO region and ranked by distance to its reference point, because "LAM" is
+  Lambourne, Lamezia and Lamerd and the enroute waypoint "BPK" is an Australian weather
+  radar — with no airport an ambiguous ident is left unnamed). Unnamed: a 4+-letter base is a
+  word ("Fisha one"), a shorter one is NATO-spelled ("Bravo Papa Kilo seven Foxtrot"). The
+  briefing's SID / STAR lines and fact block use the same text. The greeting is the sim's
+  local time of day (`ISimLocalTime`),
   the cleared level the last "climb/descend/maintain …" ATC said (`ClearedLevelParser`), the
   level FL from 10,000 ft, feet below; skipped when the pilot took the radios or ATC handed us on
   again meanwhile.

@@ -38,7 +38,9 @@ public sealed record BriefingFacts(
     EmergencyBriefFacts? Emergency = null,
     GoAroundBriefFacts? GoAround = null,
     Core.Weather.WindLimitVerdict? WindLimits = null,
-    string? TimeOfDay = null);
+    string? TimeOfDay = null,
+    string? SidSpoken = null,
+    string? StarSpoken = null);
 
 /// <summary>The facts of the emergency half of a takeoff briefing (issue #180). Present only
 /// while <c>briefing.takeoffEmergencyBrief</c> is on — null keeps the departure template
@@ -141,7 +143,8 @@ public static class BriefingComposer
             // letter of "VOLA3V" — "VOLA three Victor" survives synthesis.
             if (f.Sid is { } sid)
             {
-                var spoken = Core.Speech.NatoPhonetics.SpeakIdentifier(sid);
+                // The crew's name for it when known ("Brookmans Park seven Foxtrot", 2026-10-29).
+                var spoken = f.SidSpoken is { Length: > 0 } named ? named : Core.Speech.NatoPhonetics.SpeakIdentifier(sid);
                 s.Add(new("sid", $"Standard instrument departure {spoken}.") { AnyOf = LeadWord(spoken) });
             }
 
@@ -195,7 +198,7 @@ public static class BriefingComposer
 
             if (f.Star is { } star)
             {
-                var spoken = Core.Speech.NatoPhonetics.SpeakIdentifier(star);
+                var spoken = f.StarSpoken is { Length: > 0 } named ? named : Core.Speech.NatoPhonetics.SpeakIdentifier(star);
                 s.Add(new("star", $"Arrival via {spoken}.") { AnyOf = LeadWord(spoken) });
             }
 
@@ -632,8 +635,8 @@ public static class BriefingComposer
         Line("Time of day at the aircraft", f.TimeOfDay);
         Line("Airport", f.AirportName is { } name ? $"{name} ({f.Airport})" : f.Airport);
         Line("Runway", f.Runway);
-        Line("SID", Core.Speech.NatoPhonetics.SpeakIdentifier(f.Sid));
-        Line("STAR", Core.Speech.NatoPhonetics.SpeakIdentifier(f.Star));
+        Line("SID", f.SidSpoken is { Length: > 0 } sidName ? sidName : Core.Speech.NatoPhonetics.SpeakIdentifier(f.Sid));
+        Line("STAR", f.StarSpoken is { Length: > 0 } starName ? starName : Core.Speech.NatoPhonetics.SpeakIdentifier(f.Star));
         Line("Approach", f.Approach is { } approach ? SpokenApproach(approach, f.Runway) : null);
         Line("AIRAC", f.Nav.AiracCycle);
         Line("Runway true heading (deg)", f.Nav.RunwayTrueHeading?.ToString("0", CultureInfo.InvariantCulture));
