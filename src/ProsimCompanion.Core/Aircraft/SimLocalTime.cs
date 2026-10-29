@@ -55,8 +55,10 @@ public sealed class SimLocalTime : ISimLocalTime, IDisposable
     public void Dispose() => _localTime?.Dispose();
 }
 
-/// <summary>The word a crew greets by: morning 05:00–11:59, afternoon 12:00–17:59, evening
-/// 18:00–04:59 (an overnight crew says "good evening" until the small hours). Pure.</summary>
+/// <summary>The word a crew greets by: morning 04:00–11:59, afternoon 12:00–17:59, evening
+/// 18:00–03:59 (an overnight crew says "good evening" until the small hours). Morning starts
+/// at 04:00, not 05:00: the owner's 2026-10-29 EGLL departure briefed at a 04:50 sim clock,
+/// and a crew reporting for a dawn departure says "good morning". Pure.</summary>
 public static class TimeOfDayGreeting
 {
     public static string Word(TimeSpan localTimeOfDay)
@@ -64,7 +66,7 @@ public static class TimeOfDayGreeting
         var hour = ((int)localTimeOfDay.TotalHours % 24 + 24) % 24;
         return hour switch
         {
-            >= 5 and < 12 => "morning",
+            >= 4 and < 12 => "morning",
             >= 12 and < 18 => "afternoon",
             _ => "evening",
         };

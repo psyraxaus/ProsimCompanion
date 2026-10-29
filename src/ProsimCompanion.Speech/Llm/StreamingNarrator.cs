@@ -47,6 +47,12 @@ public sealed record NarrationPlan(
     /// over as for a failed number). Small talk uses it to refuse a sentence that talks about
     /// THIS flight with a figure in it.</summary>
     public Func<string, bool>? Guard { get; init; }
+
+    /// <summary>A per-sentence rewrite applied BEFORE the guard and the number verifier — the
+    /// text returned is what is verified and spoken. The briefing uses it to pin the opening
+    /// greeting to the sim's clock (2026-10-29: the model copied the prompt's example word).
+    /// Must be pure and must never add a number the plan did not allow.</summary>
+    public Func<string, string>? Rewrite { get; init; }
 }
 
 /// <summary>What a streamed narration came to.</summary>
@@ -171,6 +177,11 @@ public sealed class StreamingNarrator
 
             bool Offer(string sentence)
             {
+                if (plan.Rewrite is { } rewrite)
+                {
+                    sentence = rewrite(sentence);
+                }
+
                 if (plan.Guard is { } guard && !guard(sentence))
                 {
                     _logger.LogWarning("{Kind}: a streamed sentence was refused by the plan's guard — the template takes over", plan.Kind);

@@ -36,11 +36,34 @@ public sealed class BriefingGreetingTests
     }
 
     [Fact]
-    public void SystemPrompt_TellsTheModelToGreetByTheFact_AndNeverGuess()
+    public void SystemPrompt_QuotesTheExactGreeting_AndNoOtherWord()
     {
-        var prompt = BriefingComposer.SystemPrompt(true);
+        // 2026-10-29: two EGLL briefings at a morning sim clock opened "Good afternoon" — the
+        // old prompt's example read 'Good afternoon, Captain.' and the model copied it.
+        var prompt = BriefingComposer.SystemPrompt(true, "morning");
 
-        Assert.Contains("Time of day at the aircraft", prompt, StringComparison.Ordinal);
-        Assert.Contains("never guess morning or evening", prompt, StringComparison.Ordinal);
+        Assert.Contains("exactly 'Good morning, Captain.'", prompt, StringComparison.Ordinal);
+        Assert.DoesNotContain("afternoon", prompt, StringComparison.Ordinal);
+        Assert.DoesNotContain("evening", prompt, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void SystemPrompt_WithoutAClock_ForbidsAnyGreeting()
+    {
+        var prompt = BriefingComposer.SystemPrompt(true, null);
+
+        Assert.Contains("Open with 'Captain,'", prompt, StringComparison.Ordinal);
+        Assert.Contains("never guess morning, afternoon or evening", prompt, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("Good afternoon, Captain. We're departing Heathrow.", "morning", "Good morning, Captain. We're departing Heathrow.")]
+    [InlineData("Good evening Captain, departure briefing.", "morning", "Good morning Captain, departure briefing.")]
+    [InlineData("Good morning, Captain. Runway two seven right.", "morning", "Good morning, Captain. Runway two seven right.")]
+    [InlineData("Good afternoon, Captain. We're departing Heathrow.", null, "Captain. We're departing Heathrow.")]
+    [InlineData("Good afternoon. We're departing Heathrow.", null, "Captain, we're departing Heathrow.")]
+    [InlineData("Runway two seven right, true heading two seven zero.", "morning", "Runway two seven right, true heading two seven zero.")]
+    [InlineData("Surface is dry, good for a rolling start.", "evening", "Surface is dry, good for a rolling start.")]
+    public void FixGreeting_PinsTheOpeningToTheSimClock(string sentence, string? timeOfDay, string expected)
+        => Assert.Equal(expected, BriefingComposer.FixGreeting(sentence, timeOfDay));
 }

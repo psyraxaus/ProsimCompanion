@@ -10,6 +10,7 @@ namespace ProsimCompanion.Core.Tests.Aircraft;
 public sealed class SimLocalTimeTests
 {
     [Theory]
+    [InlineData(4, "morning")] // the owner's 04:50 EGLL dawn departure (2026-10-29)
     [InlineData(5, "morning")]
     [InlineData(11, "morning")]
     [InlineData(12, "afternoon")]
@@ -18,7 +19,7 @@ public sealed class SimLocalTimeTests
     [InlineData(18, "evening")]
     [InlineData(23, "evening")]
     [InlineData(0, "evening")]
-    [InlineData(4, "evening")]
+    [InlineData(3, "evening")]
     public void Word_FollowsTheCrewConvention(int hour, string expected)
         => Assert.Equal(expected, TimeOfDayGreeting.Word(TimeSpan.FromHours(hour) + TimeSpan.FromMinutes(35)));
 

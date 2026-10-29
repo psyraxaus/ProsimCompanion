@@ -3987,6 +3987,23 @@
         "Do NOT confuse with pushback-phase-hold (#161): that is PushbackAndStart -> Preflight with engines off; this is TaxiOut -> PushbackAndStart with an engine running."
       ],
       "notes": "No fix as of 2026-10-29 (issue filed 2026-09-27; same family as the 2026-09-26 flaps, sessions 031831/044756). The obvious gates do not work: groundservice.pushback stuck at 0 after the push (#104) so !PushbackActive cannot gate taxi-out, and the brake is released during the push so start-complete-hold cannot hold. Candidate directions in the issue (owner call, replayed, never a guessed threshold): both engines or one engine + a brake-set-since-push latch; a pushback rising-edge timer cleared on the first brake set; a GSX Departure-service-Active latch in the snapshot. The #161 pushback-hold rule (2026-10-10) deliberately left this path untouched. The machine block only marks the back-edge; the reducer hands watch probes to the LLM step, so the 120 s pairing is judged there."
+    },
+    {
+      "id": "briefing-greeting-sim-clock",
+      "issue": 0,
+      "state": "open",
+      "kind": "assert-present",
+      "sources": [
+        "session"
+      ],
+      "checks": [
+        "Owner flights 2026-10-25 (16:35 sim, 'good morning') and 2026-10-29 (EGLL, sim 04:50 and 05:35, 'Good afternoon' twice — the LLM copied the prompt's example word). Trigger = a 'briefing.spoken' event.",
+        "assert-present: every 'briefing.spoken' carries timeOfDay (morning | afternoon | evening | null) and its narrative opens 'Good <timeOfDay>, Captain' when the word is set, or 'Captain,' / the bare header when it is null — on BOTH the streamed and the template path. The word must match the SIM local hour (the gate card / loadsheet zulu clock plus the airport's offset): morning 04:00–11:59, afternoon 12:00–17:59, evening otherwise. A narrative opening with a different time-of-day word than the event's timeOfDay = fail (FixGreeting did not run).",
+        "assert-present: the FO radios check-in ('sayintentions.checkin' transmit) and the briefing of the same hour use the same word — both read ISimLocalTime.",
+        "assert-absent: a 'speech.segment' tag briefing.* reading 'Good <word>' where <word> differs from the briefing.spoken timeOfDay of the same briefing.",
+        "watch: timeOfDay null while MSFS was live (LOCAL TIME SimVar stale > 30 s or unregistered) — report with the subsystem-status around the briefing."
+      ],
+      "notes": "Fixed 2026-10-29: BriefingComposer.SystemPrompt(departure, timeOfDay) quotes the exact greeting and no other word; BriefingComposer.FixGreeting (pure) rewrites a wrong or clock-less opening and is applied through the new NarrationPlan.Rewrite hook (every streamed sentence) and to the whole non-streamed narrative; TimeOfDayGreeting now starts 'morning' at 04:00 (dawn departures). Unverified live."
     }
   ]
 }

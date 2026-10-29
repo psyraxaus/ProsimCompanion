@@ -239,22 +239,27 @@ public sealed class BriefingService : IVoiceFeature, IDisposable
                 var personaFragment = _persona?.SystemPromptFragment(Persona.PersonaStyleCategory.Briefing) ?? "";
                 var result = await _narrator.RunAsync(new NarrationPlan(
                     tag,
-                    personaFragment + BriefingComposer.SystemPrompt(facts.IsDeparture),
+                    personaFragment + BriefingComposer.SystemPrompt(facts.IsDeparture, facts.TimeOfDay),
                     BriefingComposer.FactBlock(facts) + "\n\nWrite the spoken briefing now.",
                     BriefingComposer.AllowedNumbers(facts),
                     BriefingComposer.Sections(facts),
                     new SpeechRequest(
                         departure ? "Departure briefing" : "Arrival briefing", SpeechPriority.Normal, Tag: tag),
-                    Epilogue: [])).ConfigureAwait(false);
-                _eventLog.Record("briefing.spoken", new { departure, narrative = result.Text, streamed = true });
+                    Epilogue: [])
+                {
+                    // The sim-clock greeting is pinned here as well as in the prompt
+                    // (2026-10-29: the model copied the prompt's example word twice).
+                    Rewrite = sentence => BriefingComposer.FixGreeting(sentence, facts.TimeOfDay),
+                }).ConfigureAwait(false);
+                _eventLog.Record("briefing.spoken", new { departure, narrative = result.Text, streamed = true, timeOfDay = facts.TimeOfDay });
                 AskForThreats(facts);
                 return;
             }
 
-            var narrative = await ComposeAsync(facts).ConfigureAwait(false);
+            var narrative = BriefingComposer.FixGreeting(await ComposeAsync(facts).ConfigureAwait(false), facts.TimeOfDay);
             RecordRoute(facts, departure);
 
-            _eventLog.Record("briefing.spoken", new { departure, narrative });
+            _eventLog.Record("briefing.spoken", new { departure, narrative, timeOfDay = facts.TimeOfDay });
             // The outcome resolves when the utterance has played (or was dropped), so the
             // threats question below never talks over the briefing.
             await _arbiter.EnqueueAsync(new SpeechRequest(narrative, SpeechPriority.Normal, Tag: tag))
@@ -564,7 +569,7 @@ public sealed class BriefingService : IVoiceFeature, IDisposable
             var personaFragment = _persona?.SystemPromptFragment(Persona.PersonaStyleCategory.Briefing) ?? "";
             var factBlock = BriefingComposer.FactBlock(facts);
             var narrative = await _llm.CompleteAsync(
-                personaFragment + BriefingComposer.SystemPrompt(facts.IsDeparture),
+                personaFragment + BriefingComposer.SystemPrompt(facts.IsDeparture, facts.TimeOfDay),
                 factBlock + "\n\nWrite the spoken briefing now.").ConfigureAwait(false);
             if (string.IsNullOrWhiteSpace(narrative))
             {
@@ -585,7 +590,7 @@ public sealed class BriefingService : IVoiceFeature, IDisposable
             _logger.LogWarning("Briefing number verification failed — unverified: {Tokens}",
                 string.Join(", ", offending));
             var retry = await _llm.CompleteAsync(
-                personaFragment + BriefingComposer.SystemPrompt(facts.IsDeparture),
+                personaFragment + BriefingComposer.SystemPrompt(facts.IsDeparture, facts.TimeOfDay),
                 factBlock + "\n\nUse ONLY these numbers, exactly as written, and no others: "
                     + NumberVerifier.DescribeAllowed(allowed)
                     + "\nWrite the spoken briefing now.").ConfigureAwait(false);

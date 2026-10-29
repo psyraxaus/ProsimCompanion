@@ -542,8 +542,13 @@ public static class BriefingComposer
         return allowed;
     }
 
-    /// <summary>Builds the LLM system prompt (predecessor wording — facts-only, TTS-ready).</summary>
-    public static string SystemPrompt(bool departure)
+    /// <summary>Builds the LLM system prompt (predecessor wording — facts-only, TTS-ready).
+    /// <paramref name="timeOfDay"/> is the sim's local time-of-day word (morning / afternoon /
+    /// evening) or null: the opening instruction quotes the exact greeting to use, never an
+    /// example with another word — the 2026-10-29 EGLL briefings (sim 04:50 and 05:35) both
+    /// opened "Good afternoon" because the old prompt's example read 'Good afternoon,
+    /// Captain.' and the model copied it. <see cref="FixGreeting"/> is the belt to this brace.</summary>
+    public static string SystemPrompt(bool departure, string? timeOfDay)
         => "You are the First Officer of an Airbus A320, giving a concise, professional spoken "
             + (departure ? "departure" : "arrival/approach")
             + " briefing to the Captain. Use ONLY the facts provided below — never invent or alter "
@@ -557,9 +562,52 @@ public static class BriefingComposer
             + "one eight decimal one zero', 'runway one six right'); read altitudes, distances and "
             + "speeds normally. Speak single letters as their NATO phonetic words: 'information "
             + "Mike' (never 'information M'), 'VOLA three Victor' (never 'VOLA3V')."
-            + " Open with the greeting that matches the 'Time of day at the aircraft' fact ('Good "
-            + "afternoon, Captain.'); when that fact is absent open with 'Captain,' and use no "
-            + "time-of-day greeting at all — never guess morning or evening.";
+            + (timeOfDay is { Length: > 0 } word
+                ? $" It is {word} at the aircraft. Your first words must be exactly 'Good {word}, Captain.'"
+                  + " — no other time-of-day word."
+                : " The time of day at the aircraft is unknown. Open with 'Captain,' and use no "
+                  + "time-of-day greeting at all — never guess morning, afternoon or evening.");
+
+    private static readonly Regex GreetingOpening = new(
+        @"^\s*Good\s+(morning|afternoon|evening|day)\b[,.!]?\s*",
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
+    /// <summary>Deterministic guard on the model's opening (2026-10-29): a sentence that opens
+    /// "Good &lt;word&gt;" gets the SIM's word when they differ, and loses the greeting entirely
+    /// when the clock is unknown ("Good afternoon, Captain. We're departing…" → "Captain, we're
+    /// departing…"). Any other sentence is returned unchanged. Pure; applied to every streamed
+    /// sentence and to a whole non-streamed narrative (anchored at the start, so only an
+    /// opening greeting is touched).</summary>
+    public static string FixGreeting(string sentence, string? timeOfDay)
+    {
+        ArgumentNullException.ThrowIfNull(sentence);
+        var match = GreetingOpening.Match(sentence);
+        if (!match.Success)
+        {
+            return sentence;
+        }
+
+        if (timeOfDay is { Length: > 0 } word)
+        {
+            if (match.Groups[1].Value.Equals(word, StringComparison.OrdinalIgnoreCase))
+            {
+                return sentence;
+            }
+
+            // Keep the model's own punctuation after the word (", Captain." / ". ") — only
+            // the time-of-day word changes.
+            var afterWord = sentence[(match.Groups[1].Index + match.Groups[1].Length)..];
+            return "Good " + word + afterWord;
+        }
+
+        var rest = sentence[(match.Index + match.Length)..];
+        if (rest.StartsWith("Captain", StringComparison.OrdinalIgnoreCase))
+        {
+            return rest;
+        }
+
+        return rest.Length == 0 ? "Captain." : "Captain, " + char.ToLowerInvariant(rest[0]) + rest[1..];
+    }
 
     /// <summary>Builds the fact block ("- Label: value" lines, blanks omitted).</summary>
     public static string FactBlock(BriefingFacts f)
