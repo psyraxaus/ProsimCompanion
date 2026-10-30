@@ -10,6 +10,7 @@ Local build, 2026-10-29, on `feature/display-fov` (over rc.22), from the owner's
 - Added: **SID and STAR spoken by name** — *"Brookmans Park seven Foxtrot"* for BPK7F, *"Logan two Hotel"* for LOGAN2H — in the briefing and the FO's radio check-ins. Names come from the SimBrief plan's fixes first, then the Navigraph database (same-region, nearest navaid; never a guess across regions); a fix neither knows is spoken as a word (*"Fisha one"*) or in NATO letters.
 - Added: more ways to call Tower at the holding point — *"ready for departure"*, *"request takeoff"*, *"request departure clearance"*, *"call tower ready for departure"* — beside *"request departure"* / *"request takeoff clearance"*; the ICAO call now reads "holding point runway 27R". With **FO works the radios** on, the request no longer hands the radios back to the SayIntentions copilot.
 - Agent: probes briefing-greeting-sim-clock and procedure-spoken-names; si-fo-radios and si-request-stand-fragment extended.
+- Docs: every screenshot retaken on this build; the Screen & FOV page pictured in the README, the Settings hub table and chapter 14; the README gains the Radios tile, the FO working the radios (callsign, spelled stands, SID/STAR names, courtesies) and Screen & FOV.
 
 ## 0.8.0-rc.22
 

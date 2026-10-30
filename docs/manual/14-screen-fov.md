@@ -7,6 +7,8 @@ look twice as far away as they are. Settings → **Screen & FOV** measures your 
 the matching field of view into the sim's own saved pilot view. Nothing is guessed in the sim's
 zoom slider, and nothing is written outside your own saved-camera file.
 
+![Screen & FOV, Displays section](../img/screen-fov.png)
+
 ## 1. Enter your screens
 
 Settings → Screen & FOV → **Displays**: one line per physical screen.
@@ -39,6 +41,8 @@ custom camera is the one that carries your field of view.
 ## 3. Apply
 
 Settings → Screen & FOV → **Apply FOV**.
+
+![Apply FOV section: realism, what will be written, the saved cockpit camera](../img/screen-fov-apply.png)
 
 - **Realism** — 100 % is life-size: you see exactly what the real window would show. That is
   what a hardware cockpit wants, even though it is much tighter than the default. Lower values

@@ -50,6 +50,9 @@ flight pages, live figures on glass instrument cards, and a Solari split-flap cl
   ceiling, temperature, QNH, ATIS) and a **gate monitor** (Gate Closed → Gate Open → Boarding →
   Final Call → Gate Closed, from GSX boarding, door 1L and the STD); **Edit layout** lets
   you drag the page's tiles into your own order, saved for every device
+- A **Radios tile** on Flight Status (and one line on the Flight Monitor board): COM1 active
+  and standby from ProSim beside the frequency SayIntentions ATC expects, with an ON FREQUENCY
+  / WRONG FREQUENCY verdict — the FO reports a wrong frequency out loud as well
 - **Pop-out Flight Monitor** — one click opens a second-monitor board that is the gate monitor
   at the stand, the flight monitor from pushback to landing and the arrival monitor after
   block-in; scales as one piece to any window and shows your own logo for the OFP's airline.
@@ -119,7 +122,15 @@ flight pages, live figures on glass instrument cards, and a Solari split-flap cl
 - LLM briefings and the debrief are **spoken while the model writes** them, sentence by
   sentence, each sentence verified before it is heard; the plain template is always the floor
 - Voice FCU/radio control behind a PF/PM handover, MCDU voice actions, ECAM abnormals with
-  memory drills, departure/arrival briefings from Navigraph DFD + live weather
+  memory drills, departure/arrival briefings from Navigraph DFD + live weather — the briefing
+  greets you by the **sim's clock** and names the **SID and STAR the way pilots say them**
+  (*"Brookmans Park seven Foxtrot"* for BPK7F) from the SimBrief plan and the Navigraph database
+- **The FO works the radios** (SayIntentions, off by default): the FO answers ATC in its own
+  voice — every read-back closed with your callsign, stands spelled digit by digit, broadcasts
+  acknowledged silently — and makes your requests on "request pushback", "ready for departure"
+  and the rest; *"I have the radios"* / *"you have the radios"* hands them over either way.
+  Please and thank you never cost a "did you mean", and a bare "thank you" gets a
+  "You're welcome, Captain" (off by default)
 - Cabin crew (a "cabin secure" that arrives a realistic, pax-scaled while after the doors
   close — sometimes at the holding point) and company/ACARS immersion, tech log & MEL with
   voice dialogues, pilot logbook with a **Logbook page** (totals, sortable flights, touchdown
@@ -179,6 +190,10 @@ flight pages, live figures on glass instrument cards, and a Solari split-flap cl
   server shows which boards are connected, a hardware check walks the cockpit one control per
   board, LAMP TEST and HW RESET — over your own SDK files from the Profiler's Tools folder,
   which the app loads at runtime and never ships ([chapter 13](docs/manual/13-diagnostics.md))
+- **Screen & FOV** (Settings): enter your screens' size and distance, see the life-size field
+  of view they imply, and write it into MSFS 2024's own saved pilot view with one button (the
+  file is backed up first); Multi Window rotations for side and overhead screens, a Developer
+  Mode check and the ChasePlane caveat — [chapter 14](docs/manual/14-screen-fov.md)
 - EFB-style web UI (ADR-0011): icon sidebar, glass instrument cards, split-flap clock,
   bundled fonts and icons (works offline), 13 airline/basic themes on the Appearance settings page
   plus user JSON themes and your own theme and airline logos (never shipped — you upload them
@@ -195,6 +210,7 @@ flight pages, live figures on glass instrument cards, and a Solari split-flap cl
 ![Cockpit Switches](docs/img/cockpit-switches.png)
 ![Diagnostics GSX page](docs/img/diagnostics-gsx.png)
 ![Diagnostics PANELS page](docs/img/diagnostics-panels.png)
+![Screen & FOV](docs/img/screen-fov.png)
 
 ## Getting started
 

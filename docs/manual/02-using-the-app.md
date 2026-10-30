@@ -197,6 +197,8 @@ its own address, so a refresh or a link from a warning banner lands on the right
 | **Voice First Officer** | Status (provider tests, minima card, speak test, Wake PCs), general, FO persona, listening & PTT, sterile cockpit, crew voices, ground crew, cabin crew, company & debrief (company channel, post-flight debrief, company day), tech log & logbook, briefings & LLM, MCDU, SayIntentions, callouts & placards, abnormals & drills, voice providers, ElevenLabs |
 | **Audio Control** | Status, backend choice, CoreAudio mappings, VoiceMeeter mappings (ACP knobs and the loudspeaker dial — [chapter 8](08-loudspeaker-dial.md)), Remote Mixer (Voicemeeters on other PCs through VoicemeeterBridge agents, one block per PC — [chapter 9](09-remote-mixer.md); the two-headset layout in [chapter 11](11-two-headsets.md)), housekeeping |
 | **Cockpit Switches** | The ProSim switches offered to the Stream Deck's Cockpit Switch keys: one grid line per switch picked from ProSim's own list, look, what a press does, legends, lamps and colours, a live-state pill and a test Press; **Add the three leak measurement valves** fills in the preset — [chapter 12](12-remote-streamdeck.md) |
+| **Screen & FOV** | Your physical screens (size, aspect, distance, yaw, height) and the life-size field of view they imply; **Apply FOV** writes it into MSFS 2024's saved pilot view with a backup; Multi Window rotations and the ChasePlane caveat — [chapter 14](14-screen-fov.md) |
+| **Hardware** | Skalarki cockpit hardware: the SkalarkiIO Profiler's SDK server address and your own SDK folder, feeding the PANELS diagnostics page — [chapter 13](13-diagnostics.md) |
 | **Display & Flight Data** | Units, split-flap animation, loadsheet automation, the Flight Status card (final-call thresholds, weather refresh, top-of-descent notice), checklist ticks, **Aircraft limits** (wind), **Fuel decision**, **Diversion**, **Last-Minute Changes** |
 | **Appearance** | Theme swatches, the header NEXT SERVICE button toggle, your theme logos for the header, your airline logos for the Flight Monitor |
 | **Notifications** | ntfy / Discord / webhook targets and the per-event switches ([below](#notifications-on-your-phone)) |
@@ -205,6 +207,8 @@ its own address, so a refresh or a link from a warning banner lands on the right
 
 **Show advanced settings** (top of the rail) reveals the tuning fields — timeouts, intervals,
 thresholds — that most users never touch. Greyed-out fields belong to a switch that is off.
+
+![Screen & FOV settings, Displays section](../img/screen-fov.png)
 
 ### ProSim Setup Check
 
