@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.0-rc.24
+
+Local build for the owner's sim testing, 2026-10-31, on `release/0.8.0-rc.24` (over rc.23 on main).
+
+- Changed: **System.Security.Cryptography.Xml 10.0.10 → 10.0.14** (NuGet vulnerability advisory on the WCF shim's dependency). Restore and the vulnerable-package scan are clean; no app behaviour change.
+
 ## 0.8.0-rc.23
 
 Local build, 2026-10-29, on `feature/display-fov` (over rc.22), from the owner's first verification leg (EGLL→LKPR, Speedbird 850).
