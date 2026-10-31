@@ -2,7 +2,7 @@
 
 ## 0.8.0-rc.25
 
-Local build for the owner's sim testing, 2026-10-31, on `release/0.8.0-rc.24` (over rc.24), from the LKPR→EGLL verification leg (Speedbird 861, rc.24). Issue texts for the four new findings are drafted beside the flight report (`scratchpad/flight-20261031/gh/`) — the agent could not file them.
+Local build for the owner's sim testing, 2026-10-31, on `release/0.8.0-rc.24` (over rc.24), from the LKPR→EGLL verification leg (Speedbird 861, rc.24). Findings filed as #190 (arrival gate name), #191 (empty daystate.json), #192 (check-in cleared level), #193 (V-speeds + taxiway letters); fourteen issues closed on this flight's evidence.
 
 - Fixed: **V-speeds spoken as letters.** The taxi checklist's "V1, V R, V2" came out of kokoro as "vone"; every FO line now says *"Vee one"*, *"Vee R"*, *"Vee two"*, *"Vee app"*, *"Vee ref"* (V L S / V F E / V M O / M M O letter by letter). One rule in the speech normalizer — no checklist file changes, user-edited checklists keep their text.
 - Changed: **taxi read-backs spell every taxiway.** *"Taxi to holding point runway 24 via Zulu, Tango, Alpha"* instead of "via Z, T, A"; *"via Alpha"*, *"via Bravo-two and Charlie, hold short of Alpha-three"*. Letters after a routing word (via, hold short of, join, onto, exit at, cross, on, at) are spelled; a fix name ("via LAM transition") is left alone.
