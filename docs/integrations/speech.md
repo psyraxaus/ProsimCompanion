@@ -219,7 +219,20 @@ chains — "local only" hard mode must exist.
 - **Sim calendar day** (`ISimLocalTime.LocalDate`): `LOCAL YEAR` + `LOCAL DAY OF YEAR`
   SimVars (units `number`), valid only while the `LOCAL TIME` clock is fresh. Unverified live
   as of 2026-11-01 — if they never push, the roster logs "the sim's calendar day is not
-  available" once and draws per UTC wall date.
+  available" once and draws per UTC wall date. `ZULU TIME` (seconds) sits behind
+  `ISimLocalTime.ZuluTimeOfDay` for the small talk's sun position (`SolarPosition`, NOAA
+  low-precision; about a degree — never operational).
+- **Cruise small talk** (issue #195, `smallTalk.*`): `CruiseSmallTalkService` is the
+  `RegionFactService` shape — a 30 s tick, a pure core, two tiers. Three things to keep:
+  (1) the Offer is NOT spoken by the service — it is raised on `SmallTalkOfferStore` and the
+  shared `CaptainsQuestionDialogue` speaks it at the question dialogue's own (High) priority,
+  so the core's cruise / altitude / nothing-open gates are the only thing keeping it out of a
+  sterile moment (every other kind is Low `smalltalk.*` and the sterile rule drops it);
+  (2) the quiet clock is reset by EVERY arbiter Spoken/Segment event (purser, company,
+  checklist included), so a line only ever follows real silence; (3) the region facts win a
+  tie — `RegionFactService.NextDueUtc` within three minutes holds the small talk. The purser's
+  coffee line goes through `CabinCrewService.AnnounceAsync` with a `cabin.*` tag, so a descent
+  begun while the kettle boils never blocks it.
 - SayIntentions requests (issue #52): immediate FO "Roger — calling {station}" ack, then the
   exact sayAs text spoken in the FO voice (`sayIntentions.foSpeaksTransmission`, default true
   — turn off if SI voices sayAs audibly on this setup).

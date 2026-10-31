@@ -998,7 +998,22 @@ non-normal that gives the ECAM dialogue a cause. New features default **off** an
       `persona.rosterDraw`, `persona.foOnDuty`, `persona.gateIntro`; probe
       `fo-roster-daily-draw`. **Unverified live** — the sim date SimVars, the voice promotion
       and the LLM-styled intro in particular.
-- [ ] **Cruise small talk (sterile-cockpit aware)** (package 2) — not started.
+- [x] **Cruise small talk (sterile-cockpit aware)** (#195, package 2,
+      `feature/cruise-small-talk`): Speech `SmallTalkCore` (pure: cruise, above the sterile
+      ceiling, no abnormal, no open captain's question, the quiet gap since any speech, three
+      minutes clear of the next region fact, Moderate turbulence holds it; count =
+      min(`smallTalk.maxPerFlight`, chattiness); the kind sequence drawn without repeats; one
+      follow-up per exchange), `SmallTalkBank` (the floor lines and the four prompt families),
+      `CruiseSmallTalkService` (30 s tick; model tier streamed through `StreamingNarrator`
+      with the bank line as the takeover floor and the fact sheet as the allowed set, else the
+      bank line restyled; Low priority `smalltalk.{kind}`; the Layover listen on the borrowed
+      mic; the Offer through `SmallTalkOfferStore` + `SmallTalkOfferPhrases` and the purser's
+      coffee line through `CabinCrewService.AnnounceAsync`), `RegionFactService.NextDueUtc`,
+      Core `SolarPosition` + `ISimLocalTime.ZuluTimeOfDay` (`ZULU TIME`), `SmallTalkOptions`
+      (`smallTalk`: enabled off, maxPerFlight 3, minQuietMinutes 8, kinds offer / view /
+      layover / crew). Events `smalltalk.spoken`, `smalltalk.reply`; probe `cruise-small-talk`.
+      **Unverified live** — the sun line's side and the layover listen on the LAN engine in
+      particular.
 - [ ] **FO exterior walkaround** (package 3) — not started.
 - [ ] **Scenario mode: scheduled non-normals** (package 4, design-first) — not started.
 

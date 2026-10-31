@@ -4112,7 +4112,39 @@
         "watch: 'fo-roster.json: …' warnings (a skipped entry) and 'fo-roster.json unreadable' — the Config page shows the same problem; 'the sim's calendar day is not available — the UTC wall date stands in' means the LOCAL YEAR / LOCAL DAY OF YEAR SimVars never pushed (report it: the roster then draws per wall date, not sim date).",
         "requires-human: the FO's voice changed to the drawn officer's provider:id voice when fo-roster.json names one (the 'Voice' column on the Roster card), the LLM-styled briefing reads in the drawn persona (name, experience, confidence), and the persona fields on the FO Persona card read 'Overridden by the roster'."
       ],
-      "notes": "Package 1 of the November 2026 immersion batch (issue #194, branch release/0.8.0-rc.24). Core FoRosterService / FoRosterDraw / FoRosterTriggerCore / FoRosterStateFile (fo-roster-state.json beside daystate.json), Speech FoRosterVoiceFeature (precedence 305), the confidence axis in PersonaService.Fragment, the FO voice through RoleVoiceResolver's FirstOfficer branch, the sim date from SimLocalTime.LocalDate. Unverified live."
+      "notes": "Package 1 of the November 2026 immersion batch (issue #194, branch feature/fo-roster). Core FoRosterService / FoRosterDraw / FoRosterTriggerCore / FoRosterStateFile (fo-roster-state.json beside daystate.json), Speech FoRosterVoiceFeature (precedence 305), the confidence axis in PersonaService.Fragment, the FO voice through RoleVoiceResolver's FirstOfficer branch, the sim date from SimLocalTime.LocalDate. Unverified live."
+    },
+    {
+      "id": "cruise-small-talk",
+      "issue": 195,
+      "state": "open",
+      "kind": "assert-present",
+      "machine": {
+        "kind": "required-fields",
+        "type": "smalltalk.spoken",
+        "fields": [
+          "kind",
+          "source",
+          "phase",
+          "chattiness",
+          "countThisFlight"
+        ]
+      },
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "Only with smallTalk.enabled = true (off by default) AND persona.enabled with chattiness ≥ 1 (the roster FO's chattiness while the roster is on). Trigger: a cruise of at least smallTalk.minQuietMinutes (8) above the sterile ceiling with nothing else going on.",
+        "assert-present: smalltalk.spoken events with kind ∈ offer|view|layover|crew, source llm|bank, foId (the roster FO or null), text, phase = Cruise, altitudeFt above speech.sterileCockpitCeilingFt, chattiness and countThisFlight; the kinds never repeat within one flight; countThisFlight never exceeds min(smallTalk.maxPerFlight, chattiness).",
+        "assert-absent: a smalltalk.spoken with phase ≠ Cruise or altitudeFt ≤ the sterile ceiling; one within 8 minutes of any speech.spoken (the quiet gap); one while an abnormal.detected is not yet cleared or while any captain's question stands (a *-question event with open = true); one within 3 minutes before a fo.region-fact; any smalltalk.spoken after smalltalk.silenced ('quiet please'); more than one smalltalk.reply with a followUp per smalltalk.spoken (the one-follow-up rule).",
+        "assert-present (kind offer): a smalltalk.offerQuestion raised with the composed prompt, then a smalltalk.reply {kind: offer, heard: yes|no}; on yes, 2–4 minutes later a cabin.calling + cabin.report with report cabin.smalltalk.coffee ('coffee's on its way') in the purser voice — never blocked by a later sterile phase (cabin.* tag).",
+        "assert-present (kind layover): after the line, a smalltalk.reply {kind: layover, heard, followUp, source}: heard null when the captain said nothing (and no follow-up), else one followUp sentence from the model (source llm) or the floor 'Good to know, captain.' (bank); the speech.spoken that follows is tagged smalltalk.layover.reply.",
+        "assert-present (LLM on): every number in a source llm text is in the fact sheet's allowed set (no llm.stream takeoverReason verify-failed on a smalltalk.* plan is a pass; one is the floor working — not a failure, but report it).",
+        "watch: 'Small talk: the microphone is borrowed' (a dialogue owned the mic at the listen) and 'Small talk ({Kind}) given back' debug lines — a kind given back more than twice per flight means a gate the core does not model.",
+        "requires-human: the line sounded like the drawn FO (a nervous Tom offers coffee differently from an assured Marcus), the coffee offer appeared on the open questions card, and the purser's coffee line came on the interphone chime."
+      ],
+      "notes": "Package 2 of the November 2026 immersion batch (issue #195, branch feature/cruise-small-talk over feature/fo-roster). Speech SmallTalkCore (pure gates, ceiling = min(option, chattiness), sequence without repeats, one follow-up), SmallTalkBank (floor lines + prompt families), CruiseSmallTalkService (30 s tick, StreamingNarrator with the bank section as the takeover floor, StyledSpeechService otherwise, Low priority smalltalk.{kind}), Core SmallTalkOfferStore + SmallTalkOfferPhrases (the coffee question), SolarPosition (the sun for the view line), ISimLocalTime.ZuluTimeOfDay. Unverified live."
     }
   ]
 }

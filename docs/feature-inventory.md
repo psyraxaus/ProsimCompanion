@@ -163,7 +163,10 @@ through with a note if deliberately dropped. Sources: Prosim2GSX 0.9.0, ProsimIn
       small talk via Ask the First Officer #152); **FO Persona** card on /settings/speech since
       2026-10-08; **confidence** axis + **FO roster** (#194, 2026-11-01: a different FO per
       duty day from `fo-roster.json`, pin / draw again, gate intro, the FO's own voice, the
-      name on the leg) — not a predecessor feature, new in ProsimCompanion
+      name on the leg) — not a predecessor feature, new in ProsimCompanion; **cruise small
+      talk** (#195, 2026-11-01: the predecessor's LLM cruise small-talk generator, now ported
+      as four kinds — coffee offer, the view, the layover, the FO themselves — with the bank
+      line as the floor, sterile-cockpit aware, chattiness as the count)
 - [x] Cabin crew simulation (purser reports gated on any ACP CAB latch, cabin secure/ready,
       opt-in boarding-delay ambient, distinct purser voice + interphone filter;
       cruise-query ambient deferred)

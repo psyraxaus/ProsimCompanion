@@ -395,6 +395,30 @@ Release; **Draw again** draws now.
 - The FO's name is recorded on the leg: the logbook flight (and its CSV export, last column
   `foName`) and the Duty Day page's leg row.
 
+### Small talk in the cruise
+
+Off by default — the **Small Talk** card on Voice First Officer → Briefings & LLM
+(`smallTalk.enabled`). A few times per flight, in the cruise, after a stretch of silence, the
+FO says something that is not about the flight:
+
+- **Coffee offer** — *"Coffee, captain?"* It is a captain's question (yes / no by voice, or on
+  the open questions card). Say yes and the purser calls two to four minutes later: *"Flight
+  deck, cabin — coffee's on its way up to you."*
+- **The view** — a town below from the built-in atlas, the sun getting low off one side (from
+  the sim clock), or the cloud deck.
+- **The layover** — *"Do you know Prague at all, captain?"* The FO listens once (ten seconds).
+  Say nothing and that is the end of it. Say something and, with the language model on, the FO
+  answers in one sentence — never more.
+- **About themselves** — base and hours on type from the roster record, nothing else. Needs
+  the roster on.
+
+The persona's **chattiness** is the real count: 0 = nothing, 3 = up to three lines; **Lines
+per flight** is only the ceiling. **"Quiet please"** ends it for the session. The FO never
+talks below the sterile-cockpit altitude, with an ECAM abnormal or a captain's question open,
+in moderate turbulence, or within three minutes of a region fact — and any callout talks over a
+line. With the language model on, each line is composed in the FO's persona with every number
+checked against the facts; otherwise the built-in line speaks.
+
 ## Voices
 
 The FO, the purser and company ACARS each have their own voice (`speech` and `voices`

@@ -94,6 +94,7 @@ public sealed partial class SettingsPagesRenderTests
         Options(services, new TechLogOptions { Enabled = !configured });
         Options(services, new LogbookOptions());
         Options(services, new AbnormalsOptions { InteractiveDialogue = !configured });
+        Options(services, new SmallTalkOptions { Enabled = configured }); // issue #195
 
         var devices = new Mock<IAudioDeviceCatalog>();
         devices.Setup(d => d.GetCaptureDeviceNames()).Returns(["Headset Mic"]);

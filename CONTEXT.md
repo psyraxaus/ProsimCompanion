@@ -497,10 +497,15 @@ webhook — with its own event switches. Its URL and token are secrets.
 _Avoid_: channel, endpoint, subscriber
 
 **Small talk**:
-The opt-in chat path of the FO question: a question with no flight word, answered from general
-knowledge in character, numbers not verified but a flight-data figure refused. "Let me check."
-hands the question back to the strict path.
-_Avoid_: chat mode, banter mode
+Two things, both opt-in. The chat path of the FO question: a question with no flight word,
+answered from general knowledge in character, numbers not verified but a flight-data figure
+refused ("Let me check." hands it back to the strict path). And the **cruise small talk**: the
+FO's own unprompted line in the cruise — one of four **kinds** (offer, view, layover, crew),
+each a prompt family with a bank line as the floor — spoken at Low priority only after the
+**quiet gap** of silence, above the sterile ceiling, with nothing open, clear of the next region
+fact, as many times per flight as the persona's chattiness allows (the option is the ceiling).
+An offer is a captain's question; a layover line listens once and gets one follow-up.
+_Avoid_: chat mode, banter mode, chatter (that is the arbiter's Low band as a whole)
 
 **Roster**:
 The pool of First Officers in `fo-roster.json` and the one on duty today. A **draw** picks one

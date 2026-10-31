@@ -12,6 +12,12 @@ November 2026 immersion batch, package 1, on `release/0.8.0-rc.24` (over rc.26).
 - Added: `LOCAL YEAR` / `LOCAL DAY OF YEAR` SimVars behind `ISimLocalTime.LocalDate` (the sim's calendar day at the aircraft).
 - Agent: events `persona.rosterDraw`, `persona.foOnDuty`, `persona.gateIntro`, `persona.rosterPin`, `persona.rosterRelease`, `persona.rosterChangeQuestion`; probe `fo-roster-daily-draw`.
 
+Package 2, on `feature/cruise-small-talk` (over `feature/fo-roster`). Off by default and **Unverified live**.
+
+- Added: **cruise small talk** (#195). A few times per flight, in the cruise, after a stretch of silence, the FO says something that is not about the flight: a coffee offer (*"Coffee, captain?"* — a captain's question; yes has the purser call *"coffee's on its way"* on the interphone two to four minutes later), a word about the view (a town below from the atlas, the sun low off one side from the sim clock, a solid cloud deck), the layover (*"Do you know Prague at all, captain?"* — the FO listens once and, with the language model on, answers in one sentence), or themselves (base and hours from the roster record, nothing else). The persona's chattiness is the real count (0 = none), `smallTalk.maxPerFlight` the ceiling (3); `smallTalk.minQuietMinutes` (8) the silence it waits for. Never below the sterile ceiling, never with an ECAM abnormal or a captain's question open, never in moderate turbulence, never within three minutes of a region fact; "quiet please" ends it. The model path streams through the narrator with the persona fragment and every number checked against the fact sheet; the built-in line is the floor. Small talk card on Voice First Officer → Briefings & LLM.
+- Added: `ZULU TIME` SimVar behind `ISimLocalTime.ZuluTimeOfDay` and a pure `SolarPosition` (sun elevation and azimuth) for the view line.
+- Agent: events `smalltalk.spoken`, `smalltalk.reply`, `smalltalk.offerQuestion`; probe `cruise-small-talk`.
+
 ## 0.8.0-rc.26
 
 Local build for the owner's sim testing, 2026-10-31, on `release/0.8.0-rc.24` (over rc.25): the four "still broken" issues of the 2026-10-31 review.

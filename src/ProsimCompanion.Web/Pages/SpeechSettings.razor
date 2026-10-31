@@ -20,6 +20,7 @@
 @inject IOptionsMonitor<TechLogOptions> TechLogMonitor
 @inject IOptionsMonitor<LogbookOptions> LogbookMonitor
 @inject IOptionsMonitor<AbnormalsOptions> AbnormalsMonitor
+@inject IOptionsMonitor<SmallTalkOptions> SmallTalkMonitor
 @inject IAudioDeviceCatalog DeviceCatalog
 @inject IPttInputCapture PttCapture
 @inject IVoiceCatalog VoiceCatalog
@@ -771,6 +772,18 @@ else if (CurrentSection == "briefing")
         <OptionField Draft="_speech" For="o => o.RegionFacts.LlmFacts" />
     </Section>
 
+    @* Cruise small talk (issue #195): beside the region facts, same gates. *@
+    <Section Title="@T["speechSettings.smallTalk.title"]" Hint="@T["speechSettings.smallTalk.hint"]">
+        <OptionField Draft="_smallTalk" For="o => o.Enabled" />
+        <OptionField Draft="_smallTalk" For="o => o.MaxPerFlight" />
+        <OptionField Draft="_smallTalk" For="o => o.MinQuietMinutes" />
+        <OptionField Draft="_smallTalk" For="o => o.Kinds.Offer" />
+        <OptionField Draft="_smallTalk" For="o => o.Kinds.View" />
+        <OptionField Draft="_smallTalk" For="o => o.Kinds.Layover" />
+        <OptionField Draft="_smallTalk" For="o => o.Kinds.Crew" />
+        <div class="field-hint" style="max-width:640px;">@T["speechSettings.smallTalk.note"]</div>
+    </Section>
+
     <Section Title="@T["speechSettings.briefing.wol.title"]" Hint="@T["speechSettings.briefing.wol.hint"]" Advanced="true">
         <div class="field-hint" style="max-width:640px;">
             @T["speechSettings.briefing.wol.before"]
@@ -1109,6 +1122,7 @@ else if (CurrentSection == "abnormals")
     private OptionsDraft<TechLogOptions> _techLog = default!;
     private OptionsDraft<LogbookOptions> _logbook = default!;
     private OptionsDraft<AbnormalsOptions> _abnormals = default!;
+    private OptionsDraft<SmallTalkOptions> _smallTalk = default!;
 
     // ---- FO roster card (issue #194) ----
     private string? _rosterMessage;
@@ -1316,6 +1330,7 @@ else if (CurrentSection == "abnormals")
         _techLog = Draft(TechLogMonitor);
         _logbook = Draft(LogbookMonitor);
         _abnormals = Draft(AbnormalsMonitor);
+        _smallTalk = Draft(SmallTalkMonitor);
         if (string.Equals(Section, "elevenlabs", StringComparison.OrdinalIgnoreCase))
         {
             ProviderTab = "elevenlabs";

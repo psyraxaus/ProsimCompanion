@@ -86,6 +86,41 @@
         }
       }
     },
+    "smallTalk": {
+      "title": "Small Talk",
+      "hint": "Now and then in the cruise the FO says something that is not about the flight. Unprompted, spoken only",
+      "enabled": {
+        "hint": "A coffee offer, a word about the view, a question about the layover, a line about themselves — a few times per flight, only in the cruise, only after a stretch of silence.",
+        "more": "Never below the sterile-cockpit ceiling, never with an ECAM abnormal or a captain's question open, never in moderate turbulence, never within three minutes of a region fact. The persona's chattiness is the real count (0 = none); \"quiet please\" ends it for the session. With the language model on, each line is composed in the FO's persona with every number checked against the facts; otherwise the built-in line speaks."
+      },
+      "maxPerFlight": {
+        "label": "Lines per flight",
+        "hint": "The ceiling. The persona's chattiness (0–3) is the actual count."
+      },
+      "minQuietMinutes": {
+        "label": "Quiet gap",
+        "hint": "Minutes of silence before a line may come, and the wait after the cruise begins."
+      },
+      "kinds": {
+        "offer": {
+          "label": "Coffee offer",
+          "hint": "\"Coffee, captain?\" — a yes has the purser send something up a few minutes later."
+        },
+        "view": {
+          "label": "The view",
+          "hint": "A town below, the sun going down, the cloud deck."
+        },
+        "layover": {
+          "label": "The layover",
+          "hint": "\"Do you know {city}?\" — the FO listens once and answers in one sentence when the model is on."
+        },
+        "crew": {
+          "label": "About themselves",
+          "hint": "Base and hours on type from the roster record, nothing else. Needs the roster."
+        }
+      },
+      "note": "Every line is low-priority chatter: any callout talks over it and the sterile cockpit drops it. The coffee offer appears on the open questions card like any captain's question."
+    },
     "persona": {
       "title": "FO ペルソナ",
       "hint": "言い回しと口調のみ。数値、コールアウト、チェックリスト項目は決して変わりません",

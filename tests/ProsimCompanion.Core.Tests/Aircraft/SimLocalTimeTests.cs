@@ -48,7 +48,10 @@ public sealed class SimLocalTimeTests
         simVars.Setup(s => s.SubscribeDynamic("LOCAL TIME", "seconds", It.IsAny<DataRefTier>())).Returns(sub);
         simVars.Setup(s => s.SubscribeDynamic("LOCAL YEAR", "number", It.IsAny<DataRefTier>())).Returns(year);
         simVars.Setup(s => s.SubscribeDynamic("LOCAL DAY OF YEAR", "number", It.IsAny<DataRefTier>())).Returns(day);
+        var zulu = new FakeSimVar("ZULU TIME");
+        simVars.Setup(s => s.SubscribeDynamic("ZULU TIME", "seconds", It.IsAny<DataRefTier>())).Returns(zulu);
         using var clock = new SimLocalTime(simVars.Object);
+        Assert.Null(clock.ZuluTimeOfDay);
 
         Assert.Null(clock.LocalTimeOfDay);
         Assert.Null(clock.LocalDate);
@@ -61,6 +64,8 @@ public sealed class SimLocalTimeTests
         year.RaisePush(2026.0);
         day.RaisePush(305.0);
         Assert.Equal(new DateOnly(2026, 11, 1), clock.LocalDate);
+        zulu.RaisePush(15 * 3600 + 35 * 60 + 12.0);
+        Assert.Equal(new TimeSpan(15, 35, 12), clock.ZuluTimeOfDay); // issue #195
 
         sub.RaisePush(90_000.0);
         Assert.Null(clock.LocalTimeOfDay);

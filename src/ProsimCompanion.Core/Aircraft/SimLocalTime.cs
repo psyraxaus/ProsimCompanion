@@ -17,6 +17,10 @@ public interface ISimLocalTime
     /// sim is not live or the date SimVars have not pushed. Default null so a fake that only
     /// knows the clock still compiles.</summary>
     DateOnly? LocalDate => null;
+
+    /// <summary>The sim's zulu time of day (issue #195: the sun's place for the FO's remark
+    /// about the view), or null when the sim is not live. Default null for fakes.</summary>
+    TimeSpan? ZuluTimeOfDay => null;
 }
 
 /// <summary>Live <see cref="ISimLocalTime"/> over the SimConnect read model (one subscription,
@@ -36,6 +40,30 @@ public sealed class SimLocalTime : ISimLocalTime, IDisposable
         _localTime = simVars?.Subscribe(ProsimDataRefNames.SimVars.LocalTimeSeconds);
         _localYear = simVars?.Subscribe(ProsimDataRefNames.SimVars.LocalYear);
         _localDayOfYear = simVars?.Subscribe(ProsimDataRefNames.SimVars.LocalDayOfYear);
+        _zuluTime = simVars?.Subscribe(ProsimDataRefNames.SimVars.ZuluTimeSeconds);
+    }
+
+    private readonly IDataRefSubscription<double>? _zuluTime;
+
+    /// <inheritdoc />
+    public TimeSpan? ZuluTimeOfDay
+    {
+        get
+        {
+            // Same freshness rule as the local clock: nothing without a live sim.
+            if (LocalTimeOfDay is null || _zuluTime is null || _zuluTime.RawValue is null)
+            {
+                return null;
+            }
+
+            var seconds = _zuluTime.Value;
+            if (double.IsNaN(seconds) || seconds < 0 || seconds >= 86_400)
+            {
+                return null;
+            }
+
+            return TimeSpan.FromSeconds(Math.Floor(seconds));
+        }
     }
 
     /// <inheritdoc />
@@ -96,6 +124,7 @@ public sealed class SimLocalTime : ISimLocalTime, IDisposable
         _localTime?.Dispose();
         _localYear?.Dispose();
         _localDayOfYear?.Dispose();
+        _zuluTime?.Dispose();
     }
 }
 

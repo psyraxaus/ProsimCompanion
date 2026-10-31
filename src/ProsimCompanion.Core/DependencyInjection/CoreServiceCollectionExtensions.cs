@@ -82,6 +82,8 @@ public static class CoreServiceCollectionExtensions
         services.AddOptionSection<AircraftProfilesOptions>(configuration);
         services.AddOptionSection<UpdateCheckOptions>(configuration);
         services.AddOptionSection<PersonaOptions>(configuration);
+        // Cruise small talk (issue #195): the FO's unprompted lines in the cruise.
+        services.AddOptionSection<SmallTalkOptions>(configuration);
         // ECAM abnormals + drills (2026-10-08) — the dialogue's switch and timeouts.
         services.AddOptionSection<AbnormalsOptions>(configuration);
         // Wake-on-LAN targets list (2026-10-08) — supersedes briefing.llmWakeOnLan.
@@ -203,6 +205,9 @@ public static class CoreServiceCollectionExtensions
         // "Change First Officer now — are you sure?" behind the "new first officer" re-draw (issue #194).
         services.AddSingleton<Persona.FoRosterChangeStore>();
         services.AddSingleton<ICaptainsQuestionStore>(p => p.GetRequiredService<Persona.FoRosterChangeStore>());
+        // "Coffee, captain?" — the cruise small-talk offer (issue #195).
+        services.AddSingleton<Persona.SmallTalkOfferStore>();
+        services.AddSingleton<ICaptainsQuestionStore>(p => p.GetRequiredService<Persona.SmallTalkOfferStore>());
         // "Issue a revised final?" after a last-minute change beyond tolerance (issue #181):
         // the loadsheet pipeline asks, the FO dialogue or the card answers.
         services.AddSingleton<LmcRevisionStore>();

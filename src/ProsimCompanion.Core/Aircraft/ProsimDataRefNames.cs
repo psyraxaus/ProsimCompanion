@@ -1053,6 +1053,10 @@ public static class ProsimDataRefNames
         /// <summary>The sim's local day of the year at the aircraft, 1–366. MSFS SimVar.</summary>
         public static readonly SimVarRef<double> LocalDayOfYear = new("LOCAL DAY OF YEAR", "number", DataRefTier.Infrequent, 0.0);
 
+        /// <summary>Seconds since zulu midnight in the sim (issue #195: the sun's place for the
+        /// FO's remark about the view). MSFS SimVar.</summary>
+        public static readonly SimVarRef<double> ZuluTimeSeconds = new("ZULU TIME", "seconds", DataRefTier.Infrequent, 0.0);
+
         /// <summary>The cockpit camera zoom slider, 0–100 % relative to the view's own
         /// <c>InitialZoom</c>. Written back to 50 after the Display &amp; FOV page rewrites
         /// <c>cameras.cfg</c> so the new zoom shows without an aircraft reload

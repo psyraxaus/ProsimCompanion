@@ -337,6 +337,11 @@ public static class SpeechServiceCollectionExtensions
             p.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Immersion.RegionFactBank>>(),
             p.GetService<Core.State.ConfigProblemStore>()));
         services.AddStartupModule<Immersion.RegionFactService>();
+        // Cruise small talk (issue #195): the FO's unprompted lines in the cruise beside the
+        // region facts — same gates, same tiers, the roster FO as the person. The coffee offer
+        // is a captain's question; the table below voices it.
+        services.AddStartupModule<Persona.CruiseSmallTalkService>();
+        services.AddSingleton(Persona.SmallTalkOfferPhrases.Table);
         services.AddSingleton<UtteranceRouter>();
         services.AddStartupModule<SpokenChecklistEngine>();
         // WoL used to hide in the retired bootstrap (campaign #87).

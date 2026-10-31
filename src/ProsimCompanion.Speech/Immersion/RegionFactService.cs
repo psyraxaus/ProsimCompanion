@@ -120,6 +120,19 @@ public sealed class RegionFactService : Core.Hosting.IStartupModule, IDisposable
     /// <summary>The fact in progress, for tests to await. Null when idle.</summary>
     internal Task? InFlight => _inFlight;
 
+    /// <summary>When the next region fact may be offered (issue #195: the cruise small talk
+    /// stands aside for a fact due within three minutes); null until the cruise begins.</summary>
+    public DateTimeOffset? NextDueUtc
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return _core.NextDueUtc;
+            }
+        }
+    }
+
     /// <summary>Seconds from the model request to the first spoken word before the curated
     /// tier takes over; internal so tests can shorten it.</summary>
     internal TimeSpan ModelBudget { get; init; } = TimeSpan.FromSeconds(20);
