@@ -113,12 +113,24 @@ public sealed class ProsimFlightDataSource : IFlightDataSource, IDisposable
     // sees external power and leaves the GPU alone — the safe side.
     private readonly IDataRefSubscription<bool> _externalPower;
 
+    // The PFD altitudes (issue #198). NOT phase-critical: the phase engine and the replay
+    // keep the true altitude; speech reads the pilot's PFD and falls back to the true
+    // altitude while these have not pushed.
+    private readonly IDataRefSubscription<double> _altitudeIndicatedCaptain;
+    private readonly IDataRefSubscription<double> _altitudeIndicatedFo;
+    private readonly Microsoft.Extensions.Options.IOptionsMonitor<Core.Configuration.SpeechOptions>? _speech;
+
     private readonly IDataRefSubscription[] _phaseCritical;
     private readonly IDataRefSubscription[] _all;
 
-    public ProsimFlightDataSource(IProsimDataRefs dataRefs)
+    /// <param name="speech">The pilot's seat (<c>speech.pilotSeat</c>) picks which PFD is the
+    /// human's indicated altitude; null (tests) = the captain's.</param>
+    public ProsimFlightDataSource(IProsimDataRefs dataRefs, Microsoft.Extensions.Options.IOptionsMonitor<Core.Configuration.SpeechOptions>? speech = null)
     {
         ArgumentNullException.ThrowIfNull(dataRefs);
+        _speech = speech;
+        _altitudeIndicatedCaptain = dataRefs.Subscribe(ProsimDataRefNames.AltitudeIndicatedCaptain);
+        _altitudeIndicatedFo = dataRefs.Subscribe(ProsimDataRefNames.AltitudeIndicatedFo);
 
         // Crossing-detection refs (IAS/altitude/RA/VS, N1, VLS, FCU altitude, spoilers,
         // reversers) carry Critical/Frequent tiers on their descriptors: V1/rotate and RA
@@ -196,8 +208,14 @@ public sealed class ProsimFlightDataSource : IFlightDataSource, IDisposable
             _speedbrakeArmed, _xpdrMode, _tat, _oat, _inCloud, _visibility,
             _engAntiIce1, _engAntiIce2, _wingAntiIce,
             _latitude, _longitude, _trackTrue, _fuelTotal, _externalPower,
+            _altitudeIndicatedCaptain, _altitudeIndicatedFo,
         ];
     }
+
+    /// <summary>An indicated altitude as the snapshot carries it: 0 (= "not pushed", the
+    /// spoken-altitude fallback) until the ref has a fresh, finite value.</summary>
+    private static double Indicated(IDataRefSubscription<double> read)
+        => read.RawValue is null || read.IsStale || double.IsNaN(read.Value) || double.IsInfinity(read.Value) ? 0 : read.Value;
 
     /// <inheritdoc />
     public FlightDataSnapshot Sample()
@@ -228,6 +246,13 @@ public sealed class ProsimFlightDataSource : IFlightDataSource, IDisposable
             GroundSpeedKt = _groundSpeed.Value,
             AltitudeFt = _altitude.Value,
             RadioAltitudeFt = _radioAltitude.Value,
+            IndicatedAltitudeCaptFt = Indicated(_altitudeIndicatedCaptain),
+            IndicatedAltitudeFoFt = Indicated(_altitudeIndicatedFo),
+            // The human pilot's PFD (issue #198): the F/O's with speech.pilotSeat = right.
+            IndicatedAltitudeFt = Indicated(
+                _speech?.CurrentValue.PilotSeat.Trim().Equals("right", StringComparison.OrdinalIgnoreCase) == true
+                    ? _altitudeIndicatedFo
+                    : _altitudeIndicatedCaptain),
             VerticalSpeedFpm = _verticalSpeed.Value,
             AircraftPowered = _dcBatteryBusPowered.Value,
             AnyEngineRunning = anyRunning,

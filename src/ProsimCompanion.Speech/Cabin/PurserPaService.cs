@@ -126,7 +126,7 @@ public sealed class PurserPaService : Core.Hosting.IStartupModule, IDisposable
         lock (_gate)
         {
             kind = _core.Evaluate(new PurserPaSample(
-                view.Phase, facts.BeaconOn, facts.EnginesOff, facts.Parked, view.HasBeenAirborneThisSession, data.AltitudeFt));
+                view.Phase, facts.BeaconOn, facts.EnginesOff, facts.Parked, view.HasBeenAirborneThisSession, data.SpokenAltitudeFt));
         }
 
         if (kind is not { } due || !options.Enabled || !options.PurserPaAudible)

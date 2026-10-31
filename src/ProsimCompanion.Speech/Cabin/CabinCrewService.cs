@@ -260,7 +260,7 @@ public sealed class CabinCrewService : Core.Hosting.IStartupModule, IDisposable,
                 // (this module's old "== 1" and the others' "!= 0" read the same 0/1 switch).
                 BeaconOn: _groundFacts.Facts.BeaconOn,
                 SeatbeltSignsMode: _signs!.Value,
-                AltitudeFt: flightData.AltitudeFt,
+                AltitudeFt: flightData.SpokenAltitudeFt,
                 VerticalSpeedFpm: flightData.VerticalSpeedFpm,
                 HasBeenAirborne: _flight.Snapshot().HasBeenAirborneThisSession,
                 PaxOnBoard: PaxOnBoard(),

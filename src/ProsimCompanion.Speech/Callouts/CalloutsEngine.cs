@@ -155,7 +155,7 @@ public sealed class CalloutsEngine : Core.Hosting.IStartupModule, IDisposable
             }
 
             _prevRadio = s.RadioAltitudeFt;
-            _prevBaro = s.AltitudeFt;
+            _prevBaro = s.SpokenAltitudeFt; // the pilot's PFD (issue #198): callouts cross the altimeter, not the true altitude
             _prevIas = s.IndicatedAirspeedKt;
             _prevFcu = s.FcuAltitudeFt;
             if (_toGoCooldown > 0)
@@ -314,7 +314,7 @@ public sealed class CalloutsEngine : Core.Hosting.IStartupModule, IDisposable
             return;
         }
 
-        var baro = s.AltitudeFt;
+        var baro = s.SpokenAltitudeFt;
         var climbing = baro > _prevBaro;
         foreach (var callout in sop.AltitudeCallouts)
         {
@@ -344,7 +344,7 @@ public sealed class CalloutsEngine : Core.Hosting.IStartupModule, IDisposable
         }
 
         var fcu = s.FcuAltitudeFt;
-        var gap = Math.Abs(fcu - s.AltitudeFt);
+        var gap = Math.Abs(fcu - s.SpokenAltitudeFt);
 
         // Re-arm with a 200 ft hysteresis band AND a genuinely different FCU target.
         if (_toGoFiredAlt is { } fired
@@ -354,8 +354,8 @@ public sealed class CalloutsEngine : Core.Hosting.IStartupModule, IDisposable
             _toGoFiredAlt = null;
         }
 
-        var toward = (fcu > s.AltitudeFt && s.VerticalSpeedFpm > 100)
-            || (fcu < s.AltitudeFt && s.VerticalSpeedFpm < -100);
+        var toward = (fcu > s.SpokenAltitudeFt && s.VerticalSpeedFpm > 100)
+            || (fcu < s.SpokenAltitudeFt && s.VerticalSpeedFpm < -100);
         // A target change of > 50 ft counts as a new target — but only once the knob has
         // STOPPED (the target matches the previous sample) and never inside the cooldown:
         // winding the FCU through the within-band made every tick a "new target" and the
@@ -413,7 +413,7 @@ public sealed class CalloutsEngine : Core.Hosting.IStartupModule, IDisposable
         var minAlt = minima.AltitudeFt;
         var msl = minima.Kind is ArrivalMinimumKind.DecisionAltitude
             or ArrivalMinimumKind.MinimumDescentAltitude;
-        var cur = msl ? s.AltitudeFt : s.RadioAltitudeFt;
+        var cur = msl ? s.SpokenAltitudeFt : s.RadioAltitudeFt;
         var prev = msl ? _prevBaro : _prevRadio;
         if (double.IsNaN(prev))
         {

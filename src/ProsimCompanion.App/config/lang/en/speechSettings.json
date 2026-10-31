@@ -1319,6 +1319,20 @@
         "hint": "Master switch for every standard callout.",
         "more": "Applies live. The individual callout texts, altitude callouts, the other flow-monitor reminders and the weather advisories are edited in the sop section of settings.json for now."
       },
+      "transition": {
+        "title": "Transition Reminders",
+        "hint": "The FO reminds you to set standard above the transition altitude and QNH below the transition level.",
+        "enabled": {
+          "label": "Transition reminders",
+          "hint": "Climbing through the transition altitude still on QNH: \"Transition altitude. Standard, please.\" Descending through the transition level still on standard: \"Transition level. QNH one zero one three, please.\"",
+          "more": "The altitude is your own PFD (the seat setting picks the side). The transition altitude comes from the Navigraph database for the departure airport, the transition level for the destination (or the diversion). No database, no reminder. The QNH is the destination METAR; without one the FO says \"QNH, please\". One reminder per crossing, spoken only."
+        },
+        "delay": {
+          "label": "Patience",
+          "hint": "Seconds past the crossing before the FO speaks. You normally set it yourself first."
+        },
+        "note": "The fixed 18,000 ft \"transition altitude\" altitude callout in settings.json is unrelated; this card uses the real figures per airport."
+      },
       "placards": {
         "title": "Flap Placards",
         "hint": "Maximum speed per flap lever position (VFE). The FO warns when you approach or exceed it, and checks your flap calls against it.",

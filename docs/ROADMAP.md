@@ -1055,6 +1055,23 @@ non-normal that gives the ECAM dialogue a cause. New features default **off** an
       probes `scenario-fires-and-detects`, `scenario-clear-on-exit`. **Unverified live** —
       the failure names, the SDK arm/verify semantics and the E/WD detection of an SDK-armed
       failure in particular.
+- [x] **FO altitude from the PFD + transition reminders** (#198, package 5,
+      `feature/fo-indicated-altitude`, owner request 2026-11-01): Core
+      `ProsimDataRefNames.AltitudeIndicatedCaptain` / `AltitudeIndicatedFo`
+      (`aircraft.altitude.captain` / `.FO`), `FlightDataSnapshot.IndicatedAltitude{Capt,Fo}Ft`
+      + seat-mapped `IndicatedAltitudeFt` + `SpokenAltitudeFt` (the PFD, else the true altitude
+      while the refs are unread); every spoken altitude (fact sheet, SI report, callouts,
+      one-thousand-to-go, DA/MDA minima, cabin and purser gates) reads `SpokenAltitudeFt`;
+      phase detection keeps `AltitudeFt`. Speech `TransitionReminderCore` (pure: climb past the
+      DFD transition altitude on QNH → "Transition altitude. Standard, please."; descent past
+      the DFD transition level on STD → "Transition level. QNH ‹digits›, please." from the
+      destination card's METAR; one per crossing after the patience delay, disarmed when set in
+      time, re-armed by the other side), `TransitionReminderService` (1 Hz; `DfdNavDataProvider`
+      per OFP origin/destination pair; `Efis1BaroStdGate` seat-mapped; Normal priority
+      `transition.reminder`), `TransitionReminderOptions` under `sop.transition` (enabled off,
+      delaySeconds 30). Event `transition.reminder`; probe `transition-reminders`.
+      **Unverified live** — the indicated refs' presence on 1.74b8 / 1.75.1 and the DFD's
+      transition figures per airport in particular.
 
 ## Open items (after the rc.5 batch, 2026-10-11)
 

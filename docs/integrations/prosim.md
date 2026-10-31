@@ -182,6 +182,15 @@ five names exactly; never the `system.config.` prefix.
 `aircraft.engines.limits.toga/flex`, `debug.groundSpoilersDeployd` (sic — misspelled in ProSim),
 `aircraft.ground.nose`, `environment.ambientInCloud/Visibility`.
 
+**Indicated altitude (issue #198, 2026-11-01)**: `aircraft.altitude` is the TRUE altitude MSL —
+not what the PFD shows. The altimeters are `aircraft.altitude.captain` and
+`aircraft.altitude.FO` (QNH-corrected below the transition, pressure altitude on STD; the two
+differ when the sides' baro settings differ). Every altitude the FO SPEAKS reads the pilot's
+side (`FlightDataSnapshot.SpokenAltitudeFt`, seat-mapped), with the true altitude as the
+fallback while those refs are unread; phase detection and the sterile-cockpit ceiling keep the
+true altitude. `aircraft.pressureAltitude` also exists (unused). Whether 1.74b8 serves the
+`.captain` / `.FO` refs is unverified live — the fallback covers a missing ref.
+
 **Position (issue #145)**: `aircraft.latitude`, `aircraft.longitude` (decimal degrees, the
 true position in the world — NOT the `aircraft.adiru.N.latitude/longitude` IRS outputs, which
 are blank until the IRS aligns) and `aircraft.track.true`, all at the 500 ms tier (the slowest

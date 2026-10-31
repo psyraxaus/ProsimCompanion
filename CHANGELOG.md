@@ -33,6 +33,12 @@ Package 4, on `feature/scenario-mode` (over `feature/fo-walkaround`), design-fir
 - Added: Scenarios card on Voice First Officer → ECAM Abnormals; SCENARIO row + CLEAR ALL box on the diagnostics STATUS page; `FailureMonitor.AbnormalEnded` / `DialogueActive`; `ProsimConnectionService` registered as itself for the injector.
 - Agent: events `scenario.planned` / `arming` / `armCancelled` / `armed` / `armFailed` / `fired` / `decision` / `decided` / `cleared` / `clearFailed` / `clearAllRequested` / `failuresListed`; probes `scenario-fires-and-detects`, `scenario-clear-on-exit`.
 
+Package 5, on `feature/fo-indicated-altitude` (over `feature/scenario-mode`), owner request 2026-11-01. The reminders are off by default and **Unverified live**; the altitude change is always on.
+
+- Fixed: **the FO read the TRUE altitude, not the altimeter** (#198). Every spoken altitude — the fact sheet's "what is our altitude", the SayIntentions altitude report, the altitude callouts, one-thousand-to-go, the DA/MDA minima crossings, the cabin and purser altitude gates — came from `aircraft.altitude` (true altitude MSL). It now comes from the pilot's own PFD (`aircraft.altitude.captain` or `.FO` by the seat setting): QNH-corrected below the transition, pressure altitude on STD, so the FO says what the crew sees. The true altitude remains the fallback while the indicated refs are unread (older ProSim, the first seconds after connect) and for phase detection, which never changed.
+- Added: **transition reminders** (`sop.transition`, Settings → Voice First Officer → Callouts & Placards → Transition Reminders, off). Climbing through the departure transition altitude still on QNH: *"Transition altitude. Standard, please."* Descending through the destination transition level still on STD: *"Transition level. QNH one zero one three, please."* (the destination METAR; *"QNH, please"* without one). The figures are the Navigraph DFD's per airport (a diversion re-reads); no database, no reminder — never a guessed 18,000 ft. One reminder per crossing after the `delaySeconds` patience (30), silently disarmed when the altimeter is set in time; a go-around re-arms both.
+- Agent: event `transition.reminder` {kind standard|qnh, altitudeFt, thresholdFt, qnhHpa, delaySeconds, origin, destination, text}; probe `transition-reminders`.
+
 ## 0.8.0-rc.26
 
 Local build for the owner's sim testing, 2026-10-31, on `release/0.8.0-rc.24` (over rc.25): the four "still broken" issues of the 2026-10-31 review.

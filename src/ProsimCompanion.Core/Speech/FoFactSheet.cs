@@ -93,7 +93,8 @@ public static class FoFactSheetBuilder
             {
                 if (!data.OnGround)
                 {
-                    var altitude = Math.Round(data.AltitudeFt / 100) * 100;
+                    // The pilot's PFD figure (issue #198), never the true altitude.
+                    var altitude = Math.Round(data.SpokenAltitudeFt / 100) * 100;
                     Add("Altitude", $"{Int(altitude)} feet", altitude, Math.Round(altitude / 100));
                     Add("Ground speed", $"{Int(data.GroundSpeedKt)} knots", Math.Round(data.GroundSpeedKt));
                     Add("Indicated airspeed", $"{Int(data.IndicatedAirspeedKt)} knots", Math.Round(data.IndicatedAirspeedKt));

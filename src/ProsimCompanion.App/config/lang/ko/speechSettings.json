@@ -1319,6 +1319,20 @@
         "hint": "모든 표준 콜아웃의 마스터 스위치.",
         "more": "즉시 적용됩니다. 개별 콜아웃 텍스트, 고도 콜아웃, 그 외 플로우 모니터 알림, 기상 권고는 당분간 settings.json의 sop 섹션에서 편집합니다."
       },
+      "transition": {
+        "title": "Transition Reminders",
+        "hint": "The FO reminds you to set standard above the transition altitude and QNH below the transition level.",
+        "enabled": {
+          "label": "Transition reminders",
+          "hint": "Climbing through the transition altitude still on QNH: \"Transition altitude. Standard, please.\" Descending through the transition level still on standard: \"Transition level. QNH one zero one three, please.\"",
+          "more": "The altitude is your own PFD (the seat setting picks the side). The transition altitude comes from the Navigraph database for the departure airport, the transition level for the destination (or the diversion). No database, no reminder. The QNH is the destination METAR; without one the FO says \"QNH, please\". One reminder per crossing, spoken only."
+        },
+        "delay": {
+          "label": "Patience",
+          "hint": "Seconds past the crossing before the FO speaks. You normally set it yourself first."
+        },
+        "note": "The fixed 18,000 ft \"transition altitude\" altitude callout in settings.json is unrelated; this card uses the real figures per airport."
+      },
       "placards": {
         "title": "플랩 플래카드",
         "hint": "플랩 레버 위치별 최대 속도(VFE). FO가 접근 또는 초과 시 경고하고, 플랩 콜을 이에 대조합니다.",

@@ -181,6 +181,21 @@ advisories (landing lights, flaps/gear ceilings, parking brake with thrust, seat
 conditions, anti-ice left on, ISA deviation) once per condition with a cooldown. Sterile
 cockpit suppresses chatter below 10,000 ft in climb/descent phases.
 
+Every altitude the FO speaks — a callout, *"what is our altitude"*, the altitude in a radio
+call, the minima crossing — is your own PFD altitude (the captain's side, or the FO's side
+when **Your seat** is right): QNH-corrected below the transition, the pressure altitude on
+standard. The true altitude is used only while ProSim has not yet sent the PFD value.
+
+**Transition reminders** (Settings → Voice First Officer → Callouts & Placards → Transition
+Reminders, off by default): the FO reminds you to set the altimeter when you have not.
+Climbing through the departure airport's transition altitude still on QNH: *"Transition
+altitude. Standard, please."* Descending through the destination's transition level still on
+standard: *"Transition level. QNH one zero one three, please."* (the destination METAR; *"QNH,
+please"* when there is none). The figures come from your Navigraph database for each airport
+— without the database the FO says nothing, it never guesses. **Patience** (30 s) is how long
+the FO waits past the crossing before speaking; set the altimeter inside that and nothing is
+said. One reminder per crossing; a go-around re-arms both.
+
 **De-icing packs procedure** (Settings → Ground Services → Questions → De-Icing → *Packs
 procedure*, off by default): when the GSX de-icing crew is called the FO says *"De-icing
 starting — packs off, ditching on"*, waits twenty seconds and checks the overhead PACK OFF

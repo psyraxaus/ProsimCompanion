@@ -42,6 +42,8 @@ public static class SpeechServiceCollectionExtensions
         services.AddSingleton<ISpeechArbiter>(p => p.GetRequiredService<SpeechArbiterService>());
         services.AddSingleton<ISpeechControl>(p => p.GetRequiredService<SpeechArbiterService>());
         services.AddStartupModule<CalloutsEngine>();
+        // Altimeter reminders at the transition altitude/level (issue #198), behind sop.transition.enabled.
+        services.AddStartupModule<TransitionReminderService>();
         services.AddStartupModule<StabilizedApproachMonitor>();
         services.AddStartupModule<FlowMonitor>();
         // Rejected takeoff (issue #187): the captain's "stop" must beat every other reading of

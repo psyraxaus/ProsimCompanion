@@ -811,6 +811,12 @@ else if (CurrentSection == "callouts")
         <OptionField Draft="_sop" For="o => o.CalloutsEnabled" />
     </Section>
 
+    <Section Title="@T["speechSettings.callouts.transition.title"]" Hint="@T["speechSettings.callouts.transition.hint"]">
+        <OptionField Draft="_sop" For="o => o.Transition.Enabled" />
+        <OptionField Draft="_sop" For="o => o.Transition.DelaySeconds" />
+        <div class="field-hint" style="max-width:640px;">@T["speechSettings.callouts.transition.note"]</div>
+    </Section>
+
     <Section Title="@T["speechSettings.callouts.placards.title"]" Hint="@T["speechSettings.callouts.placards.hint"]">
         <div class="field-hint" style="margin-bottom:8px; max-width:640px;">
             @T["speechSettings.callouts.placards.leverHint"]

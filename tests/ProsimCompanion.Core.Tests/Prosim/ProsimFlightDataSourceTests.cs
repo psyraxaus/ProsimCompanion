@@ -1,4 +1,5 @@
 using ProsimCompanion.Core.Tests.Speech;
+using ProsimCompanion.Core.Tests.TechLog;
 using ProsimCompanion.Prosim.Flight;
 using Xunit;
 
@@ -200,5 +201,34 @@ public sealed class ProsimFlightDataSourceTests
         refs.Values["system.gates.B_GROUND"] = false;
         refs.Values[Ias] = 250.0;
         Assert.False(source.Sample().TakeoffThrustSet);
+    }
+
+    [Fact]
+    public void SpokenAltitude_IsThePilotsPfd_SeatMapped_WithTrueAltitudeFallback()
+    {
+        // Issue #198: the FO read aircraft.altitude (TRUE altitude). What the crew sees is the
+        // PFD — QNH-corrected below the transition, pressure altitude on STD.
+        var refs = new FakeDataRefs();
+        using var left = new ProsimFlightDataSource(refs);
+        MakeReady(refs);
+        refs.Values["aircraft.altitude"] = 5000.0;
+        refs.Values["aircraft.altitude.captain"] = 5200.0;
+        refs.Values["aircraft.altitude.FO"] = 5300.0;
+
+        var sample = left.Sample();
+        Assert.Equal(5200.0, sample.IndicatedAltitudeCaptFt);
+        Assert.Equal(5300.0, sample.IndicatedAltitudeFoFt);
+        Assert.Equal(5200.0, sample.IndicatedAltitudeFt);
+        Assert.Equal(5200.0, sample.SpokenAltitudeFt);
+
+        using var right = new ProsimFlightDataSource(refs, OptionsSupport.Monitor(new Core.Configuration.SpeechOptions { PilotSeat = "right" }));
+        Assert.Equal(5300.0, right.Sample().IndicatedAltitudeFt);
+
+        // No indicated value yet (older ProSim, subscription still registering): the true altitude speaks.
+        refs.Values.Remove("aircraft.altitude.captain");
+        refs.Values.Remove("aircraft.altitude.FO");
+        var fallback = left.Sample();
+        Assert.Equal(0.0, fallback.IndicatedAltitudeFt);
+        Assert.Equal(5000.0, fallback.SpokenAltitudeFt);
     }
 }

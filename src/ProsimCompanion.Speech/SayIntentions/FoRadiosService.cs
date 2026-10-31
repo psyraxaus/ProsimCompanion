@@ -348,7 +348,7 @@ public sealed class FoRadiosService : Core.Hosting.IStartupModule, IDisposable
             Callsign: flight.Callsign ?? "",
             Phase: phase,
             OnGround: onGround,
-            AltitudeFt: data?.AltitudeFt ?? 0,
+            AltitudeFt: data?.SpokenAltitudeFt ?? 0, // the pilot's PFD (issue #198), not the true altitude
             ClearedLevel: cleared,
             Sid: flight.Sid,
             Star: flight.Star,

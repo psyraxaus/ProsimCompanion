@@ -149,6 +149,23 @@ public sealed class FlowMonitorOptions
     public double GearUpAboveAglFt { get; set; } = 1000;
 }
 
+/// <summary>The FO's altimeter reminders (issue #198, owner request 2026-11-01): "Transition
+/// altitude. Standard, please." climbing through the departure transition altitude still on QNH,
+/// "Transition level. QNH one zero one three, please." descending through the destination
+/// transition level still on STD. Figures come from the Navigraph DFD per airport — no
+/// database, no reminder. Bound as <c>sop.transition</c>.</summary>
+public sealed class TransitionReminderOptions
+{
+    /// <summary>Off by default (unverified live).</summary>
+    [OptionField(FieldKind.Bool, "speechSettings.callouts.transition.enabled")]
+    public bool Enabled { get; set; }
+
+    /// <summary>Seconds the condition must hold before the FO speaks — the pilot normally
+    /// sets the altimeter first; a reminder that beats them is a nag.</summary>
+    [OptionField(FieldKind.Number, "speechSettings.callouts.transition.delay", Suffix = "s", Min = "0", Max = "300", Step = "5", DependsOn = "Enabled")]
+    public int DelaySeconds { get; set; } = 30;
+}
+
 /// <summary>Weather-awareness advisories (icing, anti-ice hygiene, ISA deviation). Named
 /// "Sop…" to leave the plain <c>WeatherOptions</c> name to the weather-source section — the
 /// bound JSON is unaffected (the <c>sop.weather</c> key comes from the property name).</summary>
@@ -264,6 +281,9 @@ public sealed class SopOptions : IOptionSection
 
     public List<AltitudeCallout> AltitudeCallouts { get; set; } = [.. DefaultAltitudeCallouts];
     public OneThousandToGoSetting OneThousandToGo { get; set; } = new();
+
+    /// <summary>Altimeter reminders at the transition altitude/level (issue #198).</summary>
+    public TransitionReminderOptions Transition { get; set; } = new();
 
     // ---- Approach ----
     public RadioCalloutSetting OneThousand { get; set; } = new("one thousand", 1000);

@@ -26,6 +26,14 @@ public static class ProsimDataRefNames
     public static readonly DataRef<double> IndicatedAirspeed = new("aircraft.speed.ias", DataRefTier.Critical, 0.0);
     public static readonly DataRef<double> Altitude = new("aircraft.altitude", DataRefTier.Critical, 0.0);
     public static readonly DataRef<double> RadioAltitude = new("aircraft.altitude.radio", DataRefTier.Critical, 0.0);
+
+    /// <summary>The altitude on the captain's PFD — baro-corrected by that side's QNH, or the
+    /// pressure altitude in STD (issue #198: the FO's spoken altitude was the TRUE altitude
+    /// from <see cref="Altitude"/>, which is neither). Frequent: the callouts cross it.</summary>
+    public static readonly DataRef<double> AltitudeIndicatedCaptain = new("aircraft.altitude.captain", DataRefTier.Frequent, 0.0);
+
+    /// <summary>The altitude on the F/O's PFD (the human's when flying from the right seat).</summary>
+    public static readonly DataRef<double> AltitudeIndicatedFo = new("aircraft.altitude.FO", DataRefTier.Frequent, 0.0);
     /// <summary>Non-saturating AGL — deliberately distinct from <see cref="RadioAltitude"/>,
     /// which tops out like the real RA; keep both.</summary>
     public static readonly DataRef<double> AltitudeAboveGround = new("aircraft.altitude.aboveGround", DataRefTier.Normal, 0.0);

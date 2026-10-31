@@ -4234,6 +4234,37 @@
         "requires-human: after the app closed with a scenario armed, the ProSim IOS failure list is empty."
       ],
       "notes": "See scenario-fires-and-detects. The exit clear runs in ScenarioService.StopAsync (IHostedService); the flight-cycle reset clear runs on GroundOpsSignals.FlightCycleReset; both verify by re-reading getArmedFailures(). Unverified live."
+    },
+    {
+      "id": "transition-reminders",
+      "issue": 198,
+      "state": "open",
+      "kind": "assert-present",
+      "machine": {
+        "kind": "required-fields",
+        "type": "transition.reminder",
+        "fields": [
+          "kind",
+          "altitudeFt",
+          "thresholdFt",
+          "delaySeconds",
+          "text"
+        ]
+      },
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "Only with sop.transition.enabled = true (off by default) AND a Navigraph DFD configured (briefing.navDataPath). Without the DFD expect one 'Transition reminders: no Navigraph DFD configured' warning and no transition.reminder at all — never a guessed figure.",
+        "assert-present (climb, pilot left on QNH past the departure transition altitude for ≥ sop.transition.delaySeconds): one transition.reminder {kind: standard, altitudeFt > thresholdFt, thresholdFt = the DFD transition_altitude of the origin, text 'Transition altitude. Standard, please.'} and the matching speech.spoken tagged transition.reminder. Only one per climb.",
+        "assert-present (descent, pilot still on STD below the destination transition level for ≥ delaySeconds): one transition.reminder {kind: qnh, altitudeFt < thresholdFt, thresholdFt = transition_level × 100, qnhHpa = the destination METAR QNH or null, text 'Transition level. QNH <digits>, please.' or 'Transition level. QNH, please.' when null}. Only one per descent.",
+        "assert-absent: a transition.reminder when the pilot set STD / QNH inside the delay (the arm silently drops); a second reminder of the same kind without a Descent/Approach (for standard) or Climb/Cruise (for qnh) phase in between; any reminder while flight.live is false; a kind standard reminder with the pilot's side already on STD (watch the seat: speech.pilotSeat right maps the gate to EFIS2).",
+        "assert-present (altitude source, every flight): callouts.* altitude crossings, the FO's 'what is our altitude' answer and the SI altitude report agree with the pilot's PFD, not the true altitude — compare the callout's altitude with the flight-sample's indicatedAltitudeFt (new) rather than altitudeFt. With the altimeter on STD the two differ by the QNH offset (~27 ft per hPa from 1013).",
+        "watch: 'Transition reminders: {Origin} TA {TransitionAltitude} ft, {Destination} TL {TransitionLevel}' once per OFP pair (a diversion re-reads); a null on either side means the DFD has no figure for that airport — the reminder on that side stays silent by design.",
+        "requires-human: the reminder came roughly delaySeconds after the crossing and never before the pilot would normally act; the QNH digits matched the destination ATIS."
+      ],
+      "notes": "Issue #198 (branch feature/fo-indicated-altitude over feature/scenario-mode, 2026-11-01). The FO's altitude moved from aircraft.altitude (TRUE altitude MSL) to the pilot's PFD (aircraft.altitude.captain / aircraft.altitude.FO, seat-mapped, FlightDataSnapshot.SpokenAltitudeFt with the true-altitude fallback when the indicated refs are unread) for the fact sheet, SI radio reports, altitude callouts, one-thousand-to-go, DA/MDA minima crossings, the cabin and purser altitude gates. Speech TransitionReminderCore (pure, the delay as the clock passed in) + TransitionReminderService (1 Hz; DfdNavDataProvider.Lookup per OFP origin/destination; HeroWeatherStore destination card QNH; Efis1BaroStdGate seat-mapped). Unverified live."
     }
   ]
 }

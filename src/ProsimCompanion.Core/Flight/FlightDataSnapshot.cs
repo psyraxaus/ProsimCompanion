@@ -26,6 +26,23 @@ public sealed record FlightDataSnapshot
     public double RadioAltitudeFt { get; init; }
     public double VerticalSpeedFpm { get; init; }
 
+    /// <summary>The altitude on the captain's PFD (QNH-corrected, or pressure altitude in
+    /// STD); 0 until the dataref pushes. Issue #198.</summary>
+    public double IndicatedAltitudeCaptFt { get; init; }
+
+    /// <summary>The altitude on the F/O's PFD; 0 until the dataref pushes.</summary>
+    public double IndicatedAltitudeFoFt { get; init; }
+
+    /// <summary>The altitude on the HUMAN pilot's PFD (seat-mapped by the source: the
+    /// captain's by default, the F/O's with <c>speech.pilotSeat = right</c>); 0 until pushed.</summary>
+    public double IndicatedAltitudeFt { get; init; }
+
+    /// <summary>What the FO SAYS for "our altitude" (issue #198): the pilot's PFD figure, or
+    /// the true altitude while the indicated one has not pushed (a replayed sample, a ProSim
+    /// build without the ref). The phase engine, the sterile ceiling and the recordings keep
+    /// <see cref="AltitudeFt"/>; speech reads this.</summary>
+    public double SpokenAltitudeFt => IndicatedAltitudeFt > 0 ? IndicatedAltitudeFt : AltitudeFt;
+
     /// <summary>Where the aircraft is (aircraft.latitude / aircraft.longitude), or null when
     /// there is no usable position: refs not pushed yet, stale, NaN, or exactly (0, 0) — see
     /// <see cref="GeoPoint.FromRaw"/>. Never phase evidence; it feeds the flight-progress

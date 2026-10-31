@@ -406,6 +406,23 @@ side goes to STD, the captain's QNH when it comes back or moves — a change hav
 seconds with the FO side still different. A mismatch that was there before the captain acted
 is left alone: the FO follows, it never leads, and no transition altitude is read.
 _Avoid_: baro sync, altimeter mirror (those would copy at once and lead)
+**Spoken altitude**:
+The altitude the FO says — in a fact, a radio report, a callout, a minima crossing — is the
+pilot's own PFD altitude (the captain's side, or the FO's when the human sits right): the
+QNH-corrected altitude below the transition, the pressure altitude on STD. The true altitude
+(`aircraft.altitude`) is only the fallback while the PFD refs are unread, and what the phase
+engine keeps using. Before #198 every spoken altitude was the true altitude, which disagrees
+with the altimeter by the QNH offset.
+_Avoid_: aircraft altitude (ambiguous — true or indicated), barometric altitude
+**Transition reminder**:
+The FO's prompt when the altimeter is still wrong after a transition crossing: climbing above
+the departure transition altitude still on QNH ("standard, please"), descending below the
+destination transition level still on STD ("QNH ‹digits›, please" from the destination METAR).
+Both figures come from the navigation database per airport; without one there is no reminder.
+It waits a patience delay, says each once per crossing, and drops silently when the pilot acts
+first. Read-and-speak only — the FO never sets the pilot's side.
+_Avoid_: transition callout (the fixed-altitude SOP callout, unrelated), baro follow (the
+FO's own side)
 **NOTAM highlight**:
 A departure or destination NOTAM of one of six loud classes — runway closed, taxiway closed,
 ILS/LOC/GP unserviceable, lighting unserviceable, PAPI, displaced threshold — picked out of the
