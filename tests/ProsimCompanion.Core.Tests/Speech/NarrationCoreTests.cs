@@ -184,4 +184,23 @@ public sealed class NarrationCoreTests
 
         Assert.Equal("touchdown,callouts,fuel,sign-off", Keys(core.Remaining()));
     }
+
+    [Fact]
+    public void Allowed_IncludesEveryFigureTheTemplateSpeaks_SoTheModelMayRepeatThem()
+    {
+        // Issue #177 (EGLL 2026-10-31): the go-around headings "zero eight eight" / "zero three
+        // five" were only ever in the template sentence, so the model saying them was "invented".
+        NarrationSection[] sections =
+        [
+            new("go-around", "Go around: heading zero eight eight, climb to 1580 feet; heading zero three five, climb to 3000 feet."),
+        ];
+        var core = new NarrationCore([5000], sections);
+
+        Assert.Contains(88, core.Allowed);
+        Assert.Contains(35, core.Allowed);
+        Assert.Contains(1580, core.Allowed);
+        Assert.True(core.Accept("Missed approach: heading zero eight eight, climb to one thousand five hundred eighty feet, then heading zero three five to three thousand."));
+        Assert.False(core.Accept("Then heading one two zero to four thousand feet."));
+        Assert.Equal("Then heading one two zero to four thousand feet.", core.LastRejected);
+    }
 }

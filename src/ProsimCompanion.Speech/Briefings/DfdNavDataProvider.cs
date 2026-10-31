@@ -743,6 +743,15 @@ public sealed class DfdNavDataProvider
                 }
             }
 
+            // LKPR→EGLL 2026-10-31: the briefings said "minimum safe altitude 40 feet" and
+            // "23 feet" — the DFD rows hold the ARINC 424 sector altitude in HUNDREDS of feet
+            // (40 = 4,000 ft, 23 = 2,300 ft). No airport has an MSA under 100 ft, so a figure
+            // that small is the hundreds form; a feet value (some DFD builds) is left alone.
+            if (highest is { } msa && msa < 100)
+            {
+                highest = msa * 100;
+            }
+
             return highest;
         }
         catch (Exception ex)

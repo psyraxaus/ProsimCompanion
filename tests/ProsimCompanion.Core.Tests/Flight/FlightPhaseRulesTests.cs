@@ -195,14 +195,19 @@ public sealed class FlightPhaseRulesTests
     [Fact]
     public void PushbackAndStart_EnginesRunningAndRolling_StillLeavesToTaxiOut()
     {
-        // The hold needs engines OFF: with them running and the aircraft past tug speed the
-        // taxi-out rule decides exactly as before (push-evidence still wins below tug speed, #138).
+        // Issue #138 (EKCH 2026-09-27): engines running past tug speed with the pushback flag
+        // still set is a push, not a taxi — the stale-push rule holds the target (pending for
+        // StalePushbackSeconds) and taxi-out proper waits for the flag to clear.
         var rolling = Parked() with { BeaconOn = true, PushbackActive = true, ParkBrakeSet = false, AnyEngineRunning = true, GroundSpeedKt = 12 };
 
         var decision = Decide(rolling, FlightPhase.PushbackAndStart);
 
         Assert.Equal(FlightPhase.TaxiOut, decision?.Target);
-        Assert.Equal("taxi-out", decision?.RuleId);
+        Assert.Equal("taxi-out-stale-push", decision?.RuleId);
+        Assert.Equal(TimeSpan.FromSeconds(FlightPhaseRules.StalePushbackSeconds), decision?.Debounce);
+
+        var released = Decide(rolling with { PushbackActive = false }, FlightPhase.PushbackAndStart);
+        Assert.Equal("taxi-out", released?.RuleId);
     }
 
     // ---- Issue #163: a level-off wobble in the descent is not a climb (EGCC 2026-10-10) ----

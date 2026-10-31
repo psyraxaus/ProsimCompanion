@@ -47,6 +47,7 @@ public sealed class DfdNavDataProviderTests : IDisposable
             CREATE TABLE tbl_ps_airport_msa (airport_identifier TEXT, msa_center TEXT, sector_altitude_1 REAL,
                 sector_altitude_2 REAL, sector_altitude_3 REAL, sector_altitude_4 REAL, sector_altitude_5 REAL);
             INSERT INTO tbl_ps_airport_msa VALUES ('YSSY', 'SY', 2700, 3500, NULL, 0, NULL);
+            INSERT INTO tbl_ps_airport_msa VALUES ('LKPR', 'PR', 40, 23, NULL, NULL, NULL);
             CREATE TABLE tbl_pe_stars (airport_identifier TEXT, procedure_identifier TEXT);
             CREATE TABLE tbl_pf_iaps (airport_identifier TEXT, procedure_identifier TEXT,
                 transition_identifier TEXT, seqno INTEGER, waypoint_identifier TEXT,
@@ -98,6 +99,8 @@ public sealed class DfdNavDataProviderTests : IDisposable
     {
         // Issue #180: 0 and NULL sectors are "not published"; the highest of the rest is spoken.
         Assert.Equal(3500, Provider().AirportMsaFt("yssy"));
+        // LKPR 2026-10-31: the DFD holds ARINC hundreds of feet (40 = 4,000 ft); the briefing said "40 feet".
+        Assert.Equal(4000, Provider().AirportMsaFt("LKPR"));
         Assert.Null(Provider().AirportMsaFt("ZZZZ"));
         Assert.Null(Provider().AirportMsaFt(null));
     }

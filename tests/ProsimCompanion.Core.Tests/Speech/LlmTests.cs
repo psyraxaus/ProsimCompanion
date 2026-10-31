@@ -38,6 +38,20 @@ public sealed class NumberVerifierTests
         => Assert.False(NumberVerifier.Check("Fuel 4.2 tonnes.", [3.1]).Ok);
 
     [Fact]
+    public void Check_WholeNumberToken_MatchesAFactItRoundsTo_EitherWay()
+    {
+        // Issue #177 (EGLL 2026-10-31): "touchdown 127 knots" against a 126.5 kt fact — the
+        // template said 127 (F0), the allowed set held Math.Round(126.5) = 126.
+        Assert.True(NumberVerifier.Check("Touchdown 127 knots.", [126.5]).Ok);
+        Assert.True(NumberVerifier.Check("Touchdown 126 knots.", [126.5]).Ok);
+        Assert.False(NumberVerifier.Check("Touchdown 128 knots.", [126.5]).Ok);
+        // Whole facts stay exact: one unit off is still invented.
+        Assert.False(NumberVerifier.Check("Climb to 7001 feet.", [7000]).Ok);
+        // A decimal token keeps the tight tolerance.
+        Assert.False(NumberVerifier.Check("Fuel 3.8 tonnes.", [3.3]).Ok);
+    }
+
+    [Fact]
     public void DescribeAllowed_FormatsAndDeduplicates()
         => Assert.Equal("145, 110.3, 62", NumberVerifier.DescribeAllowed([145, 110.3, 62, 145]));
 }

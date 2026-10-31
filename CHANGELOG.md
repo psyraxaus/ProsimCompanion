@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.8.0-rc.26
+
+Local build for the owner's sim testing, 2026-10-31, on `release/0.8.0-rc.24` (over rc.25): the four "still broken" issues of the 2026-10-31 review.
+
+- Fixed: **the LLM briefing no longer falls back to the template on numbers the template itself says** (#177). All three streams of the LKPR→EGLL leg fell back: the arrival on the go-around headings "zero eight eight / zero three five" (only ever in the template sentence), the debrief on "touchdown 127 knots" (a 126.5 kt fact rounded two ways). Every figure the template speaks is now an allowed number and a whole-number figure matches a fact it rounds to either way. The takeover warning now quotes the rejected sentence, so the next unexplained one (the departure's "900") can be read.
+- Fixed: **arrival gate and taxi-in call no longer fight GSX over a gate it already picked** (#157): with #190's name fix the ATC gate resolves while GSX loads the destination on the approach; the "GSX doesn't recognise our parking" warning of 2026-10-31 was that name failure, and the in-flight airport pick's `no_airport` answers are GSX loading the airport by proximity, as documented. No further code change; evidence on the issue.
+- Fixed: **gate monitor STD on the wrong sim date** (#139). SimBrief's STD sits on the real-world date; a sim flown on another date showed "STD in −1412 min" and jumped to FINAL CALL the moment boarding began. The OFP's STD is now moved by whole days to the day nearest the sim clock (same time-of-day), the way a typed STD already was; the loadsheet's STD trigger uses the same rule.
+- Fixed: **taxi-out phase flipping during a tug push** (#138). An engine reaching idle while the tug still pushed above 10 kt committed TAXI OUT, then the second engine's start walked it back. Taxi-out now waits for ProSim's pushback flag to clear (it returns to idle a few seconds after the tug releases — seen on the 2026-10-31 recording); a stuck flag still yields taxi-out after 3 minutes of engines running, so the phase can be late but never missing. Today's flight is checked in as a replay recording.
+- Fixed: **"minimum safe altitude 40 feet"** in the departure briefing and "23 feet" in the arrival: the navigation database stores the MSA in hundreds of feet; it is now spoken as 4,000 / 2,300 feet.
+- Agent: probes llm-stream-takeover, gate-std-sim-day (now with the fixed behaviour to assert), pushback-tug-taxi-flap (now assert-absent) and briefing-takeoff-emergency (MSA units) updated; recording lkpr-egll-2026-10-31-0.8.0-rc24 added.
+
 ## 0.8.0-rc.25
 
 Local build for the owner's sim testing, 2026-10-31, on `release/0.8.0-rc.24` (over rc.24), from the LKPR→EGLL verification leg (Speedbird 861, rc.24). Findings filed as #190 (arrival gate name), #191 (empty daystate.json), #192 (check-in cleared level), #193 (V-speeds + taxiway letters); fourteen issues closed on this flight's evidence.

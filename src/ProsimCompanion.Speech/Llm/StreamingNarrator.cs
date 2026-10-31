@@ -32,6 +32,13 @@ public sealed record NarrationPlan(
     /// Not called when the template speaks instead.</summary>
     public Action? OnFirstSpeech { get; init; }
 
+    /// <summary>Model text for one log line: line breaks removed, at most 200 characters.</summary>
+    internal static string OneLine(string? text)
+    {
+        var flat = (text ?? "").Replace('\r', ' ').Replace('\n', ' ').Trim();
+        return flat.Length <= 200 ? flat : flat[..200] + "…";
+    }
+
     /// <summary>Called once, when the first segment actually starts PLAYING (issue #176: the
     /// FO questions measure their "stand by" against this, not against the first sentence —
     /// on 2026-10-10 synthesis put 1–4 s between the two and no "Stand by" was ever heard).
@@ -195,8 +202,8 @@ public sealed class StreamingNarrator
                 }
 
                 _logger.LogWarning(
-                    "{Kind}: a streamed sentence failed number verification (unverified: {Tokens}) — the template takes over",
-                    plan.Kind, string.Join(", ", core.LastOffending));
+                    "{Kind}: a streamed sentence failed number verification (unverified: {Tokens}; sentence: \"{Sentence}\") — the template takes over",
+                    plan.Kind, string.Join(", ", core.LastOffending), NarrationPlan.OneLine(core.LastRejected));
                 return false;
             }
 

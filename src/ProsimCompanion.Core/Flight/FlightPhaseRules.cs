@@ -23,6 +23,11 @@ public static class FlightPhaseRules
     /// not begun to move.</summary>
     private const double StartCompleteGroundSpeedKt = 2;
 
+    /// <summary>Engines running this long with the pushback flag still "pushing" is a stuck
+    /// dataref, not a push (issue #138): taxi-out goes ahead. A real tug push with engines
+    /// running has never lasted this long in a recording (LKPR 2026-10-31: 2 min).</summary>
+    public const int StalePushbackSeconds = 180;
+
     private static readonly IReadOnlySet<FlightPhase> AirbornePhases =
         new HashSet<FlightPhase> { InitialClimb, Climb, Cruise, Descent, Approach };
 
@@ -172,8 +177,22 @@ public static class FlightPhaseRules
         Hold("pushback-hold", Set(PushbackAndStart),
             (_, s, _) => s.PushbackActive && !s.AnyEngineRunning),
 
+        // Issue #138 (EKCH 2026-09-27): engine 2 reached idle while the tug was still pushing
+        // at 13 kt — above the push-evidence speed cap — and taxi-out committed, then engine
+        // 1's start walked it back. A running engine during a push is not a taxi: taxi-out
+        // waits for the pushback flag to clear (ProSim's groundservice.pushback returns to
+        // idle a few seconds after the tug disconnects — LKPR 2026-10-31 23:40:52Z, five
+        // seconds after the push ended). Should the flag ever stick at "pushing" (#104's old
+        // signature) the rule below it takes the phase on anyway after StalePushbackSeconds of
+        // engines running, so a stuck dataref costs a late TAXI OUT, never a missing one.
+        // Targeting TaxiOut keeps the catch-all Preflight regression at bay meanwhile.
+        Rule("taxi-out-stale-push", null, TaxiOut,
+            (_, s, _) => s.AnyEngineRunning && s.PushbackActive,
+            (_, _) => TimeSpan.FromSeconds(StalePushbackSeconds),
+            (_, s) => $"engines running {StalePushbackSeconds} s with the pushback flag still set — rolling at {s.GroundSpeedKt:F0} kt"),
+
         Rule("taxi-out", null, TaxiOut,
-            (_, s, _) => s.AnyEngineRunning,
+            (_, s, _) => s.AnyEngineRunning && !s.PushbackActive,
             DefaultDebounce,
             (_, s) => $"engines running, rolling at {s.GroundSpeedKt:F0} kt"),
 

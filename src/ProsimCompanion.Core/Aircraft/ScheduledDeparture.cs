@@ -11,6 +11,12 @@ public static class ScheduledDeparture
     /// enters the sim's departure time); one that already passed by more than 12 h is read as
     /// tomorrow's departure so an evening entry for an after-midnight flight doesn't fire
     /// instantly.</summary>
+    /// The OFP's STD is anchored to the simulated day the same way (issue #139, EKCH
+    /// 2026-09-27: the sim flew a morning departure on another date while SimBrief's
+    /// <c>sched_out</c> sat on the real-world date — "STD in −1412 min", final call the instant
+    /// boarding started): when the OFP date and the sim clock are more than 12 h apart the
+    /// time-of-day is kept and the date moved by whole days to the one nearest the sim clock.
+    /// An OFP within 12 h of the sim clock is used as written.</summary>
     /// <param name="manualUtc">The Loadsheet page's typed STD, if any.</param>
     /// <param name="ofpStdUtc">The OFP's <c>sched_out</c>, if any.</param>
     /// <param name="nowUtc">The sim clock (or the real one when the sim is not live).</param>
@@ -22,6 +28,25 @@ public static class ScheduledDeparture
             return nowUtc - today > TimeSpan.FromHours(12) ? today.AddDays(1) : today;
         }
 
-        return ofpStdUtc;
+        return ofpStdUtc is { } ofp ? AlignToSimDay(ofp, nowUtc) : null;
+    }
+
+    /// <summary>The same time-of-day on the day that puts it within ±12 h of
+    /// <paramref name="nowUtc"/> (pure; the OFP date is only ever off by whole days).</summary>
+    public static DateTimeOffset AlignToSimDay(DateTimeOffset stdUtc, DateTimeOffset nowUtc)
+    {
+        var half = TimeSpan.FromHours(12);
+        var aligned = stdUtc;
+        while (aligned - nowUtc > half)
+        {
+            aligned = aligned.AddDays(-1);
+        }
+
+        while (nowUtc - aligned > half)
+        {
+            aligned = aligned.AddDays(1);
+        }
+
+        return aligned;
     }
 }

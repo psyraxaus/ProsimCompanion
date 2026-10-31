@@ -45,7 +45,12 @@ public static class NumberVerifier
             }
 
             var value = double.Parse(token, CultureInfo.InvariantCulture);
-            if (!allowed.Any(a => Math.Abs(a - value) <= Tolerance))
+            // A whole-number token also matches a fact it rounds to either way (issue #177,
+            // EGLL 2026-10-31: the debrief's "touchdown 127 knots" against a 126.5 kt fact
+            // failed because Math.Round(126.5) is 126 — banker's rounding — while the template
+            // itself said 127). The slack stays below one unit, so 7001 never passes for 7000.
+            var slack = token.Contains('.', StringComparison.Ordinal) ? Tolerance : 0.5 + Tolerance;
+            if (!allowed.Any(a => Math.Abs(a - value) <= slack))
             {
                 offending.Add(token);
             }

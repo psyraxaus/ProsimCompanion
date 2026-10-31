@@ -1,0 +1,28 @@
+# LKPR -> EGLL (BAW861), 2026-10-31, build 0.8.0-rc.24 (56d8a670), session-20261030-230353 (issue #138).
+# Trimmed to flight-sample + phase-changed + gsx-service + session-started + sim-paused/sim-resumed.
+# The recording that carries engines running DURING a tug push: engine 1 and 2 were started while
+# the tug pushed at 6-7 kt (23:38:52Z-23:40:48Z, pb true, engRaw true, st false for 16 s at 23:39:00Z).
+# The live rc.24 engine committed TaxiOut at 23:40:47Z while the pushback flag was still set, on a
+# 2.2 kt creep as the tug finished (the flag cleared five seconds later, pbRaw 0 -> 3 at 23:40:52Z);
+# only push-evidence's 10 kt cap kept the 2026-09-27 flap (13-22 kt tug) from recurring here.
+# With the #138 rule taxi-out waits for the flag; once it clears the aircraft sits brake-set at 0 kt
+# with engines running, which start-complete-hold keeps as PushbackAndStart by design, so the replay
+# commits TaxiOut at 23:43:44Z when the brake releases and the taxi begins (rule taxi-out, not the
+# stale-push net). Every other edge matches the live engine.
+# The live engine also recorded ColdAndDark -> Unknown -> ColdAndDark at 23:04:07Z (MSFS session
+# ended for 15 s); the harness does not replay session edges, so Describe() reports that divergence
+# and nothing else.
+Unknown -> ColdAndDark
+ColdAndDark -> Preflight
+Preflight -> Departure
+Departure -> PushbackAndStart
+PushbackAndStart -> TaxiOut
+TaxiOut -> TakeoffRoll
+TakeoffRoll -> InitialClimb
+InitialClimb -> Climb
+Climb -> Cruise
+Cruise -> Descent
+Descent -> Approach
+Approach -> LandingRollout
+LandingRollout -> TaxiIn
+TaxiIn -> Shutdown

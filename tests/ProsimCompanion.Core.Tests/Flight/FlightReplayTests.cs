@@ -201,6 +201,62 @@ public sealed class FlightReplayTests(ITestOutputHelper output)
     }
 
     [Fact]
+    public void TugPush_WithAnEngineRunning_StaysPushback_UntilTheFlagClears()
+    {
+        // Issue #138 (EKCH 2026-09-27): engine 2 at idle while the tug pushes at 13 kt (above
+        // the push-evidence speed cap), engine 1 not yet starting. The old taxi-out rule took
+        // that for a taxi and engine 1's start walked it back. Now the phase waits for the
+        // pushback flag (ProSim groundservice.pushback) to return to idle.
+        var pushing = Ground(phase: "PushbackAndStart", beacon: true, brake: false, engines: true, gs: 13, ias: 10)
+            with { PushbackActive = true, RawPushbackState = 0 };
+        var lines = new[]
+        {
+            Envelope(0, "flight-sample", Ground(phase: "Unknown")),
+            Envelope(10, "flight-sample", Ground(phase: "Preflight", beacon: true, apu: true, brake: false)),
+            Envelope(20, "flight-sample", Ground(phase: "Preflight", beacon: true, apu: true, brake: false, gs: 4)
+                with { PushbackActive = true, RawPushbackState = 0 }),
+            Envelope(40, "flight-sample", pushing),
+            Envelope(100, "flight-sample", pushing with { GroundSpeedKt = 18 }),
+            Envelope(130, "flight-sample", pushing with { GroundSpeedKt = 0, ParkBrakeSet = true }),
+            Envelope(140, "flight-sample", Ground(phase: "PushbackAndStart", beacon: true, brake: true, engines: true, gs: 0)),
+            Envelope(160, "flight-sample", Ground(phase: "TaxiOut", beacon: true, brake: false, engines: true, gs: 12, ias: 10)),
+            Envelope(200, "flight-sample", Ground(phase: "TaxiOut", beacon: true, brake: false, engines: true, gs: 12, ias: 10)),
+        };
+
+        var result = FlightReplay.Run(lines);
+        output.WriteLine(result.Describe());
+
+        Assert.Equal(["Unknown -> Preflight", "Preflight -> PushbackAndStart", "PushbackAndStart -> TaxiOut"], result.Commits.Select(c => c.Edge));
+        var taxi = Assert.Single(result.Commits, c => c.Current == FlightPhase.TaxiOut);
+        Assert.Equal("taxi-out", taxi.RuleId);
+        Assert.True(taxi.At >= T0.AddSeconds(140), $"taxi-out committed at {taxi.At:T} — during the push");
+    }
+
+    [Fact]
+    public void StuckPushbackFlag_StillReachesTaxiOut_AfterTheStaleWindow()
+    {
+        // Safety net for a dataref that never returns to idle (#104's old signature): engines
+        // running with the flag set for StalePushbackSeconds is a taxi, late rather than never.
+        var stuck = Ground(phase: "PushbackAndStart", beacon: true, brake: false, engines: true, gs: 15, ias: 12)
+            with { PushbackActive = true, RawPushbackState = 0 };
+        var lines = new[]
+        {
+            Envelope(0, "flight-sample", Ground(phase: "Unknown")),
+            Envelope(10, "flight-sample", Ground(phase: "Preflight", beacon: true, apu: true, brake: false)),
+            Envelope(20, "flight-sample", stuck with { GroundSpeedKt = 4, EnginesRunning = false, EnginesRunningRaw = false }),
+            Envelope(40, "flight-sample", stuck),
+            Envelope(40 + FlightPhaseRules.StalePushbackSeconds + 30, "flight-sample", stuck),
+        };
+
+        var result = FlightReplay.Run(lines);
+        output.WriteLine(result.Describe());
+
+        var taxi = Assert.Single(result.Commits, c => c.Current == FlightPhase.TaxiOut);
+        Assert.Equal("taxi-out-stale-push", taxi.RuleId);
+        Assert.True(taxi.At >= T0.AddSeconds(40 + FlightPhaseRules.StalePushbackSeconds));
+    }
+
+    [Fact]
     public void EgccRecording_HoldsDepartureAcrossTheEscapePause()
     {
         // Issue #168: the 2026-10-11 EGCC turnaround. The live rc.4 engine went Departure ->

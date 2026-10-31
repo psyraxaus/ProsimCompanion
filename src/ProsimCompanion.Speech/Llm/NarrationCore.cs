@@ -47,15 +47,46 @@ public sealed partial class NarrationCore
         ArgumentNullException.ThrowIfNull(allowed);
         ArgumentNullException.ThrowIfNull(sections);
 
-        _allowed = allowed;
+        _allowed = WithTemplateNumbers(allowed, sections);
         _sections = sections;
     }
+
+    /// <summary>The fact set plus every figure the template itself speaks (issue #177, EGLL
+    /// 2026-10-31: the arrival's "heading zero eight eight … heading zero three five" failed on
+    /// "088, 035" because the go-around headings were only ever in the template's sentence,
+    /// never in the allowed list). The template is the floor: a number it says is by
+    /// definition one the model may say. Public for tests.</summary>
+    public static IReadOnlyList<double> WithTemplateNumbers(IReadOnlyList<double> allowed, IReadOnlyList<NarrationSection> sections)
+    {
+        ArgumentNullException.ThrowIfNull(allowed);
+        ArgumentNullException.ThrowIfNull(sections);
+
+        var all = new List<double>(allowed);
+        foreach (var section in sections)
+        {
+            all.AddRange(section.Numbers);
+            foreach (Match match in Regex.Matches(SpokenNumberText.ToDigits(section.Text ?? ""), @"\d+(?:\.\d+)?"))
+            {
+                all.Add(double.Parse(match.Value, CultureInfo.InvariantCulture));
+            }
+        }
+
+        return all;
+    }
+
+    /// <summary>The allowed set in force (facts plus template figures), for the re-ask prompt
+    /// and the log.</summary>
+    public IReadOnlyList<double> Allowed => _allowed;
 
     /// <summary>Sentences released so far, in order.</summary>
     public IReadOnlyList<string> Spoken => _spoken;
 
     /// <summary>The numbers that failed the last rejected sentence (for the log line).</summary>
     public IReadOnlyList<string> LastOffending { get; private set; } = [];
+
+    /// <summary>The sentence that failed last, for the log line — the 2026-10-31 takeovers
+    /// ("900", "088, 035", "127") were undiagnosable from the tokens alone.</summary>
+    public string? LastRejected { get; private set; }
 
     /// <summary>Verifies one model sentence. True = release it for speech (and it now counts
     /// as said); false = discard it and take over.</summary>
@@ -75,6 +106,7 @@ public sealed partial class NarrationCore
             if (!check.Ok)
             {
                 LastOffending = check.Offending;
+                LastRejected = sentence;
                 return false;
             }
         }
