@@ -450,7 +450,7 @@
     {
       "id": "ground-ops-double-fire",
       "issue": 90,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "assert-absent",
       "sources": [
         "session"
@@ -2210,7 +2210,7 @@
     {
       "id": "fo-fuel-check",
       "issue": 148,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "assert-present",
       "machine": {
         "kind": "required-fields",
@@ -2271,7 +2271,7 @@
     {
       "id": "fo-gross-error-check",
       "issue": 148,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "assert-present",
       "machine": {
         "kind": "duplicate-within",
@@ -2295,7 +2295,7 @@
     {
       "id": "fo-destination-weather-watch",
       "issue": 148,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "assert-present",
       "machine": {
         "kind": "required-fields",
@@ -2323,7 +2323,7 @@
     {
       "id": "fo-readback",
       "issue": 148,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "assert-present",
       "machine": {
         "kind": "required-fields",
@@ -2439,7 +2439,7 @@
     {
       "id": "notify-delivery",
       "issue": 151,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "assert-present",
       "machine": {
         "kind": "required-fields",
@@ -2559,7 +2559,7 @@
     {
       "id": "cabin-call-auto-answer",
       "issue": 11,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "assert-present",
       "machine": {
         "kind": "required-fields",
@@ -2673,7 +2673,7 @@
     {
       "id": "fo-region-facts",
       "issue": 122,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "assert-present",
       "machine": {
         "kind": "required-fields",
@@ -3012,7 +3012,7 @@
     {
       "id": "si-request-stand-fragment",
       "issue": 140,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "assert-absent",
       "machine": {
         "kind": "signature",
@@ -3066,7 +3066,7 @@
     {
       "id": "turnaround-auto-start",
       "issue": 169,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "assert-present",
       "machine": {
         "kind": "required-fields",
@@ -3150,7 +3150,7 @@
     {
       "id": "sim-pause-roundtrip",
       "issue": 168,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "assert-present",
       "machine": {
         "kind": "signature",
@@ -3265,7 +3265,7 @@
     {
       "id": "briefing-takeoff-emergency",
       "issue": 180,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "assert-present",
       "machine": {
         "kind": "signature",
@@ -3363,7 +3363,7 @@
     {
       "id": "fuel-holding-time",
       "issue": 183,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "assert-present",
       "machine": {
         "kind": "required-fields",
@@ -3427,7 +3427,7 @@
     {
       "id": "acars-movement-message",
       "issue": 185,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "assert-present",
       "machine": {
         "kind": "signature",
@@ -3457,7 +3457,7 @@
     {
       "id": "delay-code-prompt",
       "issue": 185,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "assert-present",
       "machine": {
         "kind": "signature",
@@ -3608,7 +3608,7 @@
     {
       "id": "fo-baro-follow",
       "issue": 188,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "assert-present",
       "machine": {
         "kind": "signature",
@@ -3638,7 +3638,7 @@
     {
       "id": "fo-efis-command",
       "issue": 188,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "assert-present",
       "machine": {
         "kind": "signature",
@@ -3666,7 +3666,7 @@
     {
       "id": "fo-cross-check",
       "issue": 188,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "assert-present",
       "machine": {
         "kind": "signature",
@@ -3694,7 +3694,7 @@
     {
       "id": "notam-highlights",
       "issue": 189,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "assert-present",
       "machine": {
         "kind": "required-fields",
@@ -3727,7 +3727,7 @@
     {
       "id": "step-climb-advice",
       "issue": 189,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "assert-present",
       "machine": {
         "kind": "signature",
@@ -3756,7 +3756,7 @@
     {
       "id": "fdp-warning",
       "issue": 189,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "assert-present",
       "machine": {
         "kind": "signature",
@@ -4031,7 +4031,7 @@
     },
     {
       "id": "vspeed-pronunciation",
-      "issue": 0,
+      "issue": 193,
       "state": "open",
       "kind": "requires-human",
       "sources": [
@@ -4046,7 +4046,7 @@
     },
     {
       "id": "day-state-empty-file",
-      "issue": 0,
+      "issue": 191,
       "state": "open",
       "kind": "watch",
       "machine": {
