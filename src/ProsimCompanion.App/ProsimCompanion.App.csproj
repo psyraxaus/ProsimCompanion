@@ -95,6 +95,9 @@
     <!-- Curated cruise region facts (issue #122; user-editable, hot-reloaded). Keys: ISO 3166-1
          alpha-2 country codes, or "sea:<name>" for open water, as the atlas names them. -->
     <Content Include="config\region-facts.json" CopyToOutputDirectory="PreserveNewest" />
+    <!-- The First Officer roster (issue #194; user-editable, hot-reloaded): six seeded FOs with
+         their persona axes, confidence, hours on type, base and an optional provider:id voice. -->
+    <Content Include="config\fo-roster.json" CopyToOutputDirectory="PreserveNewest" />
     <!-- EASA ORO.FTL.205 basic maximum FDP table (issue #189) — user-editable content, seeded with keep-user-edits. -->
     <Content Include="config\ftl-easa.json" CopyToOutputDirectory="PreserveNewest" />
     <!-- Random-wear pool for the tech log (benign, purely procedural; techLog.randomWear). -->

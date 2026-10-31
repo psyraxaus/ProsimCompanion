@@ -179,6 +179,11 @@
         "start": "회사 근무일을 시작합니다.",
         "end": "요약과 로그북 마감으로 끝냅니다."
       },
+      "roster": {
+        "title": "First Officer roster",
+        "who": "Names the First Officer on duty, their experience and hours on the type.",
+        "new": "Draws a different First Officer now, after you confirm."
+      },
       "fuelCheck": {
         "title": "연료 점검",
         "check": "현재 위치의 SimBrief 계획 대비 탑재 연료와, 계획값 대비 예상 착륙 연료입니다. 순항 중에는 자동으로도 수행합니다."

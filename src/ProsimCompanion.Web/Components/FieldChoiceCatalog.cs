@@ -50,6 +50,9 @@ public static class FieldChoiceCatalog
             ],
             ["personaExperience"] = T => [("junior", T["speechSettings.options.experience.junior"].Value), ("standard", T["speechSettings.options.experience.standard"].Value), ("senior", T["speechSettings.options.experience.senior"].Value)],
             ["personaFormality"] = T => [("casual", T["speechSettings.options.formality.casual"].Value), ("standard", T["speechSettings.options.formality.standard"].Value), ("formal", T["speechSettings.options.formality.formal"].Value)],
+            // Issue #194: the confidence axis and the roster mode.
+            ["personaConfidence"] = T => [("nervous", T["speechSettings.options.confidence.nervous"].Value), ("steady", T["speechSettings.options.confidence.steady"].Value), ("assured", T["speechSettings.options.confidence.assured"].Value)],
+            ["personaRosterMode"] = T => [("off", T["speechSettings.options.rosterMode.off"].Value), ("daily", T["speechSettings.options.rosterMode.daily"].Value), ("pinned", T["speechSettings.options.rosterMode.pinned"].Value)],
             ["debriefVerbosity"] = T => [("full", T["speechSettings.options.verbosity.full"].Value), ("brief", T["speechSettings.options.verbosity.brief"].Value)],
             // SayIntentions PTT relay (2026-10-10). Values match SayIntentionsPttRelay.SourceRef; the
             // LVAR names are the ones the SI client lists under Controls → "Map PTT inside the sim".

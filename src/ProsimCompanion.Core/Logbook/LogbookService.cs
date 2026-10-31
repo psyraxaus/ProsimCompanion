@@ -385,6 +385,7 @@ public sealed class LogbookService : ILogbookService, ISessionFinalizationStep
             DefectsRectified = facts.DefectsRectified,
             DefectsCarried = facts.DefectsCarried,
             RejectedTakeoffs = facts.RejectedTakeoffs,
+            FoName = facts.FoName,
         };
     }
 

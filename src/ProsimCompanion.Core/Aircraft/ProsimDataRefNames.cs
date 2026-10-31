@@ -1046,6 +1046,13 @@ public static class ProsimDataRefNames
         /// (owner report 2026-10-25: "good morning" at sim 16:35). MSFS SimVar, not an L:var.</summary>
         public static readonly SimVarRef<double> LocalTimeSeconds = new("LOCAL TIME", "seconds", DataRefTier.Infrequent, 0.0);
 
+        /// <summary>The sim's local calendar year at the aircraft (issue #194: the FO roster's
+        /// "new day" is the sim's day, not the wall clock's). MSFS SimVar; 0 until pushed.</summary>
+        public static readonly SimVarRef<double> LocalYear = new("LOCAL YEAR", "number", DataRefTier.Infrequent, 0.0);
+
+        /// <summary>The sim's local day of the year at the aircraft, 1–366. MSFS SimVar.</summary>
+        public static readonly SimVarRef<double> LocalDayOfYear = new("LOCAL DAY OF YEAR", "number", DataRefTier.Infrequent, 0.0);
+
         /// <summary>The cockpit camera zoom slider, 0–100 % relative to the view's own
         /// <c>InitialZoom</c>. Written back to 50 after the Display &amp; FOV page rewrites
         /// <c>cameras.cfg</c> so the new zoom shows without an aircraft reload

@@ -207,6 +207,19 @@ chains — "local only" hard mode must exist.
   (`AirportAccentMap`, user-overridable), resolved per provider at render time — Google gets
   `{locale}-Chirp3-HD-{persona}`, Kokoro gets `bm_george` for en-GB/AU/IN, everything else
   falls back to `voices.ground`. `speech.localOnly` therefore degrades accents to US/UK.
+- **FO roster voice** (issue #194, `persona.roster.*`): the drawn First Officer's
+  `provider:id` voice from `fo-roster.json` rides the arbiter's voice-override slot for the
+  FirstOfficer role only (`RoleVoiceResolver.Resolve(role, voices, firstOfficerVoice)`), NOT
+  the accent selector: a provider-qualified id must promote its provider to the front of the
+  TTS chain, which only the override slot does (the selector answers per provider and cannot
+  reorder). Null voice = `speech.foVoice`, exactly as before; the purser / company / ground
+  roles never read it. The same-FO rule across a restart is `fo-roster-state.json` (data root,
+  beside `daystate.json`) — deliberately not `settings.json`, whose page saves write a whole
+  section and would clobber a draw made after the page loaded.
+- **Sim calendar day** (`ISimLocalTime.LocalDate`): `LOCAL YEAR` + `LOCAL DAY OF YEAR`
+  SimVars (units `number`), valid only while the `LOCAL TIME` clock is fresh. Unverified live
+  as of 2026-11-01 — if they never push, the roster logs "the sim's calendar day is not
+  available" once and draws per UTC wall date.
 - SayIntentions requests (issue #52): immediate FO "Roger — calling {station}" ack, then the
   exact sayAs text spoken in the FO voice (`sayIntentions.foSpeaksTransmission`, default true
   — turn off if SI voices sayAs audibly on this setup).

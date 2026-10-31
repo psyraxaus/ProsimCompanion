@@ -103,6 +103,11 @@ public sealed class LogbookFlight
     /// <summary>Rejected takeoffs in the flight (issue #187) — a stop on the roll, then a
     /// second attempt on the same cycle, is one flight with one RTO.</summary>
     public int RejectedTakeoffs { get; set; }
+
+    // ---- FO roster (issue #194). Additive; absent on older files. ----
+
+    /// <summary>The roster First Officer's name on this flight; null with the roster off.</summary>
+    public string? FoName { get; set; }
 }
 
 /// <summary>One duty day's record, folded by company day mode at end of day (idempotent by

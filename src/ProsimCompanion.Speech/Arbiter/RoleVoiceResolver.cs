@@ -22,7 +22,10 @@ public readonly record struct RoleVoice(
 /// </summary>
 public static class RoleVoiceResolver
 {
-    public static RoleVoice Resolve(SpeechRole role, VoicesOptions voices)
+    /// <param name="firstOfficerVoice">The per-call First Officer voice (the roster FO's
+    /// <c>provider:id</c>, issue #194); null = the provider's own configured FO voice, exactly
+    /// as before. Only the FO role reads it — a purser on the FO voice keeps the configured one.</param>
+    public static RoleVoice Resolve(SpeechRole role, VoicesOptions voices, string? firstOfficerVoice = null)
     {
         ArgumentNullException.ThrowIfNull(voices);
 
@@ -33,6 +36,8 @@ public static class RoleVoiceResolver
             SpeechRole.Purser => ForRole(voices.Purser, voices.PurserIntercomFilter),
             SpeechRole.Company => ForRole(voices.Company, voices.CompanyIntercomFilter),
             SpeechRole.GroundCrew => ForRole(voices.Ground, voices.GroundIntercomFilter),
+            SpeechRole.FirstOfficer => new RoleVoice(
+                string.IsNullOrWhiteSpace(firstOfficerVoice) ? null : firstOfficerVoice.Trim(), null, false),
             _ => new RoleVoice(null, null, false),
         };
     }

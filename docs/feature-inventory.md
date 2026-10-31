@@ -161,7 +161,9 @@ through with a note if deliberately dropped. Sources: Prosim2GSX 0.9.0, ProsimIn
 - [x] FO persona (name, experience, formality, chattiness 0–3, style flags —
       `PersonaOptions` + `PersonaService` / `PhraseBank` over `config/phrases.json`, 2026-08-08;
       small talk via Ask the First Officer #152); **FO Persona** card on /settings/speech since
-      2026-10-08
+      2026-10-08; **confidence** axis + **FO roster** (#194, 2026-11-01: a different FO per
+      duty day from `fo-roster.json`, pin / draw again, gate intro, the FO's own voice, the
+      name on the leg) — not a predecessor feature, new in ProsimCompanion
 - [x] Cabin crew simulation (purser reports gated on any ACP CAB latch, cabin secure/ready,
       opt-in boarding-delay ambient, distinct purser voice + interphone filter;
       cruise-query ambient deferred)

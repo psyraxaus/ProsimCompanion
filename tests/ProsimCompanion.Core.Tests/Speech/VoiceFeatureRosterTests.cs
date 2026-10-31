@@ -73,6 +73,7 @@ public sealed partial class VoiceFeatureRosterTests
         (typeof(ProsimCompanion.Speech.TechLog.TechLogDialogueService), 280),
         (typeof(ProsimCompanion.Speech.Debrief.DebriefService), 290),
         (typeof(ProsimCompanion.Speech.Persona.SmallTalkService), 300),
+        (typeof(ProsimCompanion.Speech.Persona.FoRosterVoiceFeature), 305), // "who's flying with me today" / "new first officer" (issue #194)
     ];
 
     private static IReadOnlyList<Type> ShippedFeatureTypes()

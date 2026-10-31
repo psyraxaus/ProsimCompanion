@@ -108,6 +108,12 @@ public sealed partial class SettingsPagesRenderTests
         services.AddSingleton(voices.Object);
         services.AddSingleton(Mock.Of<ITtsUsageReadout>(u => u.CharactersThisMonth(It.IsAny<string>()) == 1234));
         services.AddSingleton<LlmHealthStore>();
+        // The FO roster card (issue #194): one officer in the pool, nobody drawn.
+        var roster = new Mock<ProsimCompanion.Core.Persona.IFoRosterService>();
+        roster.SetupGet(r => r.Pool).Returns([new ProsimCompanion.Core.Persona.FoRosterEntry("sam", "Sam", "standard", "standard", 1, "steady", 2400, "EGLL", null)]);
+        roster.SetupGet(r => r.State).Returns(new ProsimCompanion.Core.Persona.FoRosterState());
+        roster.SetupGet(r => r.FilePath).Returns(@"C:\fake\fo-roster.json");
+        services.AddSingleton(roster.Object);
 
         var parameters = new Dictionary<string, object?> { ["Section"] = section, ["Tab"] = tab };
         return await RenderPageAsync<ProsimCompanion.Web.Pages.SpeechSettings>(services, "settings/speech/" + section, parameters);

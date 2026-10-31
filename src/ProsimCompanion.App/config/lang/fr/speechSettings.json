@@ -111,6 +111,43 @@
         "hint": "0 garde tout court. 3 permet une chaleur naturelle.",
         "more": "\"Quiet please\" coupe le bavardage pour la session, quelle que soit cette valeur."
       },
+      "confidence": {
+        "label": "Confidence",
+        "hint": "Nervous double-checks and asks; assured states things. Steady adds nothing."
+      },
+      "overriddenByRoster": "Overridden by the roster — the drawn First Officer's value applies.",
+      "roster": {
+        "title": "Roster",
+        "hint": "A different First Officer each duty day, drawn from fo-roster.json",
+        "mode": {
+          "label": "Roster",
+          "hint": "Off keeps the persona above. Daily draws a new FO per duty day. Pinned keeps the one you pin below."
+        },
+        "gateIntro": {
+          "label": "Gate introduction",
+          "hint": "The FO introduces themselves once per duty day at the first preflight."
+        },
+        "current": "On duty",
+        "nobody": "Nobody drawn yet — the draw comes at the duty-day start or the first preflight.",
+        "hours": "{0} h on type",
+        "empty": "The roster file holds no officers.",
+        "columns": {
+          "name": "Name",
+          "experience": "Experience · formality",
+          "confidence": "Confidence",
+          "hours": "Hours on type",
+          "voice": "Voice"
+        },
+        "pin": "Pin",
+        "release": "Release",
+        "drawAgain": "Draw again",
+        "pinnedMessage": "Pinned — this First Officer flies every day until released.",
+        "releasedMessage": "Pin released — the roster draws daily again.",
+        "unknownMessage": "That officer is not in the roster file.",
+        "drawnMessage": "{0} is on duty.",
+        "fileBefore": "Edit the crew in",
+        "fileAfter": "— id, name, experience, formality, chattiness, confidence, hours on type, base and an optional provider:id voice (Kokoro ids are listed on the Voices page; ElevenLabs ids work as elevenlabs:<voiceId>). Edits are picked up live."
+      },
       "styles": {
         "title": "Ce que la persona stylise",
         "hint": "Chacun est vérifié contre les faits ; le texte brut est toujours le repli",
@@ -1468,6 +1505,16 @@
         "junior": "Junior",
         "standard": "Standard",
         "senior": "Senior"
+      },
+      "confidence": {
+        "nervous": "Nervous",
+        "steady": "Steady",
+        "assured": "Assured"
+      },
+      "rosterMode": {
+        "off": "Off (one persona)",
+        "daily": "Daily (a new FO per duty day)",
+        "pinned": "Pinned (the FO pinned below)"
       },
       "formality": {
         "casual": "Décontracté",

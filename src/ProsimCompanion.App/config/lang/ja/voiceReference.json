@@ -179,6 +179,11 @@
         "start": "カンパニーの勤務日を開始します。",
         "end": "サマリーとログブックの締めで終了します。"
       },
+      "roster": {
+        "title": "First Officer roster",
+        "who": "Names the First Officer on duty, their experience and hours on the type.",
+        "new": "Draws a different First Officer now, after you confirm."
+      },
       "fuelCheck": {
         "title": "燃料チェック",
         "check": "現在位置での SimBrief プランに対する搭載燃料と、計画値に対する着陸時推定燃料です。巡航中は自動でも行います。"

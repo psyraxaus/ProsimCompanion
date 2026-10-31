@@ -12,6 +12,11 @@ public interface ISimLocalTime
 {
     /// <summary>Local time of day at the aircraft, or null when the sim is not live.</summary>
     TimeSpan? LocalTimeOfDay { get; }
+
+    /// <summary>The sim's local calendar day at the aircraft (issue #194), or null when the
+    /// sim is not live or the date SimVars have not pushed. Default null so a fake that only
+    /// knows the clock still compiles.</summary>
+    DateOnly? LocalDate => null;
 }
 
 /// <summary>Live <see cref="ISimLocalTime"/> over the SimConnect read model (one subscription,
@@ -23,10 +28,44 @@ public sealed class SimLocalTime : ISimLocalTime, IDisposable
     private static readonly TimeSpan FreshFor = TimeSpan.FromSeconds(30);
 
     private readonly IDataRefSubscription<double>? _localTime;
+    private readonly IDataRefSubscription<double>? _localYear;
+    private readonly IDataRefSubscription<double>? _localDayOfYear;
 
     public SimLocalTime(ISimVars? simVars = null)
     {
         _localTime = simVars?.Subscribe(ProsimDataRefNames.SimVars.LocalTimeSeconds);
+        _localYear = simVars?.Subscribe(ProsimDataRefNames.SimVars.LocalYear);
+        _localDayOfYear = simVars?.Subscribe(ProsimDataRefNames.SimVars.LocalDayOfYear);
+    }
+
+    /// <inheritdoc />
+    public DateOnly? LocalDate
+    {
+        get
+        {
+            // The clock must be live for the date to mean anything (same freshness rule).
+            if (LocalTimeOfDay is null || _localYear is null || _localDayOfYear is null
+                || _localYear.RawValue is null || _localDayOfYear.RawValue is null)
+            {
+                return null;
+            }
+
+            var year = (int)Math.Round(_localYear.Value);
+            var day = (int)Math.Round(_localDayOfYear.Value);
+            if (year < 1900 || year > 9999 || day < 1 || day > 366)
+            {
+                return null;
+            }
+
+            try
+            {
+                return new DateOnly(year, 1, 1).AddDays(day - 1);
+            }
+            catch (ArgumentOutOfRangeException)
+            {
+                return null; // day 366 of a non-leap year
+            }
+        }
     }
 
     /// <inheritdoc />
@@ -52,7 +91,12 @@ public sealed class SimLocalTime : ISimLocalTime, IDisposable
         }
     }
 
-    public void Dispose() => _localTime?.Dispose();
+    public void Dispose()
+    {
+        _localTime?.Dispose();
+        _localYear?.Dispose();
+        _localDayOfYear?.Dispose();
+    }
 }
 
 /// <summary>The word a crew greets by: morning 04:00–11:59, afternoon 12:00–17:59, evening

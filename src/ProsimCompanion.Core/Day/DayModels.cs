@@ -74,6 +74,10 @@ public sealed class DayLeg
     public int DefectsRaised { get; set; }
 
     public int DefectsRectified { get; set; }
+
+    /// <summary>The roster First Officer who flew the leg (issue #194); null with the roster
+    /// off. Additive — an older daystate.json loads unchanged.</summary>
+    public string? FoName { get; set; }
 }
 
 /// <summary>The persisted duty-day state (<c>daystate.json</c>).</summary>

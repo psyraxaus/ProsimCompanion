@@ -29,6 +29,8 @@
     "ahead": "adelantado",
     "onSchedule": "en horario",
     "figuresNote": "Las cifras de bloque y servicio son un seguimiento práctico de lo volado — no un cálculo de limitaciones de tiempo de vuelo.",
+    "foOnLeg": "First Officer on this leg (roster)",
+    "foOnLegPill": "FO {0}",
     "legs": "Tramos",
     "legName": "Tramo {0} · {1} → {2}",
     "blockMin": "{0} min bloque",

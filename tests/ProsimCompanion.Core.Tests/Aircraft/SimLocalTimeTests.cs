@@ -42,17 +42,29 @@ public sealed class SimLocalTimeTests
     public void LocalTimePush_BecomesTheTimeOfDay_NothingPushedIsNull()
     {
         var sub = new FakeSimVar("LOCAL TIME");
+        var year = new FakeSimVar("LOCAL YEAR");
+        var day = new FakeSimVar("LOCAL DAY OF YEAR");
         var simVars = new Mock<ISimVars>();
         simVars.Setup(s => s.SubscribeDynamic("LOCAL TIME", "seconds", It.IsAny<DataRefTier>())).Returns(sub);
+        simVars.Setup(s => s.SubscribeDynamic("LOCAL YEAR", "number", It.IsAny<DataRefTier>())).Returns(year);
+        simVars.Setup(s => s.SubscribeDynamic("LOCAL DAY OF YEAR", "number", It.IsAny<DataRefTier>())).Returns(day);
         using var clock = new SimLocalTime(simVars.Object);
 
         Assert.Null(clock.LocalTimeOfDay);
+        Assert.Null(clock.LocalDate);
 
         sub.RaisePush(16 * 3600 + 35 * 60 + 12.0);
         Assert.Equal(new TimeSpan(16, 35, 12), clock.LocalTimeOfDay);
+        Assert.Null(clock.LocalDate); // the date SimVars have not pushed yet
+
+        // Issue #194: the sim's calendar day from LOCAL YEAR + LOCAL DAY OF YEAR.
+        year.RaisePush(2026.0);
+        day.RaisePush(305.0);
+        Assert.Equal(new DateOnly(2026, 11, 1), clock.LocalDate);
 
         sub.RaisePush(90_000.0);
         Assert.Null(clock.LocalTimeOfDay);
+        Assert.Null(clock.LocalDate); // no live clock, no date
     }
 
     private sealed class FakeSimVar(string name) : IDataRefSubscription

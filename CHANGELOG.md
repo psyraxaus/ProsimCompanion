@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+
+November 2026 immersion batch, package 1, on `release/0.8.0-rc.24` (over rc.26). Off by default and **Unverified live**.
+
+- Added: **FO roster — a different First Officer each duty day** (#194). `config\fo-roster.json` (user-editable, seeded with six FOs: name, experience, formality, chattiness, confidence, hours on type, base, optional `provider:id` voice). `persona.roster.mode` off (today's persona) | daily | pinned; the draw never repeats the previous day's FO, triggers on the duty-day start (day mode on) or the first preflight of a new sim calendar day (day mode off, the sim's own date, not the wall clock), and survives a restart mid-day (`fo-roster-state.json` beside `daystate.json`). The drawn FO's name, experience, formality, chattiness and confidence replace the FO Persona values (greyed "overridden by the roster" on the page); the style switches stay global. The FO's own voice rides the First Officer role for every FO line.
+- Added: **confidence** as a fourth persona axis (nervous / steady / assured) on the FO Persona card — wording and tone only; a test proves the never-change-a-fact sentence for every experience × formality × confidence combination.
+- Added: the **gate introduction** once per duty day at the first preflight — *"Morning captain, Sam here, I'll be your First Officer today — about 2400 hours on the type."* (the rc.23 sim-clock greeting word; a nervous FO adds "Looking forward to it."), persona-styled when the LLM is on, Low priority. `persona.roster.gateIntro` (on).
+- Added: **"who's flying with me today"** / **"who's my first officer"** and **"new first officer"** (a captain's question confirms the mid-day re-draw; "Change First Officer now, captain — are you sure?"). Roster card on Settings → Voice First Officer → FO Persona: the FO on duty, the pool with Pin / Release, Draw again, the file path.
+- Added: the FO's name on the leg — `persona.foOnDuty` at every preflight, `DebriefFacts.FoName`, logbook flight `foName` (CSV column appended last; older logbooks load unchanged), the day leg (an "FO Sam" pill on the Duty Day page).
+- Added: `LOCAL YEAR` / `LOCAL DAY OF YEAR` SimVars behind `ISimLocalTime.LocalDate` (the sim's calendar day at the aircraft).
+- Agent: events `persona.rosterDraw`, `persona.foOnDuty`, `persona.gateIntro`, `persona.rosterPin`, `persona.rosterRelease`, `persona.rosterChangeQuestion`; probe `fo-roster-daily-draw`.
+
 ## 0.8.0-rc.26
 
 Local build for the owner's sim testing, 2026-10-31, on `release/0.8.0-rc.24` (over rc.25): the four "still broken" issues of the 2026-10-31 review.

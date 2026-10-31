@@ -200,6 +200,9 @@ public static class CoreServiceCollectionExtensions
         // (issue #180): the briefing asks, the FO dialogue takes the free-text answer.
         services.AddSingleton<ThreatsQuestionStore>();
         services.AddSingleton<ICaptainsQuestionStore>(p => p.GetRequiredService<ThreatsQuestionStore>());
+        // "Change First Officer now — are you sure?" behind the "new first officer" re-draw (issue #194).
+        services.AddSingleton<Persona.FoRosterChangeStore>();
+        services.AddSingleton<ICaptainsQuestionStore>(p => p.GetRequiredService<Persona.FoRosterChangeStore>());
         // "Issue a revised final?" after a last-minute change beyond tolerance (issue #181):
         // the loadsheet pipeline asks, the FO dialogue or the card answers.
         services.AddSingleton<LmcRevisionStore>();
@@ -315,6 +318,11 @@ public static class CoreServiceCollectionExtensions
         // day service itself lives in the Speech project — it speaks).
         services.AddSingleton<Day.DayStateFile>();
         services.AddSingleton<Day.DayStatusStore>();
+        // The FO roster (issue #194): the pool from fo-roster.json in the user config tree, the
+        // persisted draw beside daystate.json. The Speech pillar decides when to draw.
+        services.AddSingleton<Persona.FoRosterStateFile>();
+        services.AddSingleton<Persona.FoRosterService>();
+        services.AddSingleton<Persona.IFoRosterService>(p => p.GetRequiredService<Persona.FoRosterService>());
         services.AddSingleton<Day.IDaySummaryComposer, Day.DaySummaryComposer>();
 
         // Post-flight bookkeeping pillar: tech log & MEL, pilot logbook, session finalizer.

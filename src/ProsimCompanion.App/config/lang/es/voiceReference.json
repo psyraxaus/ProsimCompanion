@@ -179,6 +179,11 @@
         "start": "Inicia la jornada de la compañía.",
         "end": "La termina con un resumen y el cierre del logbook."
       },
+      "roster": {
+        "title": "First Officer roster",
+        "who": "Names the First Officer on duty, their experience and hours on the type.",
+        "new": "Draws a different First Officer now, after you confirm."
+      },
       "fuelCheck": {
         "title": "Fuel check",
         "check": "Combustible a bordo frente al plan de SimBrief en tu posición, y el combustible estimado al aterrizaje frente a la cifra planificada. También automático en crucero."

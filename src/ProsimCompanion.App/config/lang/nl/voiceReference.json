@@ -179,6 +179,11 @@
         "start": "Start de company-dienstdag.",
         "end": "Sluit hem af met een samenvatting en de logboekafsluiting."
       },
+      "roster": {
+        "title": "First Officer roster",
+        "who": "Names the First Officer on duty, their experience and hours on the type.",
+        "new": "Draws a different First Officer now, after you confirm."
+      },
       "fuelCheck": {
         "title": "Fuel check",
         "check": "Brandstof aan boord tegenover het SimBrief-plan op je positie, en de geschatte landingsbrandstof tegenover het geplande cijfer. In de cruise ook automatisch."

@@ -1,0 +1,71 @@
+{
+  "_comment": "The First Officer roster (Settings → Voice First Officer → FO Persona → Roster). One entry per FO: id (unique), name, experience junior|standard|senior, formality casual|standard|formal, chattiness 0-3, confidence nervous|steady|assured, hoursOnType (cosmetic, the FO may say it), base (ICAO, cosmetic), voice (provider:id such as kokoro:af_sky or elevenlabs:<voiceId>; null = the configured First Officer voice). Edits are picked up live.",
+  "officers": [
+    {
+      "id": "sam-reilly",
+      "name": "Sam",
+      "experience": "standard",
+      "formality": "standard",
+      "chattiness": 1,
+      "confidence": "steady",
+      "hoursOnType": 2400,
+      "base": "EGLL",
+      "voice": null
+    },
+    {
+      "id": "priya-nair",
+      "name": "Priya",
+      "experience": "senior",
+      "formality": "formal",
+      "chattiness": 1,
+      "confidence": "assured",
+      "hoursOnType": 5600,
+      "base": "EGCC",
+      "voice": "kokoro:bf_emma"
+    },
+    {
+      "id": "tom-becker",
+      "name": "Tom",
+      "experience": "junior",
+      "formality": "casual",
+      "chattiness": 2,
+      "confidence": "nervous",
+      "hoursOnType": 300,
+      "base": "EDDF",
+      "voice": "kokoro:am_adam"
+    },
+    {
+      "id": "elena-rossi",
+      "name": "Elena",
+      "experience": "standard",
+      "formality": "casual",
+      "chattiness": 3,
+      "confidence": "steady",
+      "hoursOnType": 1800,
+      "base": "LIRF",
+      "voice": "kokoro:af_sky"
+    },
+    {
+      "id": "marcus-vale",
+      "name": "Marcus",
+      "experience": "senior",
+      "formality": "standard",
+      "chattiness": 0,
+      "confidence": "assured",
+      "hoursOnType": 7200,
+      "base": "EGLL",
+      "voice": "kokoro:bm_lewis"
+    },
+    {
+      "id": "hanna-lindqvist",
+      "name": "Hanna",
+      "experience": "junior",
+      "formality": "standard",
+      "chattiness": 2,
+      "confidence": "nervous",
+      "hoursOnType": 450,
+      "base": "ESSA",
+      "voice": "kokoro:bf_alice"
+    }
+  ]
+}

@@ -36,6 +36,7 @@ public sealed class SpeechArbiterService : ISpeechArbiter, ISpeechControl, IDisp
     private readonly ILogger<SpeechArbiterService> _logger;
     private readonly Crew.AccentVoiceResolver? _accents;
     private readonly Core.Diagnostics.Metrics.VoiceTurnTracker? _turns;
+    private readonly Core.Persona.IFoRosterService? _roster;
 
     private readonly SpeechArbiterCore _core;
     private readonly object _gate = new();
@@ -61,7 +62,8 @@ public sealed class SpeechArbiterService : ISpeechArbiter, ISpeechControl, IDisp
         ILogger<SpeechArbiterService> logger,
         Persona.QuietState quietState,
         Crew.AccentVoiceResolver? accents = null,
-        Core.Diagnostics.Metrics.VoiceTurnTracker? turns = null)
+        Core.Diagnostics.Metrics.VoiceTurnTracker? turns = null,
+        Core.Persona.IFoRosterService? roster = null)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(voices);
@@ -83,6 +85,7 @@ public sealed class SpeechArbiterService : ISpeechArbiter, ISpeechControl, IDisp
         _logger = logger;
         _accents = accents;
         _turns = turns;
+        _roster = roster;
 
         _core = new SpeechArbiterCore(
         [
@@ -360,6 +363,21 @@ public sealed class SpeechArbiterService : ISpeechArbiter, ISpeechControl, IDisp
         _store.Update(s => s with { NowPlaying = null });
     }
 
+    /// <summary>The roster FO's voice for this utterance, or null (today's FO voice) when the
+    /// roster is off, nobody is on duty, the FO has no voice, or the roster throws.</summary>
+    private string? FirstOfficerVoiceOrNull()
+    {
+        try
+        {
+            return _roster?.Current?.Voice;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "FO roster voice lookup failed — using the configured First Officer voice");
+            return null;
+        }
+    }
+
     /// <summary>Synthesizes and plays one text in the caller's slot. Returns false when no
     /// TTS provider produced audio (silence — not an error). <paramref name="cacheable"/>
     /// false keeps one-off text out of the TTS disk cache, read and write.</summary>
@@ -373,7 +391,10 @@ public sealed class SpeechArbiterService : ISpeechArbiter, ISpeechControl, IDisp
 
         // Speaker role → (voice, intercom decision). A role with no configured voice
         // falls back to the FO voice, announced once per role rather than per utterance.
-        var roleVoice = RoleVoiceResolver.Resolve(request.Role, _voices.CurrentValue);
+        // The roster FO's own voice (issue #194) rides the same voice-override slot the role
+        // voices use — a provider-prefixed id must promote its provider in the chain, which
+        // only this slot does; the accent selector below stays the ground crew's.
+        var roleVoice = RoleVoiceResolver.Resolve(request.Role, _voices.CurrentValue, FirstOfficerVoiceOrNull());
         if (roleVoice.FellBackToFoVoice && _roleFallbackLogged.Add(request.Role))
         {
             _logger.LogInformation(

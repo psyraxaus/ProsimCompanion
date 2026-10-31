@@ -24,6 +24,7 @@
 @inject IPttInputCapture PttCapture
 @inject IVoiceCatalog VoiceCatalog
 @inject ITtsUsageReadout TtsUsage
+@inject ProsimCompanion.Core.Persona.IFoRosterService Roster
 @inject NavigationManager Nav
 @inject IStringLocalizer T
 
@@ -70,10 +71,89 @@ else if (CurrentSection == "persona")
     @* FO persona (Phase 7, 2026-08-08) — settings.json only until the 2026-10-08 audit. *@
     <Section Title="@T["speechSettings.persona.title"]" Hint="@T["speechSettings.persona.hint"]">
         <OptionField Draft="_persona" For="o => o.Enabled" />
-        <OptionField Draft="_persona" For="o => o.Name" />
-        <OptionField Draft="_persona" For="o => o.Experience" />
-        <OptionField Draft="_persona" For="o => o.Formality" />
-        <OptionField Draft="_persona" For="o => o.Chattiness" />
+        @* Issue #194: with the roster on these four describe nobody — the drawn FO does.
+           Greyed, never hidden, so the pilot sees where the values would come from. *@
+        <OptionField Draft="_persona" For="o => o.Name" Disabled="RosterOverrides" Hint="@RosterHint(T["speechSettings.persona.name.hint"].Value)" />
+        <OptionField Draft="_persona" For="o => o.Experience" Disabled="RosterOverrides" Hint="@RosterHint(T["speechSettings.persona.experience.hint"].Value)" />
+        <OptionField Draft="_persona" For="o => o.Formality" Disabled="RosterOverrides" Hint="@RosterHint(T["speechSettings.persona.formality.hint"].Value)" />
+        <OptionField Draft="_persona" For="o => o.Chattiness" Disabled="RosterOverrides" Hint="@RosterHint(T["speechSettings.persona.chattiness.hint"].Value)" />
+        <OptionField Draft="_persona" For="o => o.Confidence" Disabled="RosterOverrides" Hint="@RosterHint(T["speechSettings.persona.confidence.hint"].Value)" />
+    </Section>
+
+    @* The FO roster (issue #194): a different First Officer per duty day. *@
+    <Section Title="@T["speechSettings.persona.roster.title"]" Hint="@T["speechSettings.persona.roster.hint"]">
+        <OptionField Draft="_persona" For="o => o.Roster.Mode" />
+        <OptionField Draft="_persona" For="o => o.Roster.GateIntro" />
+
+        <div class="row">
+            <span class="row-label">@T["speechSettings.persona.roster.current"]</span>
+            <span class="row-value-mono">
+                @if (Roster.Current is { } fo)
+                {
+                    <text>@fo.Name · @AxisText("experience", fo.Experience) · @AxisText("confidence", fo.Confidence) · @T["speechSettings.persona.roster.hours", fo.HoursOnType] · @(string.IsNullOrWhiteSpace(fo.Voice) ? T["speechSettings.common.sameAsFo"].Value : fo.Voice)</text>
+                }
+                else
+                {
+                    <text>@T["speechSettings.persona.roster.nobody"]</text>
+                }
+            </span>
+        </div>
+
+        @if (Roster.Pool.Count == 0)
+        {
+            <div class="empty">@T["speechSettings.persona.roster.empty"]</div>
+        }
+        else
+        {
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>@T["speechSettings.persona.roster.columns.name"]</th>
+                        <th>@T["speechSettings.persona.roster.columns.experience"]</th>
+                        <th>@T["speechSettings.persona.roster.columns.confidence"]</th>
+                        <th>@T["speechSettings.persona.roster.columns.hours"]</th>
+                        <th>@T["speechSettings.persona.roster.columns.voice"]</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var officer in Roster.Pool)
+                    {
+                        var row = officer;
+                        var pinned = string.Equals(Roster.State.PinnedId, row.Id, StringComparison.OrdinalIgnoreCase) && _persona.Value.Roster.IsPinned;
+                        var onDuty = Roster.Current is { } current && string.Equals(current.Id, row.Id, StringComparison.OrdinalIgnoreCase);
+                        <tr class="@(onDuty ? "active" : "")">
+                            <td>@row.Name @(onDuty ? "•" : "")</td>
+                            <td>@AxisText("experience", row.Experience) · @AxisText("formality", row.Formality)</td>
+                            <td>@AxisText("confidence", row.Confidence)</td>
+                            <td>@row.HoursOnType</td>
+                            <td class="mono">@(string.IsNullOrWhiteSpace(row.Voice) ? "—" : row.Voice)</td>
+                            <td>
+                                @if (pinned)
+                                {
+                                    <button type="button" class="btn secondary btn-sm" @onclick="ReleasePin">@T["speechSettings.persona.roster.release"]</button>
+                                }
+                                else
+                                {
+                                    <button type="button" class="btn secondary btn-sm" disabled="@(!_persona.Value.Enabled)" @onclick="() => PinOfficer(row.Id)">@T["speechSettings.persona.roster.pin"]</button>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+
+        <div class="ops-actions">
+            <button type="button" class="btn primary" disabled="@(!Roster.IsActive || _persona.Value.Roster.IsPinned || Roster.Pool.Count == 0)" @onclick="DrawAgain">@T["speechSettings.persona.roster.drawAgain"]</button>
+        </div>
+        @if (_rosterMessage is { } rosterMessage)
+        {
+            <div class="field-hint">@rosterMessage</div>
+        }
+        <div class="field-hint" style="max-width:640px;">
+            @T["speechSettings.persona.roster.fileBefore"] <code>@Roster.FilePath</code> @T["speechSettings.persona.roster.fileAfter"]
+        </div>
     </Section>
 
     <Section Title="@T["speechSettings.persona.styles.title"]" Hint="@T["speechSettings.persona.styles.hint"]">
@@ -1030,6 +1110,66 @@ else if (CurrentSection == "abnormals")
     private OptionsDraft<LogbookOptions> _logbook = default!;
     private OptionsDraft<AbnormalsOptions> _abnormals = default!;
 
+    // ---- FO roster card (issue #194) ----
+    private string? _rosterMessage;
+
+    /// <summary>The four person fields describe nobody while the roster is on and someone is
+    /// on duty — the drawn FO does. Read from the DRAFT so the greying follows the dropdown
+    /// before Save.</summary>
+    private bool RosterOverrides
+        => _persona.Value.Roster.IsActive(_persona.Value.Enabled) && Roster.Current is not null;
+
+    private string RosterHint(string packHint)
+        => RosterOverrides ? T["speechSettings.persona.overriddenByRoster"].Value : packHint;
+
+    private string AxisText(string axis, string value)
+        => T[$"speechSettings.options.{axis}.{value}"].Value;
+
+    private void PinOfficer(string id)
+    {
+        _rosterMessage = Roster.Pin(id)
+            ? T["speechSettings.persona.roster.pinnedMessage"].Value
+            : T["speechSettings.persona.roster.unknownMessage"].Value;
+    }
+
+    private void ReleasePin()
+    {
+        Roster.Release();
+        _rosterMessage = T["speechSettings.persona.roster.releasedMessage"].Value;
+    }
+
+    private void DrawAgain()
+    {
+        var drawn = Roster.Draw("web", DateTimeOffset.UtcNow, Roster.State.DrawnFor);
+        _rosterMessage = drawn is null
+            ? T["speechSettings.persona.roster.empty"].Value
+            : T["speechSettings.persona.roster.drawnMessage", drawn.Name].Value;
+    }
+
+    /// <summary>Pin / Release flip persona.roster.mode in settings.json; the draft follows once
+    /// the options reload, unless the pilot has unsaved edits (those win).</summary>
+    private void OnRosterChanged()
+        => _ = InvokeAsync(() =>
+        {
+            if (!_persona.IsDirty)
+            {
+                _persona.Reload();
+            }
+
+            StateHasChanged();
+        });
+
+    private void OnPersonaOptionsChanged(PersonaOptions changed)
+        => _ = InvokeAsync(() =>
+        {
+            if (!_persona.IsDirty)
+            {
+                _persona.Reload();
+            }
+
+            StateHasChanged();
+        });
+
     private IReadOnlyList<string> _captureDevices = [];
     private IReadOnlyList<string> _renderDevices = [];
 
@@ -1186,7 +1326,11 @@ else if (CurrentSection == "abnormals")
         _joysticks = PttCapture.GetJoysticks(); // the cached list — a page load never probes winmm (2026-10-11 crash)
         _listenJoysticks = SpeechPageRules.IsJoystick(_speech.Value.PttBinding) || SpeechPageRules.IsJoystick(_speech.Value.AtcMuteBinding);
         PttCapture.PressedChanged += OnPressedChanged;
+        WatchChanged(h => Roster.Changed += h, h => Roster.Changed -= h, OnRosterChanged);
+        _personaChange = PersonaMonitor.OnChange(OnPersonaOptionsChanged);
     }
+
+    private IDisposable? _personaChange;
 
     /// <summary>Every per-property trim and case fold is declared on the property (C3) and ran
     /// before this; what is left is the page's own rules between properties.
@@ -1204,6 +1348,7 @@ else if (CurrentSection == "abnormals")
     public override void Dispose()
     {
         PttCapture.PressedChanged -= OnPressedChanged;
+        _personaChange?.Dispose();
         base.Dispose();
     }
 }

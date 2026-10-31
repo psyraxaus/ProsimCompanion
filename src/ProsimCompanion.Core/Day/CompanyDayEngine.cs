@@ -208,6 +208,10 @@ public sealed class CompanyDayEngine
         leg.DefectsRaised = facts.DefectsRaised;
         leg.DefectsRectified = facts.DefectsRectified;
         leg.Stabilized = OverallStabilized(facts);
+        if (!string.IsNullOrWhiteSpace(facts.FoName))
+        {
+            leg.FoName = facts.FoName; // the roster FO on the leg (issue #194)
+        }
 
         if (!string.IsNullOrWhiteSpace(facts.Origin))
         {
@@ -281,9 +285,9 @@ public sealed class CompanyDayEngine
             .OrderBy(l => l.Index)
             .Select(l => new DayLegView(
                 l.Index, l.From, l.To, l.FlightNo, l.ScheduledOffUtc, l.ScheduledOnUtc,
-                l.ActualOffUtc, l.ActualOnUtc, l.BlockMinutes, l.Landed, l.Stabilized, l.Deviation))
+                l.ActualOffUtc, l.ActualOnUtc, l.BlockMinutes, l.Landed, l.Stabilized, l.Deviation, l.FoName))
             .ToList();
-        return new DaySnapshot(DayMath.BuildView(day, nowUtc), legs, DebriefContextLine, Fdp(nowUtc));
+        return new DaySnapshot(DayMath.BuildView(day, nowUtc), legs, DebriefContextLine, Fdp(nowUtc), day.DayId);
     }
 
     private static string Iso(DateTimeOffset t) => t.ToString("O", CultureInfo.InvariantCulture);

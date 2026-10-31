@@ -4083,6 +4083,36 @@
         "assert-present: a start whose previous run saved a day with state OnLeg or Turnaround logs 'Company day service started (OnLeg|Turnaround)' — the day resumed."
       ],
       "notes": "2026-10-31: DayStateFile.Load treats an empty file as 'no day' (deleted, Information line, no backup); Save serializes writes, uses a unique temp name per write, never moves an empty document into place and logs each write with its size. Root cause of the empty file is NOT found — no writer in the repo writes an empty daystate.json; the save path is temp-then-move; the write lands after the app's last log line. Candidates: the installer run between sessions, host shutdown killing a write (would leave a .tmp, not an empty file), another tool on the sim PC. The size-logged saves are the instrument for the next flight."
+    },
+    {
+      "id": "fo-roster-daily-draw",
+      "issue": 194,
+      "state": "open",
+      "kind": "assert-present",
+      "machine": {
+        "kind": "required-fields",
+        "type": "persona.rosterDraw",
+        "fields": [
+          "id",
+          "reason",
+          "name",
+          "drawnFor"
+        ]
+      },
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "Only with persona.enabled = true and persona.roster.mode = daily (off by default). Trigger: a duty day started (day.started, day mode on) or the first Preflight of a session on a new sim calendar day (phase-changed to Preflight, day mode off).",
+        "assert-present: ONE persona.rosterDraw per duty day / sim day carrying id, reason (day.started | sim-day | voice | web), name, experience, formality, chattiness, confidence, hoursOnType, voice, previousId and drawnFor (day:<dayId> or sim:yyyy-MM-dd); its id differs from the previous draw's id when fo-roster.json holds more than one officer (compare with previousId, and with the last persona.rosterDraw of the previous day's session).",
+        "assert-present: every Preflight edge records persona.foOnDuty {id, name, drawnFor} with the same id as the draw — the debrief / logbook / day leg read the name from it.",
+        "assert-present (persona.roster.gateIntro on): ONE persona.gateIntro per draw, in Preflight, before any briefing.spoken of that leg, whose text opens with the sim clock's greeting word ('Morning captain, …' / 'Captain, …' when the clock is unknown — never a wrong time of day) and names the hours rounded to the nearest hundred (omitted at 0); the speech.spoken that follows is tagged persona.gateIntro at Low priority.",
+        "assert-absent: a second persona.rosterDraw with the same drawnFor in one day (a restart mid-day keeps the FO — the log line 'FO roster: … drawn for …' appears once per stamp); a persona.rosterDraw while persona.roster.mode = pinned (the log says 'pinned'); a persona.gateIntro twice for one drawnFor; any aircraft write from the roster (nothing in this feature writes).",
+        "watch: 'fo-roster.json: …' warnings (a skipped entry) and 'fo-roster.json unreadable' — the Config page shows the same problem; 'the sim's calendar day is not available — the UTC wall date stands in' means the LOCAL YEAR / LOCAL DAY OF YEAR SimVars never pushed (report it: the roster then draws per wall date, not sim date).",
+        "requires-human: the FO's voice changed to the drawn officer's provider:id voice when fo-roster.json names one (the 'Voice' column on the Roster card), the LLM-styled briefing reads in the drawn persona (name, experience, confidence), and the persona fields on the FO Persona card read 'Overridden by the roster'."
+      ],
+      "notes": "Package 1 of the November 2026 immersion batch (issue #194, branch release/0.8.0-rc.24). Core FoRosterService / FoRosterDraw / FoRosterTriggerCore / FoRosterStateFile (fo-roster-state.json beside daystate.json), Speech FoRosterVoiceFeature (precedence 305), the confidence axis in PersonaService.Fragment, the FO voice through RoleVoiceResolver's FirstOfficer branch, the sim date from SimLocalTime.LocalDate. Unverified live."
     }
   ]
 }

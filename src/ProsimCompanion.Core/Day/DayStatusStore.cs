@@ -14,7 +14,8 @@ public sealed record DayLegView(
     int? BlockMinutes,
     bool Landed,
     bool? Stabilized,
-    string? Deviation)
+    string? Deviation,
+    string? FoName = null)
 {
     /// <summary>True once the leg has an actual on-blocks time.</summary>
     public bool Completed => !string.IsNullOrEmpty(ActualOnUtc);
@@ -23,11 +24,14 @@ public sealed record DayLegView(
 /// <summary>Everything the web Day page renders, plus the debrief's day-context line.
 /// <see cref="View"/> is null when no day exists (never started, or state file absent).</summary>
 /// <param name="Fdp">The FDP picture (issue #189); null with the warning off or no day.</param>
+/// <param name="DayId">The open (or last) day's id (issue #194: the FO roster draws per day id);
+/// null when no day exists.</param>
 public sealed record DaySnapshot(
     DayView? View,
     IReadOnlyList<DayLegView> Legs,
     string? DebriefContextLine,
-    FdpStatus? Fdp = null)
+    FdpStatus? Fdp = null,
+    string? DayId = null)
 {
     public static DaySnapshot Empty { get; } = new(null, [], null);
 }

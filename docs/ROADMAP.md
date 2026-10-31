@@ -971,6 +971,37 @@ live** until a flight confirms it.
 - [x] Manual chapter 12, integration note `docs/integrations/cockpit-switches.md`, seven
       language packs.
 
+## Phase 12 — November 2026 immersion batch
+
+Four packages, one GitHub issue each, built sequentially on `release/0.8.0-rc.24` (the branch
+checked out on the dev machine, per the branching rule). The theme: the First Officer as a
+person — who they are today, what they say in the cruise, the walkaround, and the rare
+non-normal that gives the ECAM dialogue a cause. New features default **off** and are
+**Unverified live** until a flight confirms them.
+
+- [x] **FO roster — a different First Officer each duty day** (#194, package 1): Core
+      `FoRosterEntry` / `FoRosterFile` (parse of `fo-roster.json`, six seeded FOs),
+      `FoRosterDraw` (never the previous id when the pool allows), `FoRosterService` +
+      `IFoRosterService` (last-write-time reload, `Current` / `Draw` / `Pin` / `Release`,
+      `fo-roster-state.json` beside `daystate.json` so a restart keeps the draw),
+      `FoRosterTriggerCore` (the duty day id with day mode on, else the sim's local calendar
+      day — `ISimLocalTime.LocalDate` from the new `LOCAL YEAR` / `LOCAL DAY OF YEAR` SimVars —
+      at the first Preflight), `FoRosterChangeStore` (the "change First Officer now?" captain's
+      question); `PersonaOptions.Confidence` + `PersonaRosterOptions` (`persona.roster.mode`
+      off | daily | pinned, `gateIntro`); Speech `PersonaService.Effective` / `Fragment` with the
+      confidence clause, `FoRosterVoiceFeature` (precedence 305: the triggers, the gate intro
+      at Low priority, "who's flying with me today", "new first officer"), the FO voice through
+      `RoleVoiceResolver`'s FirstOfficer branch (the roster FO's `provider:id` rides the
+      voice-override slot so its provider is promoted); the Roster card on the FO Persona page
+      with the four person fields greyed "overridden by the roster"; `FoName` on
+      `DebriefFacts`, the logbook flight (+ CSV), the day leg (Duty Day pill). Events
+      `persona.rosterDraw`, `persona.foOnDuty`, `persona.gateIntro`; probe
+      `fo-roster-daily-draw`. **Unverified live** — the sim date SimVars, the voice promotion
+      and the LLM-styled intro in particular.
+- [ ] **Cruise small talk (sterile-cockpit aware)** (package 2) — not started.
+- [ ] **FO exterior walkaround** (package 3) — not started.
+- [ ] **Scenario mode: scheduled non-normals** (package 4, design-first) — not started.
+
 ## Open items (after the rc.5 batch, 2026-10-11)
 
 Nothing on this roadmap is open as code. What remains:

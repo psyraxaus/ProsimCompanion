@@ -162,6 +162,10 @@
                                     {
                                         <span class="pill tone-bad">@leg.Deviation</span>
                                     }
+                                    @if (!string.IsNullOrWhiteSpace(leg.FoName))
+                                    {
+                                        <span class="pill tone-neutral" title="@T["day.foOnLeg"]">@T["day.foOnLegPill", leg.FoName]</span>
+                                    }
                                 </div>
                             </div>
                         </li>

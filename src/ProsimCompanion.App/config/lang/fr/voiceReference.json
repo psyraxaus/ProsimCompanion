@@ -179,6 +179,11 @@
         "start": "Démarre la journée de service compagnie.",
         "end": "La termine par un résumé et la clôture du carnet de vol."
       },
+      "roster": {
+        "title": "First Officer roster",
+        "who": "Names the First Officer on duty, their experience and hours on the type.",
+        "new": "Draws a different First Officer now, after you confirm."
+      },
       "fuelCheck": {
         "title": "Fuel check",
         "check": "Carburant à bord face au plan SimBrief à ta position, et carburant estimé à l'atterrissage face au chiffre prévu. Aussi automatique en croisière."

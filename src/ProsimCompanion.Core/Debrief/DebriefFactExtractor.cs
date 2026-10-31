@@ -106,6 +106,7 @@ public sealed class DebriefFactExtractor : IDebriefFactExtractor
             string? delayCode = null;
             int? delayMinutes = null;
             bool? onTime = null;
+            string? foName = null; // the roster FO on this leg (issue #194)
 
             // failure id → (title, cleared); insertion-ordered so the debrief reads them in
             // the order they happened.
@@ -338,6 +339,16 @@ public sealed class DebriefFactExtractor : IDebriefFactExtractor
                             break;
                         }
 
+                        case "persona.foOnDuty":
+                        case "persona.rosterDraw":
+                        case "persona.gateIntro":
+                        {
+                            // Issue #194: the roster FO on this leg; the last stamp wins (a
+                            // mid-day re-draw changes who flew the rest of the leg).
+                            foName = Str(payload, "name") ?? foName;
+                            break;
+                        }
+
                         case "flight.route":
                         {
                             var airport = Str(payload, "airport");
@@ -467,7 +478,8 @@ public sealed class DebriefFactExtractor : IDebriefFactExtractor
                 // The delay from the stamps when the movement service did not judge it.
                 delayMinutes ?? Aircraft.Acars.MovementMessageComposer.DelayMinutes(scheduledOut, stampOff),
                 onTime,
-                rejectedTakeoffs);
+                rejectedTakeoffs,
+                foName);
         }
         catch (Exception ex)
         {

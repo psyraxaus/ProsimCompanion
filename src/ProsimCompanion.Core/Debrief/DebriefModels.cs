@@ -64,7 +64,8 @@ public sealed record DebriefFacts(
     string? DelayCode = null,
     int? DelayMinutes = null,
     bool? OnTime = null,
-    int RejectedTakeoffs = 0)
+    int RejectedTakeoffs = 0,
+    string? FoName = null)
 {
     public static DebriefFacts Empty { get; } = new(
         null, null, null, null, [], 0, 0, 0, [],

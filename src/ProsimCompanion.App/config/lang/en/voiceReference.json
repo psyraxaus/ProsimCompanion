@@ -179,6 +179,11 @@
         "start": "Starts the company duty day.",
         "end": "Ends it with a summary and the logbook fold."
       },
+      "roster": {
+        "title": "First Officer roster",
+        "who": "Names the First Officer on duty, their experience and hours on the type.",
+        "new": "Draws a different First Officer now, after you confirm."
+      },
       "fuelCheck": {
         "title": "Fuel check",
         "check": "Fuel on board against the SimBrief plan at your position, and the estimated landing fuel against the planned figure. Also automatic in the cruise."

@@ -501,3 +501,24 @@ The opt-in chat path of the FO question: a question with no flight word, answere
 knowledge in character, numbers not verified but a flight-data figure refused. "Let me check."
 hands the question back to the strict path.
 _Avoid_: chat mode, banter mode
+
+**Roster**:
+The pool of First Officers in `fo-roster.json` and the one on duty today. A **draw** picks one
+at random, never the previous day's when the pool allows, once per duty day (the company day
+id) or per sim calendar day at the first Preflight (day mode off); a restart mid-day keeps the
+draw (`fo-roster-state.json`). A **pin** fixes one FO until released. While the roster is
+active the drawn FO's name, experience, formality, chattiness and confidence are the
+**effective persona** every LLM composition reads; the persona settings describe nobody.
+_Avoid_: crew list, FO pool, random FO
+
+**Confidence**:
+The fourth persona axis — nervous (double-checks, reads back carefully, asks rather than
+assumes), steady (no clause at all), assured (concise, states things, does not ask). Wording
+and tone only; the never-change-a-fact sentence stands for every combination.
+_Avoid_: assertiveness, seniority (that is experience)
+
+**Gate intro**:
+The FO's one self-introduction per duty day, at the first Preflight after the draw and before
+any briefing: the sim clock's greeting word, their name, "I'll be your First Officer today",
+the hours on type to the nearest hundred. Low priority — anything operational outranks it.
+_Avoid_: FO greeting (ambiguous with the briefing's opening), welcome line

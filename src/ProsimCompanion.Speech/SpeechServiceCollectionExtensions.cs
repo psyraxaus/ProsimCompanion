@@ -283,6 +283,11 @@ public static class SpeechServiceCollectionExtensions
         // "Quiet please" latch + its Low-band suppression rule (consumed by the arbiter).
         services.AddSingleton<Persona.QuietState>();
         services.AddVoiceFeature<Persona.SmallTalkService>();
+        // The FO roster's Speech shell (issue #194): when to draw, the gate intro, "who's
+        // flying with me today" / "new first officer" (the re-draw behind a captain's question).
+        services.AddStartupModule<Persona.FoRosterVoiceFeature>();
+        services.AddVoiceFeature<Persona.FoRosterVoiceFeature>();
+        services.AddSingleton(Persona.FoRosterChangePhrases.Table);
         // The roster: every IVoiceFeature above in its DECLARED dispatch order — the router and
         // the "what can I say?" drawer (issue #136) consume this, never the registration order.
         services.AddSingleton<VoiceFeatureRoster>();

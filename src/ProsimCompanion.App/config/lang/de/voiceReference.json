@@ -179,6 +179,11 @@
         "start": "Startet den Company-Diensttag.",
         "end": "Beendet ihn mit einer Zusammenfassung und dem Logbuch-Abschluss."
       },
+      "roster": {
+        "title": "First Officer roster",
+        "who": "Names the First Officer on duty, their experience and hours on the type.",
+        "new": "Draws a different First Officer now, after you confirm."
+      },
       "fuelCheck": {
         "title": "Fuel Check",
         "check": "Kraftstoff an Bord gegen den SimBrief-Plan an deiner Position und der geschätzte Landekraftstoff gegen den Planwert. Im Reiseflug auch automatisch."

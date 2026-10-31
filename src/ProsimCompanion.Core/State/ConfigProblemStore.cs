@@ -15,6 +15,9 @@ public static class ConfigAreas
     /// <summary>The curated cruise region facts (issue #122), <c>region-facts.json</c>.</summary>
     public const string RegionFacts = "region-facts";
 
+    /// <summary>The FO roster (issue #194), <c>fo-roster.json</c>.</summary>
+    public const string FoRoster = "fo-roster";
+
     /// <summary>The optional HTTPS listener (ADR-0013): a certificate that could not be used.</summary>
     public const string WebHttps = "webUi.https";
 }

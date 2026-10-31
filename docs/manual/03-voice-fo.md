@@ -363,6 +363,37 @@ When enabled, the FO gets a personality:
   used by both the persona and the plain round-robin).
 - Say **"quiet please"** to silence chatter for the rest of the session (checklists and
   callouts are never chatter).
+- **Confidence** (nervous / steady / assured) is the fourth axis: a nervous FO double-checks
+  and asks, an assured one states; steady adds nothing, so an existing persona reads as before.
+
+### A different First Officer each day (the roster)
+
+Off by default — the **Roster** card on the same page (`persona.roster.mode`). With it on
+**daily**, a different FO is drawn each duty day from
+`%LOCALAPPDATA%\ProsimCompanion\config\fo-roster.json` (six are shipped; edit the file to
+make your own crew — each entry has an `id`, `name`, `experience`, `formality`, `chattiness`,
+`confidence`, `hoursOnType`, `base` and an optional `voice`). The draw happens when the duty
+day starts (company day mode on) or at the first preflight of a new sim calendar day (day
+mode off — the sim's own date, not your PC's clock), never repeats yesterday's FO, and
+survives an app restart mid-day. **Pinned** keeps the FO you pin on the card until you press
+Release; **Draw again** draws now.
+
+- While the roster is on, the drawn FO's name, experience, formality, chattiness and
+  confidence replace the four persona fields above (they read "overridden by the roster" and
+  are greyed). The style switches and "quiet please" work as before.
+- A `voice` of the form `provider:id` gives that FO their own voice for every FO line —
+  Kokoro ids are the ones the Voices page lists (`kokoro:af_sky`, `kokoro:bm_lewis`, …),
+  ElevenLabs ids work as `elevenlabs:<voiceId>`. No voice = the configured First Officer voice.
+- **Gate introduction** (on): once per duty day, at the first preflight, the FO says *"Morning
+  captain, Sam here, I'll be your First Officer today — about 2400 hours on the type."* (the
+  sim clock picks the greeting word; a nervous FO adds "Looking forward to it."). Low
+  priority — anything operational talks over it.
+- Say **"who's flying with me today"** (or **"who's my first officer"**) for the name, the
+  experience and the hours; **"new first officer"** draws a different FO now, after the FO
+  asks *"Change First Officer now, captain — are you sure?"* (yes / no, also on the open
+  questions card).
+- The FO's name is recorded on the leg: the logbook flight (and its CSV export, last column
+  `foName`) and the Duty Day page's leg row.
 
 ## Voices
 
