@@ -73,6 +73,15 @@
     "railLabel": "Instellingensecties",
     "showAdvanced": "Geavanceerde instellingen tonen",
     "showAdvanced.title": "Toon de fijnafstelvelden (time-outs, intervallen, drempels) op elke instellingenpagina",
+    "search": {
+      "placeholder": "Search settings…",
+      "hint": "Type a word: the cards and rail entries whose texts contain it. Enter opens the first hit.",
+      "noResults": "Nothing matches"
+    },
+    "cards": {
+      "collapseAll": "Collapse all",
+      "expandAll": "Expand all"
+    },
     "pillarOff": {
       "gsx": "De GSX-grondservices staan uit.",
       "speech": "De spraak-First Officer staat uit.",
@@ -106,6 +115,8 @@
       "gsx.questions": "GSX-vragen",
       "gsx.connection": "Verbinding & time-outs",
       "speech": "Spraak-First Officer",
+      "flightDeck": "Flight Deck",
+      "crew": "Crew & Company",
       "speech.status": "Status",
       "speech.general": "Algemeen",
       "speech.persona": "FO-persona",

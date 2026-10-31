@@ -134,6 +134,7 @@ public sealed partial class SettingsPagesRenderTests
         services.AddSingleton<IOptionsMonitor<WebUiOptions>>(new FixedOptionsMonitor<WebUiOptions>(new WebUiOptions { Language = "en", ShowAdvancedSettings = true }));
         services.AddTestLocalizer();
         services.AddSingleton<AdvancedSettingsStore>();
+        services.AddScoped<SectionFoldStore>();
         services.AddSingleton<NavigationManager>(new TestNavigationManager("http://localhost/" + path));
         services.AddSingleton<ILoggerFactory>(NullLoggerFactory.Instance);
         services.AddSingleton(typeof(ILogger<>), typeof(NullLogger<>));

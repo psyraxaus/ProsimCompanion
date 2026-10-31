@@ -44,6 +44,10 @@
       "chooseOutputFile": "앱이 파일을 쓸 위치 선택",
       "addFolder": "이 PC의 폴더 추가"
     },
+    "section": {
+      "collapse": "Collapse this card",
+      "expand": "Expand this card"
+    },
     "advanced": {
       "hidden": "고급 설정 숨김",
       "show": "고급 설정 표시",

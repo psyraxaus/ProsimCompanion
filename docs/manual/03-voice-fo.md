@@ -47,7 +47,7 @@ default).
 ### Ask the First Officer
 
 Everything above is an exact phrase. With **Ask the First Officer** switched on (Settings →
-Voice First Officer → Briefings & LLM) you can also just ask: *"what is our fuel on board"*,
+Flight Deck → Briefings & LLM) you can also just ask: *"what is our fuel on board"*,
 *"how long to top of descent"*, *"tell me the destination weather"*, *"are we above the
 minimum takeoff fuel"*, *"what time do we land"*. The rule: the utterance starts with one of
 the question lead-ins (what, how, when, tell me, are we, question…), is at least four words
@@ -164,7 +164,7 @@ transponder, TCAS, ADIRS and flight-control lines). When an open tech-log item i
 system — its **System** field on the Tech Log page, or a word of its title ("APU inoperative"
 matches `apu`) — the FO challenges the line as *"A P U — note, open tech log item: APU
 inoperative."*, once per item per run; the line still verifies exactly as before. Switch:
-Settings → Voice First Officer → Tech Log & MEL → **Flag checklist lines**.
+Settings → Crew & Company → Tech Log & Logbook → **Flag checklist lines**.
 
 ## Callouts & monitoring
 
@@ -172,7 +172,7 @@ SOP callouts (thrust set, one hundred, V1, rotate, positive climb, transition, o
 to-go, approach 1000/500, minimums, rollout calls) fire from live data; minimums arm only
 from the minima you enter on the First Officer page. Stabilized-approach gates call
 *"stabilized"* or *"unstable, go around"* at the 1000 ft gate. The gates are yours to set —
-airlines differ — on **Settings → Voice First Officer → Callouts & Placards → Approach
+airlines differ — on **Settings → Flight Deck → Callouts & Placards → Approach
 Gates**: per gate the height, whether the gear must be down, the minimum flap lever, the
 speed band around VLS, the maximum sink rate, and whether a pass is spoken. Add a gate (a
 1500 ft gate, say) or remove one. The same page holds the flap and gear placard speeds and
@@ -186,7 +186,7 @@ call, the minima crossing — is your own PFD altitude (the captain's side, or t
 when **Your seat** is right): QNH-corrected below the transition, the pressure altitude on
 standard. The true altitude is used only while ProSim has not yet sent the PFD value.
 
-**Transition reminders** (Settings → Voice First Officer → Callouts & Placards → Transition
+**Transition reminders** (Settings → Flight Deck → Callouts & Placards → Transition
 Reminders, off by default): the FO reminds you to set the altimeter when you have not.
 Climbing through the departure airport's transition altitude still on QNH: *"Transition
 altitude. Standard, please."* Descending through the destination's transition level still on
@@ -288,7 +288,7 @@ without HL).
 
 ### FO works the radios (SayIntentions)
 
-Settings → Voice First Officer → SayIntentions → **FO works the radios** (off by default). The
+Settings → Flight Deck → SayIntentions → **FO works the radios** (off by default). The
 SayIntentions copilot is switched off and your FO does its job in one voice: every ATC
 instruction is read back and closed with your callsign (*"Climb FL140, Speedbird 850."*,
 *"Contacting Tower on 119.355, Speedbird 850."*), COM1 is tuned on a hand-off (standby first,
@@ -316,7 +316,7 @@ comes from MSFS, not from the PC clock, and when MSFS is not running the FO open
   fix names from your SimBrief plan, then the Navigraph database; a fix neither knows is
   spelled phonetically. The FO's radio check-ins use the same names. With an LLM configured the wording is
   natural and the FO starts speaking after the model's first sentence, not after the whole
-  reply (Settings → Voice First Officer → LLM Styling → **Speak while the model writes**, on by
+  reply (Settings → Flight Deck → Briefings & LLM → **Speak while the model writes**, on by
   default; the same switch covers the debrief). Every sentence is checked before it is spoken
   — numbers written as words included — and if one is wrong, or the model stops, the plain
   template finishes the briefing without starting again. A safety callout (minimums, V1) cuts
@@ -325,9 +325,9 @@ comes from MSFS, not from the PC clock, and when MSFS is not running the FO open
   floor. With open tech-log items the departure briefing ends with *"Open tech log items:
   …"* (three titles, then "and N more"); the arrival briefing names only the items that
   bear on the landing — MEL category A or B, or anything about brakes, gear, spoilers,
-  reversers, autobrake or anti-skid (Settings → Voice First Officer → Tech Log & MEL →
+  reversers, autobrake or anti-skid (Settings → Crew & Company → Tech Log & Logbook →
   **Open items in the briefings**).
-- **Emergency brief and threats** (Settings → Voice First Officer → Briefings & LLM →
+- **Emergency brief and threats** (Settings → Flight Deck → Briefings & LLM →
   **Emergency Briefing & Threats**, off by default). With **Takeoff emergency brief** on, the
   departure briefing ends the way a line crew briefs it: the rejected-takeoff split (*below one
   hundred knots we stop for any ECAM caution or master warning, engine failure, fire, or if the
@@ -347,7 +347,7 @@ comes from MSFS, not from the PC clock, and when MSFS is not running the FO open
   server. **Arrival go-around brief** adds the missed-approach altitude, the MSA and *go around,
   flaps, positive climb gear up, navigation, …* with the published legs after the minimums.
 - Radio management: *"set one two one decimal nine"*, box selection, standby-then-swap only.
-- SayIntentions comms hand-over (Settings → Voice First Officer → SayIntentions → **Comms
+- SayIntentions comms hand-over (Settings → Flight Deck → SayIntentions → **Comms
   hand-over**, off by default): the SayIntentions copilot works the radios at the gate, on
   the taxi and in the cruise; the FO reads the taxi clearance and announces each hand-off.
   Close to the departure runway the FO says *"Comms are yours, Captain"* — the takeoff
@@ -412,7 +412,7 @@ Release; **Draw again** draws now.
 
 ### Small talk in the cruise
 
-Off by default — the **Small Talk** card on Voice First Officer → Briefings & LLM
+Off by default — the **Small Talk** card on Flight Deck → Briefings & LLM
 (`smallTalk.enabled`). A few times per flight, in the cruise, after a stretch of silence, the
 FO says something that is not about the flight:
 
@@ -436,7 +436,7 @@ checked against the facts; otherwise the built-in line speaks.
 
 ### The walkaround
 
-Off by default — the **Walkaround** card on Voice First Officer → Ground Crew
+Off by default — the **Walkaround** card on Crew & Company → Ground Crew
 (`groundCrew.walkaround.enabled`). Once per departure, when the aircraft is parked with the
 engines off and the ground preparation (jetway or stairs) has completed, the FO says *"I'll do
 the walkaround, captain"* and is away for six to ten minutes:
@@ -462,7 +462,7 @@ A restart mid-turnaround never repeats a walk already done.
 
 ### Scenario mode — something goes wrong, rarely
 
-Off by default — the **Scenarios** card on Voice First Officer → ECAM Abnormals
+Off by default — the **Scenarios** card on Flight Deck → Abnormals & Drills
 (`scenario.enabled`). About one flight in ten (**Chance per flight**, 0.10) the app arms one
 minor failure in ProSim at a random moment: a pack fault, a bleed fault, a generator, a fuel
 pump low pressure, a hydraulic reservoir, an IR fault, hot brakes after landing. The FO
@@ -546,7 +546,7 @@ doors close with the beacon on, and *"cabin secure for landing"* on approach. Ea
 rings the interphone chime, the header shows CABIN CALLING, and the purser waits until CAB
 is selected on an audio panel (or the grace runs out) before speaking; the FO acknowledges.
 
-**FO answers cabin calls** (Settings → Voice First Officer → Cabin Crew; off by default):
+**FO answers cabin calls** (Settings → Crew & Company → Cabin Crew; off by default):
 on the ground — during pushback, engine start and taxi-out — and/or in the air — descent and
 approach — the FO answers the call for you after the delay you set (4 s on the ground,
 2.5 s in the air), the report plays and the FO acknowledges it, then the FO deselects CAB
@@ -558,7 +558,7 @@ selection: select CAB during the delay and the call is yours.
 
 ### The purser's cruise query
 
-**Purser cruise query** (Settings → Voice First Officer → Cabin Crew, off by default) has
+**Purser cruise query** (Settings → Crew & Company → Cabin Crew, off by default) has
 the purser call the flight deck once per flight: about ten minutes into the cruise (your
 setting, give or take thirty percent), the chime rings, the purser waits for CAB as for every
 report, and asks *"Flight deck, cabin. Any update on arrival time or turbulence for the
@@ -581,7 +581,7 @@ To set up ElevenLabs — key, plan, cost — follow the
 
 ### Movement messages and delay codes
 
-**Movement messages** (Settings → Voice First Officer → Company & Debrief, off by default)
+**Movement messages** (Settings → Crew & Company → Company & Debrief, off by default)
 has the company receive the airline's MVT telex twice a flight: at take-off, with your
 off-blocks and airborne times and the estimated arrival (*AD 1022/1035 EA 1240 LIRF*), and on
 blocks, with the landing and on-blocks times (*AA 1203/1210*). The messages arrive in the
@@ -603,7 +603,7 @@ and the words you say for them; your edits survive updates.
 
 ### Turbulence and the captain's PA
 
-**Detect turbulence** (Settings → Voice First Officer → Cabin Crew → Turbulence, off by
+**Detect turbulence** (Settings → Crew & Company → Cabin Crew → Turbulence, off by
 default) watches the aircraft's vertical acceleration and judges the ride: none, light,
 moderate or severe. A chip in the Flight Status hero shows the level while it is rough. The
 raw value's unit is not documented by ProSim, so the app learns it while you are parked: the
@@ -638,7 +638,7 @@ are editable under Cabin Wording.
 
 ### Rejected takeoff and engine failure after V1
 
-**Rejected takeoff** (Settings → Voice First Officer → ECAM Abnormals, off by default) gives
+**Rejected takeoff** (Settings → Flight Deck → Abnormals & Drills, off by default) gives
 the FO the two most-trained takeoff events. On the roll, say *"stop"* or *"reject"* — the FO
 hears that word before anything else — or pull both thrust levers to idle above 40 knots. Below
 100 knots the FO goes straight to the calls; above it the FO first reads *"Stop!"* back. Then the
@@ -663,7 +663,7 @@ ground with *"engine failure after V1"*. The drill is a JSON file like the other
 
 ### The FO's own side: altimeter, ND and the cross-check
 
-Three switches under Settings → Voice First Officer → MCDU → **FO-side duties**, all off by
+Three switches under Settings → Flight Deck → MCDU → **FO-side duties**, all off by
 default. They let the FO do what a pilot monitoring does on their own side — and nothing on
 yours.
 
@@ -695,7 +695,7 @@ left one and all of this applies there.
 
 ### Step-climb advice and the FDP warning
 
-**Step-climb advice** (Settings → Voice First Officer → Callouts & Placards → In-flight
+**Step-climb advice** (Settings → Flight Deck → Callouts & Placards → In-flight
 monitoring, off by default) reads the planned steps off your SimBrief navlog — every fix where
 the planned altitude goes up after the top of climb. In the cruise, when the next step fix is
 within the lead distance (20 nautical miles unless you change it) and you are still below the
@@ -704,7 +704,7 @@ captain."* With SayIntentions on, the FO adds *"say request climb when you want 
 *"request climb"* asks ATC for the planned level. Ask *"when is our next step?"* at any time for
 the level, the fix and the distance. The FO only advises; the climb is yours and ATC's.
 
-**FDP warning** (Settings → Voice First Officer → Company & Debrief → Company day, off by default)
+**FDP warning** (Settings → Crew & Company → Company & Debrief → Company day, off by default)
 estimates your flight duty period in day mode. The report time is the one in your rotation file,
 or the day's first session start minus the report lead (60 minutes unless you change it). The
 maximum is the EASA ORO.FTL.205 basic table for the report hour and the number of sectors

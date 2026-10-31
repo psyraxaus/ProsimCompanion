@@ -25,7 +25,7 @@ public sealed class AbnormalsOptions : IOptionSection
 
     /// <summary>Pilot-response window per dialogue prompt, seconds (Prosim2FO default 20,
     /// clamped to at least 3 at use).</summary>
-    [OptionField(FieldKind.Number, "speechSettings.abnormals.answerWindow", Suffix = "s", Min = "3", Max = "120", DependsOn = "Enabled; InteractiveDialogue")]
+    [OptionField(FieldKind.Number, "speechSettings.abnormals.answerWindow", Suffix = "s", Min = "3", Max = "120", DependsOn = "Enabled; InteractiveDialogue", Advanced = true)]
     public int ConfirmTimeoutSeconds { get; set; } = 20;
 
     /// <summary>Verification mismatches tolerated before the FO offers continue / standby

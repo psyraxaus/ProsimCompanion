@@ -73,6 +73,15 @@
     "railLabel": "Sections des réglages",
     "showAdvanced": "Afficher les réglages avancés",
     "showAdvanced.title": "Révèle les champs de réglage fin (délais, intervalles, seuils) sur chaque page de réglages",
+    "search": {
+      "placeholder": "Search settings…",
+      "hint": "Type a word: the cards and rail entries whose texts contain it. Enter opens the first hit.",
+      "noResults": "Nothing matches"
+    },
+    "cards": {
+      "collapseAll": "Collapse all",
+      "expandAll": "Expand all"
+    },
     "pillarOff": {
       "gsx": "Les services au sol GSX sont désactivés.",
       "speech": "Le copilote vocal est désactivé.",
@@ -106,6 +115,8 @@
       "gsx.questions": "Questions GSX",
       "gsx.connection": "Connexion et délais",
       "speech": "Copilote vocal",
+      "flightDeck": "Flight Deck",
+      "crew": "Crew & Company",
       "speech.status": "État",
       "speech.general": "Général",
       "speech.persona": "Personnalité du FO",

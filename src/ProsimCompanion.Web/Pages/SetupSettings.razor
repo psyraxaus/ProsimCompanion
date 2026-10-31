@@ -50,11 +50,41 @@
     </AdvancedFields>
 </Section>
 
+<Section Title="@T["setup.navData.title"]" Hint="@T["setup.navData.hint"]">
+    <OptionField Draft="_briefing" For="o => o.DfdPath" />
+</Section>
+
+<Section Title="@T["setup.web.title"]" Hint="@T["setup.web.hint"]">
+    <OptionField Draft="_webUi" For="o => o.Port" />
+    <OptionField Draft="_webUi" For="o => o.BindToAllInterfaces" />
+
+    @* The optional HTTPS listener (issue #150, ADR-0013, design A). Here and not in the desktop
+       window on purpose: a wrong value cannot lock anyone out, because HTTP keeps serving. *@
+    <div class="label-caps" style="margin:14px 0 6px;">@T["setup.web.httpsHeading"]</div>
+    <OptionField Draft="_webUi" For="o => o.Https.Enabled" />
+    <OptionField Draft="_webUi" For="o => o.Https.Port" />
+    <OptionField Draft="_webUi" For="o => o.Https.PfxPath" />
+    <OptionField Draft="_webUi" For="o => o.Https.PfxPassword" />
+    <SecretUnreadableHint Path="webUi:https:pfxPassword" />
+    <div class="field" style="align-items:center;">
+        <label class="field-label">
+            @T["setup.web.status"]
+            <FieldHint Hint="@HttpsStatusHint" />
+        </label>
+        <div class="field-control">
+            <span class="pill @HttpsTone">@HttpsLabel</span>
+        </div>
+    </div>
+    <div class="field-hint" style="max-width:640px;">
+        @T["setup.web.tabletHintBefore"] <code>docs\manual\07-tablet-install.md</code> @T["setup.web.tabletHintAfter"]
+    </div>
+</Section>
+
 @* The ProSim setup check (owner request 2026-10-06). ProSim's IOS options are datarefs
    (system.config.*): the app reads the ones it depends on at every connection and shows which
    differ. It changes nothing on its own — "Apply recommended" is the only write, and every
    written value is read back. "Keep as is" per row silences that row for good. *@
-<Section Title="@T["setup.setupCheck.title"]" Hint="@SetupCheckHint">
+<Section Title="@T["setup.setupCheck.title"]" DefaultFolded="true" Hint="@SetupCheckHint">
     <OptionField Draft="_prosim" For="o => o.SetupCheckEnabled" />
     @if (!_prosim.Value.SetupCheckEnabled)
     {
@@ -118,13 +148,9 @@
     }
 </Section>
 
-<Section Title="@T["setup.navData.title"]" Hint="@T["setup.navData.hint"]">
-    <OptionField Draft="_briefing" For="o => o.DfdPath" />
-</Section>
-
 @* ActiveSky weather source (Phase 6) and the update check — settings.json only until the
    2026-10-08 audit. *@
-<Section Title="@T["setup.weather.title"]" Hint="@T["setup.weather.hint"]">
+<Section Title="@T["setup.weather.title"]" DefaultFolded="true" Hint="@T["setup.weather.hint"]">
     <OptionField Draft="_weather" For="o => o.ActiveSkySnapshotPath" />
     <OptionField Draft="_weather" For="o => o.UseActiveSkyApi" />
     <AdvancedFields>
@@ -134,33 +160,7 @@
     </AdvancedFields>
 </Section>
 
-<Section Title="@T["setup.web.title"]" Hint="@T["setup.web.hint"]">
-    <OptionField Draft="_webUi" For="o => o.Port" />
-    <OptionField Draft="_webUi" For="o => o.BindToAllInterfaces" />
-
-    @* The optional HTTPS listener (issue #150, ADR-0013, design A). Here and not in the desktop
-       window on purpose: a wrong value cannot lock anyone out, because HTTP keeps serving. *@
-    <div class="label-caps" style="margin:14px 0 6px;">@T["setup.web.httpsHeading"]</div>
-    <OptionField Draft="_webUi" For="o => o.Https.Enabled" />
-    <OptionField Draft="_webUi" For="o => o.Https.Port" />
-    <OptionField Draft="_webUi" For="o => o.Https.PfxPath" />
-    <OptionField Draft="_webUi" For="o => o.Https.PfxPassword" />
-    <SecretUnreadableHint Path="webUi:https:pfxPassword" />
-    <div class="field" style="align-items:center;">
-        <label class="field-label">
-            @T["setup.web.status"]
-            <FieldHint Hint="@HttpsStatusHint" />
-        </label>
-        <div class="field-control">
-            <span class="pill @HttpsTone">@HttpsLabel</span>
-        </div>
-    </div>
-    <div class="field-hint" style="max-width:640px;">
-        @T["setup.web.tabletHintBefore"] <code>docs\manual\07-tablet-install.md</code> @T["setup.web.tabletHintAfter"]
-    </div>
-</Section>
-
-<Section Title="@T["setup.streamDeck.title"]" Hint="@T["setup.streamDeck.hint"]">
+<Section Title="@T["setup.streamDeck.title"]" DefaultFolded="true" Hint="@T["setup.streamDeck.hint"]">
     <OptionField Draft="_commandApi" For="o => o.Enabled" />
     <div class="field-hint" style="max-width:560px;">
         @T["setup.streamDeck.pairHint"]
@@ -171,7 +171,7 @@
    button, so ChasePlane views bound to vJoy buttons can be changed from the second PC. The
    view rows name the buttons input.pressView may press — a remote key never sends a raw
    button number (ADR-0015, review 2026-10-25). *@
-<Section Title="@T["setup.inputRelay.title"]" Hint="@T["setup.inputRelay.hint"]">
+<Section Title="@T["setup.inputRelay.title"]" DefaultFolded="true" Hint="@T["setup.inputRelay.hint"]">
     <OptionField Draft="_inputRelay" For="o => o.Enabled" />
     <OptionField Draft="_inputRelay" For="o => o.VJoyInterfacePath" />
     <OptionField Draft="_inputRelay" For="o => o.VJoyDevice" />
@@ -246,7 +246,7 @@
     var index = i;
     var target = _wake.Value.Targets[index];
     var title = string.IsNullOrWhiteSpace(target.Name) ? T["setup.wake.titleNumbered", index + 1].Value : T["setup.wake.titleNamed", target.Name].Value;
-    <Section Title="@title" Hint="@T["setup.wake.hint"]">
+    <Section Title="@title" Id="@("wake-" + index)" DefaultFolded="true" Hint="@T["setup.wake.hint"]">
         <div class="field" style="align-items:center;">
             <label class="field-label">@T["setup.wake.row"]</label>
             <div class="field-control" style="display:flex; align-items:center; gap:10px; justify-content:flex-end;">
@@ -286,7 +286,7 @@
     </div>
 </Section>
 
-<Section Title="@T["setup.updates.title"]" Hint="@T["setup.updates.hint"]">
+<Section Title="@T["setup.updates.title"]" DefaultFolded="true" Hint="@T["setup.updates.hint"]">
     <OptionField Draft="_updateCheck" For="o => o.Enabled" />
     <OptionField Draft="_updateCheck" For="o => o.IntervalHours" />
 </Section>

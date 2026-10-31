@@ -92,7 +92,7 @@
       "unknown": "NO ASSIGNMENT",
       "noProsim": "PROSIM OFFLINE",
       "off": "SAYINTENTIONS OFF",
-      "offHint": "Switch SayIntentions on under Settings → Voice First Officer → SayIntentions to see which frequency ATC expects",
+      "offHint": "Switch SayIntentions on under Settings → Flight Deck → SayIntentions to see which frequency ATC expects",
       "noAssignment": "SayIntentions has not named a station yet",
       "tune": "Tune",
       "tuneTitle": "Set {0} on COM1 standby and swap it to active (ProSim datarefs)",
@@ -243,7 +243,7 @@
     "cabin": {
       "label": "Cabin",
       "securing": "securing",
-      "securingTitle": "Doors closed and beacon on — the crew is securing the cabin; the report follows when their timer runs out (Settings → Voice First Officer → Cabin Crew).",
+      "securingTitle": "Doors closed and beacon on — the crew is securing the cabin; the report follows when their timer runs out (Settings → Crew & Company → Cabin Crew).",
       "secure": "secure",
       "secureTitle": "The purser has reported the cabin secure for this flight.",
       "noneTitle": "The cabin-secure wait starts when the doors are closed and the beacon is on."

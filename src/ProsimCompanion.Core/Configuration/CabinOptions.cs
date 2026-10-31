@@ -67,7 +67,7 @@ public sealed class CabinOptions : IOptionSection
 
     /// <summary>Wait (ms) between the chime and the FO's answer on the ground — the
     /// predecessor's 4000 ms: the FO is busy with the start/taxi.</summary>
-    [OptionField(FieldKind.Number, "speechSettings.cabin.groundDelay", Suffix = "ms", Min = "0", Step = "100", DependsOn = "Enabled; AutoAnswerGround")]
+    [OptionField(FieldKind.Number, "speechSettings.cabin.groundDelay", Suffix = "ms", Min = "0", Step = "100", DependsOn = "Enabled; AutoAnswerGround", Advanced = true)]
     public int AutoAnswerGroundDelayMs { get; set; } = 4000;
 
     /// <summary>The FO answers a cabin call in descent/approach (the cabin-ready window) after
@@ -77,7 +77,7 @@ public sealed class CabinOptions : IOptionSection
 
     /// <summary>Wait (ms) between the chime and the FO's answer in the air — the
     /// predecessor's 2500 ms.</summary>
-    [OptionField(FieldKind.Number, "speechSettings.cabin.airDelay", Suffix = "ms", Min = "0", Step = "100", DependsOn = "Enabled; AutoAnswerAir")]
+    [OptionField(FieldKind.Number, "speechSettings.cabin.airDelay", Suffix = "ms", Min = "0", Step = "100", DependsOn = "Enabled; AutoAnswerAir", Advanced = true)]
     public int AutoAnswerAirDelayMs { get; set; } = 2500;
 
     /// <summary>Cabin ding when the application starts (Prosim2GSX's DingOnStartup).</summary>
@@ -89,7 +89,7 @@ public sealed class CabinOptions : IOptionSection
     public bool DingOnFinal { get; set; } = true;
 
     /// <summary>Altitude (ft MSL) below which the "cabin ready" report triggers in Descent/Approach.</summary>
-    [OptionField(FieldKind.Number, "speechSettings.cabin.readyBelow", Suffix = "ft MSL", Min = "1000", DependsOn = "Enabled; CabinReady")]
+    [OptionField(FieldKind.Number, "speechSettings.cabin.readyBelow", Suffix = "ft MSL", Min = "1000", DependsOn = "Enabled; CabinReady", Advanced = true)]
     public double CabinReadyBelowAltFt { get; set; } = 10000;
 
     /// <summary>Play the interphone ding-dong before cabin calls. (Collapses the predecessor's
@@ -102,7 +102,7 @@ public sealed class CabinOptions : IOptionSection
     public bool AmbientEvents { get; set; }
 
     /// <summary>Probability (0–1) of a boarding-delay call at the gate, rolled once per flight.</summary>
-    [OptionField(FieldKind.Number, "speechSettings.cabin.boardingDelayProb", Step = "0.05", Min = "0", Max = "1", DependsOn = "Enabled; AmbientEvents")]
+    [OptionField(FieldKind.Number, "speechSettings.cabin.boardingDelayProb", Step = "0.05", Min = "0", Max = "1", DependsOn = "Enabled; AmbientEvents", Advanced = true)]
     public double BoardingDelayProbability { get; set; } = 0.15;
 
     // ---- Purser cruise query (Prosim2FO "Prompt F", over the mic-ownership seam) ----
@@ -119,12 +119,12 @@ public sealed class CabinOptions : IOptionSection
 
     /// <summary>Minutes after the cruise begins before the purser calls, jittered ±30% once
     /// per flight so the call does not land on the same minute every leg.</summary>
-    [OptionField(FieldKind.Number, "speechSettings.cabin.cruiseQueryAfter", Suffix = "min", Min = "0", Max = "180", DependsOn = "Enabled; CruiseQuery")]
+    [OptionField(FieldKind.Number, "speechSettings.cabin.cruiseQueryAfter", Suffix = "min", Min = "0", Max = "180", DependsOn = "Enabled; CruiseQuery", Advanced = true)]
     public int CruiseQueryDelayMinutes { get; set; } = 10;
 
     /// <summary>How long the purser listens for the captain's reply, seconds. The mic is
     /// borrowed for exactly this window; a running checklist holds and resumes.</summary>
-    [OptionField(FieldKind.Number, "speechSettings.cabin.cruiseQueryWindow", Suffix = "s", Min = "3", Max = "60", DependsOn = "Enabled; CruiseQuery")]
+    [OptionField(FieldKind.Number, "speechSettings.cabin.cruiseQueryWindow", Suffix = "s", Min = "3", Max = "60", DependsOn = "Enabled; CruiseQuery", Advanced = true)]
     public int CruiseQueryWindowSeconds { get; set; } = 20;
 
     // ---- Turbulence, cabin management and the captain's PA (issue #186, November 2026 batch) ----

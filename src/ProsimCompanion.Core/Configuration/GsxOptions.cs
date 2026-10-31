@@ -102,7 +102,7 @@ public sealed class GsxOptions : IOptionSection
     /// before the departure sequence starts itself — the import needs to settle and the crew
     /// a moment to object. 2026-10-11 evidence (issue #169): the second OFP landed 21 s
     /// before the Preflight edge.</summary>
-    [OptionField(FieldKind.Number, "gsxSettings.automation.turnaroundDelay", Suffix = "s", Min = "0", DependsOn = "GroundPrepActivation=voiceThenAuto", NoDefault = true)]
+    [OptionField(FieldKind.Number, "gsxSettings.automation.turnaroundDelay", Suffix = "s", Min = "0", DependsOn = "GroundPrepActivation=voiceThenAuto", NoDefault = true, Advanced = true)]
     public int TurnaroundAutoStartDelaySeconds { get; set; } = 30;
 
     /// <summary>With voiceThenAuto: instead of starting the turnaround by itself the FO asks

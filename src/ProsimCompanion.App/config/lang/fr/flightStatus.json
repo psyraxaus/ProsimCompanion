@@ -92,7 +92,7 @@
       "unknown": "AUCUNE ASSIGNATION",
       "noProsim": "PROSIM HORS LIGNE",
       "off": "SAYINTENTIONS OFF",
-      "offHint": "Active SayIntentions dans Réglages → Copilote vocal → SayIntentions pour voir la fréquence attendue par l’ATC",
+      "offHint": "Active SayIntentions dans Réglages → Flight Deck → SayIntentions pour voir la fréquence attendue par l’ATC",
       "noAssignment": "SayIntentions n’a pas encore nommé de station",
       "tune": "Afficher",
       "tuneTitle": "Mettre {0} en standby COM1 puis basculer en actif (datarefs ProSim)",
@@ -243,7 +243,7 @@
     "cabin": {
       "label": "Cabine",
       "securing": "sécurisation",
-      "securingTitle": "Portes fermées et beacon allumé — l'équipage sécurise la cabine ; le rapport suit à la fin de leur minuteur (Réglages → Copilote vocal → Équipage de cabine).",
+      "securingTitle": "Portes fermées et beacon allumé — l'équipage sécurise la cabine ; le rapport suit à la fin de leur minuteur (Réglages → Crew & Company → Équipage de cabine).",
       "secure": "sécurisée",
       "secureTitle": "Le chef de cabine a annoncé la cabine sécurisée pour ce vol.",
       "noneTitle": "L'attente cabine sécurisée commence quand les portes sont fermées et le beacon allumé."

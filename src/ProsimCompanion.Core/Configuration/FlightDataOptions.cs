@@ -21,7 +21,7 @@ public sealed class FlightDataOptions : IOptionSection
     public bool AutoPrelimAtStd { get; set; }
 
     /// <summary>Minutes before STD for the STD-based prelim trigger (Prosim2GSX default 30).</summary>
-    [OptionField(FieldKind.Number, "appSettings.loadsheets.prelimOffset", Suffix = "min", Min = "0", DependsOn = "AutoPrelimAtStd")]
+    [OptionField(FieldKind.Number, "appSettings.loadsheets.prelimOffset", Suffix = "min", Min = "0", DependsOn = "AutoPrelimAtStd", Advanced = true)]
     public int PrelimStdOffsetMinutes { get; set; } = 30;
 
     /// <summary>Generate + uplink the final loadsheet automatically after boarding completes

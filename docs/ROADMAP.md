@@ -1073,6 +1073,23 @@ non-normal that gives the ECAM dialogue a cause. New features default **off** an
       **Unverified live** — the indicated refs' presence on 1.74b8 / 1.75.1 and the DFD's
       transition figures per airport in particular.
 
+- [x] **Settings hub usability** (#199, package 6, `feature/settings-hub-usability`, owner
+      request 2026-11-01, ADR-0010 amended): the rail and the content column are two scroll
+      areas (`.settings-panel` at `.main`'s height, no more `position: sticky` without a cap);
+      Web `SettingsSearch` (pure: the language pack's second-level blocks as cards, a titled
+      third-level block as its own card, `BlockSections` for blocks not named after their
+      section, `Locate` / `Build` / `Find` ranking rail labels then titles) +
+      `SettingsSearchService` (per-language index, English overlaid by the language) behind a
+      search box at the top of the rail; `SettingsNav` splits the one `settings/speech` route
+      over three groups (`speech` / `flightDeck` / `crew`, `GroupFor` prefers the group that
+      lists the item, `SpeechSections` is the union, `IsSpeechGroup` for the pillar notice);
+      `SectionFoldStore` (scoped, the per-browser card folds via
+      `prosimCompanion.settingsFolds` in localStorage) behind a chevron on every `Section`
+      (`DefaultFolded`, `Id`) and *Collapse all / Expand all* in the heading; the Setup page
+      reordered with its rarely used cards folded; twenty numeric knobs marked `Advanced`;
+      breadcrumb links. Tests: `SettingsHubTests` (the group split, the index, the source
+      scan of every sectioned page against the block table, the fold store). **Unverified
+      live** — the rail's own scrolling on the sim PC's browser and the tablet in particular.
 ## Open items (after the rc.5 batch, 2026-10-11)
 
 Nothing on this roadmap is open as code. What remains:

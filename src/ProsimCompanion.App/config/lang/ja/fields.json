@@ -44,6 +44,10 @@
       "chooseOutputFile": "アプリがファイルを書き込む場所を選ぶ",
       "addFolder": "この PC のフォルダーを追加する"
     },
+    "section": {
+      "collapse": "Collapse this card",
+      "expand": "Expand this card"
+    },
     "advanced": {
       "hidden": "詳細設定は非表示",
       "show": "詳細設定を表示",

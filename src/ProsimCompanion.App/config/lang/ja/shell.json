@@ -73,6 +73,15 @@
     "railLabel": "設定セクション",
     "showAdvanced": "詳細設定を表示",
     "showAdvanced.title": "各設定ページの調整項目（タイムアウト、間隔、しきい値）を表示します",
+    "search": {
+      "placeholder": "Search settings…",
+      "hint": "Type a word: the cards and rail entries whose texts contain it. Enter opens the first hit.",
+      "noResults": "Nothing matches"
+    },
+    "cards": {
+      "collapseAll": "Collapse all",
+      "expandAll": "Expand all"
+    },
     "pillarOff": {
       "gsx": "GSX 地上サービスはオフです。",
       "speech": "音声副操縦士はオフです。",
@@ -106,6 +115,8 @@
       "gsx.questions": "GSX の質問",
       "gsx.connection": "接続とタイムアウト",
       "speech": "音声副操縦士",
+      "flightDeck": "Flight Deck",
+      "crew": "Crew & Company",
       "speech.status": "状態",
       "speech.general": "一般",
       "speech.persona": "FO の人格",

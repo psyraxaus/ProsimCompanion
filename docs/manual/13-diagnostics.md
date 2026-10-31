@@ -154,7 +154,7 @@ report carries what the pages showed.
 | Caution | What it means | What to do |
 |---|---|---|
 | `VOICE  LLM HOST NOT RESPONDING` (amber) | The language-model PC does not answer on the network at all; most often it is asleep. The action line says whether a wake-on-LAN packet has been sent and when. | Wait a minute if a packet was sent. Otherwise press **Wake PCs** on the Voice First Officer status page, or check the PC. Briefings use the template meanwhile. |
-| `VOICE  LLM SERVER DOWN` (red) | The PC is up but the model server on it is not answering. A wake will not help. | Start Ollama / llama-server on that PC, or check its port in Settings → Voice First Officer → Briefings. |
+| `VOICE  LLM SERVER DOWN` (red) | The PC is up but the model server on it is not answering. A wake will not help. | Start Ollama / llama-server on that PC, or check its port in Settings → Flight Deck → Briefings & LLM. |
 | `VOICE  LLM AUTH REJECTED` (red) | The server answered 401. | Check the API key. |
 | `VOICE  STT SERVER NOT RESPONDING` / `TTS SERVER NOT RESPONDING` | The speech or voice server is unreachable; the app reconnects by itself. | Nothing, unless it stays amber: then check the box and its URL. |
 | `SIM  SIMCONNECT LOST` / `PROSIM LOST` | The feed dropped; values hold their last reading (`HOLD LAST`) and the app reconnects by itself. | Nothing, unless MSFS or ProSim is really gone. |

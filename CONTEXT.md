@@ -423,6 +423,20 @@ It waits a patience delay, says each once per crossing, and drops silently when 
 first. Read-and-speak only — the FO never sets the pilot's side.
 _Avoid_: transition callout (the fixed-altitude SOP callout, unrelated), baro follow (the
 FO's own side)
+**Rail search**:
+The box at the top of the settings rail. It matches the words typed against the language
+pack's own texts — every card's title, labels, hints and "more" paragraphs — and lists the
+cards and rail entries that contain all of them, each with its place in the rail. A card is a
+second-level pack block (or a titled third-level one); the block-to-section table and a test
+that reads the Razor pages keep a hit landing on the page that renders it.
+_Avoid_: settings filter (nothing is hidden; the box only points), full-text search (the
+pack, not the page markup)
+**Card fold**:
+A settings card closed to its title by its chevron, remembered in that browser only
+(localStorage), with "collapse all / expand all" per page. A folded card's fields stay
+rendered and hidden, so their validity still counts. Distinct from the advanced fold, which
+hides tuning fields app-wide behind one switch.
+_Avoid_: collapsed section (the advanced fold's word), hidden card
 **NOTAM highlight**:
 A departure or destination NOTAM of one of six loud classes — runway closed, taxiway closed,
 ILS/LOC/GP unserviceable, lighting unserviceable, PAPI, displaced threshold — picked out of the

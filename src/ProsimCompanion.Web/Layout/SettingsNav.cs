@@ -26,6 +26,14 @@ public sealed record SettingsNavGroup(string Key, string Label, string Href, IRe
            || Items.Any(item => item.Href.Equals(path, StringComparison.OrdinalIgnoreCase))
            || (Items.Count > 0 && path.StartsWith(Href + "/", StringComparison.OrdinalIgnoreCase));
 
+    /// <summary>True when one of this group's items is exactly <paramref name="path"/> (or
+    /// a sub-path of it, e.g. a provider tab). The hub-usability split (issue #199) put three
+    /// rail groups over one page route, so the owner of a path is the group that LISTS it,
+    /// never the one whose base path merely prefixes it.</summary>
+    public bool ListsItem(string path)
+        => Items.Any(item => item.Href.Equals(path, StringComparison.OrdinalIgnoreCase)
+                             || path.StartsWith(item.Href + "/", StringComparison.OrdinalIgnoreCase));
+
     /// <summary>The active item for <paramref name="path"/>: an exact href match, else the
     /// first item (the group's landing section).</summary>
     public SettingsNavItem? ActiveItem(string path)
@@ -63,25 +71,40 @@ public static class SettingsNav
         ("questions", "GSX Questions"),
         ("connection", "Connection & Timeouts"));
 
-    public static readonly SettingsNavItem[] SpeechSections = Items("settings/speech",
+    // The Voice First Officer page (one route, settings/speech/{section}) is three rail groups
+    // since the hub-usability pass (issue #199, owner request 2026-11-01): sixteen items under
+    // one heading were too long to scan. The pack ids keep the "speech" group segment
+    // (settings.nav.speech.{section}) because Items() derives it from the route, so no text
+    // moved — only the headings are new.
+
+    /// <summary>The First Officer themselves: on/off, seat, persona, listening, voices.</summary>
+    public static readonly SettingsNavItem[] SpeechCoreSections = Items("settings/speech",
         ("status", "Status"),
         ("general", "General"),
         ("persona", "FO Persona"),
         ("listening", "Listening & PTT"),
         ("sterile", "Sterile Cockpit"),
         ("voices", "Voices"),
-        ("groundCrew", "Ground Crew"),
-        ("cabin", "Cabin Crew"),
-        // Company / debrief / day and tech log / logbook (2026-10-08): the eight sections
-        // that had no web card until the settings audit.
-        ("company", "Company & Debrief"),
-        ("techlog", "Tech Log & Logbook"),
-        ("briefing", "Briefings & LLM"),
-        ("mcdu", "MCDU"),
-        ("sayIntentions", "SayIntentions"),
+        ("providers", "Voice Providers"));
+
+    /// <summary>What the FO does at the controls and on the radios.</summary>
+    public static readonly SettingsNavItem[] FlightDeckSections = Items("settings/speech",
         ("callouts", "Callouts & Placards"),
         ("abnormals", "Abnormals & Drills"),
-        ("providers", "Voice Providers"));
+        ("briefing", "Briefings & LLM"),
+        ("mcdu", "MCDU"),
+        ("sayIntentions", "SayIntentions"));
+
+    /// <summary>The other voices: ground crew, cabin crew, company, the paperwork.</summary>
+    public static readonly SettingsNavItem[] CrewSections = Items("settings/speech",
+        ("groundCrew", "Ground Crew"),
+        ("cabin", "Cabin Crew"),
+        ("company", "Company & Debrief"),
+        ("techlog", "Tech Log & Logbook"));
+
+    /// <summary>Every section the Voice First Officer page route accepts — the three rail
+    /// groups' lists joined, in rail order (the page resolves <c>{Section?}</c> against it).</summary>
+    public static readonly SettingsNavItem[] SpeechSections = [.. SpeechCoreSections, .. FlightDeckSections, .. CrewSections];
 
     public static readonly SettingsNavItem[] AudioSections = Items("settings/audio",
         ("status", "Status"),
@@ -106,7 +129,9 @@ public static class SettingsNav
     [
         new("setup", "Setup", "settings", []),
         new("gsx", "Ground Services", "settings/gsx", GsxSections),
-        new("speech", "Voice First Officer", "settings/speech", SpeechSections),
+        new("speech", "Voice First Officer", "settings/speech", SpeechCoreSections),
+        new("flightDeck", "Flight Deck", "settings/speech/callouts", FlightDeckSections),
+        new("crew", "Crew & Company", "settings/speech/groundCrew", CrewSections),
         new("audio", "Audio Control", "settings/audio", AudioSections),
         // Cockpit switches (2026-10-24): the Stream Deck's Korry buttons, toggles and knobs.
         new("cockpit", "Cockpit Switches", "settings/cockpit", []),
@@ -130,6 +155,10 @@ public static class SettingsNav
             new("diagnostics", "Diagnostics", "settings/diagnostics") { LabelTextId = "settings.nav.advanced.diagnostics" },
         ]),
     ];
+
+    /// <summary>The groups that share the Voice First Officer page and its pillar switch.</summary>
+    public static bool IsSpeechGroup(SettingsNavGroup? group)
+        => group?.Key is "speech" or "flightDeck" or "crew";
 
     /// <summary>Old routes that still resolve (bookmarks, the manual, Stream Deck docs) mapped
     /// onto their hub location so the rail highlights correctly.</summary>
@@ -156,9 +185,29 @@ public static class SettingsNav
         return Aliases.TryGetValue(path, out var mapped) ? mapped : path;
     }
 
-    /// <summary>The group owning <paramref name="path"/>, or null outside the hub.</summary>
+    /// <summary>The group owning <paramref name="path"/>, or null outside the hub. A group
+    /// that lists the path as an item wins over one whose base path merely prefixes it
+    /// (three groups share the settings/speech route since issue #199).</summary>
     public static SettingsNavGroup? GroupFor(string path)
-        => Groups.FirstOrDefault(group => group.Matches(path));
+        => Groups.FirstOrDefault(group => group.ListsItem(path))
+           ?? Groups.FirstOrDefault(group => group.Matches(path));
+
+    /// <summary>The group and item at exactly <paramref name="href"/>, or null.</summary>
+    public static (SettingsNavGroup Group, SettingsNavItem Item)? FindItem(string href)
+    {
+        foreach (var group in Groups)
+        {
+            foreach (var item in group.Items)
+            {
+                if (item.Href.Equals(href, StringComparison.OrdinalIgnoreCase))
+                {
+                    return (group, item);
+                }
+            }
+        }
+
+        return null;
+    }
 
     /// <summary>Resolves a page's <c>{Section?}</c> route value against its section list —
     /// unknown or missing keys land on the first (Status) section.</summary>

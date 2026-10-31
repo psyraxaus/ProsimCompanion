@@ -720,6 +720,25 @@ split-flap { display: inline-flex; align-items: center; justify-content: center;
   color: var(--text-muted);
 }
 .section-folded .section-header { border-bottom: none; }
+/* The card chevron (issue #199): the title is the button, the body hides but stays rendered. */
+.section-fold {
+  appearance: none;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+.section-fold:hover .section-fold-chevron { color: var(--text-primary); }
+.section-fold-chevron { font-size: 11px; color: var(--text-muted); width: 10px; display: inline-block; }
+.section-user-folded .section-header { padding-bottom: 12px; }
 .link-btn {
   appearance: none;
   background: none;
@@ -1325,26 +1344,62 @@ split-flap { display: inline-flex; align-items: center; justify-content: center;
      Negative margins absorb .main's 16px vertical padding. */
   display: flex;
   flex-direction: column;
-  min-height: calc(100% + 32px);
+  /* Exactly .main's height (issue #199): the rail and the content column scroll on their
+     own below the heading, so a long rail never needs the page scrolled. */
+  height: calc(100% + 32px);
+  min-height: 0;
   margin: -16px 0;
 }
 
-.settings-body { display: flex; align-items: stretch; flex: 1 1 auto; }
+.settings-body { display: flex; align-items: stretch; flex: 1 1 auto; min-height: 0; }
 
 .rail-column {
   align-self: stretch;
+  min-height: 0;
   background: var(--bg-secondary);
   display: flex;
   flex-direction: column;
 }
 
 .sticky-rail {
-  position: sticky;
-  top: 0;
+  /* Its own scroll area since issue #199 (it used to be position: sticky with no height cap,
+     so the sixteen Voice First Officer items were only reachable by scrolling the page). */
+  position: static;
   display: flex;
   flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   z-index: 1;
 }
+
+/* The rail search (issue #199): one box over the language pack's texts, hits under it. */
+.rail-search { padding: 10px 12px 2px; display: flex; flex-direction: column; gap: 6px; }
+.rail-search-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm, 6px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-on-dark);
+  font-size: 12px;
+}
+.rail-search-input::placeholder { color: var(--text-on-dark-muted); }
+.rail-search-results { display: flex; flex-direction: column; gap: 2px; padding-bottom: 6px; border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
+.rail-search-empty { padding: 6px 8px; font-size: 11px; color: var(--text-on-dark-muted); }
+.rail-search-hit {
+  display: flex;
+  flex-direction: column;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm, 6px);
+  color: var(--text-on-dark);
+  text-decoration: none;
+}
+.rail-search-hit:hover, .rail-search-hit:focus { background: rgba(255, 255, 255, 0.08); }
+.rail-search-hit-title { font-size: 12px; font-weight: 600; }
+.rail-search-hit-where { font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-on-dark-muted); }
 
 /* The hub rail (ADR-0010): pillar groups, the active group expanded to its sections.
    Rail sits on bg-secondary (always dark), so it uses the dedicated on-dark colours. */
@@ -1396,6 +1451,9 @@ split-flap { display: inline-flex; align-items: center; justify-content: center;
 .settings-content {
   flex: 1 1 auto;
   min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   /* Bottom padding reserves room for the DirtyBar sliding in. */
   padding: 22px 18px 96px;
   max-width: 1080px;
@@ -1416,6 +1474,11 @@ split-flap { display: inline-flex; align-items: center; justify-content: center;
 }
 .settings-heading-item { color: var(--text-primary); font-weight: 600; }
 .settings-heading-sep { opacity: 0.6; }
+/* Breadcrumb links and the per-page fold buttons (issue #199). */
+a.settings-heading-group { color: inherit; text-decoration: none; }
+a.settings-heading-group:hover { color: var(--text-primary); text-decoration: underline; }
+.settings-heading-actions { margin-left: auto; display: flex; gap: 12px; text-transform: none; letter-spacing: 0; font-size: 11px; }
+.settings-heading-actions .link-btn:disabled { opacity: 0.4; cursor: default; text-decoration: none; }
 
 .info-banner {
   display: flex;
@@ -1698,7 +1761,8 @@ split-flap { display: inline-flex; align-items: center; justify-content: center;
   .rail-toggle-chevron { font-size: 10px; color: var(--text-on-dark-muted); }
 
   .rail-nav { display: none; min-width: 0; max-width: none; padding: 0 0 8px; }
-  .rail-column.open .rail-nav { display: flex; }
+  .rail-column.open .rail-nav { display: flex; max-height: 60vh; }
+  .settings-heading-actions { display: none; }
   .rail-group { padding: 10px 16px; }
   .rail-item { padding: 9px 16px 9px 30px; }
 

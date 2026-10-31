@@ -92,7 +92,7 @@
       "unknown": "指定なし",
       "noProsim": "PROSIM 未接続",
       "off": "SAYINTENTIONS オフ",
-      "offHint": "ATC が指定する周波数を見るには、設定 → 音声 FO → SayIntentions で SayIntentions をオンにしてください",
+      "offHint": "ATC が指定する周波数を見るには、設定 → Flight Deck → SayIntentions で SayIntentions をオンにしてください",
       "noAssignment": "SayIntentions はまだ局を指定していません",
       "tune": "セット",
       "tuneTitle": "{0} を COM1 スタンバイにセットしてアクティブに入れ替えます（ProSim データリファレンス）",
@@ -243,7 +243,7 @@
     "cabin": {
       "label": "客室",
       "securing": "確認中",
-      "securingTitle": "ドア閉・ビーコン点灯 — 客室乗務員が客室を確認中です。タイマー終了後に報告が入ります（設定 → 音声副操縦士 → 客室乗務員）。",
+      "securingTitle": "ドア閉・ビーコン点灯 — 客室乗務員が客室を確認中です。タイマー終了後に報告が入ります（設定 → Crew & Company → 客室乗務員）。",
       "secure": "セキュア",
       "secureTitle": "チーフパーサーがこのフライトの客室セキュアを報告しました。",
       "noneTitle": "客室セキュアの待機は、ドアが閉まりビーコンが点灯すると始まります。"

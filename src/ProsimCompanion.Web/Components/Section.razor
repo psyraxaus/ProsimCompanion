@@ -1,8 +1,12 @@
 @* Card with an uppercase category-coloured title and optional right-aligned hint — the
    basic content container of the design language. An Advanced card (ADR-0010) collapses to
-   its header while "Show advanced settings" is off. *@
+   its header while "Show advanced settings" is off. Every other card folds on its chevron
+   (hub-usability pass, issue #199): the state lives in this browser (SectionFoldStore →
+   localStorage), the body stays rendered but hidden so the fields keep their validity
+   registrations, and DefaultFolded gives a rarely-needed card a closed first look. *@
 @inherits StoreObserverComponent
 @inject AdvancedSettingsStore AdvancedStore
+@inject SectionFoldStore Folds
 @inject IStringLocalizer T
 
 @if (Advanced && !_showAdvanced)
@@ -18,15 +22,22 @@
 }
 else
 {
-    <section class="section">
+    var folded = Folds.IsFolded(_foldId, DefaultFolded);
+    <section class="section @(folded ? "section-folded section-user-folded" : null)">
         <div class="section-header">
-            <h3 class="section-title">@Title</h3>
+            <h3 class="section-title">
+                <button type="button" class="section-fold" @onclick="() => Folds.Set(_foldId, !folded)"
+                        aria-expanded="@(!folded)" title="@(folded ? T["fields.section.expand"].Value : T["fields.section.collapse"].Value)">
+                    <span class="section-fold-chevron" aria-hidden="true">@(folded ? "▸" : "▾")</span>
+                    <span>@Title</span>
+                </button>
+            </h3>
             @if (!string.IsNullOrEmpty(Hint))
             {
                 <span class="section-hint">@Hint</span>
             }
         </div>
-        <div class="section-body">
+        <div class="section-body" hidden="@folded">
             @ChildContent
         </div>
     </section>
@@ -34,6 +45,7 @@ else
 
 @code {
     private bool _showAdvanced;
+    private string _foldId = "";
 
     [Parameter, EditorRequired]
     public string Title { get; set; } = "";
@@ -46,8 +58,48 @@ else
     [Parameter]
     public bool Advanced { get; set; }
 
+    /// <summary>Closed until this browser opens it once — for cards most installs never touch.</summary>
+    [Parameter]
+    public bool DefaultFolded { get; set; }
+
+    /// <summary>A stable fold id when the title is not one (a numbered or named card); the
+    /// title otherwise.</summary>
+    [Parameter]
+    public string? Id { get; set; }
+
     [Parameter]
     public RenderFragment? ChildContent { get; set; }
 
-    protected override void OnInitialized() => Watch(AdvancedStore, show => _showAdvanced = show);
+    protected override void OnInitialized()
+    {
+        Watch(AdvancedStore, show => _showAdvanced = show);
+        Watch(Folds, _ => { });
+    }
+
+    protected override void OnParametersSet()
+    {
+        var id = Folds.IdFor(Id ?? Title);
+        if (id == _foldId)
+        {
+            return;
+        }
+
+        if (_foldId.Length > 0)
+        {
+            Folds.Unregister(_foldId);
+        }
+
+        _foldId = id;
+        Folds.Register(_foldId, DefaultFolded);
+    }
+
+    public override void Dispose()
+    {
+        if (_foldId.Length > 0)
+        {
+            Folds.Unregister(_foldId);
+        }
+
+        base.Dispose();
+    }
 }

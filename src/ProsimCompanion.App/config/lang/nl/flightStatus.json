@@ -92,7 +92,7 @@
       "unknown": "GEEN TOEWIJZING",
       "noProsim": "PROSIM OFFLINE",
       "off": "SAYINTENTIONS UIT",
-      "offHint": "Zet SayIntentions aan onder Instellingen → Voice First Officer → SayIntentions om te zien welke frequentie ATC verwacht",
+      "offHint": "Zet SayIntentions aan onder Instellingen → Flight Deck → SayIntentions om te zien welke frequentie ATC verwacht",
       "noAssignment": "SayIntentions heeft nog geen station genoemd",
       "tune": "Afstemmen",
       "tuneTitle": "{0} op COM1 standby zetten en naar actief wisselen (ProSim-datarefs)",
@@ -243,7 +243,7 @@
     "cabin": {
       "label": "Cabine",
       "securing": "wordt beveiligd",
-      "securingTitle": "Deuren dicht en beacon aan — de crew beveiligt de cabine; de melding volgt als hun timer afloopt (Instellingen → Spraak-First Officer → Cabinecrew).",
+      "securingTitle": "Deuren dicht en beacon aan — de crew beveiligt de cabine; de melding volgt als hun timer afloopt (Instellingen → Crew & Company → Cabinecrew).",
       "secure": "beveiligd",
       "secureTitle": "De purser heeft de cabine voor deze vlucht beveiligd gemeld.",
       "noneTitle": "Het wachten op cabine beveiligd begint zodra de deuren dicht zijn en de beacon aan is."

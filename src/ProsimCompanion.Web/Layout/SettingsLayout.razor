@@ -1,19 +1,29 @@
 @* Nested layout for every settings page (ADR-0010): one rail for the whole hub, grouped by
    pillar, URL-driven. The page inside only renders its cards — the rail, the breadcrumb
-   heading, the "pillar is off" notice and the mobile section picker all live here once. *@
+   heading, the "pillar is off" notice and the mobile section picker all live here once.
+   Hub-usability pass (issue #199): the rail scrolls on its own, carries a search box over the
+   language pack's texts, the breadcrumb is links, and the heading folds / unfolds every card
+   of the page (SectionFoldStore, remembered in this browser). *@
 @inherits StoreObserverLayout
 @layout MainLayout
+@using ProsimCompanion.Core.Localization
 @using ProsimCompanion.Core.Profiles
 @using Microsoft.Extensions.Localization
+@using Microsoft.JSInterop
+@using Microsoft.Extensions.Logging
 @using ProsimCompanion.Web.Localization
 @inject IStringLocalizer T
 @inject UiLanguageStore UiLanguage
 @inject NavigationManager Nav
+@inject IJSRuntime JS
 @inject IOptionsMonitor<GsxOptions> GsxOptions
 @inject IOptionsMonitor<SpeechOptions> SpeechOptions
 @inject IOptionsMonitor<AudioOptions> AudioOptions
 @inject AircraftProfileService Profiles
 @inject AdvancedSettingsStore Advanced
+@inject SectionFoldStore Folds
+@inject SettingsSearchService Search
+@inject ILogger<SettingsLayout> Logger
 
 <div class="settings-panel">
     <div class="settings-body">
@@ -25,6 +35,27 @@
                 <span class="rail-toggle-chevron" aria-hidden="true">@(_railOpen ? "▲" : "▼")</span>
             </button>
             <nav class="rail-nav sticky-rail" id="settings-rail" aria-label="@T["settings.railLabel"]">
+                <div class="rail-search" role="search">
+                    <input type="search" class="rail-search-input" placeholder="@T["settings.search.placeholder"]"
+                           title="@T["settings.search.hint"]" aria-label="@T["settings.search.placeholder"]"
+                           value="@_query" @oninput="OnSearchInput" @onkeydown="OnSearchKey" />
+                    @if (_query.Trim().Length >= 2)
+                    {
+                        <div class="rail-search-results" role="listbox">
+                            @if (_results.Count == 0)
+                            {
+                                <span class="rail-search-empty">@T["settings.search.noResults"]</span>
+                            }
+                            @foreach (var hit in _results)
+                            {
+                                <a class="rail-search-hit" href="@hit.Href" role="option" @onclick="ClearSearch">
+                                    <span class="rail-search-hit-title">@hit.Title</span>
+                                    <span class="rail-search-hit-where">@Where(hit)</span>
+                                </a>
+                            }
+                        </div>
+                    }
+                </div>
                 <label class="rail-advanced" title="@T["settings.showAdvanced.title"]">
                     <input type="checkbox" class="checkbox" checked="@_showAdvanced"
                            @onchange="e => Advanced.Set(e.Value is true)" />
@@ -47,12 +78,29 @@
 
         <div class="settings-content">
             <div class="settings-heading">
-                <span class="settings-heading-group">@(_group is null ? T["settings.title"].Value : T[_group.LabelTextId].Value)</span>
-                @if (_item is not null && _group?.Items.Count > 0)
+                @if (_group is null)
                 {
-                    <span class="settings-heading-sep" aria-hidden="true">›</span>
-                    <span class="settings-heading-item">@T[_item.LabelTextId]</span>
+                    <span class="settings-heading-group">@T["settings.title"]</span>
                 }
+                else
+                {
+                    <a class="settings-heading-group" href="settings">@T["settings.title"]</a>
+                    <span class="settings-heading-sep" aria-hidden="true">›</span>
+                    @if (_item is not null && _group.Items.Count > 0)
+                    {
+                        <a class="settings-heading-group" href="@_group.Href">@T[_group.LabelTextId]</a>
+                        <span class="settings-heading-sep" aria-hidden="true">›</span>
+                        <span class="settings-heading-item">@T[_item.LabelTextId]</span>
+                    }
+                    else
+                    {
+                        <span class="settings-heading-item">@T[_group.LabelTextId]</span>
+                    }
+                }
+                <span class="settings-heading-actions">
+                    <button type="button" class="link-btn" disabled="@(!Folds.AnyUnfolded)" @onclick="() => Folds.SetAll(true)">@T["settings.cards.collapseAll"]</button>
+                    <button type="button" class="link-btn" disabled="@(!Folds.AnyFolded)" @onclick="() => Folds.SetAll(false)">@T["settings.cards.expandAll"]</button>
+                </span>
             </div>
 
             @if (PillarOffNotice is { } notice)
@@ -90,6 +138,8 @@
     private SettingsNavItem? _item;
     private bool _railOpen;
     private bool _showAdvanced;
+    private string _query = "";
+    private IReadOnlyList<SettingsSearchEntry> _results = [];
 
     private string Breadcrumb => _group is null
         ? T["settings.title"]
@@ -100,19 +150,48 @@
     private string? PillarOffNotice => _group?.Key switch
     {
         "gsx" when !GsxOptions.CurrentValue.Enabled => T["settings.pillarOff.gsx"].Value,
-        "speech" when !SpeechOptions.CurrentValue.Enabled => T["settings.pillarOff.speech"].Value,
+        _ when SettingsNav.IsSpeechGroup(_group) && !SpeechOptions.CurrentValue.Enabled => T["settings.pillarOff.speech"].Value,
         "audio" when !AudioOptions.CurrentValue.Enabled => T["settings.pillarOff.audio"].Value,
         _ => null,
     };
 
+    private string Language => (T as UiText)?.Language ?? LanguagePackCatalog.DefaultCode;
+
+    /// <summary>"Flight Deck › Callouts & Placards" under a hit, so a card title alone makes sense.</summary>
+    private string Where(SettingsSearchEntry hit)
+        => hit.Item is null || hit.Group.Items.Count == 0
+            ? T[hit.Group.LabelTextId].Value
+            : $"{T[hit.Group.LabelTextId].Value} › {T[hit.Item.LabelTextId].Value}";
+
     protected override void OnInitialized()
     {
         Resolve();
-        Watch(UiLanguage, _ => { });
+        Watch(UiLanguage, _ => _results = Search.Find(Language, _query));
         // Navigation is not a store — it stays hand-wired; the profile banner is store-driven.
         Nav.LocationChanged += OnLocationChanged;
         WatchChanged(h => Profiles.Changed += h, h => Profiles.Changed -= h, () => { });
         Watch(Advanced, show => _showAdvanced = show);
+        Watch(Folds, _ => { });
+        Folds.Persist += OnFoldsChanged;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        try
+        {
+            var saved = await JS.InvokeAsync<Dictionary<string, bool>>("prosimCompanion.settingsFolds.load");
+            Folds.Load(saved);
+        }
+        catch (Exception ex) when (ex is JSException or JSDisconnectedException or InvalidOperationException or TaskCanceledException)
+        {
+            // Prerender or a dropped circuit: every card shows its default; nothing else changes.
+            Logger.LogDebug(ex, "Settings card fold state not read from the browser");
+        }
     }
 
     private void Resolve()
@@ -120,18 +199,62 @@
         var path = SettingsNav.NormalizePath(Nav.ToBaseRelativePath(Nav.Uri));
         _group = SettingsNav.GroupFor(path);
         _item = _group?.ActiveItem(path);
+        Folds.Page = path;
+    }
+
+    private void OnSearchInput(ChangeEventArgs e)
+    {
+        _query = e.Value?.ToString() ?? "";
+        _results = Search.Find(Language, _query);
+    }
+
+    private void OnSearchKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Escape")
+        {
+            ClearSearch();
+        }
+        else if (e.Key == "Enter" && _results.Count > 0)
+        {
+            var href = _results[0].Href;
+            ClearSearch();
+            Nav.NavigateTo(href);
+        }
+    }
+
+    private void ClearSearch()
+    {
+        _query = "";
+        _results = [];
+    }
+
+    private void OnFoldsChanged(IReadOnlyDictionary<string, bool> changed)
+    {
+        _ = InvokeAsync(async () =>
+        {
+            try
+            {
+                await JS.InvokeVoidAsync("prosimCompanion.settingsFolds.set", changed);
+            }
+            catch (Exception ex) when (ex is JSException or JSDisconnectedException or InvalidOperationException or TaskCanceledException)
+            {
+                Logger.LogDebug(ex, "Settings card fold state not written to the browser");
+            }
+        });
     }
 
     private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
     {
         Resolve();
         _railOpen = false;
+        ClearSearch();
         _ = InvokeAsync(StateHasChanged);
     }
 
     public override void Dispose()
     {
         Nav.LocationChanged -= OnLocationChanged;
+        Folds.Persist -= OnFoldsChanged;
         base.Dispose();
     }
 }

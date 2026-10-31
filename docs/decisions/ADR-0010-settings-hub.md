@@ -49,3 +49,32 @@ the app "too much to handle".
   preferences.
 - The `feature/tablet-efb-surface` branch (the `/efb` shell) will need a small merge against
   `MainLayout` and `app.css`.
+
+## Amendment 2026-11-01 — hub usability (issue #199)
+
+The hub had grown past what one rail could hold: the Voice First Officer page alone was
+sixteen rail items over fifty-five cards, and the rail (`position: sticky` with no height
+cap) could only be reached by scrolling the page. Owner request, 2026-11-01:
+
+7. **Two scroll areas, one page height.** `.settings-panel` is exactly `.main`'s height; the
+   rail and the content column scroll on their own. The heading, the search box and the
+   breadcrumb never move.
+8. **Search over the pack.** A box at the top of the rail matches the language pack's texts
+   (`SettingsSearch`): every second-level block of a page's pack file is a card, a titled
+   third-level block is its own card, and `BlockSections` names the blocks whose name is not
+   their section. A source-scanning test keeps that table true to the Razor pages. No markup
+   is parsed at runtime, and nothing is hidden by a search — it only points.
+9. **Groups follow the reader, not the project.** One page route may sit under several rail
+   groups: `settings/speech/…` is *Voice First Officer* (who the FO is), *Flight Deck* (what
+   they do at the controls and on the radios) and *Crew & Company* (the other voices).
+   `SettingsNav.GroupFor` prefers the group that lists an item over the one whose base path
+   prefixes it. Addresses and pack ids did not move.
+10. **Cards fold per browser.** Every `Section` has a chevron; the state is this browser's
+    (localStorage through `SectionFoldStore`), never a setting. A folded card's fields stay
+    rendered and hidden so validity still counts. `DefaultFolded` gives a card most installs
+    never touch a closed first look (the Setup page's rarely used cards). *Collapse all /
+    Expand all* per page.
+11. **The advanced fold is for numbers nobody retunes.** Twenty more numeric knobs (delays,
+    windows, thresholds, chances) moved behind *Show advanced settings*; airline-policy
+    figures (limits, fuel policy, placards) stay in the open.
+12. **The heading is a breadcrumb of links** (Settings › group › section).

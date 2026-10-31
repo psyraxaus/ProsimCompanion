@@ -44,7 +44,7 @@ public sealed class GsxDeiceOptions
     /// <summary>How long an unanswered question stands before it counts as declined (source
     /// <c>timeout</c>). Silence from the FO's listen never declines — only this expiry does;
     /// the Status board buttons and "request de-icing" / "no de-icing" answer it meanwhile.</summary>
-    [OptionField(FieldKind.Number, "gsxSettings.deice.timeout", Suffix = "min", Min = "1", Max = "30", DependsOn = "AutoRequest=ask | AutoRequest=auto")]
+    [OptionField(FieldKind.Number, "gsxSettings.deice.timeout", Suffix = "min", Min = "1", Max = "30", DependsOn = "AutoRequest=ask | AutoRequest=auto", Advanced = true)]
     public int QuestionTimeoutMinutes { get; set; } = 5;
 
     /// <summary>Off by default. On, the FO runs the cockpit side of the treatment the way

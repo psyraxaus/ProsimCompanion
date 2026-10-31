@@ -47,7 +47,7 @@ running version.
 
 | Page | What it does |
 |---|---|
-| **Flight Status** | Route hero with two weather cards (local weather / weather at destination: sky graphic, wind, visibility, ceiling, temperature, QNH, ATIS letter, METAR time), a LIGHT / MODERATE / SEVERE TURBULENCE chip beside the phase while the ride is rough and the **Captain's PA** script card when the FO has prompted your announcement (both under Settings → Voice First Officer → Cabin Crew), the gate monitor strip (Gate Closed → Gate Open → Boarding → Final Call → Gate Closed, with the passenger count and the STD countdown) and its **Pop out** button, the live ground speed / altitude / vertical speed / heading / fuel figures, the distance row (to go, flown, ETA, top of descent — direct distances, see the Flight Monitor notes below), the **Radios** tile (COM1 active and standby beside the frequency SayIntentions ATC expects — ON FREQUENCY / WRONG FREQUENCY — with a Tune button and the local airport's stations as tap-to-tune chips, standby-then-swap through ProSim datarefs; the last ATC line underneath), the flight sequence with the phase-engine controls, then the Sim/App/GSX/Services cards with state pills. **Edit layout** lets you drag the tiles into your own order (see below). Final-call thresholds, the weather refresh cadence and the top-of-descent notice live under Settings → Display & Flight Data → Flight Status card |
+| **Flight Status** | Route hero with two weather cards (local weather / weather at destination: sky graphic, wind, visibility, ceiling, temperature, QNH, ATIS letter, METAR time), a LIGHT / MODERATE / SEVERE TURBULENCE chip beside the phase while the ride is rough and the **Captain's PA** script card when the FO has prompted your announcement (both under Settings → Crew & Company → Cabin Crew), the gate monitor strip (Gate Closed → Gate Open → Boarding → Final Call → Gate Closed, with the passenger count and the STD countdown) and its **Pop out** button, the live ground speed / altitude / vertical speed / heading / fuel figures, the distance row (to go, flown, ETA, top of descent — direct distances, see the Flight Monitor notes below), the **Radios** tile (COM1 active and standby beside the frequency SayIntentions ATC expects — ON FREQUENCY / WRONG FREQUENCY — with a Tune button and the local airport's stations as tap-to-tune chips, standby-then-swap through ProSim datarefs; the last ATC line underneath), the flight sequence with the phase-engine controls, then the Sim/App/GSX/Services cards with state pills. **Edit layout** lets you drag the tiles into your own order (see below). Final-call thresholds, the weather refresh cadence and the top-of-descent notice live under Settings → Display & Flight Data → Flight Status card |
 | **Flight Monitor** (pop-out) | A second-monitor board opened from the gate strip's Pop out button (or at `/monitor`) — see below |
 | **INIT** | MCDU-style OFP display: fetch the SimBrief OFP, per-field overrides (ZFW, fuel, pax, cargo), SYNC TO FMS, confirm fuel (orders the fuel truck — unless the fuel on board already meets the figure, then it answers "Refueling is not needed" and no truck comes), two resets: **RESET FLIGHT (SOFT)** restarts the leg on the same OFP (overrides and loadsheet cycle only), **UNLOAD OFP (FULL)** clears the plan from the ProSim EFB — seat map, pax, planned fuel and cargo, loadsheets — and resets the flight cycle so nothing is called until you fetch a new OFP; both need a second press within 3 s |
 | **OFP** | Flight-plan hero, arrival-gate assignment, weather (METAR/TAF/ATIS), **NOTAM highlights** (runway / taxiway closures, ILS, lighting, PAPI and displaced-threshold NOTAMs from the plan — the full list stays on your SimBrief briefing), pushback-direction Korry buttons, de-ice holdover card; the **Diversion** card (Settings → Display & Flight Data → Diversion, off by default): "Divert to {alternate}" or an ICAO and a reason, then the new destination, the FO's offers and Cancel — the whole app follows the new destination |
@@ -194,7 +194,9 @@ its own address, so a refresh or a link from a warning banner lands on the right
 |---|---|
 | **Setup** | The three master switches (GSX ground services, voice First Officer, audio control), the ProSim host/SDK path, the **ProSim Setup Check** card (below), nav data, **Weather Sources** (ActiveSky), web port/LAN access, **Wake-on-LAN** (one row per PC the app should power on at startup — the language-model box, the speech server, any other — each with a Send now button), the Stream Deck command API, the **vJoy relay** for Camera View keys ([chapter 12](12-remote-streamdeck.md)), the update check |
 | **Ground Services** | Status board (departure services with hold/skip reasons, decision log, gate control, the live GSX menu card) and all GSX behaviour: doors & jetway, ground equipment, departure services, refuel & boarding, pushback, arrival, operators & hubs, GSX questions, connection & timeouts |
-| **Voice First Officer** | Status (provider tests, minima card, speak test, Wake PCs), general, FO persona, listening & PTT, sterile cockpit, crew voices, ground crew, cabin crew, company & debrief (company channel, post-flight debrief, company day), tech log & logbook, briefings & LLM, MCDU, SayIntentions, callouts & placards, abnormals & drills, voice providers, ElevenLabs |
+| **Voice First Officer** | Status (provider tests, minima card, speak test, Wake PCs), general, FO persona, listening & PTT, sterile cockpit, voices, voice providers (ElevenLabs, Kokoro, Google, Windows) |
+| **Flight Deck** | What the FO does at the controls and on the radios: callouts & placards (with the transition reminders), abnormals & drills, briefings & LLM, MCDU, SayIntentions |
+| **Crew & Company** | The other voices: ground crew, cabin crew, company & debrief (company channel, post-flight debrief, company day), tech log & logbook |
 | **Audio Control** | Status, backend choice, CoreAudio mappings, VoiceMeeter mappings (ACP knobs and the loudspeaker dial — [chapter 8](08-loudspeaker-dial.md)), Remote Mixer (Voicemeeters on other PCs through VoicemeeterBridge agents, one block per PC — [chapter 9](09-remote-mixer.md); the two-headset layout in [chapter 11](11-two-headsets.md)), housekeeping |
 | **Cockpit Switches** | The ProSim switches offered to the Stream Deck's Cockpit Switch keys: one grid line per switch picked from ProSim's own list, look, what a press does, legends, lamps and colours, a live-state pill and a test Press; **Add the three leak measurement valves** fills in the preset — [chapter 12](12-remote-streamdeck.md) |
 | **Screen & FOV** | Your physical screens (size, aspect, distance, yaw, height) and the life-size field of view they imply; **Apply FOV** writes it into MSFS 2024's saved pilot view with a backup; Multi Window rotations and the ChasePlane caveat — [chapter 14](14-screen-fov.md) |
@@ -207,6 +209,14 @@ its own address, so a refresh or a link from a warning banner lands on the right
 
 **Show advanced settings** (top of the rail) reveals the tuning fields — timeouts, intervals,
 thresholds — that most users never touch. Greyed-out fields belong to a switch that is off.
+**Finding a setting.** The box at the top of the rail searches every card's words — type
+*transition* or *coffee* and the matching cards are listed with their place in the rail;
+Enter opens the first one. The heading above the cards is a breadcrumb: click *Settings* or
+the group name to go back up. Every card folds on the small chevron beside its title, and
+*Collapse all* / *Expand all* in the heading does the whole page; what you fold stays folded
+in that browser only. The Setup page starts with its day-one cards open and the rarely used
+ones (Setup Check, Weather Sources, Stream Deck, vJoy relay, Wake-on-LAN, Updates) folded.
+
 
 ![Screen & FOV settings, Displays section](../img/screen-fov.png)
 
@@ -271,7 +281,7 @@ card off.
    jetway → ground equipment → pushback, with crew-realistic random delays.
 5. **Pushback.** The cabin crew report "cabin secure" a random while after the doors are
    closed and the beacon is on — a minimum wait plus up to a second per passenger, so a full
-   cabin can still be securing at the holding point (Settings → Voice First Officer → Cabin
+   cabin can still be securing at the holding point (Settings → Crew & Company → Cabin Crew
    Crew). Until then a "cockpit to cabin" hail gets "still securing".
    **Pushback direction** is decided per flight, not by a saved setting: tell the FO what ATC
    said — *"push back facing north"*, *"tail left"*, *"tail right"*, *"straight back"* — or

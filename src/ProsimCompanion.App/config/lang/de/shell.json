@@ -73,6 +73,15 @@
     "railLabel": "Einstellungsbereiche",
     "showAdvanced": "Erweiterte Einstellungen anzeigen",
     "showAdvanced.title": "Die Feinabstimmungsfelder (Timeouts, Intervalle, Schwellen) auf jeder Einstellungsseite einblenden",
+    "search": {
+      "placeholder": "Search settings…",
+      "hint": "Type a word: the cards and rail entries whose texts contain it. Enter opens the first hit.",
+      "noResults": "Nothing matches"
+    },
+    "cards": {
+      "collapseAll": "Collapse all",
+      "expandAll": "Expand all"
+    },
     "pillarOff": {
       "gsx": "Die GSX-Bodendienste sind ausgeschaltet.",
       "speech": "Der Sprach-Erste-Offizier ist ausgeschaltet.",
@@ -106,6 +115,8 @@
       "gsx.questions": "GSX-Fragen",
       "gsx.connection": "Verbindung & Timeouts",
       "speech": "Sprach-Erster-Offizier",
+      "flightDeck": "Flight Deck",
+      "crew": "Crew & Company",
       "speech.status": "Status",
       "speech.general": "Allgemein",
       "speech.persona": "FO-Persönlichkeit",

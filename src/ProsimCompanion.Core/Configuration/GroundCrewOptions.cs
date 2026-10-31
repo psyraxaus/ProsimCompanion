@@ -91,15 +91,15 @@ public sealed class WalkaroundOptions
     public bool Enabled { get; set; }
 
     /// <summary>Shortest walk, minutes.</summary>
-    [OptionField(FieldKind.Number, "speechSettings.groundCrew.walkaround.minMinutes", Suffix = "min", Min = "1", Max = "30", DependsOn = "Enabled")]
+    [OptionField(FieldKind.Number, "speechSettings.groundCrew.walkaround.minMinutes", Suffix = "min", Min = "1", Max = "30", DependsOn = "Enabled", Advanced = true)]
     public int MinMinutes { get; set; } = 6;
 
     /// <summary>Longest walk, minutes; the walk is drawn at random between the two.</summary>
-    [OptionField(FieldKind.Number, "speechSettings.groundCrew.walkaround.maxMinutes", Suffix = "min", Min = "1", Max = "60", DependsOn = "Enabled")]
+    [OptionField(FieldKind.Number, "speechSettings.groundCrew.walkaround.maxMinutes", Suffix = "min", Min = "1", Max = "60", DependsOn = "Enabled", Advanced = true)]
     public int MaxMinutes { get; set; } = 10;
 
     /// <summary>Probability (0–1) that a walkaround turns up a finding.</summary>
-    [OptionField(FieldKind.Number, "speechSettings.groundCrew.walkaround.findingChance", Min = "0", Max = "1", Step = "0.05", DependsOn = "Enabled")]
+    [OptionField(FieldKind.Number, "speechSettings.groundCrew.walkaround.findingChance", Min = "0", Max = "1", Step = "0.05", DependsOn = "Enabled", Advanced = true)]
     public double FindingChance { get; set; } = 0.15;
 
     /// <summary>Let a no-go finding be drawn (raised in the tech log regardless; nothing is

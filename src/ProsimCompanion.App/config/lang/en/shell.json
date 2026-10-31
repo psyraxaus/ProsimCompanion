@@ -73,6 +73,15 @@
     "railLabel": "Settings sections",
     "showAdvanced": "Show advanced settings",
     "showAdvanced.title": "Reveal the tuning fields (timeouts, intervals, thresholds) on every settings page",
+    "search": {
+      "placeholder": "Search settings…",
+      "hint": "Type a word: the cards and rail entries whose texts contain it. Enter opens the first hit.",
+      "noResults": "Nothing matches"
+    },
+    "cards": {
+      "collapseAll": "Collapse all",
+      "expandAll": "Expand all"
+    },
     "pillarOff": {
       "gsx": "GSX ground services are switched off.",
       "speech": "The voice First Officer is switched off.",
@@ -106,6 +115,8 @@
       "gsx.questions": "GSX Questions",
       "gsx.connection": "Connection & Timeouts",
       "speech": "Voice First Officer",
+      "flightDeck": "Flight Deck",
+      "crew": "Crew & Company",
       "speech.status": "Status",
       "speech.general": "General",
       "speech.persona": "FO Persona",

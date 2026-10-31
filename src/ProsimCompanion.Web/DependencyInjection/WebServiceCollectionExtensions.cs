@@ -45,6 +45,10 @@ public static class WebServiceCollectionExtensions
         services.AddSingleton(_ => new AirlineLogoStore(UserConfigPaths.AirlineLogos));
         // Live mirror of webUi.showAdvancedSettings for the settings pages (ADR-0010).
         services.AddSingleton<AdvancedSettingsStore>();
+        // Hub usability (issue #199): the per-browser card folds (one store per circuit) and the
+        // rail search index over the language packs.
+        services.AddScoped<SectionFoldStore>();
+        services.AddSingleton<Layout.SettingsSearchService>();
         // Flight Status pill/text change log (issue #110) — runs whether or not a browser is open.
         services.AddStartupModule<FlightStatusChangeLog>();
         // Diagnostics REMOTE page (ADR-0016): one CircuitHandler per circuit records address,

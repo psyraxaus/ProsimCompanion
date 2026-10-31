@@ -44,6 +44,10 @@
       "chooseOutputFile": "Kies waar de app het bestand schrijft",
       "addFolder": "Voeg een map op deze pc toe"
     },
+    "section": {
+      "collapse": "Collapse this card",
+      "expand": "Expand this card"
+    },
     "advanced": {
       "hidden": "Geavanceerde instellingen verborgen",
       "show": "geavanceerde instellingen tonen",

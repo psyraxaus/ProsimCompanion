@@ -85,7 +85,7 @@ for the radio-clear gate).
 
 ## FO works the radios (owner request 2026-10-25, opt-in)
 
-`sayIntentions.foRadios.enabled` (default off; Voice First Officer → SayIntentions → "FO works
+`sayIntentions.foRadios.enabled` (default off; Flight Deck → SayIntentions → "FO works
 the radios"). `FoRadiosService` holds the SI copilot off (`SIAI_COPILOT` = 0, re-asserted every
 2 min — SI resets it per flight; every other `SIAI_COPILOT` write in `SayIntentionsService` is
 forced to 0 while the switch is on, and the comms hand-over by phase, its readouts and the

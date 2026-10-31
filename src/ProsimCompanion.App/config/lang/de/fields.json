@@ -44,6 +44,10 @@
       "chooseOutputFile": "Wählen, wohin die App die Datei schreibt",
       "addFolder": "Einen Ordner auf diesem PC hinzufügen"
     },
+    "section": {
+      "collapse": "Collapse this card",
+      "expand": "Expand this card"
+    },
     "advanced": {
       "hidden": "Erweiterte Einstellungen ausgeblendet",
       "show": "erweiterte Einstellungen anzeigen",

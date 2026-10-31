@@ -92,7 +92,7 @@
       "unknown": "KEINE ZUWEISUNG",
       "noProsim": "PROSIM OFFLINE",
       "off": "SAYINTENTIONS AUS",
-      "offHint": "Schalte SayIntentions unter Einstellungen → Voice First Officer → SayIntentions ein, um die von ATC erwartete Frequenz zu sehen",
+      "offHint": "Schalte SayIntentions unter Einstellungen → Flight Deck → SayIntentions ein, um die von ATC erwartete Frequenz zu sehen",
       "noAssignment": "SayIntentions hat noch keine Station genannt",
       "tune": "Rasten",
       "tuneTitle": "{0} auf COM1 Standby setzen und auf aktiv tauschen (ProSim-Datarefs)",
@@ -243,7 +243,7 @@
     "cabin": {
       "label": "Kabine",
       "securing": "wird gesichert",
-      "securingTitle": "Türen geschlossen und Beacon an — die Crew sichert die Kabine; die Meldung folgt, wenn ihr Timer abläuft (Einstellungen → Sprach-Erster-Offizier → Kabinencrew).",
+      "securingTitle": "Türen geschlossen und Beacon an — die Crew sichert die Kabine; die Meldung folgt, wenn ihr Timer abläuft (Einstellungen → Crew & Company → Kabinencrew).",
       "secure": "gesichert",
       "secureTitle": "Der Purser hat die Kabine für diesen Flug als gesichert gemeldet.",
       "noneTitle": "Die Kabinensicherungs-Wartezeit beginnt, wenn die Türen geschlossen sind und der Beacon an ist."

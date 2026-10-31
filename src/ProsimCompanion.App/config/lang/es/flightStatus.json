@@ -92,7 +92,7 @@
       "unknown": "SIN ASIGNACIÓN",
       "noProsim": "PROSIM SIN CONEXIÓN",
       "off": "SAYINTENTIONS APAGADO",
-      "offHint": "Activa SayIntentions en Ajustes → Primer Oficial de voz → SayIntentions para ver la frecuencia que espera ATC",
+      "offHint": "Activa SayIntentions en Ajustes → Flight Deck → SayIntentions para ver la frecuencia que espera ATC",
       "noAssignment": "SayIntentions aún no ha indicado una estación",
       "tune": "Sintonizar",
       "tuneTitle": "Poner {0} en COM1 standby y pasarla a activa (datarefs de ProSim)",
@@ -243,7 +243,7 @@
     "cabin": {
       "label": "Cabina",
       "securing": "asegurando",
-      "securingTitle": "Puertas cerradas y beacon encendido — la tripulación está asegurando la cabina; el informe llega cuando termina su temporizador (Ajustes → Primer oficial por voz → Tripulación de cabina).",
+      "securingTitle": "Puertas cerradas y beacon encendido — la tripulación está asegurando la cabina; el informe llega cuando termina su temporizador (Ajustes → Crew & Company → Tripulación de cabina).",
       "secure": "asegurada",
       "secureTitle": "El sobrecargo ha informado de que la cabina está asegurada para este vuelo.",
       "noneTitle": "La espera de cabina asegurada empieza cuando las puertas están cerradas y el beacon encendido."

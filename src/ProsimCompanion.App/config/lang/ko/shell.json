@@ -73,6 +73,15 @@
     "railLabel": "설정 섹션",
     "showAdvanced": "고급 설정 표시",
     "showAdvanced.title": "모든 설정 페이지에서 세부 조정 항목(시간 제한, 간격, 임계값)을 표시합니다",
+    "search": {
+      "placeholder": "Search settings…",
+      "hint": "Type a word: the cards and rail entries whose texts contain it. Enter opens the first hit.",
+      "noResults": "Nothing matches"
+    },
+    "cards": {
+      "collapseAll": "Collapse all",
+      "expandAll": "Expand all"
+    },
     "pillarOff": {
       "gsx": "GSX 지상 서비스가 꺼져 있습니다.",
       "speech": "음성 부기장이 꺼져 있습니다.",
@@ -106,6 +115,8 @@
       "gsx.questions": "GSX 질문",
       "gsx.connection": "연결 및 시간 제한",
       "speech": "음성 부기장",
+      "flightDeck": "Flight Deck",
+      "crew": "Crew & Company",
       "speech.status": "상태",
       "speech.general": "일반",
       "speech.persona": "부기장 성격",

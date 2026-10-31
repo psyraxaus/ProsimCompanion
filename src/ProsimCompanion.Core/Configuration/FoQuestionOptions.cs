@@ -27,7 +27,7 @@ public sealed class FoQuestionOptions
 
     /// <summary>Fewer words than this is never a question — the short utterances are the
     /// exact phrases other features own, misheard.</summary>
-    [OptionField(FieldKind.Number, "speechSettings.briefing.ask.minWords", Min = "1", Max = "10", DependsOn = "Enabled")]
+    [OptionField(FieldKind.Number, "speechSettings.briefing.ask.minWords", Min = "1", Max = "10", DependsOn = "Enabled", Advanced = true)]
     public int MinimumWords { get; set; } = 4;
 
     /// <summary>Small talk and fun facts (issue #152). On: any free-form sentence of
@@ -56,14 +56,14 @@ public sealed class FoQuestionOptions
 
     /// <summary>Seconds from the question to the first spoken word of the answer before the FO
     /// gives up ("I don't have a verified answer for that").</summary>
-    [OptionField(FieldKind.Number, "speechSettings.briefing.ask.timeBudget", Suffix = "s", Min = "1", Max = "60", DependsOn = "Enabled")]
+    [OptionField(FieldKind.Number, "speechSettings.briefing.ask.timeBudget", Suffix = "s", Min = "1", Max = "60", DependsOn = "Enabled", Advanced = true)]
     public int TimeBudgetSeconds { get; set; } = 6;
 
     /// <summary>Seconds of silence after the question before the FO says "Stand by" (0 = never).
     /// Measured to the first AUDIO of the answer, not to the model's first sentence (issue
     /// #176: the 2026-10-10 answers started playing 1–4 s after the model's first sentence
     /// and no "Stand by" was ever heard).</summary>
-    [OptionField(FieldKind.Number, "speechSettings.briefing.ask.standBy", Suffix = "s", Min = "0", Max = "30", DependsOn = "Enabled")]
+    [OptionField(FieldKind.Number, "speechSettings.briefing.ask.standBy", Suffix = "s", Min = "0", Max = "30", DependsOn = "Enabled", Advanced = true)]
     public int StandBySeconds { get; set; } = 2;
 
     /// <summary>What the FO does with a plain acknowledgement that is not a question — "no

@@ -60,6 +60,7 @@ public sealed class AppearancePageLanguageRenderTests : IDisposable
         services.AddSingleton(new LanguagePackCatalog([ShippedPackDir()], NullLogger<LanguagePackCatalog>.Instance));
         services.AddSingleton<UiLanguageStore>();
         services.AddSingleton<ProsimCompanion.Web.Components.AdvancedSettingsStore>();
+        services.AddScoped<ProsimCompanion.Web.Components.SectionFoldStore>();
         services.AddScoped(_ => new BrowserLanguageContext { Languages = browserLanguages });
         services.AddScoped<IStringLocalizer, UiText>();
 

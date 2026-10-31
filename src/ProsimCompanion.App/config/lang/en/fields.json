@@ -44,6 +44,10 @@
       "chooseOutputFile": "Choose where the app writes the file",
       "addFolder": "Add a folder on this PC"
     },
+    "section": {
+      "collapse": "Collapse this card",
+      "expand": "Expand this card"
+    },
     "advanced": {
       "hidden": "Advanced settings hidden",
       "show": "show advanced settings",
