@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## 1.0.0-rc.1
+
+Local build for the owner's sim testing, 2026-11-01, on `feature/settings-hub-usability` (over rc.26): the six November packages below (#194–#199), none flown yet. The 1.0.0 line starts here; the final 1.0.0 waits for one full sim-verified pass of every "Unverified live" marker (`docs/VERSIONING.md`).
 
 November 2026 immersion batch, package 1, on `release/0.8.0-rc.24` (over rc.26). Off by default and **Unverified live**.
 
