@@ -81,6 +81,24 @@ Base `http://{prosimHost}:5000`. PascalCase requests / camelCase responses. 3 re
   line `Gateway airport <ICAO>: N runway(s), M coordinate point(s) -> …` and the
   `airport-coordinates` session event (`source: gateway|dfd`) settle it on the first flight.
 
+**Failures are not datarefs (issue #197, ADR-0018, 2026-11-01).** The A322 catalogue has no
+per-failure dataref; its only failure rows are ProSim's random-failure generator —
+`system.config.Config.autoFailure` (None | Minor | All), `Config.failureRate` (Realistic |
+High), `Config.engineAutoRestart` — which this app never writes (`ProsimWriteGate` refuses
+them; a test pins it). Individual failures are the SDK's object API: `ProSimConnect.getFailures()`
+→ `Failure` (name, description, domain, groupName / groupMember, failureClass);
+`ArmedFailure.Create(Failure)` arms now, `ArmedFailure.Create(FailureCondition, Failure)` on a
+condition (`altitude` + `altitudeThreshold`, `speed`, `time`, or `afterEvent` Takeoff | v1 |
+Landing with `afterEventTimer` as a `TimeSpan?`); `ArmedFailure.Reset()` clears and
+invalidates the object; `getArmedFailures()` lists everything armed (IOS-set included) with
+`isActive` / `isAlive` / `failures`. The gateway's `GET /efb/failures` (`InternalName`,
+`Title`, `Lvl1..3`, `SubItems`) is the same list read-only. `SdkFailureInjector` runs these on
+the live `SdkConnection.RunAsync` (the value-write shape) behind `ProsimFailureGate`
+(catalogue's verified names ∩ the live list). **The exact failure names are a rig fact** —
+nothing in the SDK docs lists them; the first build logs them and the catalogue ships every
+entry `verified: false`. A rebuilt SDK session invalidates every `ArmedFailure` handed out by
+the old one, so the injector re-reads the armed list rather than trusting a handle.
+
 Two write paths exist (SDK vs GraphQL). The predecessors chose ad-hoc per feature; ProsimCompanion
 should consolidate on SDK push/write where possible and use the gateway only for gateway-exclusive
 functionality (calculations, EFB tasks, loadsheet slots).

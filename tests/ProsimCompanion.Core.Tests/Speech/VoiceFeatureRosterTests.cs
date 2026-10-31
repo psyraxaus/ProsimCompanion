@@ -74,6 +74,7 @@ public sealed partial class VoiceFeatureRosterTests
         (typeof(ProsimCompanion.Speech.Debrief.DebriefService), 290),
         (typeof(ProsimCompanion.Speech.Persona.SmallTalkService), 300),
         (typeof(ProsimCompanion.Speech.Persona.FoRosterVoiceFeature), 305), // "who's flying with me today" / "new first officer" (issue #194)
+        (typeof(ProsimCompanion.Speech.Scenarios.ScenarioService), 310), // "clear all failures" / "any failures planned" (issue #197)
     ];
 
     private static IReadOnlyList<Type> ShippedFeatureTypes()

@@ -346,6 +346,14 @@ public static class SpeechServiceCollectionExtensions
         // finding into the tech log; the raise question's table for the shared dialogue.
         services.AddStartupModule<Crew.WalkaroundService>();
         services.AddSingleton(Crew.WalkaroundRaisePhrases.Table);
+        // Scenario mode (issue #197, ADR-0018): the one serialised failure-write path — a
+        // startup module (the tick), a hosted service (the clear-all at exit), the
+        // IScenarioControl the commands reach, and a voice feature ("clear all failures").
+        services.AddStartupModule<Scenarios.ScenarioService>();
+        services.AddHostedService(p => p.GetRequiredService<Scenarios.ScenarioService>());
+        services.AddVoiceFeature<Scenarios.ScenarioService>();
+        services.AddSingleton<Core.Commands.Handlers.IScenarioControl>(p => p.GetRequiredService<Scenarios.ScenarioService>());
+        services.AddSingleton(Scenarios.ScenarioDecisionPhrases.Table);
         services.AddSingleton<UtteranceRouter>();
         services.AddStartupModule<SpokenChecklistEngine>();
         // WoL used to hide in the retired bootstrap (campaign #87).

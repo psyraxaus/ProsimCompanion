@@ -1479,6 +1479,36 @@
         "minimums": "ミニマムの許容差"
       }
     },
+    "scenario": {
+      "title": "Scenarios",
+      "hint": "Rarely, opt-in, the app arms one minor failure in ProSim so the FO's ECAM actions and the decision get used",
+      "enabled": {
+        "hint": "About one flight in ten gets a scenario: a pack fault, a generator, a fuel pump low pressure, a hydraulic reservoir, an IR fault, hot brakes after landing. The FO handles the ECAM, then asks: continue, return or divert?",
+        "more": "The failure is armed through ProSim's own failure list (the same list the IOS uses), never below the floor height in flight, never with an abnormal, a drill or a no-go tech-log item open. Each catalogue entry is refused until its ProSim name is marked verified in scenarios.json — the STATUS page and 'scenario.listFailures' show ProSim's names. Everything armed is cleared at the flight reset and when the app closes; 'clear all failures' by voice, the STATUS page or the Stream Deck always works and also clears failures set on the IOS."
+      },
+      "perFlightChance": {
+        "label": "Chance per flight",
+        "hint": "0 to 1. 0.10 is roughly one scenario every ten flights."
+      },
+      "allowMajor": {
+        "label": "Allow major scenarios",
+        "hint": "Engine fire, engine failure, APU fire. Off keeps the minor stuff that actually happens on the line."
+      },
+      "takeoffScenarios": {
+        "label": "Takeoff scenarios",
+        "hint": "An engine fire on the roll (an RTO cause) and an engine failure after V1 — only with the RTO and EFATO features on above."
+      },
+      "minAltitudeFt": {
+        "label": "Floor in flight",
+        "hint": "Nothing is armed in flight below this height above ground."
+      },
+      "showPlanned": {
+        "label": "Show the planned scenario",
+        "hint": "For testing: the STATUS page names it and 'any failures planned?' answers. Off keeps the surprise."
+      },
+      "fileBefore": "The catalogue is",
+      "fileAfter": "— id, title, abnormalId (a file in config/abnormals), failureName (ProSim's own name), verified, phases, weight, severity, takeoff, clearAfterSeconds, techLogAfter, decision, wearTitle. Edits are picked up live."
+    },
     "abnormals": {
       "title": "ECAM 異常事態",
       "hint": "FO が E/WD とシステムのデータ参照を読み、故障を告知し、あなたと手順を進めます。スイッチは一切動かしません",

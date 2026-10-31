@@ -23,6 +23,9 @@
         "json": "Los usuarios avanzados también pueden editar la lista en settings.json bajo"
       }
     },
+    "status": {
+      "scenarioClearAll": "Clear every armed failure in ProSim (the IOS's included)"
+    },
     "gsx": {
       "gpuConnect": "Haz clic para conectar la energía de tierra",
       "gpuDisconnect": "Haz clic para desconectar la energía de tierra"

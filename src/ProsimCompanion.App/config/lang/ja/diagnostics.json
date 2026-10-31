@@ -23,6 +23,9 @@
         "json": "上級者は settings.json の次の項目でもこのリストを編集できます:"
       }
     },
+    "status": {
+      "scenarioClearAll": "Clear every armed failure in ProSim (the IOS's included)"
+    },
     "gsx": {
       "gpuConnect": "クリックして地上電源を接続します",
       "gpuDisconnect": "クリックして地上電源を切り離します"

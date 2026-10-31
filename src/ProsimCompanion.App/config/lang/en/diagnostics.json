@@ -23,6 +23,9 @@
         "json": "Power users can also edit the list in settings.json under"
       }
     },
+    "status": {
+      "scenarioClearAll": "Clear every armed failure in ProSim (the IOS's included)"
+    },
     "gsx": {
       "gpuConnect": "Click to connect the ground power",
       "gpuDisconnect": "Click to disconnect the ground power"

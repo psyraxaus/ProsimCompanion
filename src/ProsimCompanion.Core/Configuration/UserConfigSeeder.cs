@@ -48,6 +48,7 @@ public static class UserConfigSeeder
         "region-facts.json",
         "fo-roster.json", // the First Officer roster (issue #194) — the pilot's own crew goes here
         "walkaround-findings.json", // what the FO may find on the walkaround (issue #196)
+        "scenarios.json", // the scenario catalogue (issue #197)
         "ftl-easa.json", // the FDP maximum table (issue #189) — the operator's scheme goes here
         @"rotations\README.txt", // creates the planned-rotations folder and its format note (2026-10-13)
     ];

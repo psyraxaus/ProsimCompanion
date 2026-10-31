@@ -101,6 +101,9 @@
     <!-- Walkaround findings (issue #196; user-editable, hot-reloaded): what the FO may bring
          back from the exterior walkaround, with the tech-log title and MEL category. -->
     <Content Include="config\walkaround-findings.json" CopyToOutputDirectory="PreserveNewest" />
+    <!-- Scenario catalogue (issue #197; user-editable, hot-reloaded): the minor failures the app
+         may arm through the ProSim SDK failure API (ADR-0018), each mapped to an abnormal. -->
+    <Content Include="config\scenarios.json" CopyToOutputDirectory="PreserveNewest" />
     <!-- EASA ORO.FTL.205 basic maximum FDP table (issue #189) — user-editable content, seeded with keep-user-edits. -->
     <Content Include="config\ftl-easa.json" CopyToOutputDirectory="PreserveNewest" />
     <!-- Random-wear pool for the tech log (benign, purely procedural; techLog.randomWear). -->

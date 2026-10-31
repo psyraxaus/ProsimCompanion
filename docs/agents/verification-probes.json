@@ -4176,6 +4176,64 @@
         "requires-human: the report came on the interphone in the FO's own voice with the intercom timbre (role FirstOfficerOnInterphone), the MECH lamp flashed, and the Flight Status refuel row showed the walkaround hold."
       ],
       "notes": "Package 3 of the November 2026 immersion batch (issue #196, branch feature/fo-walkaround over feature/cruise-small-talk). Speech WalkaroundCore (pure edge/baseline state machine), WalkaroundService (1 s tick, the upcalls' MECH + INT delivery, role FirstOfficerOnInterphone), Core FoAvailabilityStore (the router's gate via VoiceFeatureDeclaration.AvailableWhileFoAway; the departure pump's refuel PreHold), WalkaroundFindingBank + WalkaroundFindingDraw over walkaround-findings.json, WalkaroundRaiseStore + WalkaroundRaisePhrases, TechLogDialogueCore.RunPrefilledRaiseAsync. Unverified live."
+    },
+    {
+      "id": "scenario-fires-and-detects",
+      "issue": 197,
+      "state": "open",
+      "kind": "assert-present",
+      "machine": {
+        "kind": "signature",
+        "source": "session",
+        "type": "failure.detected",
+        "contains": "\"id\"",
+        "trigger": {
+          "source": "session",
+          "type": "scenario.fired",
+          "contains": "\"abnormalId\""
+        }
+      },
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "Only with scenario.enabled = true (off by default) AND at least one catalogue entry marked verified: true in scenarios.json. First flight on a rig: the log line 'ProSim failure API: N failures listed; M catalogue name(s) not in the list: …' and the scenario.failuresListed event {count, unknown} — the owner marks entries verified from that list; until then every entry is refused and scenario.armFailed {reason: refused-or-unreachable} is the expected sighting.",
+        "assert-present: ONE scenario.planned {scenario, title, phase, afterSeconds, shown} at the first live Preflight of a flight cycle on a hit of scenario.perFlightChance (never more than one per cycle); then scenario.arming {cancelWindowSeconds: 3} → scenario.armed {failure, source, takeoff} in the planned phase after afterSeconds, with the flight live and (in flight) above scenario.minAltitudeFt AGL; then scenario.fired {abnormalId} followed by failure.detected with the same id within 10 s — the detection is the real E/WD path, no shortcut.",
+        "assert-present: after abnormal.ended for that id, ONE scenario.decision {source: llm|template, line} and a scenario.decisionQuestion raised with that line as the prompt; the answer lands as scenario.decided {outcome: continue|return|divert}; divert / return → flight.diverted with reason technical.",
+        "assert-absent: scenario.armed while an abnormal.detected is not yet cleared, while a drill / ECAM dialogue runs, with a category-A tech-log item open, below the floor in flight, or with the flight not live (the log says 'Scenario … held: <reason>' once per reason instead); a scenario.armed whose failure name is not in the catalogue ∩ the listed failures; any write to system.config.Config.autoFailure / failureRate / engineAutoRestart (a cockpit.press / dataref write line naming them); two scenario.planned in one cycle; a scenario.armed for a takeoff scenario without abnormals.rtoEnabled / efatoEnabled and scenario.takeoffScenarios.",
+        "requires-human: the failure appeared on the ProSim IOS failure list as armed/active, the FO ran the matching ECAM procedure, the STATUS page SCENARIO row showed ARMED then FIRED, and the debrief said 'Scenario today: …'."
+      ],
+      "notes": "Package 4 of the November 2026 immersion batch (issue #197, ADR-0018, branch feature/scenario-mode over feature/fo-walkaround). Core ScenarioScheduler (pure plan + evaluate), ScenarioStateFile (only Planned survives), ScenarioDecisionStore + Speech ScenarioDecisionPhrases, Speech ScenarioService (the one serialised write path: announce → 3 s cancel window → IFailureInjector.ArmAsync → verify), Prosim ProsimFailureGate (failure NAMES: catalogue ∩ ProSimConnect.getFailures()) + SdkFailureInjector (ArmedFailure.Create / Reset / getArmedFailures). The write path is the SDK failure API — the A322 catalogue has no per-failure dataref; ProsimWriteGate is untouched. Unverified live: the exact failure names are a rig fact."
+    },
+    {
+      "id": "scenario-clear-on-exit",
+      "issue": 197,
+      "state": "open",
+      "kind": "assert-present",
+      "machine": {
+        "kind": "signature",
+        "source": "session",
+        "type": "scenario.cleared",
+        "contains": "\"source\"",
+        "trigger": {
+          "source": "session",
+          "type": "scenario.armed",
+          "contains": "\"failure\""
+        }
+      },
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "Trigger: a scenario.armed this session. assert-present: a scenario.cleared {scenario, failure, source ∈ flight-cycle-reset|exit|transient|command|voice|status-page|startup} follows before the session ends, OR a scenario.clearFailed with the warning 'the failure could not be cleared … check the ProSim IOS' when ProSim was unreachable — never an armed failure left silently.",
+        "assert-present: 'clear all failures' by voice / the STATUS page CLEAR ALL box / scenario.clearAll → scenario.clearAllRequested {source} then scenario.cleared {count} — unconditionally, scenario mode on or off, in any phase; the FO says 'All failures cleared, captain.' (High). The count includes failures set on the IOS (owner decision 2026-11-01).",
+        "assert-present (crash case): a session that starts after one that ended with a scenario armed logs 'Scenario state shows a failure armed at the last exit — clearing all failures once' and records scenario.clearAllRequested {source: startup}.",
+        "assert-absent: a scenario.armed in a session whose scenario-state.json held Armed or Fired at start (only Planned survives a restart); a scenario.cleared without a preceding scenario.armed or scenario.clearAllRequested.",
+        "requires-human: after the app closed with a scenario armed, the ProSim IOS failure list is empty."
+      ],
+      "notes": "See scenario-fires-and-detects. The exit clear runs in ScenarioService.StopAsync (IHostedService); the flight-cycle reset clear runs on GroundOpsSignals.FlightCycleReset; both verify by re-reading getArmedFailures(). Unverified live."
     }
   ]
 }

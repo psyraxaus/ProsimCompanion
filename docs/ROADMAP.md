@@ -1033,7 +1033,28 @@ non-normal that gives the ECAM dialogue a cause. New features default **off** an
       / `finding` / `techLogRaised`; probe `fo-walkaround`. **Unverified live** — the INT
       delivery in the FO voice, the refuel hold on the service board and the de-ice hand-off in
       particular.
-- [ ] **Scenario mode: scheduled non-normals** (package 4, design-first) — not started.
+- [x] **Scenario mode: scheduled non-normals** (#197, package 4, design-first, ADR-0018,
+      `feature/scenario-mode`): the write path is the ProSim SDK failure API — the A322
+      catalogue has no per-failure dataref, only the random-failure switches that stay
+      untouched. Prosim `ProsimFailureGate` (failure NAMES: the catalogue's verified entries ∩
+      `getFailures()`; no dataref path) + `SdkFailureInjector` (`ArmedFailure.Create` /
+      `Reset` / `getArmedFailures`, on the live `SdkConnection`), Core `IFailureInjector`,
+      `ScenarioOptions` (`scenario`: enabled off, perFlightChance 0.10, allowMajor off,
+      takeoffScenarios off, minAltitudeFt 1500, showPlanned off), `ScenarioCatalogueBank` over
+      `scenarios.json` (19 seeded, every one mapped to a shipped abnormal, all `verified:
+      false` until the rig confirms the names), `ScenarioScheduler` (pure: the chance, the
+      weighted pick — an open wear item doubles its entry — the phase and the moment, the
+      safety floor), `ScenarioStateFile` (only Planned survives; Armed / Fired at load → one
+      clear-all), `ScenarioStore` (STATUS row), `ScenarioDecisionStore` (continue / return /
+      divert) + Speech `ScenarioDecisionPhrases`, `ScenarioService` (the one serialised
+      `IScenarioControl`: announce → 3 s cancel window → write → verify; the fired edge from
+      `FailureMonitor.FailureDetected`; the decision turn on the new `AbnormalEnded`; clear at
+      the flight-cycle reset and at exit; "clear all failures" / "any failures planned"),
+      commands `scenario.arm` / `clear` / `clearAll` / `listFailures`, the Scenarios card, the
+      STATUS page SCENARIO row with CLEAR ALL, `DebriefFacts.Scenario`. Events `scenario.*`;
+      probes `scenario-fires-and-detects`, `scenario-clear-on-exit`. **Unverified live** —
+      the failure names, the SDK arm/verify semantics and the E/WD detection of an SDK-armed
+      failure in particular.
 
 ## Open items (after the rc.5 batch, 2026-10-11)
 

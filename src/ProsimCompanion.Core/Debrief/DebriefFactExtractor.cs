@@ -107,6 +107,7 @@ public sealed class DebriefFactExtractor : IDebriefFactExtractor
             int? delayMinutes = null;
             bool? onTime = null;
             string? foName = null; // the roster FO on this leg (issue #194)
+            string? scenario = null; // the scheduled non-normal that fired (issue #197)
 
             // failure id → (title, cleared); insertion-ordered so the debrief reads them in
             // the order they happened.
@@ -339,6 +340,12 @@ public sealed class DebriefFactExtractor : IDebriefFactExtractor
                             break;
                         }
 
+                        case "scenario.fired":
+                        {
+                            scenario = Str(payload, "title") ?? scenario;
+                            break;
+                        }
+
                         case "persona.foOnDuty":
                         case "persona.rosterDraw":
                         case "persona.gateIntro":
@@ -479,7 +486,8 @@ public sealed class DebriefFactExtractor : IDebriefFactExtractor
                 delayMinutes ?? Aircraft.Acars.MovementMessageComposer.DelayMinutes(scheduledOut, stampOff),
                 onTime,
                 rejectedTakeoffs,
-                foName);
+                foName,
+                scenario);
         }
         catch (Exception ex)
         {

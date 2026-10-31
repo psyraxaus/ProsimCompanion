@@ -21,6 +21,7 @@
 @inject IOptionsMonitor<LogbookOptions> LogbookMonitor
 @inject IOptionsMonitor<AbnormalsOptions> AbnormalsMonitor
 @inject IOptionsMonitor<SmallTalkOptions> SmallTalkMonitor
+@inject IOptionsMonitor<ScenarioOptions> ScenarioMonitor
 @inject IAudioDeviceCatalog DeviceCatalog
 @inject IPttInputCapture PttCapture
 @inject IVoiceCatalog VoiceCatalog
@@ -940,6 +941,19 @@ else if (CurrentSection == "abnormals")
             @T["speechSettings.abnormals.filesBefore"] <code>%LOCALAPPDATA%\ProsimCompanion\config\abnormals</code>@T["speechSettings.abnormals.filesAfter"]
         </div>
     </Section>
+
+    @* Scenario mode (issue #197, ADR-0018): scheduled non-normals through the ProSim SDK failure API. *@
+    <Section Title="@T["speechSettings.scenario.title"]" Hint="@T["speechSettings.scenario.hint"]">
+        <OptionField Draft="_scenario" For="o => o.Enabled" />
+        <OptionField Draft="_scenario" For="o => o.PerFlightChance" />
+        <OptionField Draft="_scenario" For="o => o.AllowMajor" />
+        <OptionField Draft="_scenario" For="o => o.TakeoffScenarios" />
+        <OptionField Draft="_scenario" For="o => o.MinAltitudeFt" />
+        <OptionField Draft="_scenario" For="o => o.ShowPlanned" />
+        <div class="field-hint" style="max-width:640px;">
+            @T["speechSettings.scenario.fileBefore"] <code>%LOCALAPPDATA%\ProsimCompanion\config\scenarios.json</code> @T["speechSettings.scenario.fileAfter"]
+        </div>
+    </Section>
 }
 
 <DirtyBar Visible="@BarVisible"
@@ -1136,6 +1150,7 @@ else if (CurrentSection == "abnormals")
     private OptionsDraft<LogbookOptions> _logbook = default!;
     private OptionsDraft<AbnormalsOptions> _abnormals = default!;
     private OptionsDraft<SmallTalkOptions> _smallTalk = default!;
+    private OptionsDraft<ScenarioOptions> _scenario = default!;
 
     // ---- FO roster card (issue #194) ----
     private string? _rosterMessage;
@@ -1344,6 +1359,7 @@ else if (CurrentSection == "abnormals")
         _logbook = Draft(LogbookMonitor);
         _abnormals = Draft(AbnormalsMonitor);
         _smallTalk = Draft(SmallTalkMonitor);
+        _scenario = Draft(ScenarioMonitor);
         if (string.Equals(Section, "elevenlabs", StringComparison.OrdinalIgnoreCase))
         {
             ProviderTab = "elevenlabs";

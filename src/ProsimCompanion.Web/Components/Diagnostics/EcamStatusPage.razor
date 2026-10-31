@@ -1,6 +1,12 @@
 @using ProsimCompanion.Core.Diagnostics.Ecam
+@using ProsimCompanion.Core.Scenarios
+@using ProsimCompanion.Core.Commands.Handlers
+@using Microsoft.Extensions.DependencyInjection
+@inject IServiceProvider Services
+@inject IStringLocalizer T
 @* STATUS: cautions by system on the left, INOP SYS / DEGRADED / RECENT on the right, the
-   counts and the bundle export in the memo strip. *@
+   counts and the bundle export in the memo strip, and the scenario row (issue #197) with
+   its CLEAR ALL box — clickable like the GSX page's GPU box. *@
 @{
     var memo = Snap.Memo;
     var (upH, upM) = EcamPresentation.UptimeParts(memo.Uptime);
@@ -61,6 +67,33 @@ else
     y += 22;
 }
 
+@* ---- scenario row (issue #197): state, the armed failure when shown, CLEAR ALL ---- *@
+@{
+    var scenario = Services.GetService<ScenarioStore>()?.Snapshot() ?? ScenarioSnapshot.Empty;
+    var control = Services.GetService<IScenarioControl>();
+    var scenarioState = scenario.State.ToUpperInvariant();
+    var scenarioClass = scenario.State switch
+    {
+        "armed" or "fired" => "c-amber",
+        "off" => "c-grey",
+        _ => "c-green",
+    };
+    var scenarioDetail = scenario.PlannedTitle is { } planned
+        ? planned + (scenario.FailureName is { } fn ? " · " + fn : "")
+        : scenario.LastClear ?? (scenario.InjectorAvailable ? "" : "SDK FAILURE API N/A");
+}
+<div class="abs head-u" style="left:24px;top:520px">SCENARIO</div>
+<div class="abs grp-ttl @scenarioClass" style="left:150px;top:520px">@scenarioState</div>
+<div class="abs act c-grey" style="left:24px;top:544px;font-size:14px;width:400px;white-space:nowrap;overflow:hidden">@scenarioDetail.ToUpperInvariant()</div>
+<div class="abs svc-box @(control is null ? "c-grey" : "c-green clickable")" style="left:466px;top:516px"
+     title="@(control is null ? null : T["diagnostics.status.scenarioClearAll"].Value)"
+     role="@(control is null ? null : "button")" tabindex="@(control is null ? null : "0")"
+     @onclick="ClearAllAsync" @onkeydown="OnClearKeyAsync">
+    <div class="svc-title">FAILURES</div>
+    <div class="svc-val">@(_clearBusy ? "…" : "CLEAR ALL")</div>
+    <div class="svc-detail">@(_clearNote ?? "")</div>
+</div>
+
 <EcamMemoStrip Cells="@(new[]
 {
     new EcamMemoCell("CAUTIONS", memo.CautionCount.ToString(System.Globalization.CultureInfo.InvariantCulture), null, memo.CautionCount > 0 ? "c-amber" : null),
@@ -74,4 +107,36 @@ else
 
     /// <summary>The Logs page's bundle export link (relative, cookie-authenticated).</summary>
     [Parameter] public string? BundleHref { get; set; }
+
+    private bool _clearBusy;
+    private string? _clearNote;
+
+    private Task OnClearKeyAsync(KeyboardEventArgs e)
+        => e.Key is "Enter" or " " ? ClearAllAsync() : Task.CompletedTask;
+
+    /// <summary>Clear every armed failure — unconditional (issue #197); the Speech pillar's
+    /// one serialised write path owns it, this only asks.</summary>
+    private async Task ClearAllAsync()
+    {
+        if (_clearBusy || Services.GetService<IScenarioControl>() is not { } control)
+        {
+            return;
+        }
+
+        _clearBusy = true;
+        _clearNote = null;
+        try
+        {
+            var result = await control.ClearAllAsync("status-page");
+            _clearNote = result.Reason;
+        }
+        catch (Exception ex)
+        {
+            _clearNote = ex.Message;
+        }
+        finally
+        {
+            _clearBusy = false;
+        }
+    }
 }

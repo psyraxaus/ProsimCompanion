@@ -23,6 +23,9 @@
         "json": "Les utilisateurs avancés peuvent aussi modifier la liste dans settings.json sous"
       }
     },
+    "status": {
+      "scenarioClearAll": "Clear every armed failure in ProSim (the IOS's included)"
+    },
     "gsx": {
       "gpuConnect": "Cliquer pour brancher le groupe de parc",
       "gpuDisconnect": "Cliquer pour débrancher le groupe de parc"

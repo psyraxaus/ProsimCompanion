@@ -84,6 +84,8 @@ public static class CoreServiceCollectionExtensions
         services.AddOptionSection<PersonaOptions>(configuration);
         // Cruise small talk (issue #195): the FO's unprompted lines in the cruise.
         services.AddOptionSection<SmallTalkOptions>(configuration);
+        // Scenario mode (issue #197, ADR-0018): scheduled non-normals through the SDK failure API.
+        services.AddOptionSection<ScenarioOptions>(configuration);
         // ECAM abnormals + drills (2026-10-08) — the dialogue's switch and timeouts.
         services.AddOptionSection<AbnormalsOptions>(configuration);
         // Wake-on-LAN targets list (2026-10-08) — supersedes briefing.llmWakeOnLan.
@@ -214,6 +216,13 @@ public static class CoreServiceCollectionExtensions
         services.AddSingleton<ICaptainsQuestionStore>(p => p.GetRequiredService<Crew.WalkaroundRaiseStore>());
         services.AddSingleton<FoAvailabilityStore>();
         services.AddSingleton<Crew.WalkaroundFindingBank>();
+        // Scenario mode (issue #197): the catalogue, the per-flight plan's state file, the live
+        // state for the STATUS page, and the FO's decision question after the ECAM.
+        services.AddSingleton<Scenarios.ScenarioCatalogueBank>();
+        services.AddSingleton<Scenarios.ScenarioStateFile>();
+        services.AddSingleton<Scenarios.ScenarioStore>();
+        services.AddSingleton<Scenarios.ScenarioDecisionStore>();
+        services.AddSingleton<ICaptainsQuestionStore>(p => p.GetRequiredService<Scenarios.ScenarioDecisionStore>());
         // "Issue a revised final?" after a last-minute change beyond tolerance (issue #181):
         // the loadsheet pipeline asks, the FO dialogue or the card answers.
         services.AddSingleton<LmcRevisionStore>();

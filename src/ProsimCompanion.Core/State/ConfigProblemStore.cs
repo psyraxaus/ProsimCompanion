@@ -21,6 +21,9 @@ public static class ConfigAreas
     /// <summary>The walkaround findings (issue #196), <c>walkaround-findings.json</c>.</summary>
     public const string Walkaround = "walkaround-findings";
 
+    /// <summary>The scenario catalogue (issue #197), <c>scenarios.json</c>.</summary>
+    public const string Scenarios = "scenarios";
+
     /// <summary>The optional HTTPS listener (ADR-0013): a certificate that could not be used.</summary>
     public const string WebHttps = "webUi.https";
 }

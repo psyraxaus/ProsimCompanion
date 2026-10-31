@@ -23,6 +23,11 @@ public sealed class ProsimConnectionService : BackgroundService
     private readonly ILogger<ProsimConnectionService> _logger;
     private Sdk.SdkConnection? _connection;
 
+    /// <summary>The live SDK session, or null between sessions (the failure injector runs its
+    /// SDK work on it, issue #197). A rebuilt session invalidates every SDK object handed out
+    /// by the old one — callers re-read instead of caching.</summary>
+    internal Sdk.SdkConnection? Current => _connection;
+
     public ProsimConnectionService(
         IOptionsMonitor<ProsimOptions> options,
         ProsimDataRefService dataRefs,

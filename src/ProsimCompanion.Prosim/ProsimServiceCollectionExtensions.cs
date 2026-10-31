@@ -28,7 +28,14 @@ public static class ProsimServiceCollectionExtensions
         services.AddSingleton<IProsimGateway, ProsimGatewayClient>();
         services.AddSingleton<ISimbriefImporter, Simbrief.SimbriefImportService>();
         services.AddSingleton<IFlightDataSource, ProsimFlightDataSource>();
-        services.AddHostedService<ProsimConnectionService>();
+        // Registered as itself too (issue #197): the failure injector runs its SDK work on the
+        // live session the connection service holds.
+        services.AddSingleton<ProsimConnectionService>();
+        services.AddHostedService(provider => provider.GetRequiredService<ProsimConnectionService>());
+        // Scenario mode (issue #197, ADR-0018): the ProSim SDK failure API behind its own gate —
+        // failure names, never datarefs.
+        services.AddSingleton<Failures.SdkFailureInjector>();
+        services.AddSingleton<Core.Scenarios.IFailureInjector>(provider => provider.GetRequiredService<Failures.SdkFailureInjector>());
 
         // ProSim setup check (2026-10-06): reads the IOS options once per connection; writes
         // only on the Setup page's "Apply recommended" click.

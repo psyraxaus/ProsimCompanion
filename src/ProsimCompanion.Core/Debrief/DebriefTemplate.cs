@@ -165,6 +165,12 @@ public static class DebriefTemplate
             parts.Add(new("takeoff-unknown", "Takeoff time unknown, the app started in flight.") { AnyOf = ["takeoff time unknown", "started in flight"] });
         }
 
+        if (!string.IsNullOrWhiteSpace(facts.Scenario))
+        {
+            // Issue #197: the scheduled non-normal is named, the abnormal line above says how it went.
+            parts.Add(new("scenario", $"Scenario today: {facts.Scenario}.") { AnyOf = ["scenario", facts.Scenario] });
+        }
+
         parts.Add(new("sign-off", "Good flight.") { IsClosing = true });
         return parts;
     }

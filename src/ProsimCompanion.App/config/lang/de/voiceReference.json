@@ -184,6 +184,11 @@
         "who": "Names the First Officer on duty, their experience and hours on the type.",
         "new": "Draws a different First Officer now, after you confirm."
       },
+      "scenario": {
+        "title": "Scenario mode",
+        "clearAll": "Clears every armed failure in ProSim, the IOS's included — always works.",
+        "planned": "Names the planned scenario, only with 'Show the planned scenario' on."
+      },
       "fuelCheck": {
         "title": "Fuel Check",
         "check": "Kraftstoff an Bord gegen den SimBrief-Plan an deiner Position und der geschätzte Landekraftstoff gegen den Planwert. Im Reiseflug auch automatisch."

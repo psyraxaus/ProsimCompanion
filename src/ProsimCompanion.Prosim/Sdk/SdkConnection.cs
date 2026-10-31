@@ -98,6 +98,28 @@ internal sealed class SdkConnection : IDataRefBackend, IDisposable
     /// stalled past the configured threshold); the owner should dispose and rebuild.</summary>
     public Task WedgedTask => _wedged.Task;
 
+    /// <summary>True while the SDK reports a live connection and this session is not disposed.</summary>
+    internal bool IsConnected => _connected && !_disposed;
+
+    /// <summary>Runs one piece of SDK work against this session's <see cref="ProSimConnect"/>
+    /// off the caller's context (the failure API, issue #197 / ADR-0018 — the same shape as a
+    /// value write). Throws <see cref="InvalidOperationException"/> when the session is not
+    /// connected; the caller degrades.</summary>
+    internal Task<T> RunAsync<T>(Func<ProSimConnect, T> work, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(work);
+        return Task.Run(() =>
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!IsConnected)
+            {
+                throw new InvalidOperationException("The ProSim SDK session is not connected.");
+            }
+
+            return work(_connection);
+        }, cancellationToken);
+    }
+
     /// <summary>Starts the (self-retrying, non-blocking) connection attempt.</summary>
     public void Start()
     {

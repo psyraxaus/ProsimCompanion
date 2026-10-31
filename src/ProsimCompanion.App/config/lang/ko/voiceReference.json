@@ -184,6 +184,11 @@
         "who": "Names the First Officer on duty, their experience and hours on the type.",
         "new": "Draws a different First Officer now, after you confirm."
       },
+      "scenario": {
+        "title": "Scenario mode",
+        "clearAll": "Clears every armed failure in ProSim, the IOS's included — always works.",
+        "planned": "Names the planned scenario, only with 'Show the planned scenario' on."
+      },
       "fuelCheck": {
         "title": "연료 점검",
         "check": "현재 위치의 SimBrief 계획 대비 탑재 연료와, 계획값 대비 예상 착륙 연료입니다. 순항 중에는 자동으로도 수행합니다."

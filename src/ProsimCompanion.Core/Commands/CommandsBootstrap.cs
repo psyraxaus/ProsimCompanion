@@ -53,5 +53,8 @@ public static class CommandsBootstrap
             services.GetService<Microsoft.Extensions.Options.IOptionsMonitor<Configuration.InputRelayOptions>>());
         // Cockpit switches (2026-10-24): the ProSim pillar implements the seam.
         CockpitCommandHandlers.Register(registry, services.GetService<ICockpitSwitchControl>());
+        // Scenario mode (issue #197, ADR-0018): the Speech pillar implements the one serialised
+        // failure-write path; ids are catalogue ids, never failure names.
+        ScenarioCommandHandlers.Register(registry, services.GetService<IScenarioControl>());
     }
 }

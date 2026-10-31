@@ -535,6 +535,19 @@ confirmation), no-go (raised regardless), or icing (the de-ice question).
 _Avoid_: pre-flight inspection (that is the checklist), exterior check, MSFS walkaround (the
 sim's own avatar mode, which the session gate excludes)
 
+**Scenario**:
+One scheduled non-normal per flight at most: a catalogue entry (an abnormal the FO can
+respond to, ProSim's own failure name, the phases, a weight, a severity) **planned** at the
+first live Preflight when the per-flight chance hits, **armed** in ProSim at its moment
+through the failure gate (announce, a cancel window, the write, the verify), **fired** when
+the failure monitor detects the matching abnormal exactly as an IOS failure, **cleared** by
+the flight-cycle reset, the app's exit, a transient's timer or the pilot. The **failure
+gate** passes a failure name only when the catalogue marks it verified AND ProSim lists it;
+it has no dataref path. **Clear all** resets every armed failure ProSim reports, the IOS's
+included, unconditionally.
+_Avoid_: failure injection (the ProSim IOS word for its own list), fault (that is the ECAM's
+word), random failures (ProSim's generator, which stays off)
+
 **Gate intro**:
 The FO's one self-introduction per duty day, at the first Preflight after the draw and before
 any briefing: the sim clock's greeting word, their name, "I'll be your First Officer today",

@@ -134,6 +134,33 @@ public sealed class FailureMonitor : IEcamDialogueIo, Core.State.IAbnormalDialog
     /// without re-parsing the event log. Fires on the monitor's tick thread.</summary>
     public event Action<string, string>? FailureDetected;
 
+    /// <summary>Raised when an ECAM dialogue ends, whichever way (completed, cleared, cancelled,
+    /// session-ended) — the scenario mode's decision turn follows it (issue #197). Fired outside
+    /// the lock, on the dialogue's thread.</summary>
+    public event Action<string, string>? AbnormalEnded;
+
+    /// <summary>True while a drill or an ECAM dialogue runs (issue #197: nothing is armed then).</summary>
+    public bool DialogueActive
+    {
+        get
+        {
+            lock (_lock)
+            {
+                return _activeDialogue is not null;
+            }
+        }
+    }
+
+    /// <summary>True when a definition with this id is loaded (the scenario catalogue is
+    /// checked against it — a scenario the FO cannot respond to is refused).</summary>
+    public bool HasAbnormal(string id)
+    {
+        lock (_lock)
+        {
+            return _definitions.Any(d => string.Equals(d.Id, id, StringComparison.OrdinalIgnoreCase));
+        }
+    }
+
     public void Start()
     {
         // User tree, not the install dir (ADR-0007) — seeded from shipped defaults at startup.
@@ -519,6 +546,18 @@ public sealed class FailureMonitor : IEcamDialogueIo, Core.State.IAbnormalDialog
                 }
 
                 _status?.Update(s => s with { ActiveAbnormal = "" });
+                if (session is not null)
+                {
+                    try
+                    {
+                        AbnormalEnded?.Invoke(session.Id, session.EndReason ?? "completed");
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogDebug(ex, "AbnormalEnded subscriber threw for {Id}", session.Id);
+                    }
+                }
+
                 session?.Cts.Dispose();
                 try
                 {

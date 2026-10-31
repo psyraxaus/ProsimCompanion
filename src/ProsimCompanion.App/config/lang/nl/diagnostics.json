@@ -23,6 +23,9 @@
         "json": "Gevorderde gebruikers kunnen de lijst ook in settings.json bewerken onder"
       }
     },
+    "status": {
+      "scenarioClearAll": "Clear every armed failure in ProSim (the IOS's included)"
+    },
     "gsx": {
       "gpuConnect": "Klik om de grondstroom aan te sluiten",
       "gpuDisconnect": "Klik om de grondstroom los te koppelen"

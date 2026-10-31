@@ -445,6 +445,36 @@ the walkaround, captain"* and is away for six to ten minutes:
 
 A restart mid-turnaround never repeats a walk already done.
 
+### Scenario mode — something goes wrong, rarely
+
+Off by default — the **Scenarios** card on Voice First Officer → ECAM Abnormals
+(`scenario.enabled`). About one flight in ten (**Chance per flight**, 0.10) the app arms one
+minor failure in ProSim at a random moment: a pack fault, a bleed fault, a generator, a fuel
+pump low pressure, a hydraulic reservoir, an IR fault, hot brakes after landing. The FO
+detects it on the E/WD and works the ECAM with you exactly as for a failure you set on the
+IOS, then asks: *"We've lost generator 1 — I'd suggest we continue, we have generator 2 and the
+APU available. Your call, captain."* Say **continue**, **return** or **divert** (or use the
+open questions card); return and divert go through the diversion workflow. At shutdown the
+tech-log offer names the failure; the debrief says *"Scenario today: …"*.
+
+- **Allow major scenarios** (off) adds engine fire, engine failure and APU fire.
+  **Takeoff scenarios** (off) adds an engine fire on the roll and an engine failure after V1,
+  only with the RTO and EFATO features on.
+- Nothing is armed in flight below the **floor** (1,500 ft above ground), with an abnormal, a
+  drill or a no-go tech-log item open, or in a sterile moment. Everything armed is cleared
+  when the flight resets and when the app closes.
+- **"Clear all failures"** — by voice, the **CLEAR ALL** box on the diagnostics STATUS page,
+  the Stream Deck or the API — always works, scenario mode on or off, and also clears
+  failures you set on the IOS.
+- **Show the planned scenario** (off) names it on the STATUS page and answers *"any failures
+  planned?"* — for testing.
+- **Before the first scenario can fire**: the failures are armed through ProSim's own failure
+  list, and each entry in `%LOCALAPPDATA%\ProsimCompanion\config\scenarios.json` must name
+  that list's exact name and be marked `"verified": true`. The app ships them all unverified.
+  On your first flight with the mode on, the log line *"ProSim failure API: N failures
+  listed …"* (or the `scenario.listFailures` command) shows the names — edit the file, flip
+  the entries that match, and they become eligible. An unverified entry is never armed.
+
 ## Voices
 
 The FO, the purser and company ACARS each have their own voice (`speech` and `voices`

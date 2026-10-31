@@ -169,7 +169,10 @@ through with a note if deliberately dropped. Sources: Prosim2GSX 0.9.0, ProsimIn
       line as the floor, sterile-cockpit aware, chattiness as the count); **FO walkaround**
       (#196, 2026-11-01: announce, away with the refuel held, the interphone report in the FO
       voice, findings into the tech log / the de-ice question — the predecessor only detected
-      the sim's own walkaround, see "Deliberately not carried forward")
+      the sim's own walkaround, see "Deliberately not carried forward"); **scenario mode**
+      (#197, ADR-0018, 2026-11-01: one scheduled minor failure per flight at most, armed
+      through ProSim's SDK failure list behind its own name gate, the FO's ECAM response and
+      the continue / return / divert decision — nothing the predecessors did)
 - [x] Cabin crew simulation (purser reports gated on any ACP CAB latch, cabin secure/ready,
       opt-in boarding-delay ambient, distinct purser voice + interphone filter;
       cruise-query ambient deferred)
