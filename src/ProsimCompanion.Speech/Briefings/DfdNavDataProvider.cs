@@ -750,6 +750,7 @@ public sealed class DfdNavDataProvider
             if (highest is { } msa && msa < 100)
             {
                 highest = msa * 100;
+                _logger.LogInformation("Airport MSA for {Airport}: DFD sector altitude {Raw} read as hundreds of feet → {Feet} ft", airport, msa, highest);
             }
 
             return highest;

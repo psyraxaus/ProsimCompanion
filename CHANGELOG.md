@@ -9,7 +9,8 @@ Local build for the owner's sim testing, 2026-10-31, on `release/0.8.0-rc.24` (o
 - Fixed: **gate monitor STD on the wrong sim date** (#139). SimBrief's STD sits on the real-world date; a sim flown on another date showed "STD in −1412 min" and jumped to FINAL CALL the moment boarding began. The OFP's STD is now moved by whole days to the day nearest the sim clock (same time-of-day), the way a typed STD already was; the loadsheet's STD trigger uses the same rule.
 - Fixed: **taxi-out phase flipping during a tug push** (#138). An engine reaching idle while the tug still pushed above 10 kt committed TAXI OUT, then the second engine's start walked it back. Taxi-out now waits for ProSim's pushback flag to clear (it returns to idle a few seconds after the tug releases — seen on the 2026-10-31 recording); a stuck flag still yields taxi-out after 3 minutes of engines running, so the phase can be late but never missing. Today's flight is checked in as a replay recording.
 - Fixed: **"minimum safe altitude 40 feet"** in the departure briefing and "23 feet" in the arrival: the navigation database stores the MSA in hundreds of feet; it is now spoken as 4,000 / 2,300 feet.
-- Agent: probes llm-stream-takeover, gate-std-sim-day (now with the fixed behaviour to assert), pushback-tug-taxi-flap (now assert-absent) and briefing-takeoff-emergency (MSA units) updated; recording lkpr-egll-2026-10-31-0.8.0-rc24 added.
+- Changed: the gate monitor logs and records (`gate.std-aligned`) every STD moved to the sim's day, and the briefing logs an MSA read as hundreds of feet — the two fixes above were otherwise silent.
+- Agent: probes llm-stream-takeover, gate-std-sim-day (now with the fixed behaviour to assert and a machine block on gate.std-aligned), pushback-tug-taxi-flap (now assert-absent) and briefing-takeoff-emergency (MSA units) updated; recording lkpr-egll-2026-10-31-0.8.0-rc24 added.
 
 ## 0.8.0-rc.25
 

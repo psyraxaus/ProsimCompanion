@@ -158,6 +158,9 @@ public sealed class GateMonitorService : IDisposable
             .Any(pair => pair.Key == Subsystems.Gsx && pair.Value == ConnectionState.Connected);
         var now = _clock.UtcNowOrReal;
         var ofp = _ofp.Current;
+        var manual = _loadsheet.Snapshot().StdOverrideUtc;
+        var std = ScheduledDeparture.Effective(manual, ofp?.ScheduledOutUtc, now);
+        NoteStdAlignment(manual, ofp?.ScheduledOutUtc, std, now);
 
         return new GateMonitorInputs(
             boarding?.Stage,
@@ -166,10 +169,43 @@ public sealed class GateMonitorService : IDisposable
             _door1L.RawValue is null ? null : _door1L.Value,
             bridge,
             _flight.CurrentPhase,
-            ScheduledDeparture.Effective(_loadsheet.Snapshot().StdOverrideUtc, ofp?.ScheduledOutUtc, now),
+            std,
             now,
             gsxConnected,
             string.IsNullOrWhiteSpace(ofp?.RequestId) ? null : ofp.RequestId);
+    }
+
+    private (DateTimeOffset Ofp, DateTimeOffset Aligned)? _lastAlignmentNoted;
+
+    /// <summary>One log line and one session event each time the OFP's STD lands on a
+    /// different day than the sim clock (issue #139) — the move itself is silent arithmetic,
+    /// so without this the only trace of it would be a countdown that merely looks sane.
+    /// Noted once per (OFP STD, aligned STD) pair; a manual STD override is not an alignment.</summary>
+    private void NoteStdAlignment(TimeOnly? manual, DateTimeOffset? ofpStd, DateTimeOffset? effective, DateTimeOffset now)
+    {
+        if (manual is not null || ofpStd is not { } raw || effective is not { } aligned || aligned == raw)
+        {
+            _lastAlignmentNoted = null;
+            return;
+        }
+
+        if (_lastAlignmentNoted == (raw, aligned))
+        {
+            return;
+        }
+
+        _lastAlignmentNoted = (raw, aligned);
+        var days = (aligned - raw).TotalDays;
+        _logger.LogInformation(
+            "Scheduled departure {Std:HH:mm}Z moved from the OFP's {OfpDate:yyyy-MM-dd} to the sim's {SimDate:yyyy-MM-dd} ({Days:+0;-0} day(s); sim clock {Now:yyyy-MM-dd HH:mm}Z) — issue #139",
+            aligned, raw, aligned, days, now);
+        _eventLog.Record("gate.std-aligned", new
+        {
+            ofpStdUtc = raw,
+            alignedStdUtc = aligned,
+            simNowUtc = now,
+            days = (int)Math.Round(days),
+        });
     }
 
     private static GsxServiceView? Service(GsxDiagnosticsSnapshot gsx, string id)

@@ -3953,6 +3953,16 @@
       "issue": 139,
       "state": "open",
       "kind": "watch",
+      "machine": {
+        "kind": "required-fields",
+        "type": "gate.std-aligned",
+        "fields": [
+          "ofpStdUtc",
+          "alignedStdUtc",
+          "simNowUtc",
+          "days"
+        ]
+      },
       "sources": [
         "session",
         "log"
@@ -3963,6 +3973,7 @@
         "watch: the loadsheet prelim 'STD minus N min' trigger firing the moment the OFP loads (see prelim-auto-trigger-waits-for-inputs) when the sim day differs from the OFP day — ScheduledDeparture is shared, so the same day mismatch moves the prelim trigger by whole days.",
         "watch: the hero gate card's 'STD in −N min' text (requires-human) — a negative four-digit figure on the card during a turnaround is this bug, not a late flight.",
         "A session whose sim clock and OFP share the date (|minutesToStd| under 720 all leg) does not exercise this probe — report it as not-exercised, not passed.",
+        "assert-present (fix 2026-10-31) whenever the sim date differs from the OFP date: exactly one 'gate.std-aligned' event per OFP {ofpStdUtc, alignedStdUtc (same time-of-day, different date), simNowUtc, days (whole, non-zero)} and the log line 'Scheduled departure HH:MMZ moved from the OFP's <date> to the sim's <date> (±N day(s); sim clock …) — issue #139' from GateMonitorService, before the first gate-status-changed of that turnaround. No such event on a leg whose dates agree. A manual STD on the Loadsheet page never produces one.",
         "assert-absent (fix 2026-10-31): any 'gate-status-changed' with |minutesToStd| above 720 at all — the STD is now anchored to the sim day — and any Open -> FinalCall with paxBoarded 0 that skips Boarding. assert-present when the sim date differs from the OFP date: the gate card's 'STD in N min' reads the same time-of-day on the SIM's date (e.g. OFP 08:30Z on the 26th, sim 07:45Z on the 27th → 'STD in 45 min'), and the loadsheet prelim 'STD minus N min' trigger fires at that aligned time (same ScheduledDeparture rule)."
       ],
       "notes": "Issue filed 2026-09-27 from the 0.5.0-rc.9 EKCH→EGLL leg. Fixed 2026-10-31: ScheduledDeparture.Effective aligns the OFP's sched_out to the day nearest the sim clock (whole-day shifts while the two are more than 12 h apart; ScheduledDeparture.AlignToSimDay, pure, tested) — the manual STD already did this (#95). The 2026-09-27 session is not on the sim PC any more, so the guard is the unit test, not a replay. Unverified live; needs a leg flown on a sim date that differs from the OFP's."
