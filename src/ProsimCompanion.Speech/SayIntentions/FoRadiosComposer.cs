@@ -55,6 +55,17 @@ public static partial class ReadbackComposer
     [GeneratedRegex(@"\b([A-Z])(\d{1,2})\b", RegexOptions.CultureInvariant)]
     private static partial Regex Taxiway();
 
+    // Bare taxiway letters (LKPR 2026-10-31: "Taxi to holding point runway 24 via Z, T, A" and
+    // EGLL "Taxi to Terminal 5A Gate 506 via A" were read back — and spoken — as the letters;
+    // only a letter glued to a digit was phonetic). After a routing word every A / B2 token
+    // up to the end of the list is spelled; a bare letter anywhere else is left alone so a
+    // fix name or an initial is never turned into a taxiway.
+    [GeneratedRegex(@"(?<lead>\b(?i:via|hold short of|join|onto|exit at|exit|cross|on|at)\s+)(?<list>[A-Z]\d{0,2}\b(?:\s*,\s*[A-Z]\d{0,2}\b|\s+(?i:and|then)\s+[A-Z]\d{0,2}\b)*)", RegexOptions.CultureInvariant)]
+    private static partial Regex TaxiwayRoute();
+
+    [GeneratedRegex(@"\b([A-Z])(\d{0,2})\b", RegexOptions.CultureInvariant)]
+    private static partial Regex TaxiwayToken();
+
     [GeneratedRegex(@"\b(?:contact|monitor)\s+(?<station>[^,.;:\d]+?)\s+(?:on\s+)?(?<freq>1[1-3]\d\.\d{1,3})(?!\d)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex Handoff();
 
@@ -271,12 +282,8 @@ public static partial class ReadbackComposer
             .Replace("Cross-runway", "Cross runway", StringComparison.OrdinalIgnoreCase)
             .Replace("cross-runway", "cross runway", StringComparison.OrdinalIgnoreCase)
             .Replace("line-up", "line up", StringComparison.OrdinalIgnoreCase);
-        text = Taxiway().Replace(text, m =>
-        {
-            var letter = Core.Speech.NatoPhonetics.Word(m.Groups[1].Value[0]) ?? m.Groups[1].Value;
-            var digits = string.Join("-", m.Groups[2].Value.Select(c => Core.Speech.NatoPhonetics.DigitWords[c - '0']));
-            return letter + "-" + digits;
-        });
+        text = TaxiwayRoute().Replace(text, m => m.Groups["lead"].Value + TaxiwayToken().Replace(m.Groups["list"].Value, SpellTaxiway));
+        text = Taxiway().Replace(text, SpellTaxiway);
         text = text.Trim();
         if (text.Length > 0)
         {
@@ -291,6 +298,16 @@ public static partial class ReadbackComposer
         return text;
     }
 
+    /// <summary>"A" → "Alpha", "A1" → "Alpha-one" (SI's hyphenated style; the FO voice gets spaces).</summary>
+    private static string SpellTaxiway(Match m)
+    {
+        var letter = Core.Speech.NatoPhonetics.Word(m.Groups[1].Value[0]) ?? m.Groups[1].Value;
+        var digits = m.Groups[2].Value;
+        return digits.Length == 0
+            ? letter
+            : letter + "-" + string.Join("-", digits.Select(c => Core.Speech.NatoPhonetics.DigitWords[c - '0']));
+    }
+
     private static string TitleCase(string station)
         => station.Length > 1 && station.All(c => !char.IsLetter(c) || char.IsUpper(c))
             ? CultureInfo.InvariantCulture.TextInfo.ToTitleCase(station.ToLowerInvariant())
@@ -301,8 +318,29 @@ public static partial class ReadbackComposer
 /// the FO's check-in. "FL140" / "5,000 feet"; null when the line clears no level.</summary>
 public static partial class ClearedLevelParser
 {
-    [GeneratedRegex(@"\b(?:climb|descend|maintain|initial climb)(?:\s+and\s+maintain)?(?:\s+to)?\s+(?:flight[- ]level[- ](\d{2,3})|FL\s?(\d{2,3})|(\d{1,2}[,.]?\d{3})\s*(?:feet|ft))\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    // "descend altitude 3,500 feet" and "Continue descent to FL070" (EGLL 2026-10-31) clear a
+    // level too — without them the tower check-in at 1,200 ft still said "for FL70".
+    [GeneratedRegex(@"\b(?:climb|descend|descent|maintain|initial climb)(?:\s+and\s+maintain)?(?:\s+to)?(?:\s+altitude)?\s+(?:flight[- ]level[- ](\d{2,3})|FL\s?(\d{2,3})|(\d{1,2}[,.]?\d{3})\s*(?:feet|ft))\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex Level();
+
+    /// <summary>The level as feet ("FL210" → 21000, "3,500 feet" → 3500); null for anything else.</summary>
+    public static double? Feet(string? level)
+    {
+        if (string.IsNullOrWhiteSpace(level))
+        {
+            return null;
+        }
+
+        var text = level.Trim();
+        if (text.StartsWith("FL", StringComparison.OrdinalIgnoreCase)
+            && int.TryParse(text[2..], NumberStyles.None, CultureInfo.InvariantCulture, out var fl))
+        {
+            return fl * 100.0;
+        }
+
+        var digits = new string(text.TakeWhile(c => char.IsDigit(c) || c == ',').Where(char.IsDigit).ToArray());
+        return digits.Length > 0 && int.TryParse(digits, NumberStyles.None, CultureInfo.InvariantCulture, out var feet) ? feet : null;
+    }
 
     public static string? Parse(string? atcText)
     {
@@ -385,7 +423,13 @@ public static class CheckInComposer
         else
         {
             var level = LevelText(c.AltitudeFt);
-            var cleared = c.ClearedLevel is { Length: > 0 } cl && !string.Equals(cl, level, StringComparison.Ordinal) ? $" for {cl}" : "";
+            // Only a level still ahead in the direction of flight is "for …" (EGLL 2026-10-31:
+            // the tower check-in at 1,200 ft said "for FL70" — the last flight-level clearance,
+            // long passed, because the altitude clearance after it had not been read).
+            var climbing = c.Phase is not (FlightPhase.Descent or FlightPhase.Approach);
+            var clearedFeet = ClearedLevelParser.Feet(c.ClearedLevel);
+            var ahead = clearedFeet is null || (climbing ? clearedFeet > c.AltitudeFt : clearedFeet < c.AltitudeFt);
+            var cleared = c.ClearedLevel is { Length: > 0 } cl && !string.Equals(cl, level, StringComparison.Ordinal) && ahead ? $" for {cl}" : "";
             switch (c.Phase)
             {
                 case FlightPhase.Cruise:
@@ -448,8 +492,11 @@ public static partial class RadioSpeech
     /// 2026-10-29: SayIntentions' ATC voice and the FO both read "stand 311" as "three hundred
     /// and eleven"): "311" → "three-one-one", "546R" → "five-four-six-Romeo", "B16" →
     /// "Bravo-one-six" — SI's own hyphenated callsign style, which <see cref="Spoken"/> turns
-    /// into spaces for the FO voice. Anything longer than a compact designator (SI's
-    /// "PIER 2 GATE STAND 208", a blank) is returned as written.</summary>
+    /// into spaces for the FO voice. A facility-prefixed name (SI's "Terminal 5A Gate 506",
+    /// EGLL 2026-10-31) keeps its words and spells only the trailing designator — "Terminal 5A
+    /// Gate five-zero-six" — so a stand number is never "five hundred and six". A plain
+    /// "<word> <designator>" pair ("Stand 546R") and a blank are returned as written (pinned
+    /// 2026-10-29).</summary>
     public static string Stand(string? stand)
     {
         if (string.IsNullOrWhiteSpace(stand))
@@ -457,12 +504,26 @@ public static partial class RadioSpeech
             return stand ?? "";
         }
 
-        var compact = stand.Trim().ToUpperInvariant();
-        if (!CompactStand().IsMatch(compact))
+        var trimmed = stand.Trim();
+        var compact = trimmed.ToUpperInvariant();
+        if (CompactStand().IsMatch(compact))
         {
-            return stand.Trim();
+            return SpellDesignator(compact);
         }
 
+        var words = trimmed.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        var last = words[^1].ToUpperInvariant();
+        if (words.Length > 2 && CompactStand().IsMatch(last))
+        {
+            words[^1] = SpellDesignator(last);
+            return string.Join(" ", words);
+        }
+
+        return trimmed;
+    }
+
+    private static string SpellDesignator(string compact)
+    {
         var words = new List<string>(compact.Length);
         foreach (var c in compact)
         {

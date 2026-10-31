@@ -35,14 +35,24 @@ public static class ParkingText
 /// <param name="Suffix">Trailing letter(s) ("B" in "34B", "R" in "545R"), or "".</param>
 /// <param name="FacilityWord">A leading facility word the pilot included ("Gate", "Stand",
 /// "Parking", "Dock"), or null — informative only, GSX profiles do not carry it.</param>
-public sealed record ParkingToken(char? Letter, int Number, string Suffix, string? FacilityWord)
+/// <param name="Facility">A facility name in front of the facility word ("TERMINAL 5A" in
+/// SayIntentions' "TERMINAL 5A GATE 506", "Terminal 1" in GSX's "Terminal 1 | Gate 5"), or
+/// null — informative only; the designator is what resolves.</param>
+public sealed record ParkingToken(char? Letter, int Number, string Suffix, string? FacilityWord, string? Facility = null)
 {
+    private const string FacilityWords = "gate|stand|parking|park|dock|bay|position|pos|apron|ramp";
+
+    // The facility prefix is only taken when a facility word (or GSX's "|") follows it, so
+    // "Terminal 2A" is never read as stand 2A.
     private static readonly Regex Shape = new(
-        @"^\s*(?:(?<word>gate|stand|parking|park|dock|bay|position|pos|apron|ramp)\s*)?(?<letter>[A-Za-z])?\s*(?<number>\d{1,4})\s*(?<suffix>[A-Za-z]{1,2})?\s*$",
+        @"^\s*(?:(?<facility>\S.*?)\s*(?:\|\s*|\s+(?=(?:" + FacilityWords + @")\b)))?(?:(?<word>" + FacilityWords + @")\s*)?(?<letter>[A-Za-z])?\s*(?<number>\d{1,4})\s*(?<suffix>[A-Za-z]{1,2})?\s*$",
         RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
-    /// <summary>Parses "W40", "w 40", "Gate W40", "Stand 313", "34B", "545R", "D-27".
-    /// Null when the text is not a designator (e.g. a full "Terminal 1 | Gate 5" name).</summary>
+    /// <summary>Parses "W40", "w 40", "Gate W40", "Stand 313", "34B", "545R", "D-27", and a
+    /// facility-prefixed name — "TERMINAL 5A GATE 506" (SayIntentions' ATC gate, EGLL
+    /// 2026-10-31: it matched none of the 298 catalogued stands and GSX refused the raw text
+    /// while the aircraft parked at its "Terminal 5A (501-527) | Stand 506"), "Terminal 1 |
+    /// Gate 5". Null when the text carries no designator ("Terminal 2A", "north apron").</summary>
     public static ParkingToken? Parse(string? text)
     {
         if (string.IsNullOrWhiteSpace(text))
@@ -61,7 +71,8 @@ public sealed record ParkingToken(char? Letter, int Number, string Suffix, strin
         var letter = match.Groups["letter"].Success ? char.ToUpperInvariant(match.Groups["letter"].Value[0]) : (char?)null;
         var suffix = match.Groups["suffix"].Success ? match.Groups["suffix"].Value.ToUpperInvariant() : "";
         var word = match.Groups["word"].Success ? match.Groups["word"].Value : null;
-        return new ParkingToken(letter, number, suffix, word);
+        var facility = match.Groups["facility"].Success ? match.Groups["facility"].Value.Trim() : null;
+        return new ParkingToken(letter, number, suffix, word, string.IsNullOrEmpty(facility) ? null : facility);
     }
 }
 

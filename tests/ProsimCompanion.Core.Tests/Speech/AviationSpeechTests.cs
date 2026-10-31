@@ -26,6 +26,11 @@ public sealed class AviationSpeechTests
     [InlineData("250 kts", "250 knots")]
     [InlineData("check ECAM", "check E CAM")]
     [InlineData("cleared FL level", "cleared flight level level")]         // bare FL
+    // V-speeds (owner report 2026-10-31): "V1" came out of kokoro as "vone".
+    [InlineData("V1, V R, V2, Flex Temp", "Vee one, Vee R, Vee two, Flex Temp")]
+    [InlineData("V 1 142, rotate 145, V 2 150, flex 55, set", "Vee one 142, rotate 145, Vee two 150, flex 55, set")]
+    [InlineData("VAPP 134, VLS 129, VREF 130", "Vee app 134, V L S 129, Vee ref 130")]
+    [InlineData("v1 cut", "Vee one cut")]
     public void Normalize_KnownShorthand(string input, string expected)
         => Assert.Equal(expected, AviationSpeech.Normalize(input));
 

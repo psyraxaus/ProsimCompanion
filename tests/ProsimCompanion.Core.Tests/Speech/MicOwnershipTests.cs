@@ -102,6 +102,29 @@ public sealed class MicOwnershipTests
     }
 
     [Fact]
+    public async Task ListenAsync_ExposesItsGrammarAsTheExpectedReplies()
+    {
+        // EGLL 2026-10-31 (issue #172): the minima confirm's answer "confirm, two seven niner
+        // feet" was dropped as the FO's own echo — the borrowed listen's grammar is now what
+        // the self-echo guard exempts while the listen runs, and nothing after it.
+        var store = new ExpectedReplyStore();
+        var mic = new MicOwnership(_window, NullLogger<MicOwnership>.Instance, store);
+        Assert.Empty(store.ExpectedReplies);
+
+        using var borrow = mic.Borrow("minimaCapture");
+        var listen = mic.ListenAsync(["confirm", "negative"], TimeSpan.FromSeconds(5), CancellationToken.None);
+        Assert.Contains("confirm", store.ExpectedReplies);
+        Assert.False(SelfEchoGuard.LooksLikeOwnSpeech(
+            "confirm, two seven niner feet",
+            [new SelfEchoGuard.SpokenLine("Decision altitude two seven niner feet, confirm?", DateTimeOffset.UtcNow, PlayedAloud: true)],
+            DateTimeOffset.UtcNow, TimeSpan.FromSeconds(15), store.ExpectedReplies));
+
+        _window.Hear("confirm, two seven niner feet");
+        Assert.Equal("confirm, two seven niner feet", await listen);
+        Assert.Empty(store.ExpectedReplies);
+    }
+
+    [Fact]
     public void Borrow_DisposeIsIdempotent()
     {
         _window.OpenListeningWindow(["a"]);

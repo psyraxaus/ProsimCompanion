@@ -205,7 +205,16 @@ public sealed class FoRadiosService : Core.Hosting.IStartupModule, IDisposable
             var readback = ReadbackComposer.Compose(tx.Text, flight.Callsign, tx.Station);
             if (readback is null)
             {
-                _eventLog.Record("sayintentions.readback", new { atc = tx.Text, kind = "none", transmit = "" });
+                // Same shape as a transmitted read-back (probe si-fo-radios reads payload.* and
+                // spoken/sent on every event; the flat form failed it on 2026-10-31).
+                _eventLog.Record("sayintentions.readback", new
+                {
+                    payload = new { atc = tx.Text, kind = "none", transmit = "" },
+                    spoken = "",
+                    radioWaitMs = 0,
+                    radioBusyAtTx = false,
+                    sent = false,
+                });
                 return;
             }
 

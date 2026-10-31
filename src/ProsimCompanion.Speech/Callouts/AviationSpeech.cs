@@ -132,6 +132,19 @@ public static class AviationSpeech
         (Rx(@"\bMDA\b"), "M D A"),
         (Rx(@"\bECAM\b"), "E CAM"),
         (Rx(@"\bMCDU\b"), "M C D U"),
+        // V-speeds (owner report 2026-10-31, LKPR→EGLL): the taxi checklist's "V1, V R, V2"
+        // came out as "vone" / "vee-two-ish" — kokoro reads a letter glued to a digit as one
+        // syllable. Spelled the way pilots say them; "Vee R" keeps the R a letter. The
+        // optional space covers the "V 1" form the confirm callout uses.
+        (Rx(@"\bV\s?1\b"), "Vee one"),
+        (Rx(@"\bV\s?2\b"), "Vee two"),
+        (Rx(@"\bV\s?R\b"), "Vee R"),
+        (Rx(@"\bVAPP\b"), "Vee app"),
+        (Rx(@"\bVREF\b"), "Vee ref"),
+        (Rx(@"\bVLS\b"), "V L S"),
+        (Rx(@"\bVFE\b"), "V F E"),
+        (Rx(@"\bVMO\b"), "V M O"),
+        (Rx(@"\bMMO\b"), "M M O"),
         // kokoro reads "winds" as the verb /waɪndz/ (issue #69). "windz" is the most
         // phonetically explicit respelling that still reads as one word — "wind z" risks the
         // synthesizer spelling out a letter zed. Chosen without an audition; may need an

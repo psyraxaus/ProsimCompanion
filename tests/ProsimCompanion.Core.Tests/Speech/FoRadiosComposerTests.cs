@@ -34,6 +34,15 @@ public sealed class FoRadiosComposerTests
         "Climb altitude 6,000, Finnair-niner-six-two.")]
     [InlineData("Finnair-niner-six-two, London Control, Good morning, climb FL330", "London Control",
         "Climb FL330, Finnair-niner-six-two.")]
+    // LKPR/EGLL 2026-10-31 (Speedbird 861): bare taxiway letters are spelled like the glued ones.
+    [InlineData("Finnair-niner-six-two, Taxi to holding point runway 24 via Z, T, A.", "Ruzyne Ground",
+        "Taxi to holding point runway 24 via Zulu, Tango, Alpha, Finnair-niner-six-two.")]
+    [InlineData("Finnair-niner-six-two, Taxi to Terminal 5A Gate 506 via A. Good day.", "Heathrow Ground",
+        "Taxi to Terminal 5A Gate 506 via Alpha, Finnair-niner-six-two.")]
+    [InlineData("Finnair-niner-six-two, taxi via B2 and C, hold short of A3", "Heathrow Ground",
+        "Taxi via Bravo-two and Charlie, hold short of Alpha-three, Finnair-niner-six-two.")]
+    [InlineData("Finnair-niner-six-two, Expect the ILS runway 09L approach into Heathrow via LAM transition.", "London Control",
+        "Expect the ILS runway 09L approach into Heathrow via LAM transition, Finnair-niner-six-two.")]
     public void Readback_MatchesTheCopilotsOwnLine_AndEndsWithTheCallsign(string atc, string station, string expected)
     {
         var readback = ReadbackComposer.Compose(atc, Callsign, station);
@@ -81,7 +90,10 @@ public sealed class FoRadiosComposerTests
     [InlineData("546R", "five-four-six-Romeo")]
     [InlineData("B16", "Bravo-one-six")]
     [InlineData("35", "three-five")]
-    [InlineData("PIER 2 GATE STAND 208", "PIER 2 GATE STAND 208")]
+    // A long name keeps its words and spells the trailing designator (EGLL 2026-10-31).
+    [InlineData("PIER 2 GATE STAND 208", "PIER 2 GATE STAND two-zero-eight")]
+    [InlineData("Terminal 5A Gate 506", "Terminal 5A Gate five-zero-six")]
+    [InlineData("North apron", "North apron")]
     [InlineData("", "")]
     public void Stand_IsSpelledDigitByDigit_WhenCompact(string stand, string expected)
         => Assert.Equal(expected, RadioSpeech.Stand(stand));
@@ -103,8 +115,37 @@ public sealed class FoRadiosComposerTests
     [InlineData("Finnair-niner-six-two, descend to 5,000 feet, QNH 1013", "5,000 feet")]
     [InlineData("Cleared to Helsinki Vantaa via the KEMA5C departure. Initial climb to FL070. Departure on 120.255. Squawk 7356.", "FL70")]
     [InlineData("Finnair-niner-six-two, Contact Tower on 119.355", null)]
+    // EGLL 2026-10-31: altitude clearances and "continue descent" cleared nothing, so the
+    // tower check-in at 1,200 ft was still "for FL70".
+    [InlineData("Finnair-niner-six-two, descend altitude 6,000 feet. QNH 1031.", "6,000 feet")]
+    [InlineData("Finnair-niner-six-two, descend altitude 3,500 feet", "3,500 feet")]
+    [InlineData("Finnair-niner-six-two, Good afternoon. Continue descent to FL070", "FL70")]
     public void ClearedLevel_IsReadFromTheInstruction(string atc, string? expected)
         => Assert.Equal(expected, ClearedLevelParser.Parse(atc));
+
+    [Theory]
+    [InlineData("FL210", 21_000.0)]
+    [InlineData("FL70", 7_000.0)]
+    [InlineData("3,500 feet", 3_500.0)]
+    [InlineData("6,000 feet", 6_000.0)]
+    [InlineData("", null)]
+    [InlineData("KEMA5C", null)]
+    public void ClearedLevel_Feet(string level, double? expected)
+        => Assert.Equal(expected, ClearedLevelParser.Feet(level));
+
+    [Fact]
+    public void CheckIn_OmitsAClearedLevelAlreadyPassed()
+    {
+        // On final at 1,200 ft the last flight-level clearance is behind us: no "for FL70".
+        Assert.Equal("Good evening, Finnair-niner-six-two, descending through 1,200 on LAKU8M, inbound runway 15.",
+            CheckInComposer.Compose(Context(FlightPhase.Approach, false, 1_230, "FL70"))!.Transmit);
+        // Climbing through FL180 cleared FL100 is a level-off already passed — not "for FL100".
+        Assert.Equal("Good evening, Finnair-niner-six-two, climbing through FL180 on KEMA5C.",
+            CheckInComposer.Compose(Context(FlightPhase.Climb, false, 18_040, "FL100"))!.Transmit);
+        // A cleared altitude still below us in the descent is read as before.
+        Assert.Equal("Good evening, Finnair-niner-six-two, descending through 4,000 for 3,500 feet on LAKU8M, inbound runway 15.",
+            CheckInComposer.Compose(Context(FlightPhase.Approach, false, 4_030, "3,500 feet"))!.Transmit);
+    }
 
     private static CheckInContext Context(FlightPhase phase, bool onGround, double altitude, string? cleared)
         => new("Good evening", Callsign, phase, onGround, altitude, cleared, "KEMA5C", "LAKU8M", "22R", "15", "B16");

@@ -110,20 +110,50 @@ public sealed class ParkingTokenResolverTests
     [InlineData("545R", null, 545, "R", null)]
     [InlineData("gate d-27", 'D', 27, "", "gate")]
     [InlineData("34b", null, 34, "B", null)]
-    public void Token_Parses(string text, char? letter, int number, string suffix, string? word)
+    // Facility-prefixed names (EGLL 2026-10-31: SayIntentions' "TERMINAL 5A GATE 506" matched
+    // none of the 298 catalogued stands and was sent to GSX as typed — not_found).
+    [InlineData("TERMINAL 5A GATE 506", null, 506, "", "GATE", "TERMINAL 5A")]
+    [InlineData("Terminal 1 | Gate 5", null, 5, "", "Gate", "Terminal 1")]
+    [InlineData("Terminal 5A (501-527)|Stand 506", null, 506, "", "Stand", "Terminal 5A (501 527)")]
+    [InlineData("PIER 2 GATE STAND 208", null, 208, "", "STAND", "PIER 2 GATE")]
+    [InlineData("Apron 1W (Gates W34-W48) | Gate W40", 'W', 40, "", "Gate", "Apron 1W (Gates W34 W48)")]
+    public void Token_Parses(string text, char? letter, int number, string suffix, string? word, string? facility = null)
     {
         var token = ParkingToken.Parse(text)!;
         Assert.Equal(letter, token.Letter);
         Assert.Equal(number, token.Number);
         Assert.Equal(suffix, token.Suffix);
         Assert.Equal(word, token.FacilityWord);
+        Assert.Equal(facility, token.Facility);
     }
 
     [Theory]
-    [InlineData("Terminal 1 | Gate 5")]
+    [InlineData("Terminal 2A")]
+    [InlineData("Apron North")]
     [InlineData("north apron")]
     [InlineData("")]
     public void Token_NonDesignators_AreNull(string text) => Assert.Null(ParkingToken.Parse(text));
+
+    [Fact]
+    public void FacilityPrefixedAtcGate_ResolvesToTheStand()
+    {
+        var egll = new AirportParkings(
+            "EGLL",
+            [
+                Stand(ParkingName.Parking, 506, gateName: "Stand 506", uiName: "Terminal 5A (501-527) | Stand 506"),
+                Stand(ParkingName.Parking, 507, gateName: "Stand 507", uiName: "Terminal 5A (501-527) | Stand 507"),
+                Stand(ParkingName.Parking, 221, "L", gateName: "Stand 221L"),
+            ],
+            ParkingDataSources.GsxIni | ParkingDataSources.GsxPy,
+            [],
+            DateTimeOffset.UnixEpoch);
+
+        var match = ParkingTokenResolver.Resolve(egll, "TERMINAL 5A GATE 506")!;
+
+        Assert.Equal(new ParkingIdentity(ParkingName.Parking, 506, ""), match.Parking.Identity);
+        Assert.Equal(506, match.GsxTokens[0]);
+        Assert.Equal("Stand 506", match.GsxTokens[1]);
+    }
 
     [Theory]
     [InlineData(ParkingName.GateW, 40, "", "Gate W40", "GATE_W", "gate w")]

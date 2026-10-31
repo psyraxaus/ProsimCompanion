@@ -72,4 +72,26 @@ public sealed class DayStateFileTests : IDisposable
         // Unified corrupt-aside naming (the predecessor used a one-off ".bad-*" scheme here).
         Assert.Single(Directory.GetFiles(_dir, "daystate.json.corrupt-*.bak"));
     }
+
+    [Fact]
+    public void Load_EmptyFile_IsNoDay_RemovedWithoutABackup()
+    {
+        // The sim PC's pattern 2026-10-03 → 2026-10-31: a 0-byte daystate.json at every start.
+        var path = Path.Combine(_dir, "daystate.json");
+        File.WriteAllText(path, "");
+
+        Assert.Null(_file.Load());
+        Assert.False(File.Exists(path));
+        Assert.Empty(Directory.GetFiles(_dir, "daystate.json.corrupt-*.bak"));
+    }
+
+    [Fact]
+    public void Save_LeavesNoTempFile_EvenWhenCalledFromTwoThreads()
+    {
+        var day = new DayState { DayId = "day-test", Mode = DayMode.Planned, StartedUtc = "2026-10-31T00:00:00.0000000+00:00" };
+        Parallel.For(0, 20, _ => _file.Save(day));
+
+        Assert.Equal("day-test", _file.Load()!.DayId);
+        Assert.Empty(Directory.GetFiles(_dir, "*.tmp"));
+    }
 }

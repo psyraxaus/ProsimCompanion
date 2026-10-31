@@ -30,11 +30,12 @@ public sealed class AtcRequestTemplateTests
     }
 
     [Fact]
-    public void SayIntentionsStand_IsUsedAsWritten()
+    public void SayIntentionsStand_KeepsItsWords_AndSpellsTheNumber()
     {
         var text = AtcRequestTemplate.Fill(PushIcao, new AtcRequestValues(Callsign, "PIER 2 GATE STAND 208", null, null, null));
 
-        Assert.Equal("Ground, Finnair-one-three-six-one, stand PIER 2 GATE STAND 208, request push and start", text);
+        // A facility-prefixed SI name keeps its words and spells the trailing number (EGLL 2026-10-31).
+        Assert.Equal("Ground, Finnair-one-three-six-one, stand PIER 2 GATE STAND two-zero-eight, request push and start", text);
     }
 
     // The stand is spelled digit by digit (owner 2026-10-29: "stand 311" was voiced "three

@@ -17,14 +17,20 @@ public sealed class MicOwnership : IMicOwnership
     private readonly object _gate = new();
 
     private BorrowScope? _active;
+    private volatile IReadOnlyList<string>? _listenGrammar;
 
-    public MicOwnership(IRecognitionWindow window, ILogger<MicOwnership> logger)
+    /// <param name="expectedReplies">Where the self-echo guard reads what the pilot is expected
+    /// to say (issue #172): while <see cref="ListenAsync"/> runs, its grammar is the expected
+    /// reply — the minima confirm's "confirm, two seven niner feet" (EGLL 2026-10-31) echoes the
+    /// FO's own read-back by design. Null (tests) registers nothing.</param>
+    public MicOwnership(IRecognitionWindow window, ILogger<MicOwnership> logger, ExpectedReplyStore? expectedReplies = null)
     {
         ArgumentNullException.ThrowIfNull(window);
         ArgumentNullException.ThrowIfNull(logger);
 
         _window = window;
         _logger = logger;
+        expectedReplies?.RegisterListenSource(() => _listenGrammar ?? []);
     }
 
     public event Action? Released;
@@ -74,6 +80,7 @@ public sealed class MicOwnership : IMicOwnership
         }
 
         _window.Accepted += OnAccepted;
+        _listenGrammar = grammar;
         try
         {
             _window.OpenListeningWindow(grammar);
@@ -90,6 +97,7 @@ public sealed class MicOwnership : IMicOwnership
         }
         finally
         {
+            _listenGrammar = null;
             _window.Accepted -= OnAccepted;
             _window.CloseListeningWindow();
         }

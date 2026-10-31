@@ -27,6 +27,7 @@ public sealed class DayStateFile
 
     private readonly IOptionsMonitor<DayOptions> _options;
     private readonly ILogger<DayStateFile> _logger;
+    private readonly object _io = new();
 
     public DayStateFile(IOptionsMonitor<DayOptions> options, ILogger<DayStateFile> logger)
     {
@@ -38,18 +39,35 @@ public sealed class DayStateFile
     }
 
     /// <summary>Loads the persisted day state; null when absent. A corrupt file is backed up
-    /// beside itself and null is returned — the day simply starts clean.</summary>
+    /// beside itself and null is returned — the day simply starts clean. An EMPTY file is
+    /// "no day", not corruption: on the owner's sim PC every start from 2026-10-03 to
+    /// 2026-10-31 found a 0-byte daystate.json (nine corrupt-*.bak files, all empty, each
+    /// stamped about a minute after the previous run's last log line), so the day never
+    /// survived a restart and the log carried a stack trace for it. The empty file is removed
+    /// and the fact logged plainly; which writer empties it is still open (issue filed
+    /// 2026-10-31) — Save now logs every write with its size to find out.</summary>
     public DayState? Load()
     {
         var path = ResolvePath();
         try
         {
-            if (!File.Exists(path))
+            lock (_io)
             {
-                return null;
-            }
+                if (!File.Exists(path))
+                {
+                    return null;
+                }
 
-            return JsonSerializer.Deserialize<DayState>(File.ReadAllText(path), JsonOptions);
+                var json = File.ReadAllText(path);
+                if (string.IsNullOrWhiteSpace(json))
+                {
+                    _logger.LogInformation("Day state file {Path} is empty — starting without a day (no backup taken)", path);
+                    TryDelete(path);
+                    return null;
+                }
+
+                return JsonSerializer.Deserialize<DayState>(json, JsonOptions);
+            }
         }
         catch (Exception ex)
         {
@@ -71,21 +89,51 @@ public sealed class DayStateFile
     }
 
     /// <summary>Writes the day state atomically (temp-then-move). Never throws — a failed save
-    /// costs restart recovery, not the running day.</summary>
+    /// costs restart recovery, not the running day. Writes are serialized and each uses its
+    /// own temp name, so two callers (the phase handler and the leg-facts step both save) can
+    /// never truncate each other's temp file; nothing but a complete document is ever moved
+    /// into place.</summary>
     public void Save(DayState day)
     {
         ArgumentNullException.ThrowIfNull(day);
         var path = ResolvePath();
+        var tmp = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
         try
         {
-            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-            var tmp = path + ".tmp";
-            File.WriteAllText(tmp, JsonSerializer.Serialize(day, JsonOptions));
-            File.Move(tmp, path, overwrite: true);
+            lock (_io)
+            {
+                var json = JsonSerializer.Serialize(day, JsonOptions);
+                if (string.IsNullOrWhiteSpace(json))
+                {
+                    _logger.LogWarning("Day state serialized to nothing — not written to {Path}", path);
+                    return;
+                }
+
+                Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+                File.WriteAllText(tmp, json);
+                File.Move(tmp, path, overwrite: true);
+                _logger.LogInformation("Day state saved ({Bytes} bytes, day {DayId}, {State})", json.Length, day.DayId, day.State);
+            }
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Could not write day state {Path}", path);
+            TryDelete(tmp);
+        }
+    }
+
+    private void TryDelete(string path)
+    {
+        try
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Could not delete {Path}", path);
         }
     }
 

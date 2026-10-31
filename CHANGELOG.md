@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.8.0-rc.25
+
+Local build for the owner's sim testing, 2026-10-31, on `release/0.8.0-rc.24` (over rc.24), from the LKPR→EGLL verification leg (Speedbird 861, rc.24). Issue texts for the four new findings are drafted beside the flight report (`scratchpad/flight-20261031/gh/`) — the agent could not file them.
+
+- Fixed: **V-speeds spoken as letters.** The taxi checklist's "V1, V R, V2" came out of kokoro as "vone"; every FO line now says *"Vee one"*, *"Vee R"*, *"Vee two"*, *"Vee app"*, *"Vee ref"* (V L S / V F E / V M O / M M O letter by letter). One rule in the speech normalizer — no checklist file changes, user-edited checklists keep their text.
+- Changed: **taxi read-backs spell every taxiway.** *"Taxi to holding point runway 24 via Zulu, Tango, Alpha"* instead of "via Z, T, A"; *"via Alpha"*, *"via Bravo-two and Charlie, hold short of Alpha-three"*. Letters after a routing word (via, hold short of, join, onto, exit at, cross, on, at) are spelled; a fix name ("via LAM transition") is left alone.
+- Fixed: **arrival gate "TERMINAL 5A GATE 506" never selected at EGLL.** SayIntentions' facility-prefixed gate name matched none of the catalogued stands and went to GSX as typed (five refusals; GSX parked the aircraft at its own Stand 506 and the FO warned about an unrecognised parking). The gate parser now takes a facility in front of the designator ("TERMINAL 5A GATE 506", "Terminal 1 | Gate 5", "PIER 2 GATE STAND 208") and resolves by the stand number; "Terminal 2A" alone still resolves nothing. The taxi-in call spells the trailing number of a long name (*"stand Terminal 5A Gate five-zero-six"*).
+- Fixed: **tower check-in "for FL70" on final.** "descend altitude 3,500 feet" and "Continue descent to FL070" never counted as cleared levels, so the FO still announced the last flight level at 1,200 ft; both forms are read now, and a level already passed in the direction of flight is never announced.
+- Fixed: **minima confirm answer dropped as self-echo** (#172). "confirm, two seven niner feet" after the FO's "Decision altitude two seven niner feet, confirm?" was taken for the FO's own voice and the FO asked for the minimums again. A borrowed-mic listen (minima, tech log, de-ice questions) now tells the self-echo guard what it is waiting for.
+- Fixed: **empty daystate.json at every start.** Nine starts since 2026-10-03 found a 0-byte day-state file, logged it as corrupt with a stack trace and lost the open duty day. An empty file is now "no day" (removed, one plain log line, no backup); every save is serialized, uses its own temp name, never moves an empty document into place and logs its size — the instrument for finding what empties the file, which is still open.
+- Changed: a `sayintentions.readback` with kind `none` carries the same payload shape as a transmitted one (the si-fo-radios probe read the flat form as a failure).
+- Agent: probes vspeed-pronunciation and day-state-empty-file added; si-fo-radios, asr-self-echo and gate-resolved-by-identity extended with the 2026-10-31 signatures.
+
 ## 0.8.0-rc.24
 
 Local build for the owner's sim testing, 2026-10-31, on `release/0.8.0-rc.24` (over rc.23 on main).

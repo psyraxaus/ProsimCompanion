@@ -23,6 +23,21 @@ public sealed class ExpectedReplyStore : IExpectedReplyProvider
     private readonly object _gate = new();
     private string? _clarifierCandidate;
     private Func<IEnumerable<string>>? _awaitingSource;
+    private Func<IEnumerable<string>>? _listenSource;
+
+    /// <summary>Registers the grammar of a borrowed-mic listen (<see cref="MicOwnership"/>):
+    /// what a sub-dialogue is waiting to hear is the pilot's answer, however much of it the
+    /// FO just said (EGLL 2026-10-31: "confirm, two seven niner feet" after the minima
+    /// read-back "Decision altitude two seven niner feet, confirm?" was dropped as echo).
+    /// Empty while nothing listens.</summary>
+    public void RegisterListenSource(Func<IEnumerable<string>> source)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        lock (_gate)
+        {
+            _listenSource = source;
+        }
+    }
 
     /// <summary>The "did you mean …?" candidate while that dialogue listens; null clears it.</summary>
     public void SetClarifier(string? candidate)
@@ -50,10 +65,12 @@ public sealed class ExpectedReplyStore : IExpectedReplyProvider
         {
             string? candidate;
             Func<IEnumerable<string>>? source;
+            Func<IEnumerable<string>>? listen;
             lock (_gate)
             {
                 candidate = _clarifierCandidate;
                 source = _awaitingSource;
+                listen = _listenSource;
             }
 
             var list = new List<string>();
@@ -62,11 +79,16 @@ public sealed class ExpectedReplyStore : IExpectedReplyProvider
                 list.Add(candidate);
             }
 
-            if (source is not null)
+            foreach (var provider in new[] { source, listen })
             {
+                if (provider is null)
+                {
+                    continue;
+                }
+
                 try
                 {
-                    list.AddRange(source().Where(p => !string.IsNullOrWhiteSpace(p)));
+                    list.AddRange(provider().Where(p => !string.IsNullOrWhiteSpace(p)));
                 }
                 catch (Exception)
                 {
