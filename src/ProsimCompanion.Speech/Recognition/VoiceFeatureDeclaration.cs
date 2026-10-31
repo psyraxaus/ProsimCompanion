@@ -32,6 +32,13 @@ public sealed record VoiceFeatureDeclaration
 
     /// <summary>How the drawer describes the feature: described rows, or live composition.</summary>
     public required VoiceReferenceDescription Description { get; init; }
+
+    /// <summary>True for a feature the router still offers an utterance to while the First
+    /// Officer is out of the cockpit (issue #196: the walkaround) — the safety and control
+    /// phrases ("stop", "I have controls", "quiet please") and the GSX requests (a refuel
+    /// called by voice abandons the walk). Everything else answers "the First Officer is on
+    /// the walkaround" through the one <see cref="Core.State.FoAvailabilityStore"/> gate.</summary>
+    public bool AvailableWhileFoAway { get; init; }
 }
 
 /// <summary>

@@ -233,6 +233,21 @@ chains — "local only" hard mode must exist.
   tie — `RegionFactService.NextDueUtc` within three minutes holds the small talk. The purser's
   coffee line goes through `CabinCrewService.AnnounceAsync` with a `cabin.*` tag, so a descent
   begun while the kettle boils never blocks it.
+- **FO walkaround** (issue #196, `groundCrew.walkaround.*`): `WalkaroundService` is the
+  `GroundCrewUpcallService` shape — a 1 s tick, a pure edge-baselined core, the upcalls'
+  delivery (MECH press on `S_OH_CALLS_MECH`, `IAcpChannel.AwaitReceiveAsync(Intercom, grace)`,
+  then speak). The report's role is the new `SpeechRole.FirstOfficerOnInterphone`: the FO's
+  voice (the roster FO's when drawn) with `voices.groundFilter` as the intercom decision —
+  appended LAST in the enum so the earlier roles keep their values. "The FO is away" is ONE
+  Core store, `FoAvailabilityStore`: the utterance router skips every feature whose
+  `VoiceFeatureDeclaration.AvailableWhileFoAway` is false and speaks the away line at the idle
+  miss (RTO, RoleManager, SmallTalkService's "quiet please" and GsxVoiceService declare true);
+  the departure pump's `PreHold` holds the refuel row on it (reason "waiting for the First
+  Officer's walkaround report"). The ready predicate is the flight engine's ground facts
+  (parked, engines off) + the GSX diagnostics `GroundPrep.Stage == "Complete"` — the Core
+  mirror of the prep coordinator, the only one the Speech pillar may read. A finding's icing
+  outcome calls `DeiceRequestStore.Publish(Ask, …)` with the local METAR's OAT/precip; the GSX
+  policy may re-judge it later and the captain's answer, once given, stands.
 - SayIntentions requests (issue #52): immediate FO "Roger — calling {station}" ack, then the
   exact sayAs text spoken in the FO voice (`sayIntentions.foSpeaksTransmission`, default true
   — turn off if SI voices sayAs audibly on this setup).

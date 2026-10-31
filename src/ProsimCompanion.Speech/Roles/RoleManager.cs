@@ -76,6 +76,7 @@ public sealed class RoleManager : IVoiceFeature
     public static VoiceFeatureDeclaration Declared { get; } = new()
     {
         Precedence = 30,
+        AvailableWhileFoAway = true, // "I have controls" is never gated by the walkaround (issue #196)
         Gate = VoiceFeatureGate.AlwaysOn,
         Description = new DescribedVoiceReference("roles", "voiceReference.group.roles.title", VoiceReferenceTab.FirstOfficer, VoiceSpeaker.FirstOfficer,
         [

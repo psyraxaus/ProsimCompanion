@@ -60,6 +60,13 @@ public sealed class DeparturePumpGatherer : IDisposable
     private readonly DeiceRequestStore _deiceRequest;
     private readonly IOptionsMonitor<GsxOptions> _options;
 
+    // The FO's walkaround (issue #196): the refuel call waits for the report — the FO is at
+    // the nose, not in the cockpit to confirm the figure.
+    private readonly FoAvailabilityStore? _foAvailability;
+
+    internal const string WalkaroundHoldReason =
+        "waiting for the First Officer's walkaround report — other services continue";
+
     // Tankering pre-skip inputs (#117): cached reads only, same refs the refuel sync latches.
     private readonly IDataRefSubscription<double> _fuelTotal;
     private readonly IDataRefSubscription<double> _plannedFuel;
@@ -76,8 +83,10 @@ public sealed class DeparturePumpGatherer : IDisposable
         IEfbInitOverrides initOverrides,
         DeiceRequestStore deiceRequest,
         IOptionsMonitor<GsxOptions> options,
-        IProsimDataRefs prosim)
+        IProsimDataRefs prosim,
+        FoAvailabilityStore? foAvailability = null)
     {
+        _foAvailability = foAvailability;
         ArgumentNullException.ThrowIfNull(api);
         ArgumentNullException.ThrowIfNull(slot);
         ArgumentNullException.ThrowIfNull(lifecycle);
@@ -196,6 +205,10 @@ public sealed class DeparturePumpGatherer : IDisposable
             PreHold: id => id.Equals(GsxServiceIds.Refueling, StringComparison.OrdinalIgnoreCase)
                 && refuelHeldForConfirmation
                 ? FuelConfirmationHoldReason
+                // The walkaround (issue #196): refuel is not called before the FO's report.
+                : id.Equals(GsxServiceIds.Refueling, StringComparison.OrdinalIgnoreCase)
+                    && _foAvailability?.IsAway == true
+                    ? WalkaroundHoldReason
                 : id.Equals(GsxServiceIds.DeIce, StringComparison.OrdinalIgnoreCase)
                     ? DeiceRequestPolicy.HoldReason(deice, now)
                     : null,

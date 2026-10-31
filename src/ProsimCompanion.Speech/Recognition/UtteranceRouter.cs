@@ -74,6 +74,11 @@ public sealed class UtteranceRouter : IDisposable
     private readonly IRecognitionWindow _recognition;
     private readonly IMicOwnership _micOwnership;
     private readonly ISpeechArbiter _arbiter;
+
+    // The FO out of the cockpit (issue #196): features that are not declared available while
+    // the FO is away are skipped, and the idle miss answers with the one away line instead.
+    private readonly Core.State.FoAvailabilityStore? _foAvailability;
+    private bool _skippedWhileAway;
     private readonly Persona.PhraseBank _phrases;
     private readonly Persona.PersonaService _persona;
     private readonly LlmHealthStore _llmHealth;
@@ -120,8 +125,10 @@ public sealed class UtteranceRouter : IDisposable
         IOptionsMonitor<SpeechOptions>? options = null,
         ExpectedReplyStore? expectedReplies = null,
         TimeProvider? time = null,
-        VoiceSignalStore? signals = null)
+        VoiceSignalStore? signals = null,
+        Core.State.FoAvailabilityStore? foAvailability = null)
     {
+        _foAvailability = foAvailability;
         ArgumentNullException.ThrowIfNull(interpreter);
         ArgumentNullException.ThrowIfNull(checklists);
         ArgumentNullException.ThrowIfNull(failures);
@@ -293,10 +300,16 @@ public sealed class UtteranceRouter : IDisposable
         // survive — skipped while an item is awaiting an answer, and skipped when the text IS
         // an exact phrase somebody else owns (issue #137; the rule is the roster's
         // OwnsExactPhrase, a rank comparison, not a router special case).
+        _skippedWhileAway = false;
         if (awaiting is null && !IsExactKnownPhrase(e.Text))
         {
             foreach (var feature in _roster.EnabledValueParsers())
             {
+                if (SkipWhileFoAway(feature))
+                {
+                    continue;
+                }
+
                 if (feature.TryHandle(e.Text))
                 {
                     return;
@@ -437,6 +450,19 @@ public sealed class UtteranceRouter : IDisposable
     /// into the FCU's "which field?" clarifier or vanished silently. Now it gets the normal
     /// did-not-catch line — or, once per session while the LLM is known-unhealthy, the
     /// advisory that explains WHY free-form phrasing is falling flat.</summary>
+    /// <summary>True (and remembered for the idle miss) when the FO is out of the cockpit and
+    /// the feature has not declared itself available regardless (issue #196).</summary>
+    private bool SkipWhileFoAway(IVoiceFeature feature)
+    {
+        if (_foAvailability?.IsAway != true || feature.Declaration.AvailableWhileFoAway)
+        {
+            return false;
+        }
+
+        _skippedWhileAway = true;
+        return true;
+    }
+
     private void HandleIdleMiss(string rawText, double score, UnmatchedReason reason)
     {
         // "Read back …" is a read-back, whatever the figure parser made of it (issue #148,
@@ -448,11 +474,26 @@ public sealed class UtteranceRouter : IDisposable
         {
             foreach (var feature in _roster.EnabledValueParsers())
             {
+                if (SkipWhileFoAway(feature))
+                {
+                    continue;
+                }
+
                 if (feature.TryHandle(rawText))
                 {
                     return;
                 }
             }
+        }
+
+        // The FO is on the walkaround (issue #196): a feature that would have taken this was
+        // skipped above — the one away line answers instead of "didn't catch that".
+        if (_skippedWhileAway)
+        {
+            _skippedWhileAway = false;
+            _ = _arbiter.EnqueueAsync(new SpeechRequest(Core.State.FoAvailabilityStore.AwayLine, SpeechPriority.Normal, Tag: "walkaround.busy"));
+            _unmatched?.Record(rawText, score, "fo-away", reason);
+            return;
         }
 
         // A free-form question (issue #149) is the last thing tried before the did-not-catch
@@ -566,6 +607,11 @@ public sealed class UtteranceRouter : IDisposable
         // precedence — see VoiceFeatureRoster.Candidates.
         foreach (var feature in _roster.Candidates(text))
         {
+            if (SkipWhileFoAway(feature))
+            {
+                continue;
+            }
+
             if (feature.TryHandle(text))
             {
                 return;

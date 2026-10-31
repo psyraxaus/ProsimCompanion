@@ -18,6 +18,13 @@ Package 2, on `feature/cruise-small-talk` (over `feature/fo-roster`). Off by def
 - Added: `ZULU TIME` SimVar behind `ISimLocalTime.ZuluTimeOfDay` and a pure `SolarPosition` (sun elevation and azimuth) for the view line.
 - Agent: events `smalltalk.spoken`, `smalltalk.reply`, `smalltalk.offerQuestion`; probe `cruise-small-talk`.
 
+Package 3, on `feature/fo-walkaround` (over `feature/cruise-small-talk`). Off by default and **Unverified live**.
+
+- Added: **the FO's exterior walkaround** (#196). Once per departure, when the aircraft is parked with engines off and the ground prep (jetway / stairs) has completed, the FO says *"I'll do the walkaround, captain"* and is away for six to ten minutes (`groundCrew.walkaround.minMinutes` / `maxMinutes`). While away, the captain's questions get *"The First Officer is on the walkaround, captain"* — the safety phrases, "I have controls", "quiet please" and the GSX requests still work — and the refuel call waits for the report (a refuel called by voice or Stream Deck abandons the walk). The report comes back on the interphone in the FO's own voice through the intercom filter, delivered like the ground upcalls (MECH call, INT selected or the grace): *"Walkaround complete, captain. Aircraft looks good — tyres fine, no leaks, pitot covers off, chocks in."* (`walkaround.onInterphone` off = spoken in the cockpit unfiltered). Never replayed after a restart mid-turnaround.
+- Added: **walkaround findings** from `config\walkaround-findings.json` (user-editable, fifteen seeded), at most one per walk with `walkaround.findingChance` (0.15): a cosmetic one ends with the report (the pitot cover, the refuel panel door); ice on the wing leads straight into the de-icing question; a deferrable one ends with *"I'd like to raise it in the tech log — shall I?"* (a captain's question; yes → the tech-log raise with the title and MEL category pre-filled, the read-back confirmation kept; no → "noted"); a no-go finding (`walkaround.allowNoGo`, off) is raised regardless and the FO says so — nothing is blocked. A raised item is in the briefing's open-items clause that flight.
+- Added: `FirstOfficerOnInterphone` speech role (the FO's voice with the ground intercom timbre); `VoiceFeatureDeclaration.AvailableWhileFoAway`; the departure pump's refuel hold "waiting for the First Officer's walkaround report".
+- Agent: events `walkaround.started`, `walkaround.reported`, `walkaround.abandoned`, `walkaround.finding`, `walkaround.raiseQuestion`, `walkaround.noted`, `walkaround.techLogRaised`, `techlog.prefilledRaise`; probe `fo-walkaround`.
+
 ## 0.8.0-rc.26
 
 Local build for the owner's sim testing, 2026-10-31, on `release/0.8.0-rc.24` (over rc.25): the four "still broken" issues of the 2026-10-31 review.

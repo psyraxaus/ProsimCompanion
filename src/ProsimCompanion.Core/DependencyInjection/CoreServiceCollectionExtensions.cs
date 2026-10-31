@@ -208,6 +208,12 @@ public static class CoreServiceCollectionExtensions
         // "Coffee, captain?" — the cruise small-talk offer (issue #195).
         services.AddSingleton<Persona.SmallTalkOfferStore>();
         services.AddSingleton<ICaptainsQuestionStore>(p => p.GetRequiredService<Persona.SmallTalkOfferStore>());
+        // "I'd like to raise it in the tech log — shall I?" after a walkaround finding (issue #196),
+        // and whether the FO is in the cockpit to answer at all.
+        services.AddSingleton<Crew.WalkaroundRaiseStore>();
+        services.AddSingleton<ICaptainsQuestionStore>(p => p.GetRequiredService<Crew.WalkaroundRaiseStore>());
+        services.AddSingleton<FoAvailabilityStore>();
+        services.AddSingleton<Crew.WalkaroundFindingBank>();
         // "Issue a revised final?" after a last-minute change beyond tolerance (issue #181):
         // the loadsheet pipeline asks, the FO dialogue or the card answers.
         services.AddSingleton<LmcRevisionStore>();

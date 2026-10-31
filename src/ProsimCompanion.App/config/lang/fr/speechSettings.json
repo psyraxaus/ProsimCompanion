@@ -402,6 +402,36 @@
     "groundCrew": {
       "title": "Personnel au sol",
       "hint": "Appelle le personnel au sol et entends ses appels",
+      "walkaround": {
+        "title": "Walkaround",
+        "hint": "Once per departure, at the stand with the ground prep done, the FO walks the aircraft and reports back on the interphone",
+        "enabled": {
+          "hint": "\"I'll do the walkaround, captain\" — then a few minutes away; the refuel call waits, your questions get \"the First Officer is on the walkaround\", and the report comes on the interphone.",
+          "more": "Starts when the aircraft is parked with engines off and the ground prep (jetway or stairs) is complete; never replayed after a restart mid-turnaround; once per departure. Calling the refuel yourself meanwhile abandons the walk. Safety phrases, \"I have controls\" and \"quiet please\" always work."
+        },
+        "minMinutes": {
+          "label": "Shortest walk",
+          "hint": "Minutes away, at least."
+        },
+        "maxMinutes": {
+          "label": "Longest walk",
+          "hint": "The walk is drawn at random between the two."
+        },
+        "findingChance": {
+          "label": "Finding chance",
+          "hint": "0 to 1. The chance a walkaround turns up something: a tyre near the limit, a hydraulic weep, a missing static wick — the FO asks before it goes in the tech log; ice on the wing leads to the de-icing question."
+        },
+        "allowNoGo": {
+          "label": "Allow no-go findings",
+          "hint": "A cords-showing tyre or a steady hydraulic leak: raised in the tech log regardless. Nothing is blocked — you decide."
+        },
+        "onInterphone": {
+          "label": "Report on the interphone",
+          "hint": "MECH call, INT selected or the grace, intercom timbre. Off: the report is spoken in the cockpit unfiltered."
+        },
+        "fileBefore": "The findings and their tech-log titles are in",
+        "fileAfter": "— edit it to add your own (conditions: icing, precipitation, night, afterLanding; severity cosmetic, deferrable or noGo). Edits are picked up live."
+      },
       "requireInt": {
         "label": "Exiger INT sélectionné",
         "hint": "La parole sol attend qu'INT soit sélectionné sur un panneau audio."

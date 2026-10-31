@@ -81,6 +81,7 @@ public sealed class RejectedTakeoffService : IVoiceFeature, Core.Hosting.IStartu
     public static VoiceFeatureDeclaration Declared { get; } = new()
     {
         Precedence = 5,
+        AvailableWhileFoAway = true, // "stop" is never gated by the walkaround (issue #196)
         Gate = VoiceFeatureGate.ByOption("abnormals.rtoEnabled", "voiceReference.off.abnormals"),
         Description = new DescribedVoiceReference("rto", "voiceReference.group.rto.title", VoiceReferenceTab.FirstOfficer, VoiceSpeaker.FirstOfficer,
         [

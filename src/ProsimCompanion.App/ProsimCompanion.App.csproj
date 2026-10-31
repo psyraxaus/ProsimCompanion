@@ -98,6 +98,9 @@
     <!-- The First Officer roster (issue #194; user-editable, hot-reloaded): six seeded FOs with
          their persona axes, confidence, hours on type, base and an optional provider:id voice. -->
     <Content Include="config\fo-roster.json" CopyToOutputDirectory="PreserveNewest" />
+    <!-- Walkaround findings (issue #196; user-editable, hot-reloaded): what the FO may bring
+         back from the exterior walkaround, with the tech-log title and MEL category. -->
+    <Content Include="config\walkaround-findings.json" CopyToOutputDirectory="PreserveNewest" />
     <!-- EASA ORO.FTL.205 basic maximum FDP table (issue #189) — user-editable content, seeded with keep-user-edits. -->
     <Content Include="config\ftl-easa.json" CopyToOutputDirectory="PreserveNewest" />
     <!-- Random-wear pool for the tech log (benign, purely procedural; techLog.randomWear). -->

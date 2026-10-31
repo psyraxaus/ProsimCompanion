@@ -342,6 +342,10 @@ public static class SpeechServiceCollectionExtensions
         // is a captain's question; the table below voices it.
         services.AddStartupModule<Persona.CruiseSmallTalkService>();
         services.AddSingleton(Persona.SmallTalkOfferPhrases.Table);
+        // The FO's exterior walkaround (issue #196): announce, away, the interphone report, a
+        // finding into the tech log; the raise question's table for the shared dialogue.
+        services.AddStartupModule<Crew.WalkaroundService>();
+        services.AddSingleton(Crew.WalkaroundRaisePhrases.Table);
         services.AddSingleton<UtteranceRouter>();
         services.AddStartupModule<SpokenChecklistEngine>();
         // WoL used to hide in the retired bootstrap (campaign #87).

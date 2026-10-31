@@ -56,6 +56,7 @@ public sealed class GsxVoiceService : IVoiceFeature
     public static VoiceFeatureDeclaration Declared { get; } = new()
     {
         Precedence = 210,
+        AvailableWhileFoAway = true, // a refuel called by voice abandons the walkaround (issue #196)
         Gate = VoiceFeatureGate.ByOption("gsx.voiceControlEnabled", VoiceReferenceTextIds.OffGroundServices),
         Description = new ComposedVoiceReference(GsxVoiceReference.Compose),
     };

@@ -1014,7 +1014,25 @@ non-normal that gives the ECAM dialogue a cause. New features default **off** an
       layover / crew). Events `smalltalk.spoken`, `smalltalk.reply`; probe `cruise-small-talk`.
       **Unverified live** — the sun line's side and the layover listen on the LAN engine in
       particular.
-- [ ] **FO exterior walkaround** (package 3) — not started.
+- [x] **FO exterior walkaround** (#196, package 3, `feature/fo-walkaround`): Speech
+      `WalkaroundCore` (pure: Idle → Departed → Reported / Abandoned → Done; arms on the EDGE
+      into live + at the gate + parked + engines off + prep Complete, baselined on first
+      observation; a refuel Called / Requested / Active or the aircraft no longer ready
+      abandons; once per cycle, re-armed by the flight-cycle reset), `WalkaroundService`
+      (1 s tick; "I'll do the walkaround" Low in the cockpit; `FoAvailabilityStore` away; the
+      report through the upcalls' delivery — MECH press, INT latch or grace — in the new
+      `SpeechRole.FirstOfficerOnInterphone`; the finding's outcome: deice → `DeiceRequestStore`
+      Ask, ask → `WalkaroundRaiseStore` + `TechLogDialogueService.RaisePrefilledAsync`
+      (confirmation kept), raise → the item directly), `WalkaroundRaisePhrases`; Core
+      `FoAvailabilityStore` (the router skips features not declared
+      `AvailableWhileFoAway` and answers the away line; the departure pump's refuel
+      `PreHold`), `WalkaroundFinding` / `WalkaroundFindingsFile` / `WalkaroundFindingDraw` /
+      `WalkaroundFindingBank` over `walkaround-findings.json` (fifteen seeded),
+      `WalkaroundOptions` under `groundCrew.walkaround` (enabled off, 6–10 min, chance 0.15,
+      allowNoGo off, onInterphone on). Events `walkaround.started` / `reported` / `abandoned`
+      / `finding` / `techLogRaised`; probe `fo-walkaround`. **Unverified live** — the INT
+      delivery in the FO voice, the refuel hold on the service board and the de-ice hand-off in
+      particular.
 - [ ] **Scenario mode: scheduled non-normals** (package 4, design-first) — not started.
 
 ## Open items (after the rc.5 batch, 2026-10-11)

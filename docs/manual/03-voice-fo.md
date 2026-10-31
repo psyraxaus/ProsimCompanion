@@ -419,6 +419,32 @@ in moderate turbulence, or within three minutes of a region fact — and any cal
 line. With the language model on, each line is composed in the FO's persona with every number
 checked against the facts; otherwise the built-in line speaks.
 
+### The walkaround
+
+Off by default — the **Walkaround** card on Voice First Officer → Ground Crew
+(`groundCrew.walkaround.enabled`). Once per departure, when the aircraft is parked with the
+engines off and the ground preparation (jetway or stairs) has completed, the FO says *"I'll do
+the walkaround, captain"* and is away for six to ten minutes:
+
+- While away, your questions get *"The First Officer is on the walkaround, captain."*
+  **"Stop"**, **"I have controls"**, **"quiet please"** and the GSX requests still work.
+- The refuel call waits for the report (the Flight Status refuel row says so). Call the
+  refuel yourself and the walk is abandoned: *"Abandoning the walkaround, captain."*
+- The report comes on the interphone like a ground call — the MECH lamp, INT selected or the
+  grace — in the FO's own voice with the intercom timbre: *"Walkaround complete, captain.
+  Aircraft looks good — tyres fine, no leaks, pitot covers off, chocks in."* Turn **Report
+  on the interphone** off to hear it in the cockpit unfiltered.
+- Now and then (**Finding chance**, 15 %) the FO brings something back from
+  `%LOCALAPPDATA%\ProsimCompanion\config\walkaround-findings.json` — fifteen are shipped; edit
+  the file for your own. A cosmetic one ends with the report. Ice on the wing leads straight
+  into the de-icing question. A deferrable one ends with *"I'd like to raise it in the tech log
+  — shall I?"* — say yes and the FO reads the item back (*"Logging … M E L category Charlie,
+  10 day interval. Confirm?"*) before it goes in; say no and it is noted. A no-go finding
+  (**Allow no-go findings**, off) is raised regardless and the FO says so — nothing is
+  blocked, you decide. A raised item is in the next briefing's open-items clause.
+
+A restart mid-turnaround never repeats a walk already done.
+
 ## Voices
 
 The FO, the purser and company ACARS each have their own voice (`speech` and `voices`

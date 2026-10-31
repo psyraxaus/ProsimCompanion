@@ -94,6 +94,7 @@ public sealed class SmallTalkService : IVoiceFeature
     public static VoiceFeatureDeclaration Declared { get; } = new()
     {
         Precedence = 300,
+        AvailableWhileFoAway = true, // "quiet please" works whoever is in the cockpit (issue #196)
         Gate = VoiceFeatureGate.AlwaysOn,
         Description = new DescribedVoiceReference("quiet", "voiceReference.group.quiet.title", VoiceReferenceTab.FirstOfficer, VoiceSpeaker.FirstOfficer,
         [

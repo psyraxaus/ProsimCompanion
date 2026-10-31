@@ -35,6 +35,11 @@ public enum SpeechRole
     /// <summary>The ground crew on the INT interphone (hail replies, upcalls) — ADR-0006.
     /// The only role whose voice may be accent-localized by airport (issue #53).</summary>
     GroundCrew,
+
+    /// <summary>The First Officer on the interphone from outside the aircraft (the walkaround
+    /// report, issue #196): the FO's own voice through the ground intercom filter. Appended
+    /// last so the earlier roles keep their values.</summary>
+    FirstOfficerOnInterphone,
 }
 
 /// <summary>

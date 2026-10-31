@@ -1,0 +1,122 @@
+{
+  "_comment": "Findings the First Officer may bring back from the exterior walkaround (Settings → Voice First Officer → Ground Crew → Walkaround). Each: id (unique), spoken (what the FO says after 'Walkaround complete, captain.'), severity cosmetic|deferrable|noGo, techLogTitle + techLogCategory (A|B|C|D) for the tech-log item (deferrable: the captain is asked; noGo: raised regardless — only drawn when allowNoGo is on), conditions (any of icing, precipitation, night, afterLanding — all listed must hold), weight (relative draw weight), deice: true for a finding that leads into the de-icing question instead of a tech-log item. At most one finding per walkaround, with the configured chance. Edits are picked up live.",
+  "findings": [
+    {
+      "id": "tyre-wear-limit",
+      "spoken": "One thing — the number two main tyre is wearing close to the limit, cords not showing yet.",
+      "severity": "deferrable",
+      "techLogTitle": "No. 2 main wheel tyre worn near limit",
+      "techLogCategory": "C",
+      "weight": 3
+    },
+    {
+      "id": "hydraulic-weep",
+      "spoken": "There's a slight hydraulic weep on the left main strut, nothing dripping.",
+      "severity": "deferrable",
+      "techLogTitle": "Hydraulic weep, left main landing gear strut",
+      "techLogCategory": "C",
+      "weight": 3
+    },
+    {
+      "id": "static-wick-missing",
+      "spoken": "We're missing a static wick on the right elevator.",
+      "severity": "deferrable",
+      "techLogTitle": "Static discharger missing, right elevator",
+      "techLogCategory": "D",
+      "weight": 3
+    },
+    {
+      "id": "nav-light-us",
+      "spoken": "The right navigation light is unserviceable — the lens is cracked.",
+      "severity": "deferrable",
+      "techLogTitle": "Right navigation light unserviceable",
+      "techLogCategory": "C",
+      "weight": 2
+    },
+    {
+      "id": "cargo-door-seal",
+      "spoken": "The aft cargo door seal is frayed along the bottom edge.",
+      "severity": "deferrable",
+      "techLogTitle": "Aft cargo door seal damaged",
+      "techLogCategory": "C",
+      "weight": 2
+    },
+    {
+      "id": "bird-strike-evidence",
+      "spoken": "There's bird strike evidence on the number one nacelle lip — no damage I can see, but worth a look by engineering.",
+      "severity": "deferrable",
+      "techLogTitle": "Bird strike evidence, engine 1 inlet — inspection required",
+      "techLogCategory": "B",
+      "conditions": [ "afterLanding" ],
+      "weight": 3
+    },
+    {
+      "id": "brake-wear-pin",
+      "spoken": "The number three brake wear pin is right down at the limit.",
+      "severity": "deferrable",
+      "techLogTitle": "No. 3 brake wear indicator at limit",
+      "techLogCategory": "C",
+      "weight": 2
+    },
+    {
+      "id": "taxi-light-us",
+      "spoken": "The nose gear taxi light isn't working.",
+      "severity": "deferrable",
+      "techLogTitle": "Taxi light unserviceable",
+      "techLogCategory": "C",
+      "conditions": [ "night" ],
+      "weight": 2
+    },
+    {
+      "id": "wing-upper-ice",
+      "spoken": "There's ice on the wing upper surface, both sides — we'll need de-icing.",
+      "severity": "cosmetic",
+      "conditions": [ "icing" ],
+      "deice": true,
+      "weight": 6
+    },
+    {
+      "id": "pitot-cover-on",
+      "spoken": "The captain's pitot cover was still on — I've pulled it, it's in the flight deck now.",
+      "severity": "cosmetic",
+      "weight": 2
+    },
+    {
+      "id": "fuel-panel-unlatched",
+      "spoken": "The refuel panel door wasn't latched — it's closed and latched now.",
+      "severity": "cosmetic",
+      "weight": 2
+    },
+    {
+      "id": "oil-streak-nacelle",
+      "spoken": "A fresh oil streak under the number two nacelle — looks like a weeping drain, I've noted it.",
+      "severity": "deferrable",
+      "techLogTitle": "Oil streak, engine 2 nacelle drain — leak check required",
+      "techLogCategory": "C",
+      "weight": 2
+    },
+    {
+      "id": "wet-wing-contamination",
+      "spoken": "The wings are wet but clean, nothing adhering.",
+      "severity": "cosmetic",
+      "conditions": [ "precipitation" ],
+      "weight": 2
+    },
+    {
+      "id": "hydraulic-leak-nogo",
+      "spoken": "We've got a steady hydraulic drip from the green system at the right main — that one's a no-go for me, I'm raising it.",
+      "severity": "noGo",
+      "techLogTitle": "Hydraulic leak, green system, right main landing gear bay",
+      "techLogCategory": "A",
+      "weight": 1
+    },
+    {
+      "id": "tyre-cords-nogo",
+      "spoken": "The number one main tyre has cords showing — that's a no-go, I'm raising it.",
+      "severity": "noGo",
+      "techLogTitle": "No. 1 main wheel tyre worn beyond limit (cords visible)",
+      "techLogCategory": "A",
+      "weight": 1
+    }
+  ]
+}

@@ -122,6 +122,9 @@ public sealed class UtteranceRouterTests
     /// <summary>What the FO is waiting to hear (issue #172) — the router writes it.</summary>
     private readonly ExpectedReplyStore _expectedReplies = new();
 
+    /// <summary>Whether the FO is in the cockpit (issue #196) — present by default.</summary>
+    private readonly ProsimCompanion.Core.State.FoAvailabilityStore _foAvailability = new();
+
     private UtteranceRouter CreateRouter(IFreeFormQuestionHandler? questions, SpeechOptions? speechOptions, params IVoiceFeature[] features)
     {
         var options = SpeechTestSupport.SpeechMonitor(speechOptions ?? new SpeechOptions());
@@ -149,7 +152,8 @@ public sealed class UtteranceRouterTests
             questions: questions,
             unmatched: tracker,
             options: options,
-            expectedReplies: _expectedReplies);
+            expectedReplies: _expectedReplies,
+            foAvailability: _foAvailability);
         router.Attach(_host);
         router.Start();
         return router;
@@ -195,6 +199,49 @@ public sealed class UtteranceRouterTests
     }
 
     // ---- issue #177: no "did you mean" in sterile moments ----------------------------------
+
+    /// <summary>A feature that declares itself available while the FO is away (the safety
+    /// phrases, issue #196).</summary>
+    private sealed class AwayProofFeature(string phrase) : IVoiceFeature
+    {
+        public List<string> Handled { get; } = [];
+        public bool Enabled => true;
+        public IEnumerable<string> Phrases => [phrase];
+        public bool ValueParse => false;
+        public VoiceFeatureDeclaration Declaration { get; } = FakeVoiceFeatureDeclaration.At(5, "awayproof") with { AvailableWhileFoAway = true };
+
+        public bool TryHandle(string utterance)
+        {
+            if (!string.Equals(utterance.Trim(), phrase, StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            Handled.Add(utterance);
+            return true;
+        }
+    }
+
+    [Fact]
+    public void FoAway_AnFoVoicedFeatureIsNotOffered_TheAwayLineAnswers_SafetyPhrasesStillWork()
+    {
+        var minima = new ScriptedFeature("say minimums");
+        var stop = new AwayProofFeature("stop");
+        using var router = CreateRouter(minima, stop);
+        _foAvailability.SetAway(ProsimCompanion.Core.State.FoAvailabilityStore.WalkaroundReason, DateTimeOffset.UtcNow);
+
+        _window.Hear("say minimums");
+        Assert.Empty(minima.Handled);
+        Assert.Contains(_arbiter.Requests, r => r.Text == ProsimCompanion.Core.State.FoAvailabilityStore.AwayLine && r.Tag == "walkaround.busy");
+
+        _window.Hear("stop");
+        Assert.Equal(["stop"], stop.Handled);
+        Assert.Equal(1, _arbiter.Requests.Count(r => r.Tag == "walkaround.busy")); // no second away line
+
+        _foAvailability.Clear();
+        _window.Hear("say minimums");
+        Assert.Equal(["say minimums"], minima.Handled);
+    }
 
     [Fact]
     public void GrayBandFmaRead_DuringTheTakeoffRoll_FiresWithoutTheClarifier()

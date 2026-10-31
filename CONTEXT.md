@@ -522,6 +522,19 @@ assumes), steady (no clause at all), assured (concise, states things, does not a
 and tone only; the never-change-a-fact sentence stands for every combination.
 _Avoid_: assertiveness, seniority (that is experience)
 
+**Walkaround**:
+The FO's exterior inspection, once per departure cycle: announced in the cockpit on the
+**ready edge** (live, at the gate, parked, engines off, ground prep complete — baselined on
+first observation, so a restart mid-turnaround never replays it), a random away window during
+which the FO is **away** (the one availability store the router and the departure pump read:
+queries get the away line, the refuel call waits; "stop", "I have controls", "quiet please"
+and the GSX requests are never gated), then the **report** on the interphone in the FO's own
+voice. A refuel called meanwhile **abandons** it. A **finding** may ride on the report —
+cosmetic, deferrable (the raise question, then the pre-filled tech-log raise with its
+confirmation), no-go (raised regardless), or icing (the de-ice question).
+_Avoid_: pre-flight inspection (that is the checklist), exterior check, MSFS walkaround (the
+sim's own avatar mode, which the session gate excludes)
+
 **Gate intro**:
 The FO's one self-introduction per duty day, at the first Preflight after the draw and before
 any briefing: the sim clock's greeting word, their name, "I'll be your First Officer today",

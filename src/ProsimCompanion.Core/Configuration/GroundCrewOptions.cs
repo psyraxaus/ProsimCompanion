@@ -51,6 +51,9 @@ public sealed class GroundCrewOptions : IOptionSection
     [OptionField(FieldKind.Bool, "speechSettings.common.cateringComplete", DependsOn = "Enabled")]
     public bool CallOnCateringComplete { get; set; } = true;
 
+    /// <summary>The FO's exterior walkaround (issue #196): off by default.</summary>
+    public WalkaroundOptions Walkaround { get; set; } = new();
+
     // ---- Wording (spoken verbatim in the GroundCrew role; {fuel} = tonnes on board) ----
 
     [OptionField(FieldKind.Text, "speechSettings.common.hailReply")]
@@ -73,4 +76,39 @@ public sealed class GroundCrewOptions : IOptionSection
     [OptionField(FieldKind.Text, "speechSettings.common.cateringComplete")]
     public string CateringCompleteText { get; set; } =
         "Cockpit, ground — catering is finished, all service doors closed.";
+}
+
+/// <summary>
+/// The FO's exterior walkaround (issue #196, <c>groundCrew.walkaround</c>): once per departure
+/// cycle, at the stand with the ground prep complete, the FO announces the walk, is away for
+/// a random few minutes (the captain's queries get "the First Officer is on the walkaround",
+/// the refuel call waits) and reports back on the interphone — with, now and then, a finding
+/// from <c>walkaround-findings.json</c> that becomes a tech-log item.
+/// </summary>
+public sealed class WalkaroundOptions
+{
+    [OptionField(FieldKind.Bool, "speechSettings.groundCrew.walkaround.enabled", Label = "speechSettings.common.enabled")]
+    public bool Enabled { get; set; }
+
+    /// <summary>Shortest walk, minutes.</summary>
+    [OptionField(FieldKind.Number, "speechSettings.groundCrew.walkaround.minMinutes", Suffix = "min", Min = "1", Max = "30", DependsOn = "Enabled")]
+    public int MinMinutes { get; set; } = 6;
+
+    /// <summary>Longest walk, minutes; the walk is drawn at random between the two.</summary>
+    [OptionField(FieldKind.Number, "speechSettings.groundCrew.walkaround.maxMinutes", Suffix = "min", Min = "1", Max = "60", DependsOn = "Enabled")]
+    public int MaxMinutes { get; set; } = 10;
+
+    /// <summary>Probability (0–1) that a walkaround turns up a finding.</summary>
+    [OptionField(FieldKind.Number, "speechSettings.groundCrew.walkaround.findingChance", Min = "0", Max = "1", Step = "0.05", DependsOn = "Enabled")]
+    public double FindingChance { get; set; } = 0.15;
+
+    /// <summary>Let a no-go finding be drawn (raised in the tech log regardless; nothing is
+    /// blocked — the captain decides).</summary>
+    [OptionField(FieldKind.Bool, "speechSettings.groundCrew.walkaround.allowNoGo", DependsOn = "Enabled")]
+    public bool AllowNoGo { get; set; }
+
+    /// <summary>The report comes on the interphone (MECH call, INT latch or grace, intercom
+    /// filter). Off: spoken in the cockpit unfiltered, for a headset setup where INT is awkward.</summary>
+    [OptionField(FieldKind.Bool, "speechSettings.groundCrew.walkaround.onInterphone", DependsOn = "Enabled")]
+    public bool OnInterphone { get; set; } = true;
 }

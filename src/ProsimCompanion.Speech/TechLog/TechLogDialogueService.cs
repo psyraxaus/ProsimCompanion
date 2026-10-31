@@ -143,6 +143,23 @@ public sealed class TechLogDialogueService : IVoiceFeature, ISessionFinalization
         return Task.CompletedTask;
     }
 
+    /// <summary>The raise path with the item pre-filled (issue #196: a walkaround finding the
+    /// captain agreed to log) — the same one-dialogue lock and mic borrow as the voice-started
+    /// raise, the read-back confirmation kept. True when the item was raised; false when the
+    /// tech log is off, the captain did not confirm, or the dialogue failed.</summary>
+    public async Task<bool> RaisePrefilledAsync(string title, MelCategory category, string source)
+    {
+        if (!_options.CurrentValue.Enabled)
+        {
+            return false;
+        }
+
+        var raised = false;
+        await RunDialogueAsync("prefilled", async ct => raised = await _core.RunPrefilledRaiseAsync(title, category, source, ct).ConfigureAwait(false))
+            .ConfigureAwait(false);
+        return raised;
+    }
+
     public void Dispose() => _oneDialogue.Dispose();
 
     /// <summary>One dialogue at a time (raise/rectify/offer share the mic); the borrow's

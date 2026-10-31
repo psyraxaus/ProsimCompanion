@@ -18,6 +18,9 @@ public static class ConfigAreas
     /// <summary>The FO roster (issue #194), <c>fo-roster.json</c>.</summary>
     public const string FoRoster = "fo-roster";
 
+    /// <summary>The walkaround findings (issue #196), <c>walkaround-findings.json</c>.</summary>
+    public const string Walkaround = "walkaround-findings";
+
     /// <summary>The optional HTTPS listener (ADR-0013): a certificate that could not be used.</summary>
     public const string WebHttps = "webUi.https";
 }

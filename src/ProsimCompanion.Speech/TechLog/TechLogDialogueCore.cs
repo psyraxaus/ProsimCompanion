@@ -96,6 +96,33 @@ public sealed class TechLogDialogueCore
             .ConfigureAwait(false);
     }
 
+    /// <summary>The raise path with the item already known (issue #196: a walkaround finding
+    /// the captain agreed to log): no title listen, no category question — only the read-back
+    /// confirm is kept, so nothing enters the log without the captain's word. True when
+    /// raised.</summary>
+    public async Task<bool> RunPrefilledRaiseAsync(string title, MelCategory category, string source, CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(title);
+        ArgumentException.ThrowIfNullOrWhiteSpace(source);
+        var days = _techLog.RepairDaysForCategory(category);
+        await _io.SpeakAsync(
+            $"Logging {title}. M E L category {SpokenCategory(category)}, {days} day interval. Confirm?",
+            cancellationToken).ConfigureAwait(false);
+        var confirm = await _io.ListenAsync(ConfirmVocabulary.All, PromptTimeout, cancellationToken)
+            .ConfigureAwait(false);
+        _eventLog.Record("techlog.prefilledRaise", new { title, category = category.ToString(), source, confirmed = IsAffirm(confirm) });
+        if (!IsAffirm(confirm))
+        {
+            await _io.SpeakAsync("Disregarded — nothing entered.", cancellationToken).ConfigureAwait(false);
+            return false;
+        }
+
+        _techLog.RaiseDefect(_techLog.NewDraft(source, title, category));
+        await _io.SpeakAsync($"Tech log entry made. {days} days to rectify.", cancellationToken)
+            .ConfigureAwait(false);
+        return true;
+    }
+
     /// <summary>Guided rectification of the most-due open defect (yes/no). A clean log answers
     /// and stops; only an explicit affirm actions the maintenance.</summary>
     public async Task RunRectifyAsync(CancellationToken cancellationToken)

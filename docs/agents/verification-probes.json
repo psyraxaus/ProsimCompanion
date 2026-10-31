@@ -4145,6 +4145,37 @@
         "requires-human: the line sounded like the drawn FO (a nervous Tom offers coffee differently from an assured Marcus), the coffee offer appeared on the open questions card, and the purser's coffee line came on the interphone chime."
       ],
       "notes": "Package 2 of the November 2026 immersion batch (issue #195, branch feature/cruise-small-talk over feature/fo-roster). Speech SmallTalkCore (pure gates, ceiling = min(option, chattiness), sequence without repeats, one follow-up), SmallTalkBank (floor lines + prompt families), CruiseSmallTalkService (30 s tick, StreamingNarrator with the bank section as the takeover floor, StyledSpeechService otherwise, Low priority smalltalk.{kind}), Core SmallTalkOfferStore + SmallTalkOfferPhrases (the coffee question), SolarPosition (the sun for the view line), ISimLocalTime.ZuluTimeOfDay. Unverified live."
+    },
+    {
+      "id": "fo-walkaround",
+      "issue": 196,
+      "state": "open",
+      "kind": "assert-present",
+      "machine": {
+        "kind": "signature",
+        "source": "session",
+        "type": "walkaround.reported",
+        "contains": "\"durationMinutes\"",
+        "trigger": {
+          "source": "session",
+          "type": "walkaround.started",
+          "contains": "\"plannedMinutes\""
+        }
+      },
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "Only with groundCrew.walkaround.enabled = true (off by default). Trigger: the ground prep reached Complete (jetway / stairs on) with the aircraft parked, engines off, the flight live — the EDGE into that state, so a start mid-turnaround (prep seeded complete by the resync) never triggers it.",
+        "assert-present: ONE walkaround.started {plannedMinutes, phase} per departure cycle, then ONE walkaround.reported {durationMinutes ≥ walkaround.minMinutes, finding (id or null), severity, onInterphone, text} — the report never earlier than minMinutes after the start, never later than maxMinutes + the INT grace; the speech.spoken for the report is tagged walkaround.report; with onInterphone a ground.calling-style MECH press precedes it (log 'INT channel not selected within grace' when nobody selected INT).",
+        "assert-present: between walkaround.started and walkaround.reported every utterance that a non-safety feature would have taken is answered 'The First Officer is on the walkaround, captain.' (speech.spoken tagged walkaround.busy, voice.unmatched context fo-away); 'stop', 'I have controls', 'quiet please' and the GSX requests still act. The refuel row of the service board holds with 'waiting for the First Officer's walkaround report' (GSX decision log / Flight Status) and is never Called before walkaround.reported.",
+        "assert-present (finding): walkaround.finding {finding, outcome ∈ none|cosmetic|deice|ask|raise}: deice → a deice-question raised with prompt 'We'll need de-icing, captain — request it?' and NO techlog item; ask → walkaround.raiseQuestion with 'I'd like to raise it in the tech log — shall I?', then on yes techlog.prefilledRaise {confirmed} + walkaround.techLogRaised (a tech-log defect with source walkaround:<id>) or on no walkaround.noted; raise (noGo, allowNoGo on) → walkaround.techLogRaised {confirmed: false} and the FO's 'I've raised it in the tech log'.",
+        "assert-absent: a second walkaround.started in one departure cycle; a walkaround.started with the app started mid-turnaround (the first GSX prep snapshot already Complete); walkaround.reported after walkaround.abandoned in the same cycle; a refuel Called while the FO is away without walkaround.abandoned following; a walkaround.techLogRaised for a finding with outcome deice.",
+        "assert-present (abandon): a gsx.requestRefuel (voice / Stream Deck) while away → walkaround.abandoned {durationMinutes} and 'Abandoning the walkaround' at Low priority; no walkaround.finding.",
+        "requires-human: the report came on the interphone in the FO's own voice with the intercom timbre (role FirstOfficerOnInterphone), the MECH lamp flashed, and the Flight Status refuel row showed the walkaround hold."
+      ],
+      "notes": "Package 3 of the November 2026 immersion batch (issue #196, branch feature/fo-walkaround over feature/cruise-small-talk). Speech WalkaroundCore (pure edge/baseline state machine), WalkaroundService (1 s tick, the upcalls' MECH + INT delivery, role FirstOfficerOnInterphone), Core FoAvailabilityStore (the router's gate via VoiceFeatureDeclaration.AvailableWhileFoAway; the departure pump's refuel PreHold), WalkaroundFindingBank + WalkaroundFindingDraw over walkaround-findings.json, WalkaroundRaiseStore + WalkaroundRaisePhrases, TechLogDialogueCore.RunPrefilledRaiseAsync. Unverified live."
     }
   ]
 }

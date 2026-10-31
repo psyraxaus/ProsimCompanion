@@ -38,6 +38,10 @@ public static class RoleVoiceResolver
             SpeechRole.GroundCrew => ForRole(voices.Ground, voices.GroundIntercomFilter),
             SpeechRole.FirstOfficer => new RoleVoice(
                 string.IsNullOrWhiteSpace(firstOfficerVoice) ? null : firstOfficerVoice.Trim(), null, false),
+            // The FO at the nose on the interphone (issue #196): their own voice, the ground
+            // crew's intercom timbre.
+            SpeechRole.FirstOfficerOnInterphone => new RoleVoice(
+                string.IsNullOrWhiteSpace(firstOfficerVoice) ? null : firstOfficerVoice.Trim(), voices.GroundIntercomFilter, false),
             _ => new RoleVoice(null, null, false),
         };
     }

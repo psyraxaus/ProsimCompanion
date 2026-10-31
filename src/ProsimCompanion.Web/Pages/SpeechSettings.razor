@@ -340,6 +340,19 @@ else if (CurrentSection == "groundCrew")
         <OptionField Draft="_groundCrew" For="o => o.CallOnCateringComplete" />
     </Section>
 
+    @* The FO's exterior walkaround (issue #196). *@
+    <Section Title="@T["speechSettings.groundCrew.walkaround.title"]" Hint="@T["speechSettings.groundCrew.walkaround.hint"]">
+        <OptionField Draft="_groundCrew" For="o => o.Walkaround.Enabled" />
+        <OptionField Draft="_groundCrew" For="o => o.Walkaround.MinMinutes" />
+        <OptionField Draft="_groundCrew" For="o => o.Walkaround.MaxMinutes" />
+        <OptionField Draft="_groundCrew" For="o => o.Walkaround.FindingChance" />
+        <OptionField Draft="_groundCrew" For="o => o.Walkaround.AllowNoGo" />
+        <OptionField Draft="_groundCrew" For="o => o.Walkaround.OnInterphone" />
+        <div class="field-hint" style="max-width:640px;">
+            @T["speechSettings.groundCrew.walkaround.fileBefore"] <code>%LOCALAPPDATA%\ProsimCompanion\config\walkaround-findings.json</code> @T["speechSettings.groundCrew.walkaround.fileAfter"]
+        </div>
+    </Section>
+
     <Section Title="@T["speechSettings.groundCrew.wording.title"]" Hint="@T["speechSettings.groundCrew.wording.hint"]">
         <OptionField Draft="_groundCrew" For="o => o.HailReplyText" />
         <OptionField Draft="_groundCrew" For="o => o.StandingByText" />
