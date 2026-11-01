@@ -275,6 +275,10 @@ card off.
    ground crew for boarding or fuel before you have commenced also starts the sequence —
    with the passenger count sent to GSX from the current plan first — or refuses with
    "No flight plan loaded yet" when there is none.
+   **A new plan is a new leg.** Load the next flight's SimBrief plan at the stand (MCDU or EFB,
+   engines off) and the departure services start over for it — catering and boarding run again
+   even if the app was restarted after the arrival. A running turnaround is never reset by a
+   re-import of the same plan.
 4. **Loadsheets.** The preliminary loadsheet arrives when refuel starts; the final one after
    boarding completes (dispatcher delay). Doors close and the jetway retracts on final —
    or, with the beacon sequence enabled, everything runs off the beacon: APU up → doors →

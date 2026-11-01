@@ -72,6 +72,8 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl, IG
 
     private readonly GroundOpsSignals _groundOpsSignals;
     private readonly OfpStore _ofpStore;
+    private readonly ISimVars? _simVars;
+    private string? _lastResetPlanId;
     private readonly GsxResyncState _resyncState;
     private readonly FuelConfirmationStore _fuelConfirmation;
     private readonly DeiceRequestStore _deiceRequest;
@@ -99,8 +101,10 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl, IG
         DepartureCycleLatches latches,
         GsxPaxTargetArmer paxTarget,
         IGsxDecisionLog decisions,
-        ILogger<GsxAutomationService> logger)
+        ILogger<GsxAutomationService> logger,
+        ISimVars? simVars = null)
     {
+        _simVars = simVars;
         ArgumentNullException.ThrowIfNull(api);
         ArgumentNullException.ThrowIfNull(slot);
         ArgumentNullException.ThrowIfNull(lifecycle);
@@ -175,7 +179,80 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl, IG
         _turnaroundStart.Answered += OnTurnaroundStartAnswered;
         // An automation-started SimBrief import that landed satisfies the plan gate now.
         _applier.SimbriefImported += Pump;
+        // A new plan is a new leg (owner rule 2026-11-01): the departure side starts over.
+        _ofpStore.Changed += OnOfpChanged;
         _pumpTimer = new Timer(_ => Pump(), null, PumpInterval, PumpInterval);
+    }
+
+    /// <summary>"A new plan is a new leg" (EHAM 2026-11-01: the app restarted at the gate after
+    /// the arrival, the resync took the arrival leg's boarding for this leg's, the sequence
+    /// closed with nothing called, and leg two's plan landed into a finished cycle). A different
+    /// SimBrief plan while parked with the engines off resets the departure side — service
+    /// cycles, pax target, trigger slot, tracking memory — unless a departure service for the
+    /// plan the cycle was opened with is already under way. Rule: <see cref="NewPlanCycleReset"/>.</summary>
+    private void OnOfpChanged(object? sender, EventArgs e)
+    {
+        try
+        {
+            var current = _ofpStore.Current;
+            var data = _flightState.Snapshot().Data;
+            var observed = _lifecycle.AnyObservedProgress(NewPlanCycleReset.ArrivalSide);
+            if (!NewPlanCycleReset.ShouldReset(current, _lastResetPlanId, _cycle.Complete, observed, data))
+            {
+                return;
+            }
+
+            var id = NewPlanCycleReset.PlanId(current)!;
+            _lastResetPlanId = id;
+            _lifecycle.ResetCycle(NewPlanCycleReset.ArrivalSide);
+            _cycle.BeginTurnaroundCycle();
+            _paxTarget.Reset();
+            _slot.Reset("new flight plan — departure cycle reset");
+            ClearDepartureTracking();
+            _decisions.Record("departure cycle reset", $"new flight plan {id} ({current?.OriginIcao}→{current?.DestinationIcao}) — the departure services start over for the new leg");
+            _decisions.RecordEvent("gsx-cycle-reset", new
+            {
+                reason = "new flight plan",
+                planId = id,
+                origin = current?.OriginIcao,
+                destination = current?.DestinationIcao,
+                cycleWasComplete = _cycle.Complete,
+            });
+            Pump();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "New-plan departure cycle reset failed");
+        }
+    }
+
+    /// <summary>Clears the companion tracking LVARs of the departure one-shots and the
+    /// loadsheet editions, so a restart after the reset resyncs to a fresh leg too. The arrival
+    /// side's (deboarding, GPU) stay.</summary>
+    private void ClearDepartureTracking()
+    {
+        if (_simVars is null)
+        {
+            return;
+        }
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                foreach (var serviceId in NewPlanCycleReset.DepartureServices)
+                {
+                    await _simVars.WriteAsync(CompanionLvarNames.ServiceDone(serviceId).Name, 0).ConfigureAwait(false);
+                }
+
+                await _simVars.WriteAsync(CompanionLvarNames.LoadsheetPrelimEdition.Name, 0).ConfigureAwait(false);
+                await _simVars.WriteAsync(CompanionLvarNames.LoadsheetFinalSent.Name, 0).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "Clearing the departure tracking LVARs failed");
+            }
+        });
     }
 
     /// <summary>The startup resync finished: adopt the recovered turnaround flag (the
@@ -276,6 +353,7 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl, IG
         _deiceObserver.Dispose();
         _turnaroundStart.Answered -= OnTurnaroundStartAnswered;
         _applier.SimbriefImported -= Pump;
+        _ofpStore.Changed -= OnOfpChanged;
         _pumpTimer.Dispose();
         DisposeSmartButton();
         _runner.Dispose();

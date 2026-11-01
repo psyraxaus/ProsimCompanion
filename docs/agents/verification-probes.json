@@ -963,7 +963,8 @@
       "checks": [
         "On an app restart mid-turnaround: resync assessment completes, lifecycle latches seed from tracking LVARs/dataref evidence, and the sequencer holds until assessed (no duplicate service calls after restart).",
         "No 'tracking LVARs claim departure progress the ProSim datarefs contradict' decision within ~15 s of app start (the 2026-08-23 false-stale signature: judged before the plan refs pushed, wiped valid LVARs, re-ran Refueling+Catering and re-pumped FOB mid-boarding).",
-        "No 'gsx-service' Requested for a service whose prior session recorded Completed in the same departure cycle."
+        "No 'gsx-service' Requested for a service whose prior session recorded Completed in the same departure cycle.",
+        "assert-absent (2026-11-01, EHAM restart at the gate after the arrival, before the next plan): a 'Boarding treated as completed — EFB boarding status reads completed' seed while the cabin is EMPTY (pax occupied 0) — the status is the previous leg's; and no 'unverified after restart — never re-called by policy' seed for catering/water/boarding unless BOARDING itself was proven (a proven refuel alone assumes nothing). assert-present: after such a restart with the fuel already loaded, 'Refueling treated as completed — fuel on board … meets the … target' and catering then boarding run fresh once the sequence starts."
       ],
       "notes": "Regressed 2026-08-23, re-fixed: the staleness judgement now waits for the plan refs' first push (bounded by the 90 s window) and unknown facts (null) can neither prove nor condemn. Exercised only by restarting the app mid-cycle."
     },
@@ -3143,7 +3144,8 @@
         "assert-present (voiceThenAuto, turnaroundAskFirst on): the same lead-in, then 'gsx-turnaround-question' {prompt:'Next plan loaded — commence ground services?'} and the Speech pillar's 'turnaround-start-question' {prompt} followed by {outcome:accepted|declined|unanswered, heard}; accepted → 'gsx-departure-started' {source:'voice'}; declined/unanswered → 'gsx-decision' {reason starts 'turnaround auto-start declined'} and NO auto-turnaround start for the rest of the cycle — a later 'commence ground services' / Start button starts it normally.",
         "assert-absent (voiceThenAuto): 'gsx-departure-started' {source:'auto-turnaround'} with turnaround:false; or any auto-turnaround start before an 'ofp.loaded' with a new requestId; or an auto-turnaround start while 'gsx-automation-phase' is not Preparation.",
         "assert-present (any voice mode, hail-before-start): a 'crew.hail.request' {heard:'request boarding'|'request refueling'|…} or a gsx.requestBoarding/gsx.requestRefuel command while no 'gsx-departure-started' exists for the cycle produces, in order: 'gsx-decision' {action:'pax target', reason 'armed GSX with N passengers (booked manifest)'} → 'gsx-departure-started' {source:'hail'|'voice'|'command'|'api'|'web'} → 'gsx-service' {Boarding|Refueling, Requested}. With no OFP loaded the hail is refused with 'No flight plan loaded yet — load the OFP first' (log 'Hail request gsx.requestBoarding → PreconditionFailed') and no 'gsx-service' Boarding Requested follows.",
-        "requires-human: the FINAL loadsheet pax figure equals the OFP's pax count on the turnaround leg (2026-10-11: 122 on the loadsheet vs 128 in the OFP)."
+        "requires-human: the FINAL loadsheet pax figure equals the OFP's pax count on the turnaround leg (2026-10-11: 122 on the loadsheet vs 128 in the OFP).",
+        "assert-absent (2026-11-01): a 'departure sequence — all departure services completed or skipped' decision while the flight-plan gate is closed ('flight plan detection: none detected') — seeded completions never close a cycle behind the gate."
       ],
       "notes": "Added 2026-10-11 (issue #169, LIRF→EGCC→EFHK owner flight on 0.7.0-rc.4): with groundPrepActivation=voice the turnaround held for 'commence ground services' by design, the pilot drove services by hail/button, and the web Start at 23:53:26Z armed the pax target after boarding had completed on GSX's stale 122. DepartureAutomationCore.TurnaroundStartInputs (pure, table-tested) + GsxAutomationService bookkeeping (arrival OFP baseline, settle stamp) + IGsxDepartureStarter for the on-demand path + TurnaroundStartStore/TurnaroundStartDialogue for ask-first. Unverified live."
     },
@@ -4340,6 +4342,22 @@
         "assert-present: airborne or taxiing the 60 s grace still applies; pause grace 0 still resets at once."
       ],
       "notes": "EGLL 2026-11-01 00:07:15–00:08:15Z: the pilot's own camera walkaround (60.2 s) reset Preflight to Unknown and abandoned the FO walkaround. FlightStateEngine.PauseGrace (pure) picks the larger of the two graces when the paused snapshot is parked."
+    },
+    {
+      "id": "turnaround-new-plan-reset",
+      "issue": 207,
+      "state": "fixed-unverified",
+      "kind": "assert-present",
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "assert-present: a different SimBrief plan (new requestId, else a new origin–destination) loading while the aircraft is parked with every engine off writes ONE gsx-cycle-reset {reason 'new flight plan', planId, origin, destination, cycleWasComplete} and the decision 'departure cycle reset: new flight plan … — the departure services start over', then a fresh departure sequence for the new leg (gsx-departure-started on 'commence ground services' / the auto start), boarding and catering called again; the companion ServiceDone tracking LVARs of the departure one-shots read 0 afterwards (a restart after the reset resyncs fresh).",
+        "assert-absent: a gsx-cycle-reset while a departure service outside deboarding/GPU/jetway is Called, Active or Completed for the plan the cycle was opened with (a late re-import mid-boarding); a second gsx-cycle-reset for the same planId; a reset with an engine running or the aircraft moving; a replayed Deboarding Completed edge after the reset (the arrival side is kept).",
+        "assert-present (manual call): 'request boarding' / 'request catering' on a completion the startup resync only seeded is CALLED (log '… the crew's call overrides the startup-resync seed'), never 'has already completed this turnaround'."
+      ],
+      "notes": "Owner rule 2026-11-01 ('a new plan is a new leg'): EHAM turnaround — app restarted 14:00 local at the gate, resync seeded leg one's boarding (EFB status) and assumed catering, 'commence ground services' 14:01 closed the cycle at 14:03:54 with nothing called, leg two's plan landed 14:05:06, 'request boarding/catering' refused. Gsx NewPlanCycleReset (pure) + GsxAutomationService.OnOfpChanged (lifecycle.ResetCycle(keep arrival side), cycle.BeginTurnaroundCycle, pax target + slot reset, tracking LVARs cleared); resync EFB-status proof needs a non-empty cabin and the never-re-call assumption needs BOARDING proven; DepartureSequencer never reports AllDone behind a closed plan gate; GsxServiceControl forgets a seeded-only completion on the crew's call."
     }
   ]
 }

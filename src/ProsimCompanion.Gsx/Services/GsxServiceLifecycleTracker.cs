@@ -190,9 +190,53 @@ public sealed class GsxServiceLifecycleTracker : IGsxServiceLifecycleView
             cycle.RequestedNotified = true;
             cycle.ActiveNotified = true;
             cycle.CompletedNotified = true;
+            cycle.Seeded = true;
         }
 
         _logger.LogInformation("GSX service {Service}: seeded completed (startup resync)", serviceId);
+    }
+
+    /// <summary>True when the only evidence of this service's completion is a startup-resync
+    /// seed — nothing was observed from GSX this run. Such a completion never refuses the
+    /// crew's own call (EHAM 2026-11-01: "request boarding" answered "already completed this
+    /// turnaround" after a wrong seed).</summary>
+    public bool IsSeededOnly(string serviceId)
+    {
+        lock (_gate)
+        {
+            return _cycles.TryGetValue(serviceId, out var cycle) && cycle.Seeded && cycle.CompletedNotified;
+        }
+    }
+
+    /// <summary>Forgets a seeded completion so the service runs as a fresh cycle; a no-op for
+    /// a completion GSX actually reported.</summary>
+    public bool Unseed(string serviceId)
+    {
+        lock (_gate)
+        {
+            if (!_cycles.TryGetValue(serviceId, out var cycle) || !cycle.Seeded)
+            {
+                return false;
+            }
+
+            _cycles.Remove(serviceId);
+        }
+
+        _logger.LogInformation("GSX service {Service}: seeded completion forgotten — the crew is calling it", serviceId);
+        return true;
+    }
+
+    /// <summary>Whether any service outside <paramref name="exempt"/> was really called,
+    /// active or completed this cycle (seeds do not count) — the "departure services for THIS
+    /// plan have begun" test behind the new-plan cycle reset.</summary>
+    public bool AnyObservedProgress(IReadOnlySet<string> exempt)
+    {
+        ArgumentNullException.ThrowIfNull(exempt);
+        lock (_gate)
+        {
+            return _cycles.Any(pair => !exempt.Contains(pair.Key) && !pair.Value.Seeded
+                && (pair.Value.WasCalled || pair.Value.WasActive || pair.Value.CompletedNotified));
+        }
     }
 
     /// <summary>
@@ -225,6 +269,23 @@ public sealed class GsxServiceLifecycleTracker : IGsxServiceLifecycleView
         _logger.LogInformation("GSX service lifecycle cycle reset");
     }
 
+    /// <summary>Resets every cycle except <paramref name="keep"/> — the new-plan reset keeps
+    /// the arrival side (deboarding, GPU, jetway) so a still-Completed mirror reading never
+    /// replays their edges.</summary>
+    public void ResetCycle(IReadOnlySet<string> keep)
+    {
+        ArgumentNullException.ThrowIfNull(keep);
+        lock (_gate)
+        {
+            foreach (var id in _cycles.Keys.Where(id => !keep.Contains(id)).ToArray())
+            {
+                _cycles.Remove(id);
+            }
+        }
+
+        _logger.LogInformation("GSX service lifecycle cycle reset (departure side; kept {Kept})", string.Join(", ", keep));
+    }
+
     private ServiceCycle GetCycle(string serviceId)
     {
         if (!_cycles.TryGetValue(serviceId, out var cycle))
@@ -242,5 +303,6 @@ public sealed class GsxServiceLifecycleTracker : IGsxServiceLifecycleView
         public bool RequestedNotified { get; set; }
         public bool ActiveNotified { get; set; }
         public bool CompletedNotified { get; set; }
+        public bool Seeded { get; set; }
     }
 }

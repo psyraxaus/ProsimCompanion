@@ -186,4 +186,35 @@ public sealed class GsxServiceLifecycleTrackerTests
             _events);
         Assert.True(_tracker.IsCompleted("Refueling"));
     }
+
+    // EHAM 2026-11-01: seeds are not observations.
+    [Fact]
+    public void Seed_IsSeededOnly_UntilObserved_AndCanBeForgotten()
+    {
+        _tracker.SeedCompleted("Boarding");
+        Assert.True(_tracker.IsSeededOnly("Boarding"));
+        Assert.True(_tracker.IsCompleted("Boarding"));
+        Assert.False(_tracker.AnyObservedProgress(new HashSet<string>()));
+
+        Assert.True(_tracker.Unseed("Boarding"));
+        Assert.False(_tracker.IsCompleted("Boarding"));
+        Assert.False(_tracker.Unseed("Boarding"));
+
+        _tracker.Process(Services(("Boarding", GsxServiceState.Active)));
+        Assert.False(_tracker.IsSeededOnly("Boarding"));
+        Assert.True(_tracker.AnyObservedProgress(new HashSet<string>()));
+        Assert.False(_tracker.AnyObservedProgress(new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "Boarding" }));
+    }
+
+    [Fact]
+    public void ResetCycle_WithKeep_LeavesTheArrivalSideAlone()
+    {
+        _tracker.Process(Services(("Deboarding", GsxServiceState.Completed), ("Boarding", GsxServiceState.Completed)));
+        _events.Clear();
+
+        _tracker.ResetCycle(new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "Deboarding" });
+        _tracker.Process(Services(("Deboarding", GsxServiceState.Completed), ("Boarding", GsxServiceState.Completed)));
+
+        Assert.Equal([("Boarding", GsxServiceLifecycleEvent.Completed)], _events); // deboarding never replayed
+    }
 }

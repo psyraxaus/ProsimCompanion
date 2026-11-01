@@ -693,4 +693,18 @@ public sealed class DepartureSequencerTests
         Assert.Equal("Catering", plan.Trigger);
         Assert.DoesNotContain(plan.Holds, h => h.ServiceId == "Refueling");
     }
+
+    // EHAM 2026-11-01: seeded completions with no plan loaded closed the cycle before leg
+    // two's plan arrived ("all departure services completed", nothing called).
+    [Fact]
+    public void SeededCompletions_NeverCloseTheCycle_BehindTheFlightPlanGate()
+    {
+        var steps = new[] { Step("Refueling"), Step("Boarding", GsxServiceActivation.AfterAllCompleted) };
+        var services = Services(("Refueling", GsxServiceState.Completed, false), ("Boarding", GsxServiceState.Completed, false));
+        var cycles = new Dictionary<string, DepartureCycleView>(StringComparer.OrdinalIgnoreCase) { ["Refueling"] = Done, ["Boarding"] = Done };
+
+        Assert.False(Next(steps, services, cycles, plan: false).AllDone);
+        Assert.True(Next(steps, services, cycles, plan: true).AllDone);
+        Assert.True(Next(steps, services, cycles, plan: false, requireOfp: false).AllDone);
+    }
 }

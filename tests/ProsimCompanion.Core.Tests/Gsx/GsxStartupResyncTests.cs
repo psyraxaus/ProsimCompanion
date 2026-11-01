@@ -94,16 +94,27 @@ public sealed class GsxStartupResyncTests
     }
 
     [Fact]
-    public void FuelAtTarget_ProvesRefuel_AndNeverRecallAssumesTheRest()
+    public void FuelAtTarget_ProvesRefuel_AndNothingElse()
     {
+        // EHAM 2026-11-01: the fuel was loaded for leg two, catering and boarding still to come —
+        // a proven refuel alone must not assume the rest done.
         var verdict = GsxStartupResync.Assess(Evidence(fuelTarget: 8000, fob: 7950));
 
         var ids = verdict.SeedCompleted.Select(s => s.ServiceId).ToArray();
-        Assert.Contains("Refueling", ids);
-        // Never re-call: every other configured one-shot is assumed done once progress is proven.
+        Assert.Equal(["Refueling"], ids);
+    }
+
+    [Fact]
+    public void BoardingProven_NeverRecallAssumesTheRest()
+    {
+        var verdict = GsxStartupResync.Assess(Evidence(booked: 174, occupied: 174));
+
+        var ids = verdict.SeedCompleted.Select(s => s.ServiceId).ToArray();
+        Assert.Contains("Boarding", ids);
+        // Never re-call: boarding is the last one-shot, so everything before it ran.
         Assert.Contains("Catering", ids);
         Assert.Contains("Water", ids);
-        Assert.Contains("Boarding", ids);
+        Assert.Contains("Refueling", ids);
         Assert.Contains("unverified", verdict.SeedCompleted.First(s => s.ServiceId == "Catering").Reason);
     }
 
@@ -129,18 +140,37 @@ public sealed class GsxStartupResyncTests
     [Theory]
     [InlineData("completed")]
     [InlineData("ended")]
-    public void EfbBoardingStatus_ProvesBoarding(string status)
-        => Assert.True(GsxStartupResync.Assess(Evidence(boardingStatus: status)).BoardingProven);
+    public void EfbBoardingStatus_ProvesBoarding_WhileTheCabinIsNotEmpty(string status)
+    {
+        Assert.True(GsxStartupResync.Assess(Evidence(boardingStatus: status, occupied: 120)).BoardingProven);
+        // No pax figure pushed yet: the status still counts (absent data never condemns).
+        var noFigure = Evidence(boardingStatus: status) with { PaxOccupied = null };
+        Assert.True(GsxStartupResync.Assess(noFigure).BoardingProven);
+    }
+
+    [Theory]
+    [InlineData("completed")]
+    [InlineData("ended")]
+    public void EfbBoardingStatus_WithAnEmptyCabin_IsThePreviousLeg(string status)
+    {
+        // EHAM 2026-11-01: restart at the gate after the arrival, before the next plan — the
+        // EFB still read the arrival leg's "completed", the cabin was empty, and leg two's
+        // boarding was never called. Nothing is proven, nothing is assumed.
+        var verdict = GsxStartupResync.Assess(Evidence(boardingStatus: status, booked: 129, occupied: 0));
+
+        Assert.False(verdict.BoardingProven);
+        Assert.Empty(verdict.SeedCompleted);
+    }
 
     [Fact]
-    public void AssumedBoarding_IsNotProven()
+    public void AssumedServices_AreNotProven()
     {
-        // Refuel proof triggers the never-re-call assumption for Boarding — but an assumed
-        // boarding must never re-arm the automatic final loadsheet.
-        var verdict = GsxStartupResync.Assess(Evidence(fuelTarget: 8000, fob: 8000));
+        // The never-re-call assumption rides a PROVEN boarding; the assumed ones are marked
+        // as such and must never re-arm anything on their own.
+        var verdict = GsxStartupResync.Assess(Evidence(booked: 174, occupied: 174));
 
-        Assert.Contains(verdict.SeedCompleted, s => s.ServiceId == "Boarding");
-        Assert.False(verdict.BoardingProven);
+        Assert.True(verdict.BoardingProven);
+        Assert.Contains(verdict.SeedCompleted, s => s.ServiceId == "Catering" && s.Reason.Contains("unverified"));
     }
 
     [Fact]

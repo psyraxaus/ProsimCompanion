@@ -839,4 +839,23 @@ public sealed class GsxServiceControlTests
 
         Assert.Equal(GsxServiceCallStatus.Called, outcome.Status);
     }
+
+    // EHAM 2026-11-01: "request catering" was refused with "already completed this
+    // turnaround" on a completion the startup resync had only assumed.
+    [Fact]
+    public async Task SeededCompletion_NeverRefusesTheCrewsCall()
+    {
+        var control = CreateControl();
+        SeedService("Catering", "available");
+        _lifecycle.SeedCompleted("Catering");
+        Assert.True(_lifecycle.IsSeededOnly("Catering"));
+
+        var outcome = await control.TryCallAsync(GsxServiceAction.RequestCatering);
+
+        Assert.Equal(GsxServiceCallStatus.Called, outcome.Status);
+        Assert.False(_lifecycle.IsCompleted("Catering"));
+        _dispatcher.Verify(
+            d => d.TryDispatchAsync(It.Is<GsxTriggerRequest>(r => r.ServiceId == "Catering"), It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
 }

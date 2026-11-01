@@ -425,7 +425,17 @@ public sealed class GsxServiceControl : IGsxServiceControl, IDisposable
 
         if (!IsToggle(action) && _lifecycle.IsCompleted(serviceId))
         {
-            return new(GsxServiceCallStatus.AlreadySatisfied, $"{display} has already completed this turnaround.");
+            // A completion the startup resync only assumed never stands in the crew's way
+            // (EHAM 2026-11-01): forget the seed and call the service as a fresh cycle.
+            if (_lifecycle.IsSeededOnly(serviceId))
+            {
+                _lifecycle.Unseed(serviceId);
+                _logger.LogInformation("GSX {Service}: the crew's call overrides the startup-resync seed", display);
+            }
+            else
+            {
+                return new(GsxServiceCallStatus.AlreadySatisfied, $"{display} has already completed this turnaround.");
+            }
         }
 
         // Tankering pre-skip on the command path (ticket t-20260929-1933, 2026-09-28 EDDN):

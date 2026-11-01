@@ -141,8 +141,12 @@ public static class GsxStartupResync
         {
             Prove(GsxServiceIds.Boarding, $"{occupied} of {evidence.PaxBooked} booked pax aboard");
         }
-        else if (evidence.EfbBoardingStatus is "completed" or "ended")
+        else if (evidence.EfbBoardingStatus is "completed" or "ended" && evidence.PaxOccupied is not 0)
         {
+            // An EMPTY cabin under a "completed" EFB status is the previous leg's boarding
+            // (EHAM 2026-11-01: restart at the gate after the arrival, before the next plan —
+            // the status still read the arrival leg's "completed" and leg two's boarding was
+            // never called). The status proves nothing once the passengers have left.
             Prove(GsxServiceIds.Boarding, $"EFB boarding status reads '{evidence.EfbBoardingStatus}'");
         }
 
@@ -155,11 +159,13 @@ public static class GsxStartupResync
 
         var boardingProven = proven.Contains(GsxServiceIds.Boarding);
 
-        // Never re-call: once DEPARTURE progress is proven for this leg, the unproven
-        // one-shots are assumed done. Deboarding/GPU proofs are exempt — they complete before
-        // a fresh leg's departure services, so a restart right after arrival or ground prep
-        // still sequences leg 2 normally.
-        if (seeds.Any(seed => !ProgressExempt.Contains(seed.ServiceId)))
+        // Never re-call: once BOARDING is proven for this leg, the unproven one-shots are
+        // assumed done — boarding is the last of them, so everything before it ran. A proven
+        // refuel alone proves nothing about catering (EHAM 2026-11-01: the fuel was loaded for
+        // leg two, catering and boarding were still to come, and the old rule assumed them
+        // done). Deboarding/GPU proofs are exempt — they complete before a fresh leg's
+        // departure services, so a restart right after arrival still sequences leg 2 normally.
+        if (boardingProven)
         {
             foreach (var serviceId in evidence.ConfiguredOneShotServices)
             {

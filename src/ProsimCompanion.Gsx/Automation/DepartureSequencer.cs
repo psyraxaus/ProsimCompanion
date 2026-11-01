@@ -263,7 +263,11 @@ public static class DepartureSequencer
                 : $"next in departure order ({step.Activation})";
         }
 
-        return new DeparturePlan(trigger, triggerReason, holds, skipped, settled == ordered.Count, heldAtTurn);
+        // A cycle never closes behind a closed flight-plan gate: seeded completions with no
+        // plan loaded (a restart at the gate before the next SimBrief import, EHAM 2026-11-01)
+        // would otherwise report "all departure services completed" for a leg that has not begun.
+        var allDone = settled == ordered.Count && !(requireOfp && !flightPlanAvailable);
+        return new DeparturePlan(trigger, triggerReason, holds, skipped, allDone, heldAtTurn);
     }
 
     /// <summary>Null = the activation rule is satisfied; otherwise the hold reason. The first
