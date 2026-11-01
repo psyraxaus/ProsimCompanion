@@ -9,7 +9,9 @@ namespace ProsimCompanion.Speech.SayIntentions;
 /// "Clear" = <c>L:SIAI_COM1_RECEIVING</c> and <c>L:SIAI_RADIO_PTT</c> both 0, held for a
 /// short settle so the tail of ATC's sentence is not stepped on. Bounded: after
 /// <see cref="MaxWait"/> the transmission goes anyway (a busy frequency must not swallow a
-/// request). Without a sim connection (null <c>ISimVars</c>, or MSFS down) the gate is the
+/// request; 20 s since 2026-11-01 — the 8 s cap stepped on two long approach clearances,
+/// SayIntentions' COM1_RECEIVING is "1 while the COM1 radio is playing audio" and is trusted).
+/// Without a sim connection (null <c>ISimVars</c>, or MSFS down) the gate is the
 /// predecessor's fixed 400 ms settle. Subscriptions are opened on first use, so a session
 /// with SayIntentions off never registers them.
 /// </summary>
@@ -22,7 +24,7 @@ public sealed class RadioClearGate : IDisposable
     public static readonly TimeSpan Settle = TimeSpan.FromMilliseconds(400);
 
     /// <summary>Longest the FO waits for a clear frequency before transmitting anyway.</summary>
-    public static readonly TimeSpan MaxWait = TimeSpan.FromSeconds(8);
+    public static readonly TimeSpan MaxWait = TimeSpan.FromSeconds(20);
 
     private static readonly TimeSpan Poll = TimeSpan.FromMilliseconds(100);
 
@@ -83,7 +85,7 @@ public sealed class RadioClearGate : IDisposable
 
             if (now - started >= MaxWait)
             {
-                _logger.LogInformation("Radio-clear gate: COM1 still busy after {Seconds:0.0} s — transmitting anyway", MaxWait.TotalSeconds);
+                _logger.LogWarning("Radio-clear gate: COM1 still busy after {Seconds:0.0} s — transmitting anyway (stepping on ATC; a longer sentence than the cap allows for)", MaxWait.TotalSeconds);
                 return (now - started, true);
             }
 

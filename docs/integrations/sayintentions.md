@@ -26,7 +26,7 @@
 - Radio-clear gating before transmitting. The predecessor read `SIAI_COM1_RECEIVING` and
   `SIAI_RADIO_PTT` through MobiFlight WASM client data; ProsimCompanion reads the same two
   L:vars natively through `ISimVars` (`SayIntentionsLvarNames`, `RadioClearGate`, 2026-10-08):
-  both 0 for 400 ms = clear, 8 s cap then transmit anyway, stale (MSFS down) = clear. The sim
+  both 0 for 400 ms = clear, 20 s cap (8 s until 2026-11-01: it stepped on two long approach clearances) then transmit anyway with a warning, stale (MSFS down) = clear. The sim
   auto-creates an unknown L:var as 0, so a SayIntentions that never writes them degrades to
   the fixed 400 ms settle. Each `sayintentions.request` event carries `radioWaitMs` and
   `radioBusyAtTx`.
@@ -120,7 +120,7 @@ legacy departure gate are inert) and answers every ATC COM1 line the frequency m
   it would have put the SI copilot on the takeoff clearance beside our FO).
 - **Tune** on a hand-off through the Core `IRadioTuner` (standby → verify → swap) when
   `tuneOnHandoff`; a failed tune is spoken ("Could not tune …, Captain — the radios are yours").
-- **Check-in** `checkInDelaySeconds` (8) later (`CheckInComposer`): "Good evening, Finnair-niner-
+- **Check-in** `checkInDelaySeconds` (4; 8 until 2026-11-01) later (`CheckInComposer`): "Good evening, Finnair-niner-
   six-two, climbing through 2,500 on KEMA5C." / "… climbing through FL180 for FL210 on KEMA5C." /
   "… maintaining FL370." (copilot wording, verified in the transcript); descent / approach mirror
   it with the STAR and "inbound runway 15"; TaxiOut "taxiing to holding point runway 22R";

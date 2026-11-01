@@ -227,7 +227,7 @@ public sealed class FoRadiosOptions
     public bool CheckIn { get; set; } = true;
 
     /// <summary>Seconds between the hand-off read-back and the check-in — the frequency change
-    /// and a breath.</summary>
+    /// and a breath (4 since 2026-11-01: SayIntentions answered a check-in within a second, 8 was dead air).</summary>
     [OptionField(FieldKind.Number, "speechSettings.sayIntentions.foRadios.checkInDelay", Suffix = "s", Min = "3", Max = "30", Step = "1", DependsOn = "../Enabled; Enabled; CheckIn", Advanced = true)]
-    public int CheckInDelaySeconds { get; set; } = 8;
+    public int CheckInDelaySeconds { get; set; } = 4;
 }
