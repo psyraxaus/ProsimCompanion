@@ -42,6 +42,8 @@ public sealed class SayIntentionsFrequencyMonitor : Core.Hosting.IStartupModule,
     private static readonly TimeSpan HistoryFreshness = TimeSpan.FromSeconds(90);
 
     private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(10) };
+    private int _historyFailures;
+    private int _tickFailures;
 
     private readonly IOptionsMonitor<SayIntentionsOptions> _options;
     private readonly IProsimDataRefs _dataRefs;
@@ -238,7 +240,10 @@ public sealed class SayIntentionsFrequencyMonitor : Core.Hosting.IStartupModule,
         }
         catch (Exception ex)
         {
-            _logger.LogDebug(ex, "SayIntentions frequency watch tick failed");
+            if (_tickFailures++ % 20 == 0)
+            {
+                _logger.LogWarning(ex, "SayIntentions frequency watch tick failed ({Count} so far)", _tickFailures);
+            }
         }
         finally
         {
@@ -342,7 +347,7 @@ public sealed class SayIntentionsFrequencyMonitor : Core.Hosting.IStartupModule,
                 cancellationToken).ConfigureAwait(false);
             if (!response.IsSuccessStatusCode)
             {
-                _logger.LogDebug("SayIntentions getCommsHistory HTTP {Status}", (int)response.StatusCode);
+                NoteHistoryFailure("HTTP " + (int)response.StatusCode);
                 return;
             }
 
@@ -351,6 +356,12 @@ public sealed class SayIntentionsFrequencyMonitor : Core.Hosting.IStartupModule,
             var sinceId = _tracker.LastId;
             _tracker.ApplyHistory(flightId, entries);
             _lastHistoryOkUtc = DateTimeOffset.UtcNow;
+            if (_historyFailures > 0)
+            {
+                _logger.LogInformation("SayIntentions getCommsHistory is back after {Count} failed poll(s)", _historyFailures);
+                _historyFailures = 0;
+            }
+
             PublishLastAtcLine(entries);
 
             // The first poll of a session returns the flight's whole backlog — seed only.
@@ -368,7 +379,17 @@ public sealed class SayIntentionsFrequencyMonitor : Core.Hosting.IStartupModule,
         }
         catch (Exception ex)
         {
-            _logger.LogDebug(ex, "SayIntentions getCommsHistory failed");
+            NoteHistoryFailure(ex.GetType().Name + ": " + ex.Message);
+        }
+    }
+
+    /// <summary>A failing history poll is a silent FO (EHAM 2026-11-01: twelve minutes of ATC
+    /// unanswered with nothing in the log): the first failure and every twentieth are warnings.</summary>
+    private void NoteHistoryFailure(string detail)
+    {
+        if (_historyFailures++ % 20 == 0)
+        {
+            _logger.LogWarning("SayIntentions getCommsHistory failed: {Detail} ({Count} in a row)", detail, _historyFailures);
         }
     }
 
@@ -426,13 +447,23 @@ public sealed class SayIntentionsFrequencyMonitor : Core.Hosting.IStartupModule,
             }
 
             var handoff = HandoffParser.Parse(entry.Outgoing) ?? HandoffParser.Parse(entry.OutgoingEnglish);
+            // Every ATC line the FO is handed is on the record (the 2026-11-01 silence had no
+            // trail at all): the review reads this against SayIntentions' own transcript.
+            _logger.LogInformation("ATC #{Id} ({Station}): \"{Text}\"", entry.Id, entry.StationName ?? "?", text.Trim());
+            _eventLog.Record("sayintentions.atc-line", new
+            {
+                id = entry.Id,
+                station = entry.StationName,
+                text = text.Trim(),
+                handoffKhz = handoff?.Khz,
+            });
             try
             {
                 handler(new AtcTransmission(entry.Id, text.Trim(), handoff, entry.StationName));
             }
             catch (Exception ex)
             {
-                _logger.LogDebug(ex, "ATC transmission handler failed");
+                _logger.LogWarning(ex, "ATC transmission handler failed for #{Id}", entry.Id);
             }
         }
     }

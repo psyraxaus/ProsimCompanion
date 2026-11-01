@@ -93,6 +93,10 @@ public static partial class ReadbackComposer
     /// from the front of the instruction, where SI ATC identifies itself on a check-in reply.</param>
     /// <param name="ourAtisLetter">The ATIS letter we hold for the airport in question (null
     /// when none): ATC's "have you got information Victor?" is answered from it.</param>
+    /// <summary>"All aircraft …" — an ATIS-style broadcast, addressed to nobody in particular.</summary>
+    public static bool IsBroadcast(string atcText)
+        => !string.IsNullOrWhiteSpace(atcText) && Broadcast().IsMatch(atcText.Trim());
+
     public static Readback? Compose(string atcText, string? callsign, string? station, string? ourAtisLetter = null)
     {
         if (string.IsNullOrWhiteSpace(atcText))
@@ -462,7 +466,8 @@ public sealed record CheckInContext(
     string? StarSpoken = null,
     double? DistanceToDepartureRunwayNm = null,
     double GroundSpeedKt = 0,
-    double HoldingPointDistanceNm = 0.3);
+    double HoldingPointDistanceNm = 0.3,
+    double? VerticalSpeedFpm = null);
 
 /// <summary>
 /// The check-in call after a hand-off, shaped on the SI copilot's own (2026-10-25 transcript):
@@ -513,11 +518,18 @@ public static class CheckInComposer
             // Only a level still ahead in the direction of flight is "for …" (EGLL 2026-10-31:
             // the tower check-in at 1,200 ft said "for FL70" — the last flight-level clearance,
             // long passed, because the altitude clearance after it had not been read).
-            var climbing = c.Phase is not (FlightPhase.Descent or FlightPhase.Approach);
+            // The vertical speed, when known, says what we are doing better than the phase
+            // (EHAM 2026-11-01: "climbing through FL240 on Valk three Sierra" level at FL240 with
+            // "when ready descend FL160" in hand — the phase was still Climb). Level = maintaining;
+            // a real descent reads as one whatever the phase; unknown = the phase decides.
+            var steady = c.VerticalSpeedFpm is { } vs && Math.Abs(vs) <= LevelFpm;
+            var descending = c.Phase is FlightPhase.Descent or FlightPhase.Approach
+                || (c.VerticalSpeedFpm is { } down && down < -LevelFpm);
+            var climbing = !descending;
             var clearedFeet = ClearedLevelParser.Feet(c.ClearedLevel);
             var ahead = clearedFeet is null || (climbing ? clearedFeet > c.AltitudeFt : clearedFeet < c.AltitudeFt);
             var cleared = c.ClearedLevel is { Length: > 0 } cl && !string.Equals(cl, level, StringComparison.Ordinal) && ahead ? $" for {cl}" : "";
-            switch (c.Phase)
+            switch (steady ? FlightPhase.Cruise : descending ? FlightPhase.Descent : c.Phase)
             {
                 case FlightPhase.Cruise:
                     body = $"maintaining {level}.";
@@ -540,6 +552,9 @@ public static class CheckInComposer
         var transmit = head + body;
         return new Readback(transmit, RadioSpeech.Spoken(transmit), ReadbackKind.Readback);
     }
+
+    /// <summary>Vertical speed within this of zero is "maintaining".</summary>
+    public const double LevelFpm = 300;
 
     /// <summary>"2,500" below 10,000 ft (nearest 100), "FL180" from 10,000 ft (nearest 10).</summary>
     public static string LevelText(double altitudeFt)

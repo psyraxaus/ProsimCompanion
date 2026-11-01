@@ -149,4 +149,7 @@ public sealed class Com1PanelService : IStartupModule, IRadioTuner, IDisposable
     private static bool IsLive(IDataRefSubscription<double> dataref) => dataref is { IsStale: false, RawValue: not null };
 
     private static int Khz(IDataRefSubscription<double> dataref) => (int)Math.Round(dataref.Value);
+
+    /// <inheritdoc />
+    public int? ActiveKhz => _active is { } active && IsLive(active) ? Khz(active) : null;
 }

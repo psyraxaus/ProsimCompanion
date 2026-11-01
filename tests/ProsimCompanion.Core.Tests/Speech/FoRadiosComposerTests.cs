@@ -162,6 +162,23 @@ public sealed class FoRadiosComposerTests
     }
 
     [Fact]
+    public void CheckIn_LevelByVerticalSpeed_MaintainsEvenInClimbPhase()
+    {
+        // EHAM 2026-11-01: level at FL240 with "when ready descend FL160" in hand, phase still Climb.
+        var level = Context(FlightPhase.Climb, false, 24_010, "FL160") with { VerticalSpeedFpm = -40 };
+        Assert.Equal("Good evening, Finnair-niner-six-two, maintaining FL240.", CheckInComposer.Compose(level)!.Transmit);
+
+        // Already going down on that clearance before the phase engine says Descent.
+        var descending = Context(FlightPhase.Cruise, false, 23_400, "FL160") with { VerticalSpeedFpm = -1_800 };
+        Assert.Equal("Good evening, Finnair-niner-six-two, descending through FL230 for FL160 on LAKU8M.",
+            CheckInComposer.Compose(descending)!.Transmit);
+
+        // A climb in progress keeps the climb wording; an unknown vertical speed keeps the phase's.
+        var climbing = Context(FlightPhase.Climb, false, 18_040, "FL210") with { VerticalSpeedFpm = 1_500 };
+        Assert.Equal("Good evening, Finnair-niner-six-two, climbing through FL180 for FL210 on KEMA5C.", CheckInComposer.Compose(climbing)!.Transmit);
+    }
+
+    [Fact]
     public void CheckIn_Cruise_MaintainsTheLevel()
         => Assert.Equal("Good evening, Finnair-niner-six-two, maintaining FL370.",
             CheckInComposer.Compose(Context(FlightPhase.Cruise, false, 37_010, "FL370"))!.Transmit);

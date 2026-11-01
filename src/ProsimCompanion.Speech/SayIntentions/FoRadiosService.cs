@@ -56,6 +56,17 @@ public sealed class FoRadiosService : Core.Hosting.IStartupModule, IDisposable
     private string? _departureGeometryFor;
     private RunwayGeometry? _departureGeometry;
     private int _geometryLookupBusy;
+    private DateTimeOffset _lastAtcLineUtc = DateTimeOffset.MinValue;
+
+    /// <summary>Floor between the hand-off read-back and the retune: the OLD station must hear
+    /// "Contacting X on Y" (EHAM 2026-11-01: sayAs and retune in the same millisecond, the new
+    /// station answered the read-back as our check-in, the FO then checked in again).</summary>
+    internal static readonly TimeSpan HandoffTuneGrace = TimeSpan.FromSeconds(3);
+
+    /// <summary>Longest the check-in waits for COM1 to read the new frequency.</summary>
+    internal static readonly TimeSpan FrequencyWaitMax = TimeSpan.FromSeconds(60);
+
+    private static readonly TimeSpan FrequencyPoll = TimeSpan.FromMilliseconds(500);
 
     public FoRadiosService(
         IOptionsMonitor<SayIntentionsOptions> options,
@@ -290,6 +301,11 @@ public sealed class FoRadiosService : Core.Hosting.IStartupModule, IDisposable
             {
                 flight = _flight;
                 captainOwns = _captainOwns;
+                if (!ReadbackComposer.IsBroadcast(tx.Text))
+                {
+                    _lastAtcLineUtc = DateTimeOffset.UtcNow; // ATC spoke to us (the check-in rule reads it)
+                }
+
                 if (ClearedLevelParser.Parse(tx.Text) is { } cleared)
                 {
                     _clearedLevel = cleared;
@@ -298,7 +314,8 @@ public sealed class FoRadiosService : Core.Hosting.IStartupModule, IDisposable
 
             if (captainOwns)
             {
-                _logger.LogDebug("FO radios: captain has the radios — \"{Atc}\" left to him", tx.Text);
+                _logger.LogInformation("FO radios: the captain has the radios — \"{Atc}\" left to them", tx.Text);
+                RecordDrop(tx.Text, "the captain has the radios");
                 return;
             }
 
@@ -322,8 +339,26 @@ public sealed class FoRadiosService : Core.Hosting.IStartupModule, IDisposable
         }
         catch (Exception ex)
         {
-            _logger.LogDebug(ex, "FO radios: ATC line handling failed");
+            // Every silent path here cost a whole departure's read-backs once (EHAM 2026-11-01,
+            // 15:13–15:25 local: push, taxi, tower, takeoff all unanswered, nothing logged).
+            _logger.LogWarning(ex, "FO radios: ATC line handling failed for \"{Atc}\"", tx.Text);
+            RecordDrop(tx.Text, "handler error: " + ex.GetType().Name);
         }
+    }
+
+    /// <summary>A COM1 ATC line the FO did not answer, and why — same shape as a read-back
+    /// event so the probe's required-fields block holds (kind "dropped").</summary>
+    private void RecordDrop(string atc, string reason)
+    {
+        _eventLog.Record("sayintentions.readback", new
+        {
+            payload = new { atc, kind = "dropped", transmit = "" },
+            spoken = "",
+            radioWaitMs = 0,
+            radioBusyAtTx = false,
+            sent = false,
+            reason,
+        });
     }
 
     private async Task RespondAsync(SayIntentionsFrequencyMonitor.AtcTransmission tx, Readback readback, FlightRadioContext flight)
@@ -332,6 +367,8 @@ public sealed class FoRadiosService : Core.Hosting.IStartupModule, IDisposable
         var apiKey = SayIntentionsFrequencyMonitor.ResolveSapiCredential(options);
         if (apiKey is null)
         {
+            _logger.LogWarning("FO radios: no SayIntentions API key at hand — \"{Atc}\" not read back", tx.Text);
+            RecordDrop(tx.Text, "no API key");
             return;
         }
 
@@ -356,6 +393,20 @@ public sealed class FoRadiosService : Core.Hosting.IStartupModule, IDisposable
                 return;
             }
 
+            // The OLD station must hear "Contacting X on Y" before COM1 changes (EHAM 2026-11-01:
+            // the sayAs and the retune were logged in the same millisecond; SayIntentions
+            // processed the text after the change and the NEW station answered the read-back as
+            // our first call — "Schiphol Departure, climb altitude 6,000" two seconds after
+            // "Contacting Schiphol Departure…" — and the FO then checked in a second time). Wait
+            // for the frequency to go quiet (our own words, ATC's goodbye), never less than the grace.
+            var readBackAt = DateTimeOffset.UtcNow;
+            await _radioGate.WaitForClearAsync(_shutdown.Token).ConfigureAwait(false);
+            var grace = HandoffTuneGrace - (DateTimeOffset.UtcNow - readBackAt);
+            if (grace > TimeSpan.Zero)
+            {
+                await Task.Delay(grace, _shutdown.Token).ConfigureAwait(false);
+            }
+
             if (options.FoRadios.TuneOnHandoff && _tuner is not null)
             {
                 var outcome = await _tuner.TuneCom1Async(khz, "handoff", _shutdown.Token).ConfigureAwait(false);
@@ -368,18 +419,38 @@ public sealed class FoRadiosService : Core.Hosting.IStartupModule, IDisposable
                 }
             }
 
+            var tunedAt = DateTimeOffset.UtcNow;
             if (!options.FoRadios.CheckIn)
             {
                 return;
             }
 
+            // The check-in goes out on the new frequency only: COM1 must read it first (the
+            // captain tunes by hand when the auto-tune is off), then the configured pause.
+            if (!await WaitForCom1Async(khz, _shutdown.Token).ConfigureAwait(false))
+            {
+                SkipCheckIn(readback, khz, $"COM1 is not on {RadioFrequency.Format(khz)} after {FrequencyWaitMax.TotalSeconds:0} s");
+                return;
+            }
+
             await Task.Delay(TimeSpan.FromSeconds(Math.Clamp(options.FoRadios.CheckInDelaySeconds, 3, 30)), _shutdown.Token).ConfigureAwait(false);
+            DateTimeOffset lastAtcLine;
             lock (_state)
             {
                 if (_captainOwns || serial != _handoffSerial)
                 {
                     return; // the pilot took the radios, or ATC handed us on again meanwhile
                 }
+
+                lastAtcLine = _lastAtcLineUtc;
+            }
+
+            // The new station already spoke to us (it took an instruction, or the read-back, as
+            // our first call): a second "good afternoon" would only repeat ourselves.
+            if (lastAtcLine > tunedAt)
+            {
+                SkipCheckIn(readback, khz, "ATC already answered us on the new frequency");
+                return;
             }
 
             var checkIn = CheckInComposer.Compose(BuildCheckInContext(flight));
@@ -406,6 +477,43 @@ public sealed class FoRadiosService : Core.Hosting.IStartupModule, IDisposable
         {
             _transmitGate.Release();
         }
+    }
+
+    /// <summary>True once COM1 active reads <paramref name="khz"/> (within the channel
+    /// tolerance), false after <see cref="FrequencyWaitMax"/>. Without a readable COM1 (no
+    /// ProSim) the answer is true at once — nothing to wait for, the old timing holds.</summary>
+    private async Task<bool> WaitForCom1Async(int khz, CancellationToken cancellationToken)
+    {
+        var started = DateTimeOffset.UtcNow;
+        while (true)
+        {
+            var active = _tuner?.ActiveKhz;
+            if (active is null || Math.Abs(active.Value - khz) <= FrequencyWatchCore.ToleranceKhz)
+            {
+                return true;
+            }
+
+            if (DateTimeOffset.UtcNow - started >= FrequencyWaitMax)
+            {
+                return false;
+            }
+
+            await Task.Delay(FrequencyPoll, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    private void SkipCheckIn(Readback readback, int khz, string reason)
+    {
+        _logger.LogInformation("FO radios: check-in on {Station} skipped — {Reason}", readback.HandoffStation, reason);
+        _eventLog.Record("sayintentions.checkin", new
+        {
+            payload = new { station = readback.HandoffStation, khz, transmit = "" },
+            spoken = "",
+            radioWaitMs = 0,
+            radioBusyAtTx = false,
+            sent = false,
+            reason,
+        });
     }
 
     /// <summary>Quiet COM1 → the FO voice (awaited, so ATC reacts after the words) → sayAs.</summary>
@@ -457,6 +565,7 @@ public sealed class FoRadiosService : Core.Hosting.IStartupModule, IDisposable
             Gate: flight.Gate,
             DistanceToDepartureRunwayNm: onGround ? DistanceToDepartureRunwayNm() : null,
             GroundSpeedKt: data?.GroundSpeedKt ?? 0,
+            VerticalSpeedFpm: data is null || onGround ? null : data.VerticalSpeedFpm,
             HoldingPointDistanceNm: Math.Max(0.05, _options.CurrentValue.CommsHandover.HoldingPointDistanceNm),
             // The crew's names for the procedures (2026-10-29) — flight.json names no airport,
             // so the OFP navlog tier answers and the DFD tier only when the ident is unique.

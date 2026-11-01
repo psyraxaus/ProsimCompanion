@@ -28,4 +28,9 @@ public interface IRadioTuner
     /// active. <paramref name="reason"/> names the button that asked ("assigned", "station")
     /// and goes to the session event.</summary>
     Task<RadioTuneOutcome> TuneCom1Async(int khz, string reason, CancellationToken cancellationToken = default);
+
+    /// <summary>COM1 active as the aircraft reports it, in kHz; null while ProSim is not
+    /// pushing the radio (nothing to wait for). The FO's check-in after a hand-off waits for
+    /// this to read the new frequency (owner report 2026-11-01).</summary>
+    int? ActiveKhz { get; }
 }
