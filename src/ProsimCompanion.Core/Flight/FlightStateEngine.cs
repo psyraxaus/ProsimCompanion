@@ -230,6 +230,10 @@ public sealed class FlightStateEngine : IFlightPhaseSource, IFlightPhaseControl,
         {
             _groundOps.ArrivalCompleted += NotifyArrivalComplete;
             _groundOps.BoardingStarted += NotifyBoardingStarted;
+            // A boarding that COMPLETED has started: after a restart at the gate the first
+            // GSX read is the Completed edge alone (EHAM 2026-11-01: boarding done, the app
+            // restarted, the phase sat in Preflight instead of Departure).
+            _groundOps.BoardingCompleted += NotifyBoardingStarted;
         }
 
         _timer = new Timer(_ => Tick(), null, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
@@ -913,6 +917,7 @@ public sealed class FlightStateEngine : IFlightPhaseSource, IFlightPhaseControl,
         {
             _groundOps.ArrivalCompleted -= NotifyArrivalComplete;
             _groundOps.BoardingStarted -= NotifyBoardingStarted;
+            _groundOps.BoardingCompleted -= NotifyBoardingStarted;
         }
 
         _timer.Dispose();

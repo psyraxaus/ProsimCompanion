@@ -895,6 +895,28 @@ public sealed class FlightStateEngineTests
     }
 
     [Fact]
+    public void GroundOpsSignal_BoardingCompletedAlone_TakesPreflightToDeparture()
+    {
+        // Restart at the gate after boarding (EHAM 2026-11-01): the resync's first read is
+        // the Completed edge alone — there is no Started edge to arm the latch.
+        var session = new SimSessionStore();
+        var signals = new GroundOpsSignals();
+        using var engine = new FlightStateEngine(
+            new NullFlightSource(), session, NullLogger<FlightStateEngine>.Instance,
+            new FixedOptionsMonitor<FlightStateOptions>(FlightStateOptions.Default), signals);
+        SetSession(session, SimSessionPhase.InSession);
+        var now = Drive(engine, ReadyGround(), T0, TimeSpan.FromSeconds(2));
+        Assert.Equal(FlightPhase.Preflight, engine.CurrentPhase);
+
+        signals.RaiseBoardingCompleted();
+        now = Drive(engine, ReadyGround() with { BeaconOn = true, ApuRunning = true }, now, TimeSpan.FromSeconds(3));
+        Assert.Equal(FlightPhase.Departure, engine.CurrentPhase);
+
+        Drive(engine, ReadyGround() with { BeaconOn = true, ApuRunning = true, ParkBrakeSet = false }, now, TimeSpan.FromSeconds(2));
+        Assert.Equal(FlightPhase.PushbackAndStart, engine.CurrentPhase);
+    }
+
+    [Fact]
     public void BoardingStarted_BeforeTheFirstClassification_IsKept()
     {
         // A boarding that starts while the cockpit is unpowered (or before the engine is

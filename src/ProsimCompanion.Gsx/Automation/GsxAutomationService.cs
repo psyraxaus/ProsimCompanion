@@ -268,7 +268,34 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl, IG
             _decisions.Record("turnaround", "recovered from tracking LVARs by the startup resync");
         }
 
+        RestoreCompletedCycleFromSeeds();
         Pump();
+    }
+
+    /// <summary>Every configured departure service seeded complete at the gate = the cycle is
+    /// over (EHAM 2026-11-01: restart after boarding, the app sat in PREFLIGHT with the beacon
+    /// on because the cycle was never marked started, let alone complete). Marks the cycle,
+    /// pins the plan it belongs to so a same-plan re-import does not reset it, and raises
+    /// "departure services completed" (ready for pushback). Rule: <see cref="ResyncCycleRestore"/>.</summary>
+    private void RestoreCompletedCycleFromSeeds()
+    {
+        if (_cycle.Started || Phase is not (GsxAutomationPhase.Preparation or GsxAutomationPhase.SessionStart))
+        {
+            return;
+        }
+
+        var steps = _options.CurrentValue.DepartureServices;
+        if (!ResyncCycleRestore.AllConfiguredCompleted(steps, _lifecycle.IsCompleted))
+        {
+            return;
+        }
+
+        _cycle.MarkStarted();
+        _cycle.MarkComplete();
+        _lastResetPlanId = NewPlanCycleReset.PlanId(_ofpStore.Current) ?? _lastResetPlanId;
+        _decisions.Record("departure sequence", "every configured departure service was already completed before the restart — cycle restored complete (ready for pushback)");
+        _decisions.RecordEvent("gsx-departure-complete", new { reason = "restored by the startup resync", services = steps.Select(s => s.Service).ToArray() });
+        _groundOpsSignals.RaiseDepartureServicesCompleted();
     }
 
     /// <summary>Ask-first turnaround (issue #169): yes starts the sequence as a voice start;
