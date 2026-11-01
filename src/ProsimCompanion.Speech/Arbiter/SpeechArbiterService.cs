@@ -387,7 +387,7 @@ public sealed class SpeechArbiterService : ISpeechArbiter, ISpeechControl, IDisp
     {
         // Normalized BEFORE synthesis so the TTS cache key matches prewarmed phrases and
         // "FL350" is never read as "Florida 350".
-        var spoken = Callouts.AviationSpeech.Normalize(text);
+        var spoken = Core.Speech.Phraseology.Normalize(text);
 
         // Speaker role → (voice, intercom decision). A role with no configured voice
         // falls back to the FO voice, announced once per role rather than per utterance.
@@ -601,12 +601,16 @@ public sealed class SpeechArbiterService : ISpeechArbiter, ISpeechControl, IDisp
     private void Raise(SpeechEventKind kind, SpeechPriority priority, string? tag, string text, string? reason)
     {
         var evt = new SpeechArbiterEvent(kind, priority, tag, text, reason);
+        // The phraseology pass runs again here (cheap, idempotent) so a probe can read what
+        // the voice was actually given — null when the line was spoken as written.
+        var spoken = kind == SpeechEventKind.Spoken ? Core.Speech.Phraseology.Normalize(text) : null;
         _eventLog.Record("speech." + kind.ToString().ToLowerInvariant(), new
         {
             priority = priority.ToString(),
             tag,
             text,
             reason,
+            spoken = spoken is not null && !string.Equals(spoken, text, StringComparison.Ordinal) ? spoken : null,
         });
 
         if (kind is SpeechEventKind.Spoken or SpeechEventKind.Segment or SpeechEventKind.Dropped or SpeechEventKind.Expired

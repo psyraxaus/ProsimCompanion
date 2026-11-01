@@ -30,7 +30,7 @@ public sealed class TtsPrewarmTests
         Assert.Contains("Before Start checklist complete.", phrases);
         Assert.Contains("Parking brake", phrases);
         Assert.Contains("set", phrases);
-        Assert.Contains("Q N H one zero one three", phrases);   // AviationSpeech applied
+        Assert.Contains("Q N H one zero one three", phrases);   // Phraseology applied
         Assert.DoesNotContain("QNH 1013", phrases);
         Assert.Contains("V one", phrases);                      // SOP callout texts
         Assert.Contains("unstable, go around", phrases);

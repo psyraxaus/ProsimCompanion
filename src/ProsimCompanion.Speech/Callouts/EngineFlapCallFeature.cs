@@ -133,7 +133,7 @@ public static class EngineFlapCallDecider
 /// acknowledged (with a gentle correction when that engine is already running), and
 /// "flaps one/two/three/full" is answered with a placard speed check against the REQUESTED
 /// handle position ("Speed checked, flaps two." / "Negative — speed 240, …"). Speeds are
-/// written as plain digits — AviationSpeech normalizes numbers downstream in the TTS path.
+/// written as plain digits — the Phraseology pass normalizes numbers downstream in the TTS path.
 ///
 /// VERBAL ONLY, deliberately: the FO never moves the flap lever or the engine masters.
 /// Lever actuation is deferred pending a write-safety review — S_FC_FLAPS is not on the

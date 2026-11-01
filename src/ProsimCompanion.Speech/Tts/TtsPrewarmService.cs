@@ -15,7 +15,7 @@ namespace ProsimCompanion.Speech.Tts;
 /// speaker-role voices (purser cabin reports, the company loadsheet lead-in) are warmed too,
 /// with the actual configured wording (see <see cref="CollectRolePhrases"/>).
 ///
-/// Phrases are normalized with <see cref="AviationSpeech.Normalize"/> exactly as the render
+/// Phrases are normalized with <see cref="Core.Speech.Phraseology.Normalize"/> exactly as the render
 /// path does, so the warmed cache keys match at runtime. Synthesis goes DIRECTLY to the first
 /// configured caching provider (Kokoro, else ElevenLabs, else Google when not local-only) —
 /// never through the router, so a briefly-down Kokoro can't silently warm the whole library
@@ -130,7 +130,7 @@ public sealed class TtsPrewarmService : Core.Hosting.IStartupModule, IDisposable
 
         return [.. phrases
             .Where(p => !string.IsNullOrWhiteSpace(p) && !p.Contains('{', StringComparison.Ordinal))
-            .Select(AviationSpeech.Normalize)
+            .Select(Core.Speech.Phraseology.Normalize)
             .Distinct(StringComparer.Ordinal)];
     }
 
@@ -160,7 +160,7 @@ public sealed class TtsPrewarmService : Core.Hosting.IStartupModule, IDisposable
 
             pairs.AddRange(phrases
                 .Where(p => !string.IsNullOrWhiteSpace(p) && !p.Contains('{', StringComparison.Ordinal))
-                .Select(AviationSpeech.Normalize)
+                .Select(Core.Speech.Phraseology.Normalize)
                 .Distinct(StringComparer.Ordinal)
                 .Select(p => (voice, p)));
         }

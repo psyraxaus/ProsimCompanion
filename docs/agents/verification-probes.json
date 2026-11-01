@@ -646,7 +646,7 @@
         "session"
       ],
       "checks": [
-        "No 'speech.spoken' text matching /\\bwinds \\d/ — the plural form must be expanded by the AviationSpeech normalizer like the singular already is."
+        "No 'speech.spoken' text matching /\\bwinds \\d/ — the plural form must be expanded by the Phraseology pass like the singular already is."
       ],
       "notes": "Spoken text is logged post-normalizer, so the raw digit pattern surviving = bug reproduced."
     },
@@ -662,6 +662,21 @@
         "No 'speech.spoken' ATIS text matching /information [a-z]\\b/i without the phonetic word (should read 'information Mike'), and no SID/STAR designator spoken with a bare trailing letter."
       ],
       "notes": "Partially checkable from text; final pronunciation quality still needs ears (see requires-human list)."
+    },
+    {
+      "id": "phraseology-letters",
+      "issue": 200,
+      "state": "fixed-unverified",
+      "kind": "assert-absent",
+      "sources": [
+        "session"
+      ],
+      "checks": [
+        "assert-present (1.0.0-rc.1 second local build, 2026-11-01): every 'speech.spoken' whose raw text carries a designator letter in context — 'taxiway G and G5 closed', 'holding point N1', 'via Z, T, A', 'hold short of A3', 'stand 546R', 'gate B12', 'information M', 'ILS Y' — also carries payload.spoken with the NATO words ('taxiway Golf and Golf five closed', 'via Zulu, Tango, Alpha', 'stand 546 Romeo', 'information Mike', 'I L S Yankee'); payload.spoken is null only when the Phraseology pass changed nothing.",
+        "assert-absent: a 'speech.spoken' with tag briefing.* whose payload.spoken (or raw text when spoken is null) matches /taxiways? [A-Z]{1,2}\\d{0,2}\\b/ — the 2026-11-01 signature (the departure briefing read the closed-taxiway NOTAMs as letters).",
+        "assert-absent (regression guards for the context rules): payload.spoken containing 'Victor one', 'Victor two', 'Victor R', 'November one at', 'November two' (V-speeds and engine parameters must stay 'Vee one' / 'N1'), 'India L S', 'Quebec N H' (letter-spelled abbreviations are never taxiways), or a NATO word after 'on'/'at' where the raw text had a two-letter word ('on ND', 'at FL')."
+      ],
+      "notes": "Core.Speech.Phraseology is the one rule table (letters in context, numbers, abbreviations) the arbiter applies to every line before synthesis; the radios composer uses the same table with hyphens for its SI read-backs. payload.spoken on speech.spoken is new in this build (null = unchanged). Pronunciation itself still needs ears: listen for 'Golf five' on the next briefing with a TWY NOTAM."
     },
     {
       "id": "airport-common-names",
@@ -4058,7 +4073,7 @@
         "requires-human: the FO says 'Vee one', 'Vee R', 'Vee two', 'Vee app', 'V L S', 'Vee ref' — every V-speed as a spoken letter plus its word, in every provider (kokoro, ElevenLabs, Google, WinRT).",
         "assert-present: the TTS cache / pre-warm phrases for the checklist lines contain 'Vee one' not 'V1' (log 'TTS pre-warm' lines name the normalized text; a 'kokoro' request body in a wire-level debug line never carries a bare V1)."
       ],
-      "notes": "Fixed 2026-10-31 in AviationSpeech (the one normalizer every FO line passes through before synthesis and the cache key): \\bV\\s?1\\b → 'Vee one', V2 → 'Vee two', VR → 'Vee R', VAPP → 'Vee app', VREF → 'Vee ref', VLS/VFE/VMO/MMO letter by letter. No checklist file changes; the user-edited taxi.json on the sim PC keeps its text. Unverified live."
+      "notes": "Fixed 2026-10-31 in the Phraseology pass (Core.Speech.Phraseology since #200; the one normalizer every FO line passes through before synthesis and the cache key): \\bV\\s?1\\b → 'Vee one', V2 → 'Vee two', VR → 'Vee R', VAPP → 'Vee app', VREF → 'Vee ref', VLS/VFE/VMO/MMO letter by letter. No checklist file changes; the user-edited taxi.json on the sim PC keeps its text. Unverified live."
     },
     {
       "id": "day-state-empty-file",

@@ -76,7 +76,7 @@ public static class NatoPhonetics
     /// TTS rendering for a procedure/airway-style identifier: "VOLA3V" → "VOLA three Victor",
     /// "KODAP1A" → "KODAP one Alpha", "ILS09L" → "ILS zero niner Lima". A token-leading run of
     /// three or more letters is kept as-is (pronounceable base or known abbreviation — the
-    /// downstream <c>AviationSpeech</c> pass still expands "ILS" etc.); every other letter
+    /// downstream <see cref="Phraseology"/> pass still expands "ILS" etc.); every other letter
     /// becomes its NATO word, because kokoro swallows or mispronounces bare designator letters
     /// (issue #68). Digits use the ICAO digit words. Whitespace splits tokens ("ILS 16R");
     /// other punctuation is dropped, matching <c>Aviation.ToDigits</c>.

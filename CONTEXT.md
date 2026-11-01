@@ -199,6 +199,16 @@ _Avoid_: skip, second touchdown
 
 ### Speech
 
+**Phraseology**:
+The one rule table every spoken line passes through on its way to the TTS engine
+(`Core.Speech.Phraseology`, applied once in the arbiter before the cache text is made): letters
+the context marks as designators become NATO words (after taxiway / holding point / a routing
+word / stand / gate / information / an approach type, or glued to digits), then the number
+rules (flight level, heading, QNH, frequency, runway side) and the abbreviations. Idempotent
+by construction; the net under the source-side renderers, not their replacement — a SID, a
+fix or an ICAO code is still rendered where it is composed (see Spoken text).
+_Avoid_: normalizer (the old AviationSpeech name), TTS pre-processing, pronunciation fixes
+
 **Spoken text**:
 The TTS-ready rendering of an aviation identifier — runway, airport, waypoint, frequency,
 altitude — including the fallback when the friendly form is unknown (an unknown airport is

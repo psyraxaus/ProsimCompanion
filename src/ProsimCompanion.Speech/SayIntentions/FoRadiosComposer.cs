@@ -52,20 +52,6 @@ public static partial class ReadbackComposer
 
     private const char ThousandsMark = '\u0001';
 
-    [GeneratedRegex(@"\b([A-Z])(\d{1,2})\b", RegexOptions.CultureInvariant)]
-    private static partial Regex Taxiway();
-
-    // Bare taxiway letters (LKPR 2026-10-31: "Taxi to holding point runway 24 via Z, T, A" and
-    // EGLL "Taxi to Terminal 5A Gate 506 via A" were read back — and spoken — as the letters;
-    // only a letter glued to a digit was phonetic). After a routing word every A / B2 token
-    // up to the end of the list is spelled; a bare letter anywhere else is left alone so a
-    // fix name or an initial is never turned into a taxiway.
-    [GeneratedRegex(@"(?<lead>\b(?i:via|hold short of|join|onto|exit at|exit|cross|on|at)\s+)(?<list>[A-Z]\d{0,2}\b(?:\s*,\s*[A-Z]\d{0,2}\b|\s+(?i:and|then)\s+[A-Z]\d{0,2}\b)*)", RegexOptions.CultureInvariant)]
-    private static partial Regex TaxiwayRoute();
-
-    [GeneratedRegex(@"\b([A-Z])(\d{0,2})\b", RegexOptions.CultureInvariant)]
-    private static partial Regex TaxiwayToken();
-
     [GeneratedRegex(@"\b(?:contact|monitor)\s+(?<station>[^,.;:\d]+?)\s+(?:on\s+)?(?<freq>1[1-3]\d\.\d{1,3})(?!\d)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex Handoff();
 
@@ -282,8 +268,9 @@ public static partial class ReadbackComposer
             .Replace("Cross-runway", "Cross runway", StringComparison.OrdinalIgnoreCase)
             .Replace("cross-runway", "cross runway", StringComparison.OrdinalIgnoreCase)
             .Replace("line-up", "line up", StringComparison.OrdinalIgnoreCase);
-        text = TaxiwayRoute().Replace(text, m => m.Groups["lead"].Value + TaxiwayToken().Replace(m.Groups["list"].Value, SpellTaxiway));
-        text = Taxiway().Replace(text, SpellTaxiway);
+        // Taxiway letters (LKPR/EGLL 2026-10-31) come from the one phraseology table (issue #200),
+        // hyphenated in SI's callsign style; the FO voice gets the same table with spaces.
+        text = Core.Speech.Phraseology.Letters(text, "-");
         text = text.Trim();
         if (text.Length > 0)
         {
@@ -296,16 +283,6 @@ public static partial class ReadbackComposer
         }
 
         return text;
-    }
-
-    /// <summary>"A" → "Alpha", "A1" → "Alpha-one" (SI's hyphenated style; the FO voice gets spaces).</summary>
-    private static string SpellTaxiway(Match m)
-    {
-        var letter = Core.Speech.NatoPhonetics.Word(m.Groups[1].Value[0]) ?? m.Groups[1].Value;
-        var digits = m.Groups[2].Value;
-        return digits.Length == 0
-            ? letter
-            : letter + "-" + string.Join("-", digits.Select(c => Core.Speech.NatoPhonetics.DigitWords[c - '0']));
     }
 
     private static string TitleCase(string station)
@@ -508,31 +485,18 @@ public static partial class RadioSpeech
         var compact = trimmed.ToUpperInvariant();
         if (CompactStand().IsMatch(compact))
         {
-            return SpellDesignator(compact);
+            return Core.Speech.Phraseology.Spell(compact, "-");
         }
 
         var words = trimmed.Split(' ', StringSplitOptions.RemoveEmptyEntries);
         var last = words[^1].ToUpperInvariant();
         if (words.Length > 2 && CompactStand().IsMatch(last))
         {
-            words[^1] = SpellDesignator(last);
+            words[^1] = Core.Speech.Phraseology.Spell(last, "-");
             return string.Join(" ", words);
         }
 
         return trimmed;
-    }
-
-    private static string SpellDesignator(string compact)
-    {
-        var words = new List<string>(compact.Length);
-        foreach (var c in compact)
-        {
-            words.Add(c is >= '0' and <= '9'
-                ? Core.Speech.NatoPhonetics.DigitWords[c - '0']
-                : Core.Speech.NatoPhonetics.Word(c) ?? c.ToString());
-        }
-
-        return string.Join("-", words);
     }
 
     public static string Spoken(string transmit)
