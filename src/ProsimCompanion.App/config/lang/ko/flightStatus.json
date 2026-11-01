@@ -40,6 +40,12 @@
       "eta": "ETA",
       "topOfDescent": "강하 개시점",
       "holding": "홀딩",
+      "leg": {
+        "turnaround": "턴어라운드",
+        "awaitingPlan": "플랜 대기",
+        "turnaroundTitle": "하기 완료 — 이전 비행 계획이 아직 FMS에 있습니다",
+        "awaitingPlanTitle": "FMS가 지워졌습니다 — 다음 OFP를 불러오세요"
+      },
       "noFlightPlan": "불러온 비행 계획이 없습니다 — INIT 페이지에서 OFP를 가져오세요",
       "turbulenceTitle": "터뷸런스: 최근 2초 최대 {0} g (단위 {1})",
       "turbulence": {

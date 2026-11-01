@@ -31,6 +31,8 @@ public sealed class ProsimDiagnosticsCollector : IDiagnosticsCollector
     private readonly TakeoffPerfStore? _takeoff;
     private readonly LoadsheetStore? _loadsheet;
     private readonly WeatherStore? _weather;
+    private readonly FmsPlanWatcher? _fms;
+    private readonly LegBoundaryStore? _leg;
     private readonly StateTransitions<string> _edges = new();
 
     public ProsimDiagnosticsCollector(
@@ -44,7 +46,9 @@ public sealed class ProsimDiagnosticsCollector : IDiagnosticsCollector
         OfpStore? ofp = null,
         TakeoffPerfStore? takeoff = null,
         LoadsheetStore? loadsheet = null,
-        WeatherStore? weather = null)
+        WeatherStore? weather = null,
+        FmsPlanWatcher? fms = null,
+        LegBoundaryStore? leg = null)
     {
         ArgumentNullException.ThrowIfNull(connections);
         ArgumentNullException.ThrowIfNull(setup);
@@ -63,6 +67,8 @@ public sealed class ProsimDiagnosticsCollector : IDiagnosticsCollector
         _takeoff = takeoff;
         _loadsheet = loadsheet;
         _weather = weather;
+        _fms = fms;
+        _leg = leg;
     }
 
     public string Page => DiagPageIds.Sim;
@@ -151,6 +157,19 @@ public sealed class ProsimDiagnosticsCollector : IDiagnosticsCollector
             var runway = _takeoff?.Snapshot()?.Runway ?? ofp.PlannedRunwayOut;
             page.Readout("fpln", $"{ofp.OriginIcao} → {ofp.DestinationIcao}" + (runway is { Length: > 0 } ? $" RWY {runway}" : ""));
             page.Readout("fpln_src", ofp.Source.ToString().ToUpperInvariant());
+        }
+
+        // The FMGC's own phase word — a witness beside the app's phase (ADR-0019 §4, #211),
+        // and the leg-boundary state while a turnaround is in progress (#210).
+        if (_fms?.FmgcPhase is { Length: > 0 } fmgc)
+        {
+            page.Readout("fmgc", fmgc.ToUpperInvariant());
+        }
+
+        var leg = _leg?.Snapshot().State ?? LegBoundaryState.None;
+        if (leg != LegBoundaryState.None)
+        {
+            page.Readout("leg", leg == LegBoundaryState.AwaitingPlan ? "AWAITING PLAN" : "TURNAROUND");
         }
 
         var load = _loadsheet?.Snapshot();

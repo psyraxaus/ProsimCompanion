@@ -32,7 +32,9 @@
       "taxiIn": "RODAJE DE LLEGADA",
       "arrived": "LLEGADO",
       "deboarding": "DESEMBARCANDO",
-      "onBlocks": "EN CALZOS"
+      "onBlocks": "EN CALZOS",
+      "turnaround": "ESCALA",
+      "awaitingPlan": "ESPERANDO PLAN"
     },
     "progress": {
       "position": "Ortodrómica directa · desde la posición",

@@ -1,0 +1,14 @@
+Unknown -> Preflight
+Preflight -> Departure
+Departure -> Unknown
+Unknown -> TaxiOut
+TaxiOut -> TakeoffRoll
+TakeoffRoll -> InitialClimb
+InitialClimb -> Climb
+Climb -> Cruise
+Cruise -> Descent
+Descent -> Approach
+Approach -> LandingRollout
+LandingRollout -> TaxiIn
+TaxiIn -> Shutdown
+Shutdown -> Preflight

@@ -40,6 +40,12 @@
       "eta": "ETA",
       "topOfDescent": "Top of Descent",
       "holding": "Holding",
+      "leg": {
+        "turnaround": "TURNAROUND",
+        "awaitingPlan": "WARTET AUF PLAN",
+        "turnaroundTitle": "Ausstieg abgeschlossen — der vorige Flugplan ist noch im FMS",
+        "awaitingPlanTitle": "Das FMS ist gelöscht — nächsten OFP laden"
+      },
       "noFlightPlan": "Kein Flugplan geladen — hole einen OFP auf der INIT-Seite",
       "turbulenceTitle": "Turbulenz: Spitze {0} g in den letzten zwei Sekunden (Einheit {1})",
       "turbulence": {

@@ -423,6 +423,11 @@
 .fs-ride.moderate { color: var(--warning); border-color: color-mix(in srgb, var(--warning) 45%, transparent); }
 .fs-ride.severe { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 55%, transparent); animation: fs-gate-halo 1.2s ease-in-out infinite; }
 
+/* ---- leg-boundary chip (ADR-0019 §2, #210): TURNAROUND / AWAITING PLAN beside the phase ---- */
+
+.fs-leg.turnaround { color: var(--warning); border-color: color-mix(in srgb, var(--warning) 45%, transparent); }
+.fs-leg.awaiting { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 45%, transparent); }
+
 .fs-pa { display: flex; flex-direction: column; gap: 10px; padding: 12px 16px; border-color: color-mix(in srgb, var(--accent) 35%, transparent); }
 .fs-pa-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .fs-pa-stamp { font-size: 11px; color: var(--text-muted); font-variant-numeric: tabular-nums; }

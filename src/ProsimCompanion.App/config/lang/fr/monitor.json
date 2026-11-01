@@ -32,7 +32,9 @@
       "taxiIn": "ROULAGE ARRIVÉE",
       "arrived": "ARRIVÉ",
       "deboarding": "DÉBARQUEMENT",
-      "onBlocks": "AUX CALES"
+      "onBlocks": "AUX CALES",
+      "turnaround": "ESCALE",
+      "awaitingPlan": "EN ATTENTE DU PLAN"
     },
     "progress": {
       "position": "Orthodromie directe · d'après la position",

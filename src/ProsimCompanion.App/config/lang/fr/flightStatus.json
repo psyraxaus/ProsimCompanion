@@ -40,6 +40,12 @@
       "eta": "ETA",
       "topOfDescent": "Début de descente",
       "holding": "Attente",
+      "leg": {
+        "turnaround": "ESCALE",
+        "awaitingPlan": "EN ATTENTE DU PLAN",
+        "turnaroundTitle": "Débarquement terminé — le plan de vol précédent est encore dans le FMS",
+        "awaitingPlanTitle": "Le FMS est effacé — chargez le prochain OFP"
+      },
       "noFlightPlan": "Aucun plan de vol chargé — récupérez un OFP sur la page INIT",
       "turbulenceTitle": "Turbulence : pic {0} g sur les deux dernières secondes (unité {1})",
       "turbulence": {

@@ -32,7 +32,9 @@
       "taxiIn": "タキシーイン",
       "arrived": "到着",
       "deboarding": "降機中",
-      "onBlocks": "ブロックイン"
+      "onBlocks": "ブロックイン",
+      "turnaround": "ターンアラウンド",
+      "awaitingPlan": "プラン待ち"
     },
     "progress": {
       "position": "大圏直行 · 位置から算出",

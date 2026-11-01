@@ -312,7 +312,11 @@ public static class ProsimDataRefNames
     /// Gates Cruise-phase entry (issue #105) — deliberately NOT phase-critical, the benign
     /// 0 fallback degrades to the fixed altitude floor.</summary>
     public static readonly DataRef<int> FmsCruiseAltitude = new("aircraft.fms.cruiseAlt", DataRefTier.Infrequent, 0);
-    public const string FmsFlightPhase = "aircraft.fms.flightPhase";
+    /// <summary>The FMGC's own phase word (PREFLIGHT, TAKEOFF, CLIMB, CRUISE, DESCENT,
+    /// APPROACH, GO AROUND, DONE). A WITNESS only (ADR-0019 §4): logged beside an FMS clear and
+    /// shown on the Diagnostics SIM page, never an input to the phase engine (ADR-0008 stays
+    /// sensor-based). Null until the first read.</summary>
+    public static readonly DataRef<string?> FmsFlightPhase = new("aircraft.fms.flightPhase", DataRefTier.Infrequent, null);
     public const string FmsRoute = "aircraft.fms.route";
     /// <summary>FMS time to destination, seconds. Recorded beside
     /// <see cref="VnavDistanceRemaining"/> on the flight-progress session events (issue

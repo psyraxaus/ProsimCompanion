@@ -194,16 +194,28 @@ public static class FlightReplay
                     }
                 }
                 else if (type == "gsx-service" && root.TryGetProperty("payload", out var service)
-                    && service.TryGetProperty("service", out var serviceEl) && service.TryGetProperty("event", out var eventEl)
-                    && string.Equals(serviceEl.GetString(), "Boarding", StringComparison.OrdinalIgnoreCase))
+                    && service.TryGetProperty("service", out var serviceEl) && service.TryGetProperty("event", out var eventEl))
                 {
-                    if (string.Equals(eventEl.GetString(), "Active", StringComparison.OrdinalIgnoreCase))
+                    var serviceName = serviceEl.GetString();
+                    var serviceEvent = eventEl.GetString();
+                    if (string.Equals(serviceName, "Boarding", StringComparison.OrdinalIgnoreCase))
                     {
-                        signals.Add(new ReplaySignal(at, ReplaySignalKind.BoardingStarted));
+                        if (string.Equals(serviceEvent, "Active", StringComparison.OrdinalIgnoreCase))
+                        {
+                            signals.Add(new ReplaySignal(at, ReplaySignalKind.BoardingStarted));
+                        }
+                        else if (string.Equals(serviceEvent, "Completed", StringComparison.OrdinalIgnoreCase))
+                        {
+                            signals.Add(new ReplaySignal(at, ReplaySignalKind.BoardingCompleted));
+                        }
                     }
-                    else if (string.Equals(eventEl.GetString(), "Completed", StringComparison.OrdinalIgnoreCase))
+                    else if (string.Equals(serviceName, "Deboarding", StringComparison.OrdinalIgnoreCase)
+                        && string.Equals(serviceEvent, "Completed", StringComparison.OrdinalIgnoreCase))
                     {
-                        signals.Add(new ReplaySignal(at, ReplaySignalKind.BoardingCompleted));
+                        // The arrival-complete signal the live relay raised (ADR-0019; audit
+                        // 2026-11-02): without it Shutdown -> Preflight (turnaround-arrival-complete)
+                        // never replayed, and the EHAM turnaround could not be judged offline.
+                        signals.Add(new ReplaySignal(at, ReplaySignalKind.DeboardingCompleted));
                     }
                 }
                 else if (type == "sim-paused")
@@ -284,6 +296,7 @@ public static class FlightReplay
     {
         BoardingStarted,
         BoardingCompleted,
+        DeboardingCompleted,
         SimPaused,
         SimResumed,
     }
@@ -310,6 +323,9 @@ public static class FlightReplay
                     break;
                 case ReplaySignalKind.BoardingCompleted:
                     groundOps.RaiseBoardingCompleted();
+                    break;
+                case ReplaySignalKind.DeboardingCompleted:
+                    groundOps.RaiseArrivalCompleted();
                     break;
                 case ReplaySignalKind.SimPaused:
                     pauses++;

@@ -15,6 +15,7 @@
 @inject IGsxDepartureControl DepartureControl
 @inject GsxDiagnosticsStore Diagnostics
 @inject GateStatusStore GateStatus
+@inject LegBoundaryStore LegBoundary
 @inject RadioStore Radios
 @inject HeroWeatherStore HeroWeather
 @inject FlightTimesStore FlightTimes
@@ -250,6 +251,7 @@
 
 @code {
     private GateStatusSnapshot _gate = GateStatusSnapshot.Empty;
+    private LegBoundarySnapshot _leg = LegBoundarySnapshot.Empty;
     private RadioSnapshot _radio = RadioSnapshot.Empty;
     private HeroWeatherSnapshot _weather = HeroWeatherSnapshot.Empty;
     private GsxDiagnosticsSnapshot _gsx = GsxDiagnosticsSnapshot.Empty;
@@ -326,7 +328,7 @@
     private bool ArrivalComplete => FlightState.Snapshot().Data?.ArrivalComplete == true
         || ServiceView(GsxServiceIds.Deboarding)?.Stage == GsxServiceStage.Completed;
 
-    private string StateWord => FlightMonitorPresentation.StateWord(T, Mode, _gate.State, Phase, DeboardingActive, ArrivalComplete);
+    private string StateWord => FlightMonitorPresentation.StateWord(T, Mode, _gate.State, Phase, DeboardingActive, ArrivalComplete, _leg.State);
 
     private string StateTone => FlightMonitorPresentation.StateTone(Mode, _gate.State, ArrivalComplete);
 
@@ -534,6 +536,7 @@
     protected override void OnInitialized()
     {
         Watch(GateStatus, s => _gate = s);
+        Watch(LegBoundary, s => _leg = s);
         Watch(Radios, s => _radio = s);
         Watch(HeroWeather, s => _weather = s);
         Watch(Diagnostics, s => _gsx = s);

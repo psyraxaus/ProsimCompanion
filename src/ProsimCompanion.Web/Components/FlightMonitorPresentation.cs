@@ -55,10 +55,14 @@ public static class FlightMonitorPresentation
     }
 
     /// <summary>The big word. Gate mode reads the gate monitor; flight mode reads the
-    /// phase; arrival mode reads the deboarding. The gate and arrival words come from the
-    /// language pack; the flight word is the phase code exactly as the Flight Status card
-    /// and the change log (#110) spell it, never translated.</summary>
-    public static string StateWord(IStringLocalizer text, MonitorMode mode, GateState gate, FlightPhase phase, bool deboardingActive, bool arrivalComplete)
+    /// phase; arrival mode reads the deboarding, then the leg boundary (ADR-0019 §2, #210):
+    /// TURNAROUND once the cabin is empty, AWAITING PLAN once the FMS is cleared — the same
+    /// words as the Flight Status pill. The gate and arrival words come from the language
+    /// pack; the flight word is the phase code exactly as the Flight Status card and the
+    /// change log (#110) spell it, never translated.</summary>
+    public static string StateWord(
+        IStringLocalizer text, MonitorMode mode, GateState gate, FlightPhase phase, bool deboardingActive, bool arrivalComplete,
+        LegBoundaryState leg = LegBoundaryState.None)
     {
         ArgumentNullException.ThrowIfNull(text);
         return mode switch
@@ -72,6 +76,8 @@ public static class FlightMonitorPresentation
             },
             MonitorMode.Flight => FlightStatusPresentation.PhaseDisplay(phase),
             _ => phase == FlightPhase.TaxiIn ? text["monitor.state.taxiIn"].Value
+                : leg == LegBoundaryState.AwaitingPlan ? text["monitor.state.awaitingPlan"].Value
+                : leg == LegBoundaryState.Turnaround ? text["monitor.state.turnaround"].Value
                 : arrivalComplete ? text["monitor.state.arrived"].Value
                 : deboardingActive ? text["monitor.state.deboarding"].Value
                 : text["monitor.state.onBlocks"].Value,

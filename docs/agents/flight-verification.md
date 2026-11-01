@@ -67,6 +67,12 @@ while the flight is live (`FlightSampleRecorder`; keys documented on `FlightSamp
 recorded times, re-creating the 250 ms tick cadence, and reports this build's phase timeline
 next to the live engine's recorded `phase-changed` edges (`Describe()`).
 
+Signals the live engine took from the ground-ops hub, not from a sample, are re-derived from the
+session's `gsx-service` events: `Boarding: Active / Completed` (the Departure latch) and, since
+2026-11-02 (ADR-0019), `Deboarding: Completed` (the arrival-complete latch) — so Shutdown →
+Preflight at a turnaround (`turnaround-arrival-complete`) replays like every other edge. The EHAM
+turnaround of 2026-11-01 (`egll-eham-2026-11-01-1.0.0-rc1.jsonl`) is the checked-in case.
+
 - **Diagnosing a bad phase**: replay the session, read the rule id + reason on the offending
   edge, adjust the rule or a `flightState` threshold, replay again — no sim needed.
 - **Turning a flight into a regression test**: copy the session file into

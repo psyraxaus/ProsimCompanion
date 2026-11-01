@@ -51,7 +51,7 @@
     </div>
 }
 
-<div class="abs lbl" style="left:40px;top:362px">FPLN</div><div class="abs @EcamPresentation.ReadoutClass(pg.Readout("fpln"))" style="left:110px;top:362px">@EcamPresentation.ReadoutText(pg.Readout("fpln"))@if (pg.Readout("fpln_src") is { } src) { <span class="unit">@src</span> }</div>
+<div class="abs lbl" style="left:40px;top:362px">FPLN</div><div class="abs @EcamPresentation.ReadoutClass(pg.Readout("fpln"))" style="left:110px;top:362px">@EcamPresentation.ReadoutText(pg.Readout("fpln"))@if (pg.Readout("fpln_src") is { } src) { <span class="unit">@src</span> }@if (pg.Readout("leg") is { } leg) { <span class="unit c-amber">@leg</span> }</div>
 <div class="abs lbl" style="left:40px;top:386px">LOAD</div><div class="abs @EcamPresentation.ReadoutClass(pg.Readout("load"))" style="left:110px;top:386px">@EcamPresentation.ReadoutText(pg.Readout("load"))</div>
 <div class="abs lbl" style="left:40px;top:410px">WX</div><div class="abs @EcamPresentation.ReadoutClass(pg.Readout("wx"))" style="left:110px;top:410px">@EcamPresentation.ReadoutText(pg.Readout("wx"))</div>
 
@@ -65,8 +65,9 @@
     new EcamMemoCell("VER", verMain, verTag),
     new EcamMemoCell("SIM", simName is null ? EcamTokens.NoData : simName, null, simName is null ? "c-amber" : null),
     new EcamMemoCell("UP", upH, "H " + upM),
-    new EcamMemoCell("PHASE", EcamPresentation.Or(memo.Phase, EcamTokens.NoData)),
+    new EcamMemoCell("PHASE", EcamPresentation.Or(memo.Phase, EcamTokens.NoData), pg.Readout("fmgc") is { } fmgc ? "FMGC " + fmgc : null),
 })" />
+@* PHASE's qualifier is the FMGC's own phase word — a witness beside the app's phase (ADR-0019 §4), never an input. *@
 
 @code {
     [Parameter, EditorRequired] public DiagnosticsSnapshot Snap { get; set; } = DiagnosticsSnapshot.Empty;

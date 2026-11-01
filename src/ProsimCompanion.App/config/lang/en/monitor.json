@@ -32,7 +32,9 @@
       "taxiIn": "TAXI IN",
       "arrived": "ARRIVED",
       "deboarding": "DEBOARDING",
-      "onBlocks": "ON BLOCKS"
+      "onBlocks": "ON BLOCKS",
+      "turnaround": "TURNAROUND",
+      "awaitingPlan": "AWAITING PLAN"
     },
     "progress": {
       "position": "Great-circle direct · from position",

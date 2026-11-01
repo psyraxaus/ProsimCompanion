@@ -4370,6 +4370,60 @@
         "assert-present (manual call): 'request boarding' / 'request catering' on a completion the startup resync only seeded is CALLED (log '… the crew's call overrides the startup-resync seed'), never 'has already completed this turnaround'."
       ],
       "notes": "Owner rule 2026-11-01 ('a new plan is a new leg'): EHAM turnaround — app restarted 14:00 local at the gate, resync seeded leg one's boarding (EFB status) and assumed catering, 'commence ground services' 14:01 closed the cycle at 14:03:54 with nothing called, leg two's plan landed 14:05:06, 'request boarding/catering' refused. Gsx NewPlanCycleReset (pure) + GsxAutomationService.OnOfpChanged (lifecycle.ResetCycle(keep arrival side), cycle.BeginTurnaroundCycle, pax target + slot reset, tracking LVARs cleared); resync EFB-status proof needs a non-empty cabin and the never-re-call assumption needs BOARDING proven; DepartureSequencer never reports AllDone behind a closed plan gate; GsxServiceControl forgets a seeded-only completion on the crew's call."
+    },
+    {
+      "id": "leg-boundary-order",
+      "issue": 210,
+      "state": "fixed-unverified",
+      "kind": "assert-present",
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "assert-present: at a turnaround the session carries leg.boundary events in this order — {state 'Turnaround', previous 'None', reason 'deboarding complete'} within seconds of gsx-service {Deboarding, Completed}; {state 'AwaitingPlan', reason 'FMS plan cleared'} after fms.cleared {accepted true}; {state 'None', legBegan true, reason 'new plan, turnaround complete', planId <new id>} on the ofp.loaded of a DIFFERENT plan. Any accepted step out of that order carries a non-null 'warning' (a Warning log line 'Leg boundary … ;'), never an error. The Flight Status card shows the TURNAROUND / AWAITING PLAN chip for the matching span (Diagnostics RECENT lists TURNAROUND / AWAITING PLAN / NEW LEG).",
+        "assert-absent: a leg.boundary {legBegan true} for the same planId twice in a row (the same OFP re-imported is one leg); a leg.boundary with state Turnaround or AwaitingPlan while airborne (a take-off clears the state: reason 'airborne …'); a second Turnaround or AwaitingPlan edge in one turnaround (duplicates are ignored).",
+        "assert-present (first plan): the session's first ofp.loaded writes leg.boundary {legBegan true, reason 'first plan of the session'} with no warning."
+      ],
+      "machine": {
+        "kind": "signature",
+        "source": "session",
+        "type": "leg.boundary",
+        "contains": "\"legBegan\":true",
+        "trigger": {
+          "source": "session",
+          "type": "ofp.loaded",
+          "contains": ""
+        }
+      },
+      "notes": "ADR-0019 §2/§4 (owner decisions 2026-11-02; audit row A1). Core LegBoundaryCore (pure) + LegBoundaryService: edges from GroundOpsSignals.ArrivalCompleted, FmsPlanWatcher.Cleared (parked, engines off) and OfpStore.Changed through OfpPlanIdentity (request id, else route — shared with the GSX NewPlanCycleReset); a take-off ends any state. NOT FlightPhase values — the phase reads PREFLIGHT beside AWAITING PLAN. Published through LegBoundaryStore (Flight Status chip, /monitor arrival word) and ILegBoundaryEvents.LegBegan for the Day engine (#212). EHAM 2026-11-01: deboarded 01:50:03Z, FMS cleared 01:51–03:00Z (nothing recorded then), new plan 03:05:06Z — the first replay case."
+    },
+    {
+      "id": "fms-cleared",
+      "issue": 211,
+      "state": "fixed-unverified",
+      "kind": "assert-present",
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "assert-present: when aircraft.fms.origin AND aircraft.fms.destination go from a valid pair to empty (the IOS Reset FMS button, or ProSim's 'Reset FMS after landing' option) the session carries ONE fms.cleared {origin, destination, fmgcPhase, parked, accepted} and the log 'FMS plan cleared: XXXX → YYYY is gone from the INIT page (FMGC phase …)'. Parked with every engine off, accepted is true and leg.boundary {state 'AwaitingPlan'} follows; otherwise accepted is false and the log says 'recorded, not a leg-boundary step'.",
+        "assert-absent: an fms.cleared on a subscription drop (ProSim restart: the refs go null, then come back empty — never a clear); an fms.cleared while one airport still holds (the pilot re-typing one side); two fms.cleared for one clear.",
+        "assert-present (witness only): the Diagnostics SIM page PHASE memo cell carries 'FMGC <phase>' when ProSim serves aircraft.fms.flightPhase; the phase engine's own commits never cite it (no phase-changed rule or reason mentions FMGC)."
+      ],
+      "machine": {
+        "kind": "required-fields",
+        "source": "session",
+        "type": "fms.cleared",
+        "fields": [
+          "origin",
+          "destination",
+          "parked",
+          "accepted"
+        ]
+      },
+      "notes": "ADR-0019 §2 (audit row A2). control.resetFMS is write-only (A322 catalog), so the press is invisible and only its effect is watched: Core FmsClearDetector (pure: arms on a present plan, fires once on both-empty, disarms on null) inside FmsPlanWatcher over the three Infrequent subscriptions; aircraft.fms.flightPhase is now a real DataRef<string?> read as a WITNESS only (ADR-0008 stays sensor-based). Owner's RESETFMS setting is off (2026-11-02); both values are supported (the detector does not care who cleared the box)."
     }
   ]
 }

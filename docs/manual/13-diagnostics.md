@@ -57,8 +57,11 @@ Three sources across the top (**PROSIM**, **SIMCONNECT**, **GSX**) feeding the d
 simvar bus bars, with the update rate beside each feed and the number of subscriptions and
 stale values under each bar. The four cells show the aircraft as the app sees it: flight phase
 and gate, on ground or airborne with the park brake, electrical power, doors. The rows below
-are the plan (origin, destination, runway), the load (pax, zero-fuel weight, block fuel) and
-the weather the app is working from.
+are the plan (origin, destination, runway — with the leg-boundary word TURNAROUND / AWAITING PLAN
+beside it during a turnaround, ADR-0019), the load (pax, zero-fuel weight, block fuel) and the
+weather the app is working from. The PHASE cell in the memo strip carries the FMGC's own phase
+word (`FMGC DONE`, `FMGC PREFLIGHT`) as a qualifier when ProSim serves it — a witness beside the
+app's phase, never an input to it.
 
 ## REMOTE
 

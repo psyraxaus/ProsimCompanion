@@ -25,6 +25,7 @@
 @inject OfpStore Ofp
 @inject HeroWeatherStore HeroWeather
 @inject GateStatusStore GateStatus
+@inject LegBoundaryStore LegBoundary
 @inject FlightProgressStore FlightProgress
 @inject HoldingTimeStore Holding
 @inject TurbulenceStore Turbulence
@@ -116,6 +117,13 @@
                             <span class="fs-chip-note">@T["flightStatus.hero.frozen"]</span>
                         }
                     </span>
+                    @if (_leg.State != LegBoundaryState.None)
+                    {
+                        @* The leg boundary (ADR-0019 §2, #210): TURNAROUND once the cabin is empty,
+                           AWAITING PLAN once the FMS is cleared; gone when the next OFP lands. Beside
+                           the phase, never instead of it — the two machines do not overlap. *@
+                        <span class="fs-chip fs-leg @(_leg.State == LegBoundaryState.AwaitingPlan ? "awaiting" : "turnaround")" title="@T[_leg.State == LegBoundaryState.AwaitingPlan ? "flightStatus.hero.leg.awaitingPlanTitle" : "flightStatus.hero.leg.turnaroundTitle"]">@T[_leg.State == LegBoundaryState.AwaitingPlan ? "flightStatus.hero.leg.awaitingPlan" : "flightStatus.hero.leg.turnaround"]</span>
+                    }
                     @if (_ride.Level != TurbulenceLevel.None)
                     {
                         @* The ride (issue #186): shows only while the detector judges Light or worse. *@
@@ -423,6 +431,7 @@
     private OfpData? _ofp;
     private HeroWeatherSnapshot _weather = HeroWeatherSnapshot.Empty;
     private GateStatusSnapshot _gate = GateStatusSnapshot.Empty;
+    private LegBoundarySnapshot _leg = LegBoundarySnapshot.Empty;
     private FlightProgressSnapshot _progress = FlightProgressSnapshot.Empty;
     private Core.Fuel.HoldingEstimate? _holding; // issue #183
     private TurbulenceSnapshot _ride = TurbulenceSnapshot.Empty;
@@ -839,6 +848,7 @@
         WatchChanged(h => Ofp.Changed += h, h => Ofp.Changed -= h, () => _ofp = Ofp.Current);
         Watch(HeroWeather, snapshot => _weather = snapshot);
         Watch(GateStatus, snapshot => _gate = snapshot);
+        Watch(LegBoundary, snapshot => _leg = snapshot);
         Watch(FlightProgress, snapshot => _progress = snapshot);
         Watch(Holding, estimate => _holding = estimate);
         Watch(Turbulence, snapshot => _ride = snapshot);

@@ -32,7 +32,9 @@
       "taxiIn": "택시 인",
       "arrived": "도착",
       "deboarding": "하기 중",
-      "onBlocks": "블록 인"
+      "onBlocks": "블록 인",
+      "turnaround": "턴어라운드",
+      "awaitingPlan": "플랜 대기"
     },
     "progress": {
       "position": "대권 직선 · 위치 기준",

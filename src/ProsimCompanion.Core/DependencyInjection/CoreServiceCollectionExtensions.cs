@@ -143,6 +143,14 @@ public static class CoreServiceCollectionExtensions
         services.AddStartupModule<Weather.HeroWeatherService>();
         services.AddSingleton<Boarding.GateStatusStore>();
         services.AddStartupModule<Boarding.GateMonitorService>();
+        // Leg boundary (ADR-0019 §2, issues #210/#211): the FMS-clear watcher and the
+        // three-step Turnaround / Awaiting plan / new-leg machine shown beside the phase — a
+        // separate small state, never new FlightPhase values. Other pillars take the "leg
+        // began" edge from ILegBoundaryEvents, never from the Preflight edge.
+        services.AddSingleton<Aircraft.FmsPlanWatcher>();
+        services.AddSingleton<Flight.LegBoundaryStore>();
+        services.AddStartupModule<Flight.LegBoundaryService>();
+        services.AddSingleton<Flight.ILegBoundaryEvents>(p => p.GetRequiredService<Flight.LegBoundaryService>());
         // Radios tile (owner request 2026-10-25): COM1 from the push read model, the
         // SayIntentions assignment from the Speech pillar; the tune is dataref standby-then-swap.
         services.AddSingleton<Radios.RadioStore>();

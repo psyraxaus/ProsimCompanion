@@ -26,22 +26,7 @@ public static class NewPlanCycleReset
     ];
 
     /// <summary>The plan's identity: the SimBrief request when it has one, else the route.</summary>
-    public static string? PlanId(OfpData? ofp)
-    {
-        if (ofp is null)
-        {
-            return null;
-        }
-
-        if (!string.IsNullOrWhiteSpace(ofp.RequestId))
-        {
-            return "req:" + ofp.RequestId.Trim();
-        }
-
-        return string.IsNullOrWhiteSpace(ofp.OriginIcao) || string.IsNullOrWhiteSpace(ofp.DestinationIcao)
-            ? null
-            : $"route:{ofp.OriginIcao.Trim().ToUpperInvariant()}-{ofp.DestinationIcao.Trim().ToUpperInvariant()}";
-    }
+    public static string? PlanId(OfpData? ofp) => OfpPlanIdentity.PlanId(ofp);
 
     /// <summary>Whether the plan that just landed starts a new leg. <paramref name="lastResetPlanId"/>
     /// is the plan the last reset ran for (or the plan the cycle was started with), so the same

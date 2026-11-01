@@ -72,6 +72,7 @@ public sealed class MonitorRouteStripRenderTests : IDisposable
         services.AddSingleton(Mock.Of<IGsxDepartureControl>());
         services.AddSingleton(new GsxDiagnosticsStore());
         services.AddSingleton(new GateStatusStore());
+        services.AddSingleton(new LegBoundaryStore());
         services.AddSingleton(new HeroWeatherStore());
         services.AddSingleton(new ProsimCompanion.Core.Radios.RadioStore());
         services.AddSingleton(times);
