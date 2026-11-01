@@ -202,4 +202,29 @@ public sealed class FoRadiosComposerTests
     [InlineData(37_010, "FL370")]
     public void LevelText_FeetBelowTenThousand_FlightLevelsAbove(double altitude, string expected)
         => Assert.Equal(expected, CheckInComposer.LevelText(altitude));
+
+    // EGLL 2026-11-01 (owner report): at the holding point the Tower check-in must not say
+    // "taxiing to" — SI's tower answered that with the taxi clearance again.
+    [Fact]
+    public void CheckIn_TaxiOut_ReportsTheHoldingPoint_ByDistanceAndSpeed()
+    {
+        var far = Context(FlightPhase.TaxiOut, true, 20, null) with { DistanceToDepartureRunwayNm = 1.2, GroundSpeedKt = 12 };
+        Assert.Equal("Good evening, Finnair-niner-six-two, taxiing to holding point runway 22R.", CheckInComposer.Compose(far)!.Transmit);
+
+        var rolling = far with { DistanceToDepartureRunwayNm = 0.2 };
+        Assert.Equal("Good evening, Finnair-niner-six-two, approaching holding point runway 22R.", CheckInComposer.Compose(rolling)!.Transmit);
+
+        var stopped = rolling with { GroundSpeedKt = 0 };
+        Assert.Equal("Good evening, Finnair-niner-six-two, at holding point runway 22R.", CheckInComposer.Compose(stopped)!.Transmit);
+
+        // The hand-over rule's own figure decides "within".
+        Assert.Equal("Good evening, Finnair-niner-six-two, taxiing to holding point runway 22R.",
+            CheckInComposer.Compose(stopped with { HoldingPointDistanceNm = 0.1 })!.Transmit);
+
+        // No geometry (no FMS airport, no DFD): the old wording, never a guess.
+        Assert.Equal("Good evening, Finnair-niner-six-two, taxiing to holding point runway 22R.",
+            CheckInComposer.Compose(stopped with { DistanceToDepartureRunwayNm = null })!.Transmit);
+        Assert.Equal("Good evening, Finnair-niner-six-two, at the holding point.",
+            CheckInComposer.Compose(stopped with { DepartureRunway = null })!.Transmit);
+    }
 }

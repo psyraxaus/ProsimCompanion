@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ProsimCompanion.Core.Aircraft;
+using ProsimCompanion.Core.Airports;
 using ProsimCompanion.Core.Configuration;
 using ProsimCompanion.Core.EventLog;
 using ProsimCompanion.Core.Flight;
@@ -37,6 +38,8 @@ public sealed class FoRadiosService : Core.Hosting.IStartupModule, IDisposable
     private readonly IFlightDataSource? _flightData;
     private readonly ISimLocalTime? _localTime;
     private readonly Core.Speech.ISpokenText? _spokenText;
+    private readonly RunwayLocator? _runways;
+    private readonly IDepartureRunwaySource? _departureRunway;
     private readonly RadioClearGate _radioGate;
     private readonly SemaphoreSlim _transmitGate = new(1, 1);
     private readonly CancellationTokenSource _shutdown = new();
@@ -48,6 +51,9 @@ public sealed class FoRadiosService : Core.Hosting.IStartupModule, IDisposable
     private long _handoffSerial;
     private DateTimeOffset _copilotAssertedUtc = DateTimeOffset.MinValue;
     private FlightRadioContext _flight = new(false, null, null, null, null, null, null);
+    private string? _departureGeometryFor;
+    private RunwayGeometry? _departureGeometry;
+    private int _geometryLookupBusy;
 
     public FoRadiosService(
         IOptionsMonitor<SayIntentionsOptions> options,
@@ -60,7 +66,9 @@ public sealed class FoRadiosService : Core.Hosting.IStartupModule, IDisposable
         IFlightDataSource? flightData = null,
         ISimLocalTime? localTime = null,
         ISimVars? simVars = null,
-        Core.Speech.ISpokenText? spokenText = null)
+        Core.Speech.ISpokenText? spokenText = null,
+        RunwayLocator? runways = null,
+        IDepartureRunwaySource? departureRunway = null)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(monitor);
@@ -78,6 +86,8 @@ public sealed class FoRadiosService : Core.Hosting.IStartupModule, IDisposable
         _flightData = flightData;
         _localTime = localTime;
         _spokenText = spokenText;
+        _runways = runways;
+        _departureRunway = departureRunway;
         _radioGate = new RadioClearGate(simVars, logger);
     }
 
@@ -168,11 +178,95 @@ public sealed class FoRadiosService : Core.Hosting.IStartupModule, IDisposable
                 _copilotAssertedUtc = now;
                 _ = SapiClient.SetVarAsync(apiKey, "SIAI_COPILOT", "0", _logger, _shutdown.Token);
             }
+
+            PrimeDepartureRunway(context);
         }
         catch (Exception ex)
         {
             _logger.LogDebug(ex, "FO radios tick failed");
         }
+    }
+
+    /// <summary>Resolves the departure runway's geometry once per (airport, runway) while on
+    /// the ground, so the Tower check-in can say "at the holding point" (owner report
+    /// 2026-11-01). The FMS runway source names the airport; flight.json names only the
+    /// runway, so without the FMS the distance stays unknown and the old wording holds.</summary>
+    private void PrimeDepartureRunway(FlightRadioContext flight)
+    {
+        if (_runways is null || _phase?.Snapshot().Phase.IsAirborne() != false)
+        {
+            return;
+        }
+
+        string? icao = null, runway = null;
+        if (_departureRunway?.Current() is { } live)
+        {
+            (icao, runway) = live;
+        }
+        else if (RunwayLocator.NormalizeIdent(flight.DepartureRunway) is { } ident)
+        {
+            runway = ident;
+        }
+
+        if (string.IsNullOrWhiteSpace(icao) || string.IsNullOrWhiteSpace(runway))
+        {
+            return;
+        }
+
+        var key = icao + "/" + runway;
+        lock (_state)
+        {
+            if (string.Equals(_departureGeometryFor, key, StringComparison.Ordinal))
+            {
+                return;
+            }
+        }
+
+        if (Interlocked.Exchange(ref _geometryLookupBusy, 1) == 1)
+        {
+            return;
+        }
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                var geometry = await _runways.FindAsync(icao, runway, _shutdown.Token).ConfigureAwait(false);
+                lock (_state)
+                {
+                    _departureGeometryFor = key;
+                    _departureGeometry = geometry;
+                }
+
+                _logger.LogInformation("FO radios: departure runway {Airport}/{Runway} geometry {Outcome} (for the holding-point check-in)",
+                    icao, runway, geometry is null ? "unknown" : "from " + geometry.Source);
+            }
+            catch (OperationCanceledException)
+            {
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "FO radios: departure runway lookup failed");
+            }
+            finally
+            {
+                Interlocked.Exchange(ref _geometryLookupBusy, 0);
+            }
+        });
+    }
+
+    /// <summary>Distance from the aircraft to the departure runway strip, null while the
+    /// geometry or the position is unknown.</summary>
+    private double? DistanceToDepartureRunwayNm()
+    {
+        RunwayGeometry? geometry;
+        lock (_state)
+        {
+            geometry = _departureGeometry;
+        }
+
+        var position = _phase?.Snapshot().Data?.Position;
+        return geometry is not null && position is { } p ? geometry.DistanceToRunwayNm(p) : null;
     }
 
     private void OnAtcTransmission(SayIntentionsFrequencyMonitor.AtcTransmission tx)
@@ -355,6 +449,9 @@ public sealed class FoRadiosService : Core.Hosting.IStartupModule, IDisposable
             DepartureRunway: flight.DepartureRunway,
             ArrivalRunway: flight.ArrivalRunway,
             Gate: flight.Gate,
+            DistanceToDepartureRunwayNm: onGround ? DistanceToDepartureRunwayNm() : null,
+            GroundSpeedKt: data?.GroundSpeedKt ?? 0,
+            HoldingPointDistanceNm: Math.Max(0.05, _options.CurrentValue.CommsHandover.HoldingPointDistanceNm),
             // The crew's names for the procedures (2026-10-29) — flight.json names no airport,
             // so the OFP navlog tier answers and the DFD tier only when the ident is unique.
             SidSpoken: flight.Sid is { Length: > 0 } ? _spokenText?.Procedure(flight.Sid) : null,

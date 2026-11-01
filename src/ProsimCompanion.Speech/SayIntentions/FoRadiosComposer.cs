@@ -348,6 +348,11 @@ public static partial class ClearedLevelParser
 /// <param name="Callsign">As SayIntentions writes it ("Finnair-niner-six-two").</param>
 /// <param name="AltitudeFt">Current altitude.</param>
 /// <param name="ClearedLevel">The last cleared level as <see cref="ClearedLevelParser"/> writes it, or null.</param>
+/// <param name="DistanceToDepartureRunwayNm">Distance to the departure runway strip (owner
+/// report 2026-11-01), null when the geometry or the position is unknown.</param>
+/// <param name="GroundSpeedKt">Ground speed, to tell "at" from "approaching" the holding point.</param>
+/// <param name="HoldingPointDistanceNm">Within this distance of the runway the aircraft is at
+/// the holding point — the comms hand-over rule's figure.</param>
 public sealed record CheckInContext(
     string? Greeting,
     string Callsign,
@@ -361,7 +366,10 @@ public sealed record CheckInContext(
     string? ArrivalRunway,
     string? Gate,
     string? SidSpoken = null,
-    string? StarSpoken = null);
+    string? StarSpoken = null,
+    double? DistanceToDepartureRunwayNm = null,
+    double GroundSpeedKt = 0,
+    double HoldingPointDistanceNm = 0.3);
 
 /// <summary>
 /// The check-in call after a hand-off, shaped on the SI copilot's own (2026-10-25 transcript):
@@ -371,6 +379,9 @@ public sealed record CheckInContext(
 /// </summary>
 public static class CheckInComposer
 {
+    /// <summary>Below this ground speed the aircraft is "at" the holding point, not "approaching".</summary>
+    public const double HoldingPointStoppedKt = 3;
+
     public static Readback? Compose(CheckInContext c)
     {
         ArgumentNullException.ThrowIfNull(c);
@@ -389,9 +400,15 @@ public static class CheckInComposer
         }
         else if (c.OnGround && c.Phase == FlightPhase.TaxiOut)
         {
+            // EGLL 2026-11-01 (owner report): the Tower check-in at the holding point said
+            // "taxiing to holding point runway 27R" and SI's tower answered with the taxi
+            // clearance again. Within the hand-over rule's distance of the runway the FO
+            // reports the holding point — "at" once stopped, "approaching" while rolling.
+            var atHoldingPoint = c.DistanceToDepartureRunwayNm is { } nm && !double.IsNaN(nm) && nm <= c.HoldingPointDistanceNm;
+            var where = atHoldingPoint ? (c.GroundSpeedKt < HoldingPointStoppedKt ? "at" : "approaching") : "taxiing to";
             body = c.DepartureRunway is { Length: > 0 } rwy
-                ? $"taxiing to holding point runway {rwy}."
-                : "taxiing for departure.";
+                ? $"{where} holding point runway {rwy}."
+                : atHoldingPoint ? "at the holding point." : "taxiing for departure.";
         }
         else if (c.OnGround)
         {
