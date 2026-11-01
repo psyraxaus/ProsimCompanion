@@ -82,6 +82,10 @@
         "label": "Pauzemarge",
         "hint": "Hoelang de sessie weg mag zijn (met de pauzevlag van MSFS gezet) voordat het als een echt sessie-einde telt; 0 reset meteen"
       },
+      "graceParked": {
+        "label": "Pause grace, parked",
+        "hint": "The grace while the aircraft is stopped on the ground with the engines off — long enough for your own exterior camera walkaround; the larger of the two graces applies"
+      },
       "position": {
         "label": "Zelfde positie binnen",
         "hint": "Bij hervatten moet het vliegtuig zo dicht bij zijn oude positie staan; verder weg is een respawn"

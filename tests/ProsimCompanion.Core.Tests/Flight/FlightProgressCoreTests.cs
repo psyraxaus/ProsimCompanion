@@ -235,12 +235,14 @@ public sealed class FlightProgressCoreTests
 
     // ---- top of descent ----
 
+    // 3 nm per 1,000 ft plus the 10 nm deceleration allowance (issue #145, 2026-11-01: the
+    // bare 3:1 put the EGLL→EHAM notice 3.5 min late).
     [Theory]
-    [InlineData(36000, 0, 108)]
-    [InlineData(36000, 1000, 105)]
-    [InlineData(10000, 5000, 15)]
-    [InlineData(3000, 5000, 0)]   // never negative
-    public void DescentDistance_IsThreeMilesPerThousandFeet(double cruise, double elevation, double expected)
+    [InlineData(36000, 0, 118)]
+    [InlineData(36000, 1000, 115)]
+    [InlineData(10000, 5000, 25)]
+    [InlineData(3000, 5000, 0)]   // never negative, and no allowance when there is nothing to lose
+    public void DescentDistance_IsThreeMilesPerThousandFeet_PlusDeceleration(double cruise, double elevation, double expected)
         => Assert.Equal(expected, FlightProgressCore.DescentDistanceNm(cruise, elevation), 6);
 
     [Fact]
@@ -250,9 +252,9 @@ public sealed class FlightProgressCoreTests
         // Cruising at FL380 although the FMS still says 36,000: the aircraft's own level wins.
         var (snapshot, _) = core.Evaluate(Inputs(FlightPhase.Cruise, Data(lon: 13, altitude: 38000)), T0, 10);
 
-        Assert.Equal(111, snapshot.DescentDistanceNm!.Value, 1);                 // (38000 − 1000) / 1000 × 3
-        Assert.Equal((7 * DegreeNm) - 111, snapshot.DistanceToTodNm!.Value, 1);
-        Assert.Equal(((7 * DegreeNm) - 111) / 450 * 60, snapshot.MinutesToTod!.Value, 1);
+        Assert.Equal(121, snapshot.DescentDistanceNm!.Value, 1);                 // (38000 − 1000) / 1000 × 3 + 10
+        Assert.Equal((7 * DegreeNm) - 121, snapshot.DistanceToTodNm!.Value, 1);
+        Assert.Equal(((7 * DegreeNm) - 121) / 450 * 60, snapshot.MinutesToTod!.Value, 1);
     }
 
     [Fact]
@@ -263,8 +265,8 @@ public sealed class FlightProgressCoreTests
         var fms = core.Evaluate(Inputs(FlightPhase.Climb, Data(lon: 11, altitude: 12000, fmsCruise: 34000)), T0, 10).Snapshot;
         var ofp = core.Evaluate(Inputs(FlightPhase.Climb, Data(lon: 11, altitude: 12000, fmsCruise: 0)), T0, 10).Snapshot;
 
-        Assert.Equal(99, fms.DescentDistanceNm!.Value, 1);    // (34000 − 1000) × 3 / 1000
-        Assert.Equal(105, ofp.DescentDistanceNm!.Value, 1);   // OFP FL360
+        Assert.Equal(109, fms.DescentDistanceNm!.Value, 1);   // (34000 − 1000) × 3 / 1000 + 10
+        Assert.Equal(115, ofp.DescentDistanceNm!.Value, 1);   // OFP FL360
     }
 
     [Fact]
@@ -275,7 +277,7 @@ public sealed class FlightProgressCoreTests
         var (snapshot, _) = core.Evaluate(
             Inputs(FlightPhase.Cruise, Data(lon: 13), destination: Destination with { ElevationFt = null }), T0, 10);
 
-        Assert.Equal(108, snapshot.DescentDistanceNm!.Value, 1);
+        Assert.Equal(118, snapshot.DescentDistanceNm!.Value, 1);
     }
 
     [Fact]
@@ -308,19 +310,19 @@ public sealed class FlightProgressCoreTests
     {
         var core = new FlightProgressCore();
 
-        Assert.Null(core.Evaluate(Inputs(FlightPhase.Cruise, Data(lon: 14)), T0, 10).Tod);        // 34 min
-        Assert.Null(core.Evaluate(Inputs(FlightPhase.Cruise, Data(lon: 16.9)), T0, 10).Tod);      // 10.8 min
+        Assert.Null(core.Evaluate(Inputs(FlightPhase.Cruise, Data(lon: 14)), T0, 10).Tod);        // ~33 min
+        Assert.Null(core.Evaluate(Inputs(FlightPhase.Cruise, Data(lon: 16.6)), T0, 10).Tod);      // ~11.5 min
 
-        var fired = core.Evaluate(Inputs(FlightPhase.Cruise, Data(lon: 17.1)), T0, 10).Tod;       // 9.2 min
+        var fired = core.Evaluate(Inputs(FlightPhase.Cruise, Data(lon: 16.9)), T0, 10).Tod;       // ~9.5 min (the 10 nm allowance moved TOD 1.3 min earlier)
 
         Assert.NotNull(fired);
-        Assert.Equal(9.2, fired.MinutesToTod, 1);
-        Assert.Equal(105, fired.DescentDistanceNm, 1);
+        Assert.Equal(9.5, fired.MinutesToTod, 1);
+        Assert.Equal(115, fired.DescentDistanceNm, 1);
         Assert.Equal(1000, fired.DestinationElevationFt);
         Assert.Equal(10, fired.LeadMinutes);
-        Assert.Null(core.Evaluate(Inputs(FlightPhase.Cruise, Data(lon: 17.2)), T0, 10).Tod);
+        Assert.Null(core.Evaluate(Inputs(FlightPhase.Cruise, Data(lon: 17.1)), T0, 10).Tod);
         // Ground-speed jitter that takes the figure back over the lead does not re-arm it.
-        Assert.Null(core.Evaluate(Inputs(FlightPhase.Cruise, Data(lon: 17.2, groundSpeed: 300)), T0, 10).Tod);
+        Assert.Null(core.Evaluate(Inputs(FlightPhase.Cruise, Data(lon: 17.1, groundSpeed: 300)), T0, 10).Tod);
         Assert.Null(core.Evaluate(Inputs(FlightPhase.Cruise, Data(lon: 17.3)), T0, 10).Tod);
     }
 

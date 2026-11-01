@@ -82,6 +82,10 @@
         "label": "一時停止の猶予",
         "hint": "セッションが（MSFS の一時停止フラグが立った状態で）実際のセッション終了とみなされるまでに離れていられる時間。0 なら即リセット"
       },
+      "graceParked": {
+        "label": "Pause grace, parked",
+        "hint": "The grace while the aircraft is stopped on the ground with the engines off — long enough for your own exterior camera walkaround; the larger of the two graces applies"
+      },
       "position": {
         "label": "同一位置とみなす範囲",
         "hint": "再開時、機体は元の位置からこの距離以内にある必要があります。それより遠ければリスポーンです"

@@ -45,6 +45,7 @@ public sealed class FoRosterVoiceFeature : IVoiceFeature, IStartupModule, IDispo
     private readonly JsonlEventLog _eventLog;
     private readonly ILogger<FoRosterVoiceFeature> _logger;
     private readonly ISimLocalTime? _localTime;
+    private readonly ISimClock? _clock;
     private readonly object _gate = new();
     private bool _fallbackDateLogged;
     private bool _started;
@@ -60,8 +61,10 @@ public sealed class FoRosterVoiceFeature : IVoiceFeature, IStartupModule, IDispo
         StyledSpeechService styled,
         JsonlEventLog eventLog,
         ILogger<FoRosterVoiceFeature> logger,
-        ISimLocalTime? localTime = null)
+        ISimLocalTime? localTime = null,
+        ISimClock? clock = null)
     {
+        _clock = clock;
         ArgumentNullException.ThrowIfNull(roster);
         ArgumentNullException.ThrowIfNull(change);
         ArgumentNullException.ThrowIfNull(options);
@@ -197,11 +200,40 @@ public sealed class FoRosterVoiceFeature : IVoiceFeature, IStartupModule, IDispo
         }
     }
 
+    /// <summary>The sim's local calendar day for the draw stamp: the ProSim clock's UTC date
+    /// shifted by the aircraft's local offset — the same clock the flight times, the logbook
+    /// and the duty day use (issue #194, EGLL 2026-11-01: MSFS's LOCAL YEAR / DAY OF YEAR
+    /// SimVars said 10-30 while every flight-time stamp said 10-31, so no FO was drawn). The
+    /// SimVar date is the fallback when ProSim's clock is not live. Pure, for tests.</summary>
+    public static DateOnly? SimLocalDate(ISimClock? clock, ISimLocalTime? localTime)
+    {
+        if (clock?.SimUtcNow is { } utc)
+        {
+            var offset = TimeSpan.Zero;
+            if (localTime is { LocalTimeOfDay: { } local, ZuluTimeOfDay: { } zulu })
+            {
+                offset = local - zulu;
+                if (offset > TimeSpan.FromHours(12))
+                {
+                    offset -= TimeSpan.FromHours(24);
+                }
+                else if (offset < TimeSpan.FromHours(-12))
+                {
+                    offset += TimeSpan.FromHours(24);
+                }
+            }
+
+            return DateOnly.FromDateTime((utc + offset).UtcDateTime);
+        }
+
+        return localTime?.LocalDate;
+    }
+
     private FoRosterTriggerInputs Inputs(bool preflightEdge)
     {
         var options = _options.CurrentValue;
         var state = _roster.State;
-        var simDate = _localTime?.LocalDate;
+        var simDate = SimLocalDate(_clock, _localTime);
         var now = Now();
         if (simDate is null && preflightEdge && options.Roster.IsActive(options.Enabled) && !_day.CurrentValue.Enabled && !_fallbackDateLogged)
         {

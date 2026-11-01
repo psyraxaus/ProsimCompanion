@@ -6,6 +6,6 @@
     { "behavior": "acknowledge", "say": "E CAM Status", "expectedResponse": "CHECKED", "acceptedPhrases": [ "checked", "check" ], "verify": null, "confirmCallout": "ECAM status, checked" },
     { "behavior": "acknowledge", "say": "Landing Elevation", "expectedResponse": "SET", "acceptedPhrases": [ "set", "auto" ], "verify": null, "confirmCallout": "Landing elevation, set" },
     { "behavior": "acknowledge", "say": "Baro Reference", "expectedResponse": "SET", "acceptedPhrases": [ "set" ], "verify": null, "confirmCallout": "Baro reference, {altimeter}, set" },
-    { "behavior": "acknowledge", "say": "Minimum", "expectedResponse": "SET", "acceptedPhrases": [ "set" ], "verify": null, "confirmCallout": "Minimum, set" }
+    { "behavior": "acknowledge", "say": "Minimum", "expectedResponse": "SET", "acceptedPhrases": [ "set", "checked", "confirmed", "minimums", "minimum", "decision altitude", "decision height", "baro", "radio" ], "verify": null, "confirmCallout": "Minimum, set" }
   ]
 }

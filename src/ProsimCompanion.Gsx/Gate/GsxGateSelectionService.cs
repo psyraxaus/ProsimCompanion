@@ -97,6 +97,7 @@ public sealed class GsxGateSelectionService : Core.State.IGsxGateControl, IGsxAs
     private DateTimeOffset? _lastAirportPickAtUtc;
     private DateTimeOffset? _lastAirportWalkAtUtc;
     private DateTimeOffset? _lastNoAirportAtUtc;
+    private int _sendsAfterPick;
     private int _airportPickAttempts;
     private int _positionMenuAttempts;
     private bool _answeringPositionMenu;
@@ -184,6 +185,7 @@ public sealed class GsxGateSelectionService : Core.State.IGsxGateControl, IGsxAs
             _lastAirportPickAtUtc = null;
             _lastAirportWalkAtUtc = null;
             _lastNoAirportAtUtc = null;
+            _sendsAfterPick = 0;
             _positionMenuAttempts = 0;
             _pendingVariants = null;
         }
@@ -260,7 +262,9 @@ public sealed class GsxGateSelectionService : Core.State.IGsxGateControl, IGsxAs
                 now,
                 _lastAirportPickAtUtc,
                 _airportPickAttempts,
-                _lastAirportWalkAtUtc));
+                _lastAirportWalkAtUtc,
+                _lastNoAirportAtUtc,
+                _sendsAfterPick));
 
             switch (step)
             {
@@ -416,6 +420,8 @@ public sealed class GsxGateSelectionService : Core.State.IGsxGateControl, IGsxAs
         {
             _airportPickAttempts++;
             _lastAirportWalkAtUtc = DateTimeOffset.UtcNow;
+            _sendsAfterPick = 0;
+            _lastNoAirportAtUtc = null;
         }
 
         var rowPattern = new Regex($@"\b{Regex.Escape(destination)}\b", RegexOptions.IgnoreCase);
@@ -979,13 +985,16 @@ public sealed class GsxGateSelectionService : Core.State.IGsxGateControl, IGsxAs
             case "no_airport":
                 // Not a failure (issue #75, 2026-10-10): GSX answered the pick with its own
                 // "Select Position at EGCC" page and loaded the airport minutes later; the
-                // next airport patch re-dispatches. Armed, airport pending.
+                // next airport patch re-dispatches — and, after an in-flight pick, the planner
+                // re-sends on its own cadence (EHAM 2026-11-01, issue #156). Armed, airport pending.
+                int sends;
                 lock (_gate)
                 {
                     _lastNoAirportAtUtc = DateTimeOffset.UtcNow;
+                    sends = ++_sendsAfterPick;
                 }
 
-                SetStatus(GsxGateRequestStatus.Armed, "airport pending — GSX has no airport loaded yet (no_airport); the gate goes out when the destination loads");
+                SetStatus(GsxGateRequestStatus.Armed, $"airport pending — GSX has no airport loaded yet (no_airport, send {sends}); the gate goes out when the destination loads or on the next re-send");
                 return;
 
             case "gsx_not_running" or "not_connected":
@@ -1285,6 +1294,7 @@ public sealed class GsxGateSelectionService : Core.State.IGsxGateControl, IGsxAs
                 if (string.Equals(_api.Mirror.AirportIcao, _destination.Value?.Trim(), StringComparison.OrdinalIgnoreCase))
                 {
                     _lastNoAirportAtUtc = null;
+                    _sendsAfterPick = 0;
                 }
             }
 
@@ -1305,6 +1315,7 @@ public sealed class GsxGateSelectionService : Core.State.IGsxGateControl, IGsxAs
             _lastAirportPickAtUtc = null;
             _lastAirportWalkAtUtc = null;
             _lastNoAirportAtUtc = null;
+            _sendsAfterPick = 0;
             _pendingVariants = null;
         }
 

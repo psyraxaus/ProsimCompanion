@@ -118,6 +118,14 @@ answers it. Silence is never an answer: the FO's listen window hands the decisio
 only the TTL clock settles an unanswered question (#166).
 _Avoid_: prompt, dialogue state, confirmation (that is the fuel-figure latch), ask/accept pair
 
+**Abnormal burst**:
+Three or more abnormal triggers rising within two seconds on the ground with the engines
+off — or two fire loops together — as one event: a ProSim configuration load or the fire
+test, not seven faults. Held for ten seconds; a burst that clears in that time is never
+announced. Airborne, or with an engine running, nothing is held (a real multi-system
+failure is called at once).
+_Avoid_: transient (the per-trigger debounce), test mode, suppression
+
 **Dialogue hold**:
 The arbiter rule that defers the other features' Normal/Low prompts (a cabin question, a
 ground call, small talk) while a guided dialogue holds the microphone and waits for the

@@ -243,12 +243,18 @@ public sealed class GsxDeiceRequestService : Core.Hosting.IStartupModule, IDispo
                 }
                 else
                 {
-                    if (!_cycle.Started || _cycle.Complete || !_flightState.CurrentPhase.IsAtGate())
+                    // A cycle that completed in the same pump that marked the step next (issue
+                    // #204, EGLL 2026-11-01: "de-ice step next" then "all departure services
+                    // completed" 4 ms later, and no verdict was ever published) still gets its
+                    // one verdict — a late "yes" rides OnAnswered's direct call.
+                    var snapshot = _store.Snapshot();
+                    var verdictOwed = snapshot.StepNext && snapshot.Verdict == DeicePolicyVerdict.Pending;
+                    if (!_cycle.Started || (_cycle.Complete && !verdictOwed) || !_flightState.CurrentPhase.IsAtGate())
                     {
                         return;
                     }
 
-                    if (!Armed(_store.Snapshot(), options.Deice.AskWhen, BoardingCompletedThisCycle()))
+                    if (!Armed(snapshot, options.Deice.AskWhen, BoardingCompletedThisCycle()))
                     {
                         return;
                     }

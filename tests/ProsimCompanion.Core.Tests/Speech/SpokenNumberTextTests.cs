@@ -21,6 +21,11 @@ public sealed class SpokenNumberTextTests
     [InlineData("climb to five thousand feet", "climb to 5000 feet")]
     [InlineData("one hundred and fifty two knots", "152 knots")]
     [InlineData("fifteen hundred feet", "1500 feet")]
+    // a digit group before a scale word (issue #203, 2026-11-01: "one six hundred" read as 700)
+    [InlineData("acceleration altitude one six hundred feet", "acceleration altitude 1600 feet")]
+    [InlineData("cruise two niner thousand", "cruise 29000")]
+    [InlineData("one hundred feet", "100 feet")]
+    [InlineData("two five thousand five hundred", "25500")]
     [InlineData("twelve thousand nine hundred ninety-nine feet", "12999 feet")]
     [InlineData("glideslope three point five degrees", "glideslope 3.5 degrees")]
     [InlineData("twenty five checklists", "25 checklists")]

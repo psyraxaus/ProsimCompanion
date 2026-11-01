@@ -82,6 +82,10 @@
         "label": "Pause grace",
         "hint": "How long the session may be away (with MSFS's pause flag set) before it counts as a real session end; 0 resets at once"
       },
+      "graceParked": {
+        "label": "Pause grace, parked",
+        "hint": "The grace while the aircraft is stopped on the ground with the engines off — long enough for your own exterior camera walkaround; the larger of the two graces applies"
+      },
       "position": {
         "label": "Same position within",
         "hint": "On resume the aircraft must be this close to where it was; farther is a respawn"

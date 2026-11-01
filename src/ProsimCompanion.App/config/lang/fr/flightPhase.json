@@ -82,6 +82,10 @@
         "label": "Grâce de pause",
         "hint": "Combien de temps la session peut être absente (avec l'indicateur de pause MSFS activé) avant de compter comme une vraie fin de session ; 0 réinitialise aussitôt"
       },
+      "graceParked": {
+        "label": "Pause grace, parked",
+        "hint": "The grace while the aircraft is stopped on the ground with the engines off — long enough for your own exterior camera walkaround; the larger of the two graces applies"
+      },
       "position": {
         "label": "Même position à moins de",
         "hint": "À la reprise, l'avion doit être à cette distance au plus de sa position ; plus loin est un respawn"

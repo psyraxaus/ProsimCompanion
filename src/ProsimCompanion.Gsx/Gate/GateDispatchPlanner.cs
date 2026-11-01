@@ -40,7 +40,9 @@ public sealed record GateDispatchInputs(
     DateTimeOffset NowUtc,
     DateTimeOffset? LastAirportPickAttemptUtc,
     int AirportPickAttempts,
-    DateTimeOffset? LastAirportWalkUtc = null);
+    DateTimeOffset? LastAirportWalkUtc = null,
+    DateTimeOffset? LastNoAirportUtc = null,
+    int SendsAfterPick = 0);
 
 /// <summary>
 /// Pure decision core for the arrival-gate dispatch (2026-09-21 review, issue #44/#75).
@@ -66,6 +68,14 @@ public static class GateDispatchPlanner
     /// still runs when GSX loads the airport itself after landing).</summary>
     public const int MaxAirportPickAttempts = 3;
 
+    /// <summary>After a pick that GSX answered with <c>no_airport</c> the destination is still
+    /// loading and the mirror may never patch the airport in flight (EHAM 2026-11-01: both picks
+    /// reported Success, both gate.selects 10 ms later got no_airport, and the gate only went
+    /// through 45 s after touchdown). Re-send on this cadence, this many times, while airborne.</summary>
+    public static readonly TimeSpan NoAirportResendBackoff = TimeSpan.FromSeconds(60);
+
+    public const int MaxSendsAfterPick = 5;
+
     public static GateDispatchStep Decide(GateDispatchInputs inputs)
     {
         ArgumentNullException.ThrowIfNull(inputs);
@@ -85,6 +95,16 @@ public static class GateDispatchPlanner
         if (!IsAirborneForPick(inputs.Phase))
         {
             return GateDispatchStep.Wait;
+        }
+
+        // A pick already ran and GSX said no_airport: give the load its time, then send again
+        // without waiting for an airport patch that may never come in flight.
+        if (inputs.LastAirportWalkUtc is not null
+            && inputs.LastNoAirportUtc is { } refused
+            && inputs.SendsAfterPick < MaxSendsAfterPick
+            && inputs.NowUtc - refused >= NoAirportResendBackoff)
+        {
+            return GateDispatchStep.Send;
         }
 
         if (inputs.AirportPickAttempts >= MaxAirportPickAttempts)

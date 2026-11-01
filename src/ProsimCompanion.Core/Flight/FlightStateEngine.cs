@@ -621,9 +621,30 @@ public sealed class FlightStateEngine : IFlightPhaseSource, IFlightPhaseControl,
     /// who was 26 minutes into a turnaround. A pause that outlives the grace is a real end;
     /// an unpaused NotInSession (world map, aircraft reload) resets at once as before; Unknown
     /// (SimConnect gone) still holds whatever state exists.</summary>
+    /// <summary>The pause grace that applies: the parked grace (issue #206) when the aircraft
+    /// went into the pause stopped on the ground with every engine off, else the flying one.
+    /// Pure, for tests.</summary>
+    public static TimeSpan PauseGrace(FlightStateOptions options, FlightDataSnapshot? pausedSnapshot)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        var grace = TimeSpan.FromSeconds(Math.Max(0, options.PauseGraceSeconds));
+        if (grace == TimeSpan.Zero)
+        {
+            return grace; // 0 disables the grace altogether — parked or not
+        }
+
+        if (pausedSnapshot is { IsValid: true, OnGround: true, AnyEngineRunning: false, GroundSpeedKt: < 1 })
+        {
+            var parked = TimeSpan.FromSeconds(Math.Max(0, options.PauseGraceParkedSeconds));
+            return parked > grace ? parked : grace;
+        }
+
+        return grace;
+    }
+
     private void HandleOutOfSession(SimSessionSnapshot session, FlightDataSnapshot snapshot, DateTimeOffset nowUtc, FlightStateOptions options)
     {
-        var grace = TimeSpan.FromSeconds(Math.Max(0, options.PauseGraceSeconds));
+        var grace = PauseGrace(options, _pausedSnapshot ?? _lastLiveSnapshot ?? snapshot);
         if (_pausedAt is { } pausedAt)
         {
             if (nowUtc - pausedAt >= grace)
@@ -671,7 +692,7 @@ public sealed class FlightStateEngine : IFlightPhaseSource, IFlightPhaseControl,
     private bool TryResolvePause(DateTimeOffset pausedAt, FlightDataSnapshot snapshot, DateTimeOffset nowUtc, FlightStateOptions options)
     {
         var elapsed = nowUtc - pausedAt;
-        var grace = TimeSpan.FromSeconds(Math.Max(0, options.PauseGraceSeconds));
+        var grace = PauseGrace(options, _pausedSnapshot);
         if (elapsed >= grace)
         {
             EndPause(elapsed, options, $"away for {elapsed.TotalSeconds:F0} s, longer than the {grace.TotalSeconds:F0} s grace", snapshot);

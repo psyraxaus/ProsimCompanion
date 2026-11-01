@@ -47,7 +47,21 @@ public sealed class NotificationSignalSource : IStartupModule, IDisposable, IFli
     private readonly object _gate = new();
     private readonly HashSet<FlightEvent> _firedThisCycle = [];
     private readonly List<IDisposable> _subscriptions = [];
+    private readonly List<(FlightEvent Event, string Title, string Text, IReadOnlyDictionary<string, object?>? Details, DateTimeOffset At)> _pending = [];
+    private Timer? _settleTimer;
+    private DateTimeOffset _startedAtUtc;
+    private bool _restoreApplied;
     private int _lastFinalEdition;
+
+    /// <summary>How long after start a milestone waits for the flight-state snapshot's "already
+    /// sent" latches (issue #151, EGLL 2026-11-01: the GSX resync's Boarding Completed beat the
+    /// restore by 1.1 s and the boarding-complete notification went out a second time). The
+    /// restore releases the held milestones at once; this is the backstop when there is no
+    /// snapshot to restore.</summary>
+    public static readonly TimeSpan RestoreSettle = TimeSpan.FromSeconds(15);
+
+    /// <summary>The live settle; tests set zero so milestones go straight through.</summary>
+    public TimeSpan Settle { get; set; } = RestoreSettle;
     private bool _holdoverWarned;
     private FlightTimesSnapshot _lastTimes = FlightTimesSnapshot.Empty;
 
@@ -85,6 +99,8 @@ public sealed class NotificationSignalSource : IStartupModule, IDisposable, IFli
 
     public void Start()
     {
+        _startedAtUtc = _clock();
+        _settleTimer = new Timer(_ => FlushPending("settle"), null, Settle, Timeout.InfiniteTimeSpan);
         _dispatcher.Start();
         _signals.RefuelCompleted += OnRefuelCompleted;
         _signals.BoardingCompleted += OnBoardingCompleted;
@@ -103,6 +119,7 @@ public sealed class NotificationSignalSource : IStartupModule, IDisposable, IFli
 
     public void Dispose()
     {
+        _settleTimer?.Dispose();
         _signals.RefuelCompleted -= OnRefuelCompleted;
         _signals.BoardingCompleted -= OnBoardingCompleted;
         _signals.DepartureServicesCompleted -= OnDepartureServicesCompleted;
@@ -339,6 +356,8 @@ public sealed class NotificationSignalSource : IStartupModule, IDisposable, IFli
             _holdoverWarned |= state.HoldoverWarned;
         }
 
+        FlushPending("restored");
+
         _logger.LogInformation(
             "Notification latches restored from the flight-state snapshot: {Fired} already sent, final loadsheet edition {Edition}",
             state.Fired.Count == 0 ? "nothing" : string.Join(", ", state.Fired), state.LastFinalEdition);
@@ -352,6 +371,15 @@ public sealed class NotificationSignalSource : IStartupModule, IDisposable, IFli
     {
         lock (_gate)
         {
+            // Just after start the snapshot's latches may still be on their way: hold the
+            // milestone until they land (or the settle passes) and judge it then.
+            if (!_restoreApplied && Settle > TimeSpan.Zero && _clock() - _startedAtUtc < Settle && !_firedThisCycle.Contains(flightEvent))
+            {
+                _pending.Add((flightEvent, title, text, details, at ?? _clock()));
+                _logger.LogInformation("Milestone {Event} held until the flight-state snapshot has been restored", NotificationMessage.WireName(flightEvent));
+                return false;
+            }
+
             if (!_firedThisCycle.Add(flightEvent))
             {
                 return false;
@@ -367,6 +395,32 @@ public sealed class NotificationSignalSource : IStartupModule, IDisposable, IFli
         var queued = _dispatcher.Enqueue(message);
         _logger.LogDebug("Milestone {Event}: {Queued}", message.EventName, queued ? "queued for notification" : "no target");
         return queued;
+    }
+
+    /// <summary>Releases the milestones held since start: each one re-enters <see cref="Raise"/>
+    /// and the restored once-per-cycle latch decides (a milestone the previous run already
+    /// sent is dropped here). Idempotent; the timer and the restore both call it.</summary>
+    internal void FlushPending(string reason)
+    {
+        List<(FlightEvent Event, string Title, string Text, IReadOnlyDictionary<string, object?>? Details, DateTimeOffset At)> held;
+        lock (_gate)
+        {
+            _restoreApplied = true;
+            if (_pending.Count == 0)
+            {
+                return;
+            }
+
+            held = [.. _pending];
+            _pending.Clear();
+        }
+
+        foreach (var item in held)
+        {
+            var sent = Raise(item.Event, item.Title, item.Text, item.Details, item.At);
+            _logger.LogInformation("Held milestone {Event} released ({Reason}): {Outcome}",
+                NotificationMessage.WireName(item.Event), reason, sent ? "sent" : "already sent before the restart — dropped");
+        }
     }
 
     private static string Tonnes(double kg) => ((double)Math.Round((decimal)kg / 1000m, 1, MidpointRounding.AwayFromZero)).ToString("0.0", CultureInfo.InvariantCulture);

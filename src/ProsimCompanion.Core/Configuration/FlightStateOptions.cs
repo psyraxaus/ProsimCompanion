@@ -100,6 +100,13 @@ public sealed class FlightStateOptions : IOptionSection
     [OptionField(FieldKind.Number, "flightPhase.pause.grace", Suffix = "s", Min = "0")]
     public double PauseGraceSeconds { get; set; } = 60;
 
+    /// <summary>The grace while the aircraft is parked with the engines off (the gate, a
+    /// turnaround): the pilot's own exterior camera look lasts minutes (issue #206, EGLL
+    /// 2026-11-01: a 60.2 s walkaround view reset the phase, the ground preparation and the
+    /// FO's walkaround). The larger of the two graces applies on the ground parked.</summary>
+    [OptionField(FieldKind.Number, "flightPhase.pause.graceParked", Suffix = "s", Min = "0")]
+    public double PauseGraceParkedSeconds { get; set; } = 300;
+
     /// <summary>On resume, the aircraft must be within this many metres of where it was when
     /// the pause began; farther is a respawn (new flight loaded) and resets like a session end.</summary>
     [OptionField(FieldKind.Number, "flightPhase.pause.position", Suffix = "m", Min = "0")]

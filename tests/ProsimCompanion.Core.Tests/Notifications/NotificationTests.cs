@@ -281,7 +281,7 @@ public sealed class NotificationTests : IDisposable
         public List<NotificationMessage> Queued { get; } = [];
         public NotificationSignalSource Source { get; }
 
-        public Harness(NotificationTests owner)
+        public Harness(NotificationTests owner, TimeSpan? settle = null)
         {
             owner._options.Targets = [Target("Phone", NotificationTargetKind.Ntfy, "https://ntfy.test/t")];
             var dispatcher = owner.Dispatcher();
@@ -289,7 +289,7 @@ public sealed class NotificationTests : IDisposable
             var monitor = new Mock<IOptionsMonitor<NotificationOptions>>();
             monitor.SetupGet(m => m.CurrentValue).Returns(() => owner._options);
             Source = new NotificationSignalSource(dispatcher, Signals, Loadsheet, Times, Ofp, monitor.Object,
-                NullLogger<NotificationSignalSource>.Instance, clock: () => owner._now);
+                NullLogger<NotificationSignalSource>.Instance, clock: () => owner._now) { Settle = settle ?? TimeSpan.Zero };
             Source.Start();
         }
     }
@@ -400,7 +400,7 @@ public sealed class NotificationTests : IDisposable
         var monitor = new Mock<IOptionsMonitor<NotificationOptions>>();
         monitor.SetupGet(m => m.CurrentValue).Returns(() => _options);
         using var source = new NotificationSignalSource(dispatcher, signals, new LoadsheetStore(), new FlightTimesStore(), new OfpStore(), monitor.Object,
-            NullLogger<NotificationSignalSource>.Instance, holdover, clock: () => _now);
+            NullLogger<NotificationSignalSource>.Instance, holdover, clock: () => _now) { Settle = TimeSpan.Zero };
         source.Start();
 
         signals.RaiseDeiceCompleted(4);                           // armed, precipitation "none": no holdover
@@ -503,5 +503,33 @@ public sealed class NotificationTests : IDisposable
         }
 
         Assert.True(condition(), "condition not met in time");
+    }
+
+    // Issue #151 (EGLL 2026-11-01): a milestone raised just after start waits for the
+    // snapshot's "already sent" latches; one the previous run sent is dropped, a new one goes.
+    [Fact]
+    public async Task MilestoneJustAfterStart_WaitsForTheRestore_AndTheRestoredLatchDecides()
+    {
+        var first = new Harness(this);
+        first.Signals.RaiseBoardingCompleted();
+        await WaitForRequests(1);
+        var captured = first.Source.Capture()!;
+
+        var second = new Harness(this, settle: TimeSpan.FromSeconds(15));
+        second.Signals.RaiseBoardingCompleted();            // the GSX resync's first read, 1 s after start
+        second.Signals.RaiseCabinSecured();                 // genuinely new this run
+        await Task.Delay(200);
+        Assert.Equal(1, _handler.Requests.Count);           // both held
+
+        second.Source.Restore(captured);                    // the latches land: boarding was sent, cabin was not
+        await WaitForRequests(1);
+        await Task.Delay(200);
+        Assert.Equal(2, _handler.Requests.Count);
+        Assert.Contains(_handler.Requests, r => r.Headers["Title"] == "BAW552 - Cabin secure");
+        Assert.Single(_handler.Requests, r => r.Headers["Title"] == "BAW552 - Boarding complete");
+
+        second.Signals.RaiseDepartureServicesCompleted();  // after the restore: straight through
+        await WaitForRequests(1);
+        Assert.Equal(3, _handler.Requests.Count);
     }
 }

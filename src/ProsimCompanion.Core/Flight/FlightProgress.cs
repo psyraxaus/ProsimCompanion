@@ -213,10 +213,21 @@ public sealed class FlightProgressCore
         return anchor?.Add(eet);
     }
 
-    /// <summary>The 3:1 rule: three nautical miles over the ground for every thousand feet
-    /// to lose. Never negative (a "cruise" below the field is no descent).</summary>
+    /// <summary>Track miles the jet needs to slow from cruise Mach to the descent speed and
+    /// from 250 kt to the approach speed — the 3:1 rule alone put the EGLL→EHAM top of
+    /// descent 3.5 min late (issue #145, 2026-11-01: notice at 00:49:06Z, descent at 00:55:38Z
+    /// against a ten-minute lead).</summary>
+    public const double DecelerationAllowanceNm = 10;
+
+    /// <summary>The 3:1 rule plus the deceleration allowance: three nautical miles over the
+    /// ground for every thousand feet to lose, then <see cref="DecelerationAllowanceNm"/>.
+    /// Never negative, and zero when there is nothing to lose (a "cruise" below the field is
+    /// no descent).</summary>
     public static double DescentDistanceNm(double cruiseAltitudeFt, double destinationElevationFt)
-        => Math.Max(0, (cruiseAltitudeFt - destinationElevationFt) / 1000.0 * 3.0);
+    {
+        var toLose = cruiseAltitudeFt - destinationElevationFt;
+        return toLose <= 0 ? 0 : toLose / 1000.0 * 3.0 + DecelerationAllowanceNm;
+    }
 
     private static (double?, ProgressBasis) Fraction(
         FlightProgressInputs inputs, double? route, double? flown, double? toGo, DateTimeOffset nowUtc)

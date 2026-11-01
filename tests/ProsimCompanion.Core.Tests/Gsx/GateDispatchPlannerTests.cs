@@ -122,4 +122,27 @@ public sealed class GateDispatchPlannerTests
         Assert.Null(GsxGateResolver.NumberFallback(parkings, "D7"));
         Assert.Null(GsxGateResolver.NumberFallback(parkings, ""));
     }
+
+    // EHAM 2026-11-01 (issue #156): both in-flight picks reported Success and the gate.select
+    // 10 ms later got no_airport; nothing re-sent until after touchdown.
+    [Fact]
+    public void AfterAPick_NoAirport_ResendsOnTheCadence_UpToTheCap()
+    {
+        var walked = Now.AddMinutes(-1);
+        var refused = Now.AddSeconds(-70);
+        Assert.Equal(GateDispatchStep.Send,
+            GateDispatchPlanner.Decide(Inputs(lastWalk: walked, lastPick: walked, attempts: 1) with { LastNoAirportUtc = refused, SendsAfterPick = 1 }));
+        // Too soon after the refusal: wait.
+        Assert.Equal(GateDispatchStep.Wait,
+            GateDispatchPlanner.Decide(Inputs(lastWalk: walked, lastPick: walked, attempts: 1) with { LastNoAirportUtc = Now.AddSeconds(-20), SendsAfterPick = 1 }));
+        // The cap: after five sends the pick path (and its own backoff) decides again.
+        Assert.Equal(GateDispatchStep.Wait,
+            GateDispatchPlanner.Decide(Inputs(lastWalk: walked, lastPick: walked, attempts: 1) with { LastNoAirportUtc = refused, SendsAfterPick = GateDispatchPlanner.MaxSendsAfterPick }));
+        // No pick ran: no re-send (the ground path handles it after landing).
+        Assert.NotEqual(GateDispatchStep.Send,
+            GateDispatchPlanner.Decide(Inputs(lastPick: walked, attempts: 0) with { LastNoAirportUtc = refused, SendsAfterPick = 1 }));
+        // On the ground before departure: never.
+        Assert.Equal(GateDispatchStep.Wait,
+            GateDispatchPlanner.Decide(Inputs(phase: FlightPhase.TaxiOut, data: Taxi(), lastWalk: walked) with { LastNoAirportUtc = refused }));
+    }
 }

@@ -165,15 +165,16 @@ public sealed class FlightReplayTests(ITestOutputHelper output)
             Envelope(8, "gsx-service", new { service = "Boarding", @event = "Active" }),
             Envelope(20, "flight-sample", atStand),
             Envelope(30, "sim-paused", new { phase = "Departure" }),
-            Envelope(100, "sim-resumed", new { phase = "Departure" }),
-            Envelope(101, "flight-sample", atStand),
-            Envelope(110, "flight-sample", atStand),
+            Envelope(340, "sim-resumed", new { phase = "Departure" }),
+            Envelope(341, "flight-sample", atStand),
+            Envelope(350, "flight-sample", atStand),
         };
 
         var result = FlightReplay.Run(lines);
         output.WriteLine(result.Describe());
 
-        // Reset at the grace, then — GSX still boarding — Preflight steps straight on to Departure.
+        // Parked with the engines off the 300 s parked grace applies (issue #206): a 310 s pause
+        // resets at the grace, then — GSX still boarding — Preflight steps straight on to Departure.
         Assert.Equal(
             ["Unknown -> Preflight", "Preflight -> Departure", "Departure -> Unknown", "Unknown -> Preflight", "Preflight -> Departure"],
             result.Commits.Select(c => c.Edge));

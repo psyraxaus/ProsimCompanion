@@ -22,6 +22,8 @@ public sealed class GsxGateAnchorService : IDisposable
     private readonly IOptionsMonitor<GsxOptions> _options;
     private readonly GsxDiagnosticsStore _diagnostics;
     private readonly ILogger<GsxGateAnchorService> _logger;
+    private readonly Core.Flight.IFlightDataSource? _flightData;
+    private readonly Core.EventLog.JsonlEventLog? _eventLog;
     private string? _handledGateKey;
     private int _running;
 
@@ -29,7 +31,9 @@ public sealed class GsxGateAnchorService : IDisposable
         IGsxRemoteApi api,
         IOptionsMonitor<GsxOptions> options,
         GsxDiagnosticsStore diagnostics,
-        ILogger<GsxGateAnchorService> logger)
+        ILogger<GsxGateAnchorService> logger,
+        Core.Flight.IFlightDataSource? flightData = null,
+        Core.EventLog.JsonlEventLog? eventLog = null)
     {
         ArgumentNullException.ThrowIfNull(api);
         ArgumentNullException.ThrowIfNull(options);
@@ -40,9 +44,17 @@ public sealed class GsxGateAnchorService : IDisposable
         _options = options;
         _diagnostics = diagnostics;
         _logger = logger;
+        _flightData = flightData;
+        _eventLog = eventLog;
 
         _api.Mirror.SidChanged += OnSidChanged;
     }
+
+    /// <summary>GSX refuses <c>gate.select</c> while the aircraft is parked at a stand
+    /// (Handler Scripts Developer Guide) and the refusal reads <c>not_found</c> — even for the
+    /// stand GSX itself reports as the session's (EGLL 313, 2026-11-01). Pure, for tests.</summary>
+    public static bool ParkedAtTheStand(Core.Flight.FlightDataSnapshot? data)
+        => data is { IsValid: true, OnGround: true, AnyEngineRunning: false, GroundSpeedKt: < 1 };
 
     public void Dispose() => _api.Mirror.SidChanged -= OnSidChanged;
 
@@ -74,6 +86,15 @@ public sealed class GsxGateAnchorService : IDisposable
 
             // Latch first — a failed anchor must not loop gate.select every cycle.
             _handledGateKey = gateKey;
+
+            // Parked at the stand GSX already names as the session's: the anchor is GSX's own
+            // (issue #156, 2026-11-01: 'Stand 313' / 'Terminal 3 (301-365)|Stand 313' / '313'
+            // all not_found at the gate — selectGate refuses while parked).
+            if (ParkedAtTheStand(_flightData?.Sample()))
+            {
+                RecordDecision($"anchored by GSX's own session '{gateKey}' — parked at the stand, gate.select is refused while parked");
+                return GsxPrepStatus.Done;
+            }
 
             var ladder = GsxGateResolver.AnchorTokenLadder(_api.Mirror.Parkings, gateKey);
             if (ladder.Count == 0)
@@ -112,6 +133,15 @@ public sealed class GsxGateAnchorService : IDisposable
             RecordDecision(
                 $"gate.select failed for every identity [{string.Join(", ", ladder.Select(t => $"'{t}'"))}] "
                 + $"(last: {last?.Code}) — GSX may still be on a previous session's gate");
+            _eventLog?.Record("gsx-gate-not-found", new
+            {
+                step = "anchor",
+                gate = gateKey,
+                airport = _api.Mirror.AirportIcao,
+                identities = ladder,
+                last = last?.Code,
+                error = last?.Error?.ToJsonString(),
+            });
             return GsxPrepStatus.Done;
         }
         catch (Exception ex)

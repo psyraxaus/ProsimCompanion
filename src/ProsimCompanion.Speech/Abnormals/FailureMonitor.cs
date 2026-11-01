@@ -42,6 +42,7 @@ public sealed class FailureMonitor : IEcamDialogueIo, Core.State.IAbnormalDialog
     private readonly object _lock = new();
     private readonly Dictionary<string, IDataRefSubscription> _reads = new(StringComparer.Ordinal);
     private readonly Dictionary<string, TriggerState> _states = [];
+    private bool _burstLogged;
 
     private IDataRefSubscription<string>? _ewdText;
     private IDataRefSubscription<double>? _masterWarning;
@@ -398,12 +399,47 @@ public sealed class FailureMonitor : IEcamDialogueIo, Core.State.IAbnormalDialog
                     continue;
                 }
 
+                // A burst of triggers on the ground with the engines off (a ProSim
+                // configuration load, the fire test — issue #123, 2026-11-01) is held until
+                // it has persisted; the rises stay recorded so the hold is re-judged each tick.
+                if (BurstHoldUntil(nowUtc) is { } holdUntil && nowUtc < holdUntil)
+                {
+                    if (!_burstLogged)
+                    {
+                        _burstLogged = true;
+                        _logger.LogInformation(
+                            "Abnormal burst — {Count} trigger(s) rose together on the ground with the engines off (a configuration load or a test?); holding every trigger until {HoldUntil:HH:mm:ss}Z",
+                            _states.Count(s => s.Value.RisingSinceUtc is not null), holdUntil);
+                        _eventLog.Record("failure.burst-held", new
+                        {
+                            ids = _states.Where(s => s.Value.RisingSinceUtc is not null).Select(s => s.Key).ToArray(),
+                            holdUntilUtc = holdUntil,
+                        });
+                    }
+
+                    continue;
+                }
+
                 state.Fired = true;
                 Fire(definition);
+            }
+
+            if (_burstLogged && _states.All(s => s.Value.RisingSinceUtc is null || s.Value.Fired))
+            {
+                _burstLogged = false; // the burst is over, one way or the other
             }
         }
 
         return clearedDialogue;
+    }
+
+    private DateTimeOffset? BurstHoldUntil(DateTimeOffset nowUtc)
+    {
+        var data = _flight.Snapshot().Data;
+        var onGround = data?.OnGround ?? _flight.CurrentPhase.IsAtGate();
+        var anyEngineRunning = data?.AnyEngineRunning ?? false;
+        return AbnormalBurstGuard.HoldUntil(
+            _states.Select(s => (s.Key, s.Value.RisingSinceUtc)), onGround, anyEngineRunning);
     }
 
     /// <summary>Web-button escape (issue #56): ends the running ECAM dialogue without needing

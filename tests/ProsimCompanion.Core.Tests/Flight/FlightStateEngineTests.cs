@@ -609,14 +609,32 @@ public sealed class FlightStateEngineTests
         engine.PhaseChanged += (_, e) => last = e;
 
         SetPausedOutOfSession(session);
-        Drive(engine, AtStand(), now, TimeSpan.FromSeconds(61));
+        // Parked with the engines off: the parked grace (300 s, issue #206) applies, not 60 s.
+        Drive(engine, AtStand(), now, TimeSpan.FromSeconds(120));
+        Assert.True(engine.IsPaused);
+        Assert.Equal(FlightPhase.Preflight, engine.CurrentPhase);
+
+        Drive(engine, AtStand(), now.AddSeconds(120), TimeSpan.FromSeconds(181));
 
         Assert.False(engine.IsPaused);
         Assert.Equal(FlightPhase.Unknown, engine.CurrentPhase);
         Assert.Equal(FlightStateEngine.SessionEndedRuleId, last?.RuleId);
         Assert.Equal(1, resets); // one edge, however long NotInSession persists
         Assert.Equal([FlightPauseEvent.Paused, FlightPauseEvent.Ended], pauses.Select(p => p.Kind));
-        Assert.Contains("longer than the 60 s grace", pauses[1].Detail);
+        Assert.Contains("longer than the 300 s grace", pauses[1].Detail);
+    }
+
+    [Fact]
+    public void PauseGrace_IsTheParkedOne_OnlyStoppedOnTheGroundWithEnginesOff()
+    {
+        var options = new FlightStateOptions { PauseGraceSeconds = 60, PauseGraceParkedSeconds = 300 };
+        Assert.Equal(TimeSpan.FromSeconds(300), FlightStateEngine.PauseGrace(options, AtStand()));
+        Assert.Equal(TimeSpan.FromSeconds(60), FlightStateEngine.PauseGrace(options, AtStand() with { AnyEngineRunning = true }));
+        Assert.Equal(TimeSpan.FromSeconds(60), FlightStateEngine.PauseGrace(options, AtStand() with { GroundSpeedKt = 12 }));
+        Assert.Equal(TimeSpan.FromSeconds(60), FlightStateEngine.PauseGrace(options, AtStand() with { OnGround = false }));
+        Assert.Equal(TimeSpan.FromSeconds(60), FlightStateEngine.PauseGrace(options, null));
+        // The larger of the two always wins on the ground parked.
+        Assert.Equal(TimeSpan.FromSeconds(60), FlightStateEngine.PauseGrace(new FlightStateOptions { PauseGraceSeconds = 60, PauseGraceParkedSeconds = 10 }, AtStand()));
     }
 
     [Fact]

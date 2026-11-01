@@ -64,6 +64,11 @@ internal static class GroundUpcallCore
     internal static UpcallState OnRefuelSkippedForTankering(UpcallState state)
         => state with { RefuelCalled = true };
 
+    /// <summary>A service the crew or the sequencer has called and that GSX has taken up —
+    /// the only stages a genuine completion edge can come out of.</summary>
+    internal static bool IsRunning(GsxServiceStage? stage)
+        => stage is GsxServiceStage.Called or GsxServiceStage.Requested or GsxServiceStage.Active;
+
     /// <summary>One 1 Hz evaluation: at most one call per tick, in fixed priority order
     /// (ground power → chocks → refuel → catering).</summary>
     internal static (UpcallState State, UpcallKind? Call) Evaluate(UpcallState state, UpcallSample sample)
@@ -74,10 +79,12 @@ internal static class GroundUpcallCore
         // Baseline on first observation — never announce state recovered at startup.
         var groundPowerRose = state.LastGroundPower is false && sample.GroundPower is true;
         var chocksRose = state.LastChocks is false && sample.Chocks is true;
-        var refuelCompleted = state.LastRefuelStage is not null and not GsxServiceStage.Completed
-            && sample.RefuelStage == GsxServiceStage.Completed;
-        var cateringCompleted = state.LastCateringStage is not null and not GsxServiceStage.Completed
-            && sample.CateringStage == GsxServiceStage.Completed;
+        // A completion is an edge only out of a RUNNING stage (issue #151, 2026-11-01: after a
+        // restart at the gate the first tick read Refueling "Waiting", the startup resync then
+        // seeded it Completed, and "refueling complete, 5.0 tonnes" was announced for the
+        // previous session's refuel). Waiting/Held → Completed is history, not a truck leaving.
+        var refuelCompleted = IsRunning(state.LastRefuelStage) && sample.RefuelStage == GsxServiceStage.Completed;
+        var cateringCompleted = IsRunning(state.LastCateringStage) && sample.CateringStage == GsxServiceStage.Completed;
 
         state = state with
         {

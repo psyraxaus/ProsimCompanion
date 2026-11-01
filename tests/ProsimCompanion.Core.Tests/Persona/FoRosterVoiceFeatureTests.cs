@@ -224,4 +224,31 @@ public sealed class FoRosterVoiceFeatureTests : IDisposable
         // Only the FO role reads it.
         Assert.Equal(voices.Purser, RoleVoiceResolver.Resolve(SpeechRole.Purser, voices, "kokoro:am_adam").VoiceOverride);
     }
+
+    // Issue #194 (EGLL 2026-11-01): the draw stamp follows the ProSim clock the flight times
+    // use, shifted to the aircraft's local day; the SimVar date is the fallback.
+    [Fact]
+    public void SimLocalDate_PrefersTheProsimClock_ShiftedToLocal_ThenTheSimVarDate()
+    {
+        var clock = new Moq.Mock<ProsimCompanion.Core.Aircraft.ISimClock>();
+        var local = new Moq.Mock<ProsimCompanion.Core.Aircraft.ISimLocalTime>();
+
+        // 23:30Z on the 31st at UTC+2 is already the 1st locally.
+        clock.Setup(c => c.SimUtcNow).Returns(new DateTimeOffset(2026, 10, 31, 23, 30, 0, TimeSpan.Zero));
+        local.Setup(l => l.LocalTimeOfDay).Returns(TimeSpan.FromHours(1.5));
+        local.Setup(l => l.ZuluTimeOfDay).Returns(TimeSpan.FromHours(23.5));
+        local.Setup(l => l.LocalDate).Returns(new DateOnly(2026, 10, 30));
+        Assert.Equal(new DateOnly(2026, 11, 1), FoRosterVoiceFeature.SimLocalDate(clock.Object, local.Object));
+
+        // 07:00Z at EGLL (UTC+0): the 31st — never the SimVar's stale 30th.
+        clock.Setup(c => c.SimUtcNow).Returns(new DateTimeOffset(2026, 10, 31, 7, 0, 0, TimeSpan.Zero));
+        local.Setup(l => l.LocalTimeOfDay).Returns(TimeSpan.FromHours(7));
+        local.Setup(l => l.ZuluTimeOfDay).Returns(TimeSpan.FromHours(7));
+        Assert.Equal(new DateOnly(2026, 10, 31), FoRosterVoiceFeature.SimLocalDate(clock.Object, local.Object));
+
+        // No ProSim clock: the SimVar date; nothing at all: null.
+        clock.Setup(c => c.SimUtcNow).Returns((DateTimeOffset?)null);
+        Assert.Equal(new DateOnly(2026, 10, 30), FoRosterVoiceFeature.SimLocalDate(clock.Object, local.Object));
+        Assert.Null(FoRosterVoiceFeature.SimLocalDate(null, null));
+    }
 }

@@ -70,7 +70,7 @@ public sealed class GroundUpcallCoreTests
     [Fact]
     public void RefuelComplete_FiresOnlyInTheDepartureWindow()
     {
-        var (state, _) = GroundUpcallCore.Evaluate(GroundUpcallCore.UpcallState.Initial, Sample());
+        var (state, _) = GroundUpcallCore.Evaluate(GroundUpcallCore.UpcallState.Initial, Sample(refuel: GsxServiceStage.Active));
 
         var (_, taxiInCall) = GroundUpcallCore.Evaluate(
             state,
@@ -81,6 +81,30 @@ public sealed class GroundUpcallCoreTests
             state,
             Sample(refuel: GsxServiceStage.Completed));
         Assert.Equal(GroundUpcallCore.UpcallKind.RefuelComplete, preflightCall);
+    }
+
+    // Issue #151 (EGLL 2026-11-01): the startup resync seeded Refueling Completed a few ticks
+    // after the first "Waiting" read — history, not a truck leaving.
+    [Theory]
+    [InlineData(GsxServiceStage.Waiting)]
+    [InlineData(GsxServiceStage.Held)]
+    [InlineData(GsxServiceStage.Skipped)]
+    public void CompletionOutOfANonRunningStage_IsNotAnEdge(GsxServiceStage before)
+    {
+        var (state, _) = GroundUpcallCore.Evaluate(GroundUpcallCore.UpcallState.Initial, Sample(refuel: before, catering: before));
+        var (_, call) = GroundUpcallCore.Evaluate(state, Sample(refuel: GsxServiceStage.Completed, catering: GsxServiceStage.Completed));
+        Assert.Null(call);
+    }
+
+    [Theory]
+    [InlineData(GsxServiceStage.Called)]
+    [InlineData(GsxServiceStage.Requested)]
+    [InlineData(GsxServiceStage.Active)]
+    public void CompletionOutOfARunningStage_IsTheEdge(GsxServiceStage before)
+    {
+        var (state, _) = GroundUpcallCore.Evaluate(GroundUpcallCore.UpcallState.Initial, Sample(refuel: before));
+        var (_, call) = GroundUpcallCore.Evaluate(state, Sample(refuel: GsxServiceStage.Completed));
+        Assert.Equal(GroundUpcallCore.UpcallKind.RefuelComplete, call);
     }
 
     [Fact]
@@ -152,9 +176,9 @@ public sealed class GroundUpcallCoreTests
         (state, var call) = GroundUpcallCore.Evaluate(state, Sample(refuel: GsxServiceStage.Completed));
         Assert.Null(call);
 
-        // A genuine refuel in the next turnaround still announces.
+        // A genuine refuel in the next turnaround still announces (the truck runs, then leaves).
         state = GroundUpcallCore.OnFlightCycleReset(state);
-        (state, _) = GroundUpcallCore.Evaluate(state, Sample(refuel: GsxServiceStage.Waiting));
+        (state, _) = GroundUpcallCore.Evaluate(state, Sample(refuel: GsxServiceStage.Active));
         (_, call) = GroundUpcallCore.Evaluate(state, Sample(refuel: GsxServiceStage.Completed));
         Assert.Equal(GroundUpcallCore.UpcallKind.RefuelComplete, call);
     }

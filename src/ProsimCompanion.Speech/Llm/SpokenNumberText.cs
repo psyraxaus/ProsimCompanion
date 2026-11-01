@@ -181,30 +181,54 @@ public static partial class SpokenNumberText
     {
         long total = 0;
         long current = 0;
+        // A run of single digit words before a scale word is a digit group, not a sum
+        // (issue #203, EGLL 2026-11-01: the model's "one six hundred feet" for 1,600 ft was
+        // read as 1 + 6 = 7 → 700 and the template took the briefing over): "one six
+        // hundred" = 1600, "two niner thousand" = 29000, while "one hundred" stays 100.
+        var digitRun = 0;
+        long digitGroup = 0;
         foreach (var word in words)
         {
             if (Digits.TryGetValue(word, out var digit))
             {
                 current += digit;
+                digitRun++;
+                digitGroup = digitGroup * 10 + digit;
             }
             else if (TensTeens.TryGetValue(word, out var tens))
             {
                 current += tens;
+                digitRun = 0;
+                digitGroup = 0;
             }
             else if (word.Equals("hundred", StringComparison.OrdinalIgnoreCase))
             {
+                if (digitRun >= 2)
+                {
+                    current = digitGroup;
+                }
+
                 if (current >= 100)
                 {
                     return null;
                 }
 
                 current = (current == 0 ? 1 : current) * 100;
+                digitRun = 0;
+                digitGroup = 0;
             }
             else
             {
                 // thousand
+                if (digitRun >= 2)
+                {
+                    current = digitGroup;
+                }
+
                 total += (current == 0 ? 1 : current) * 1000;
                 current = 0;
+                digitRun = 0;
+                digitGroup = 0;
             }
         }
 
