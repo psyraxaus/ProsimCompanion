@@ -16,8 +16,9 @@ namespace ProsimCompanion.Speech.Persona;
 
 /// <summary>
 /// The roster's Speech-side shell (issue #194): decides WHEN a First Officer is drawn
-/// (<see cref="FoRosterTriggerCore"/> over the duty day or the sim's calendar day), speaks the
-/// once-per-day gate intro at the first Preflight, stamps <c>persona.foOnDuty</c> on every
+/// (<see cref="FoRosterTriggerCore"/>: one FO per sim calendar day, on the leg-began edge or
+/// the Preflight with that leg's plan in, never mid-duty-day — ADR-0019 §8 / issue #219),
+/// speaks the once-per-draw gate intro in Preflight, stamps <c>persona.foOnDuty</c> on every
 /// leg's session, and answers "who's flying with me today" / "new first officer" (the latter
 /// behind the <see cref="FoRosterChangeStore"/> captain's question). Read-and-speak only.
 /// </summary>
@@ -37,9 +38,10 @@ public sealed class FoRosterVoiceFeature : IVoiceFeature, IStartupModule, IDispo
     private readonly IFoRosterService _roster;
     private readonly FoRosterChangeStore _change;
     private readonly IOptionsMonitor<PersonaOptions> _options;
-    private readonly IOptionsMonitor<DayOptions> _day;
     private readonly IFlightPhaseSource _flight;
     private readonly DayStatusStore _dayStore;
+    private readonly ILegBoundaryEvents _legEvents;
+    private readonly LegBoundaryStore _legStore;
     private readonly ISpeechArbiter _arbiter;
     private readonly StyledSpeechService _styled;
     private readonly JsonlEventLog _eventLog;
@@ -54,9 +56,10 @@ public sealed class FoRosterVoiceFeature : IVoiceFeature, IStartupModule, IDispo
         IFoRosterService roster,
         FoRosterChangeStore change,
         IOptionsMonitor<PersonaOptions> options,
-        IOptionsMonitor<DayOptions> day,
         IFlightPhaseSource flight,
         DayStatusStore dayStore,
+        ILegBoundaryEvents legEvents,
+        LegBoundaryStore legStore,
         ISpeechArbiter arbiter,
         StyledSpeechService styled,
         JsonlEventLog eventLog,
@@ -68,9 +71,10 @@ public sealed class FoRosterVoiceFeature : IVoiceFeature, IStartupModule, IDispo
         ArgumentNullException.ThrowIfNull(roster);
         ArgumentNullException.ThrowIfNull(change);
         ArgumentNullException.ThrowIfNull(options);
-        ArgumentNullException.ThrowIfNull(day);
         ArgumentNullException.ThrowIfNull(flight);
         ArgumentNullException.ThrowIfNull(dayStore);
+        ArgumentNullException.ThrowIfNull(legEvents);
+        ArgumentNullException.ThrowIfNull(legStore);
         ArgumentNullException.ThrowIfNull(arbiter);
         ArgumentNullException.ThrowIfNull(styled);
         ArgumentNullException.ThrowIfNull(eventLog);
@@ -79,9 +83,10 @@ public sealed class FoRosterVoiceFeature : IVoiceFeature, IStartupModule, IDispo
         _roster = roster;
         _change = change;
         _options = options;
-        _day = day;
         _flight = flight;
         _dayStore = dayStore;
+        _legEvents = legEvents;
+        _legStore = legStore;
         _arbiter = arbiter;
         _styled = styled;
         _eventLog = eventLog;
@@ -128,20 +133,22 @@ public sealed class FoRosterVoiceFeature : IVoiceFeature, IStartupModule, IDispo
         _started = true;
         _flight.PhaseChanged += OnPhaseChanged;
         _dayStore.Changed += OnDayChanged;
+        _legEvents.LegBegan += OnLegBegan;
         _change.Answered += OnChangeAnswered;
         if (!_roster.IsActive)
         {
             _logger.LogInformation("FO roster off (persona.roster.mode) — the persona settings describe the First Officer");
         }
 
-        // A start mid-day: the day may already be open and the phase already Preflight.
-        Evaluate(preflightEdge: false);
+        // A start mid-day: the plan may already be loaded and the phase already Preflight.
+        Evaluate(preflightEdge: false, legBegan: false);
     }
 
     public void Dispose()
     {
         _flight.PhaseChanged -= OnPhaseChanged;
         _dayStore.Changed -= OnDayChanged;
+        _legEvents.LegBegan -= OnLegBegan;
         _change.Answered -= OnChangeAnswered;
     }
 
@@ -153,20 +160,26 @@ public sealed class FoRosterVoiceFeature : IVoiceFeature, IStartupModule, IDispo
         }
     }
 
-    private void OnDayChanged(object? sender, EventArgs e) => Evaluate(preflightEdge: false);
+    private void OnDayChanged(object? sender, EventArgs e) => Evaluate(preflightEdge: false, legBegan: false);
+
+    private void OnLegBegan(object? sender, LegBeganEventArgs e) => HandleLegBegan();
 
     /// <summary>The committed edge into Preflight — exposed for tests.</summary>
-    public void HandlePreflightEdge() => Evaluate(preflightEdge: true);
+    public void HandlePreflightEdge() => Evaluate(preflightEdge: true, legBegan: false);
+
+    /// <summary>A different OFP landed (ADR-0019 §1): the draw opportunity — exposed for tests.</summary>
+    public void HandleLegBegan() => Evaluate(preflightEdge: false, legBegan: true);
 
     /// <summary>One evaluation of the trigger rule: a new stamp draws (or, pinned, adopts),
-    /// the Preflight edge stamps the FO on the leg, and the intro speaks when due.</summary>
-    public void Evaluate(bool preflightEdge)
+    /// the Preflight edge and the leg-began edge stamp the FO on the leg, and the intro speaks
+    /// when due.</summary>
+    public void Evaluate(bool preflightEdge, bool legBegan)
     {
         try
         {
             lock (_gate)
             {
-                var decision = FoRosterTriggerCore.Evaluate(Inputs(preflightEdge));
+                var decision = FoRosterTriggerCore.Evaluate(Inputs(legBegan));
                 if (decision.NewStamp is { } stamp)
                 {
                     if (_options.CurrentValue.Roster.IsPinned)
@@ -179,11 +192,11 @@ public sealed class FoRosterVoiceFeature : IVoiceFeature, IStartupModule, IDispo
                     }
 
                     // Re-read with the draw in place: the intro is due for the new stamp.
-                    decision = FoRosterTriggerCore.Evaluate(Inputs(preflightEdge));
+                    decision = FoRosterTriggerCore.Evaluate(Inputs(legBegan));
                 }
 
                 var current = _roster.Current;
-                if (preflightEdge && current is not null)
+                if ((preflightEdge || legBegan) && current is not null)
                 {
                     _eventLog.Record("persona.foOnDuty", new { id = current.Id, name = current.Name, drawnFor = _roster.State.DrawnFor });
                 }
@@ -229,13 +242,14 @@ public sealed class FoRosterVoiceFeature : IVoiceFeature, IStartupModule, IDispo
         return localTime?.LocalDate;
     }
 
-    private FoRosterTriggerInputs Inputs(bool preflightEdge)
+    private FoRosterTriggerInputs Inputs(bool legBegan)
     {
         var options = _options.CurrentValue;
         var state = _roster.State;
         var simDate = SimLocalDate(_clock, _localTime);
         var now = Now();
-        if (simDate is null && preflightEdge && options.Roster.IsActive(options.Enabled) && !_day.CurrentValue.Enabled && !_fallbackDateLogged)
+        var leg = _legStore.Snapshot();
+        if (simDate is null && legBegan && options.Roster.IsActive(options.Enabled) && !_fallbackDateLogged)
         {
             _fallbackDateLogged = true;
             _logger.LogInformation("FO roster: the sim's calendar day is not available — the UTC wall date stands in for the draw");
@@ -244,9 +258,9 @@ public sealed class FoRosterVoiceFeature : IVoiceFeature, IStartupModule, IDispo
         return new FoRosterTriggerInputs(
             RosterActive: options.Roster.IsActive(options.Enabled),
             Pinned: options.Roster.IsPinned,
-            DayModeOn: _day.CurrentValue.Enabled,
-            OpenDayId: _dayStore.Snapshot() is { View.Active: true } snapshot ? snapshot.DayId : null,
-            PreflightEdge: preflightEdge,
+            OpenDayLegsCompleted: _dayStore.Snapshot() is { View: { Active: true } view } ? view.LegsCompleted : null,
+            LegBegan: legBegan,
+            LegPlanned: leg.PlanId is not null && leg.State == LegBoundaryState.None,
             InPreflight: _flight.CurrentPhase == FlightPhase.Preflight,
             SimLocalDate: simDate,
             FallbackDate: DateOnly.FromDateTime(now.UtcDateTime),
@@ -302,7 +316,7 @@ public sealed class FoRosterVoiceFeature : IVoiceFeature, IStartupModule, IDispo
     {
         if (fo is null)
         {
-            return "Nobody on the roster yet, captain — the draw comes at the first preflight.";
+            return "Nobody on the roster yet, captain — the draw comes when the first plan of the day is loaded.";
         }
 
         var experience = fo.Experience switch

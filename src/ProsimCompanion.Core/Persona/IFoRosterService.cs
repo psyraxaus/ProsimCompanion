@@ -30,7 +30,7 @@ public interface IFoRosterService
 
     /// <summary>Draws a new FO (never the previous one when the pool allows), stamps what the
     /// draw is for and resets the intro latch. Null when the pool is empty. <paramref name="reason"/>
-    /// is recorded on the <c>persona.rosterDraw</c> event ("day.started", "sim-day", "voice", "web").</summary>
+    /// is recorded on the <c>persona.rosterDraw</c> event ("new-leg", "preflight", "voice", "web").</summary>
     FoRosterEntry? Draw(string reason, DateTimeOffset nowUtc, string? drawnFor = null);
 
     /// <summary>Adopts a new day stamp without drawing (pinned mode): the intro latch resets

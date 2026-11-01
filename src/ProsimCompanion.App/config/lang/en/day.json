@@ -6,6 +6,7 @@
     "notWired": "Company day mode is not wired into this build (see WIRING-DAY.md).",
     "status": "Status",
     "noDay": "No duty day",
+    "turnaroundNoPlan": "Turnaround — the next leg starts when a new OFP is loaded.",
     "start": "Start duty day",
     "end": "End duty day",
     "startHint": "Say \"start duty day\", or press the button. With day mode enabled and auto-start on, a day also begins at the first Preflight. Drop a rotations/*.json file for a planned day.",

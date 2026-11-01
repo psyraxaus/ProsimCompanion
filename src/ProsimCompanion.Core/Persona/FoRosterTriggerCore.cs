@@ -5,9 +5,14 @@ namespace ProsimCompanion.Core.Persona;
 /// <summary>Everything the trigger rule needs for one evaluation.</summary>
 /// <param name="RosterActive">Persona on and the roster mode daily or pinned.</param>
 /// <param name="Pinned">Pinned mode: the day stamp moves, nobody is drawn.</param>
-/// <param name="DayModeOn">Company day mode is enabled: the duty day decides the draw.</param>
-/// <param name="OpenDayId">The open duty day's id, or null when none is open.</param>
-/// <param name="PreflightEdge">This evaluation is the committed edge INTO Preflight.</param>
+/// <param name="OpenDayLegsCompleted">Legs already flown (on blocks) in the OPEN duty day;
+/// null when no duty day is open. One or more means the day is past its first leg: the FO on
+/// duty is pinned until end of duty whatever the calendar does (ADR-0019 §8).</param>
+/// <param name="LegBegan">This evaluation is the "a new leg began" edge — a different OFP
+/// landed (<c>ILegBoundaryEvents.LegBegan</c>).</param>
+/// <param name="LegPlanned">A plan is loaded and the leg boundary is None: the loaded plan is
+/// the leg being prepared, not the one just flown (a Turnaround / Awaiting plan state means
+/// the plan in the store is the arrival's — never a draw opportunity).</param>
 /// <param name="InPreflight">The committed phase is Preflight right now.</param>
 /// <param name="SimLocalDate">The sim's local calendar day at the aircraft; null when the sim
 /// is not live (the wall-clock UTC date stands in, logged once by the caller).</param>
@@ -19,9 +24,9 @@ namespace ProsimCompanion.Core.Persona;
 public sealed record FoRosterTriggerInputs(
     bool RosterActive,
     bool Pinned,
-    bool DayModeOn,
-    string? OpenDayId,
-    bool PreflightEdge,
+    int? OpenDayLegsCompleted,
+    bool LegBegan,
+    bool LegPlanned,
     bool InPreflight,
     DateOnly? SimLocalDate,
     DateOnly FallbackDate,
@@ -33,7 +38,7 @@ public sealed record FoRosterTriggerInputs(
 /// <summary>What one evaluation decided, in order: a new day stamp to draw (or adopt, when
 /// pinned) for, then whether the gate intro is due.</summary>
 /// <param name="NewStamp">The stamp a new draw is for; null = no new day.</param>
-/// <param name="Reason">The draw reason for the event ("day.started" | "sim-day").</param>
+/// <param name="Reason">The draw reason for the event ("new-leg" | "preflight").</param>
 /// <param name="Intro">Speak the gate intro now.</param>
 public sealed record FoRosterTriggerDecision(string? NewStamp, string? Reason, bool Intro)
 {
@@ -41,12 +46,18 @@ public sealed record FoRosterTriggerDecision(string? NewStamp, string? Reason, b
 }
 
 /// <summary>
-/// The pure trigger rule of the roster (issue #194): WHEN a new FO is drawn and WHEN the gate
-/// intro is spoken. With day mode on, the open duty day is the unit — a new day id draws, the
-/// same id (a restart mid-rotation) keeps the FO. With day mode off, the sim's local calendar
-/// day at the first Preflight of a session is the unit (the rc.23 greeting clock, not wall
-/// time). The intro is due once per stamp, in Preflight, whether the draw happened at this
-/// edge or earlier (a day started by voice after the Preflight edge still greets).
+/// The pure trigger rule of the roster (issue #194, narrowed by ADR-0019 §8 / issue #219):
+/// <b>one First Officer per sim calendar day, never per day id, never mid-day.</b> A draw
+/// needs three things at once — an opportunity (a new leg began: a different OFP landed; or
+/// the aircraft is in Preflight with that leg's plan loaded, for the app that started after
+/// the plan did), a sim-local date that differs from the stamp of the last draw, and no open
+/// duty day past its first leg (an open day pins its FO until end of duty — EHAM 2026-11-01:
+/// the sim date rolled over in the turnaround and Hanna became Sam mid-day). A day id change
+/// on the same sim date keeps the FO; a plan loaded after an end of duty on the same date
+/// keeps the FO; a new sim date with a new plan draws. The stamp is always <c>sim:yyyy-MM-dd</c>
+/// (the sim's own date, the rc.23 greeting clock, not wall time). The intro is due once per
+/// stamp, in Preflight, whether the draw happened at this edge or earlier (a plan loaded cold
+/// and dark greets at the Preflight edge).
 /// </summary>
 public static class FoRosterTriggerCore
 {
@@ -60,26 +71,16 @@ public static class FoRosterTriggerCore
 
         string? newStamp = null;
         string? reason = null;
-        if (inputs.DayModeOn)
-        {
-            if (inputs.OpenDayId is { Length: > 0 } dayId)
-            {
-                var stamp = "day:" + dayId;
-                if (!string.Equals(stamp, inputs.DrawnFor, StringComparison.Ordinal))
-                {
-                    newStamp = stamp;
-                    reason = "day.started";
-                }
-            }
-        }
-        else if (inputs.PreflightEdge)
+        var opportunity = inputs.LegBegan || (inputs.InPreflight && inputs.LegPlanned);
+        var dayPinsFo = inputs.OpenDayLegsCompleted is > 0 && inputs.HasCurrent;
+        if (opportunity && !dayPinsFo)
         {
             var date = inputs.SimLocalDate ?? inputs.FallbackDate;
-            var stamp = "sim:" + date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+            var stamp = Stamp(date);
             if (!string.Equals(stamp, inputs.DrawnFor, StringComparison.Ordinal))
             {
                 newStamp = stamp;
-                reason = "sim-day";
+                reason = inputs.LegBegan ? "new-leg" : "preflight";
             }
         }
 
@@ -88,4 +89,8 @@ public static class FoRosterTriggerCore
         var intro = inputs.IntroEnabled && inputs.InPreflight && hasStamp && introPending && inputs.HasCurrent;
         return new FoRosterTriggerDecision(newStamp, reason, intro);
     }
+
+    /// <summary>The draw stamp for a sim calendar day.</summary>
+    public static string Stamp(DateOnly simLocalDate)
+        => "sim:" + simLocalDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
 }

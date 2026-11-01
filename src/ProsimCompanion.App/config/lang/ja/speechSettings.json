@@ -153,17 +153,17 @@
       "overriddenByRoster": "Overridden by the roster — the drawn First Officer's value applies.",
       "roster": {
         "title": "Roster",
-        "hint": "A different First Officer each duty day, drawn from fo-roster.json",
+        "hint": "シミュレーターの暦日ごとに別のファーストオフィサーを fo-roster.json から抽選",
         "mode": {
           "label": "Roster",
-          "hint": "Off keeps the persona above. Daily draws a new FO per duty day. Pinned keeps the one you pin below."
+          "hint": "オフは上のペルソナを維持。デイリーはシミュレーター暦日の最初のレグで新しい FO を抽選し、開いている勤務日はその FO を維持。ピン留めは下でピン留めした FO を維持。"
         },
         "gateIntro": {
           "label": "Gate introduction",
-          "hint": "The FO introduces themselves once per duty day at the first preflight."
+          "hint": "FO は抽選ごとに一度、レグのプランが読み込まれた後にゲートで自己紹介します。"
         },
         "current": "On duty",
-        "nobody": "Nobody drawn yet — the draw comes at the duty-day start or the first preflight.",
+        "nobody": "まだ抽選されていません — その日の最初のプランが読み込まれたときに抽選します。",
         "hours": "{0} h on type",
         "empty": "The roster file holds no officers.",
         "columns": {
@@ -699,7 +699,7 @@
         "hint": "複数セクターの勤務記録: ブロック時間と勤務時間、ターンアラウンドの要約、一日の締め。飛行時間制限の計算ではありません",
         "track": {
           "label": "勤務日を自動で記録",
-          "hint": "オフ: \"start duty day\" と /day ページは引き続き手動で使えます。"
+          "hint": "1.0 以降は既定でオン（ADR-0019）。オフでも start duty day の発話と /day ページは手動で使えます。"
         },
         "autoStart": "最初のプリフライトで開始",
         "turnaround": {
@@ -1627,7 +1627,7 @@
       },
       "rosterMode": {
         "off": "Off (one persona)",
-        "daily": "Daily (a new FO per duty day)",
+        "daily": "デイリー（シミュレーターの 1 日ごとに新しい FO）",
         "pinned": "Pinned (the FO pinned below)"
       },
       "formality": {

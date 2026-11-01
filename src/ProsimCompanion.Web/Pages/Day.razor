@@ -61,6 +61,13 @@
                     </div>
                 </div>
 
+                @if (view.Active && string.Equals(view.State, nameof(DayPhase.Turnaround), StringComparison.Ordinal))
+                {
+                    @* ADR-0019 §1/§5 (#212): the next leg exists only once its OFP does — after the
+                       day's last landing this is all the page says; no "leg 3" row is invented. *@
+                    <div class="ops-note">@T["day.turnaroundNoPlan"]</div>
+                }
+
                 <div class="ops-figures">
                     @* h:mm digits + a small unit, like every other EFB figure — the spoken
                        "1 hour 42 minutes" ellipsized in the cell (Mario, 2026-10-10). *@

@@ -23,6 +23,37 @@ public sealed class CompanyDayEngine
     /// <summary>Adopts previously persisted state (an open day resumes across restarts).</summary>
     public void Resume(DayState? day) => Day = day;
 
+    /// <summary>
+    /// Drops the phantom leg an older build left behind (issue #212, audit row A3): before
+    /// ADR-0019 the next leg started on the arrival's Preflight edge and took its route from
+    /// the plan just FLOWN, so the day's last landing grew a never-flown leg that duplicated the
+    /// previous one (EGLL 2026-11-01: `currentLegIndex 3`, leg 3 EHAM→EGLL after leg 2
+    /// EHAM→EGLL). The signature is exact: the day is open and on a leg, the current leg never
+    /// moved (no off-blocks, no session) and its route equals the completed leg before it.
+    /// That leg is removed and the day put back in its turnaround; the next plan starts the
+    /// real next leg. A genuine repeat of the same route (a there-and-back to the same field)
+    /// is only at risk when it has not pushed back yet — it is re-created by the plan that
+    /// began it. Returns the dropped index, or null when nothing matched.
+    /// </summary>
+    public int? DropPhantomLeg()
+    {
+        if (Day is not { IsOpen: true, State: DayPhase.OnLeg } day
+            || day.Current is not { ActualOffUtc: null, SessionId: null } current
+            || day.Legs.FirstOrDefault(l => l.Index == current.Index - 1) is not { ActualOnUtc: not null } previous
+            || string.IsNullOrEmpty(current.From)
+            || string.IsNullOrEmpty(current.To)
+            || !string.Equals(current.From, previous.From, StringComparison.OrdinalIgnoreCase)
+            || !string.Equals(current.To, previous.To, StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        day.Legs.Remove(current);
+        day.CurrentLegIndex = previous.Index;
+        day.State = DayPhase.Turnaround;
+        return current.Index;
+    }
+
     /// <summary>Starts a new day. False when a day is already open. With a rotation the day is
     /// <see cref="DayMode.Planned"/> and its legs are pre-filled; otherwise a single
     /// progressive leg is opened.</summary>
@@ -109,9 +140,10 @@ public sealed class CompanyDayEngine
         return day.CurrentLegIndex;
     }
 
-    /// <summary>Preflight while in a turnaround: advances to the next leg (appending one when
-    /// the rotation ran out, chaining From = previous To) and returns it; null when the day is
-    /// not in a turnaround. The caller rotates the event-log session BEFORE calling this.</summary>
+    /// <summary>A different OFP loaded while in a turnaround (ADR-0019 §1/§5 — the leg begins on
+    /// its plan, never on the Preflight edge): advances to the next leg (appending one when the
+    /// rotation ran out, chaining From = previous To) and returns it; null when the day is not
+    /// in a turnaround. The caller rotates the event-log session BEFORE calling this.</summary>
     public DayLeg? StartNextLeg()
     {
         if (Day is not { IsOpen: true, State: DayPhase.Turnaround } day)

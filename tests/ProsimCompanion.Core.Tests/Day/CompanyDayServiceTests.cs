@@ -36,6 +36,7 @@ public sealed class CompanyDayServiceTests : IDisposable
     private readonly FakeArbiter _arbiter = new();
     private readonly FakeCompanyChannel _company = new();
     private readonly DayStatusStore _store = new();
+    private readonly FakeLegBoundaryEvents _legEvents = new();
     private readonly ProsimCompanion.Core.Aircraft.Ofp.OfpStore _ofp = new();
     private readonly Mock<IDebriefFactExtractor> _extractor = new();
     private readonly Mock<ITechLogService> _techLog = new();
@@ -75,7 +76,8 @@ public sealed class CompanyDayServiceTests : IDisposable
         OptionsSupport.Monitor(_options),
         NullLogger<CompanyDayService>.Instance,
         new ProsimCompanion.Core.Speech.SpokenText(),
-        _ofp);
+        _ofp,
+        _legEvents);
 
     public void Dispose()
     {
@@ -239,11 +241,16 @@ public sealed class CompanyDayServiceTests : IDisposable
         Assert.DoesNotContain(_arbiter.Requests, r => r.Text.StartsWith("That's leg", StringComparison.Ordinal));
     }
 
-    // ---- next leg ----
+    // ---- next leg (ADR-0019 §1/§5, issue #212: the leg begins on its plan) ----
 
+    /// <summary>EHAM 2026-11-01: thirty seconds after deboarding the Preflight edge started
+    /// "Leg 2. New sector" with the plan just flown as its route. The edge now does nothing to
+    /// the legs; the next leg waits for a different OFP.</summary>
     [Fact]
-    public void NextPreflight_RotatesSessionAndChainsTheNextLeg()
+    public void PreflightInTurnaround_DoesNotStartALeg_TheNewPlanDoes()
     {
+        _service.Start();
+        _ofp.Set(Ofp("YSSY", "YMML", "QF1", id: "1"));
         _service.TryStartDay("test", T0);
         CompleteLegOne(T0.AddMinutes(90), DebriefFacts.Empty with
         {
@@ -253,15 +260,41 @@ public sealed class CompanyDayServiceTests : IDisposable
         });
         var firstSession = _eventLog.Path;
 
-        _service.HandlePhase(FlightPhase.Preflight, T0.AddMinutes(130));
+        _service.HandlePhase(FlightPhase.Preflight, T0.AddMinutes(91));
 
-        Assert.NotEqual(firstSession, _eventLog.Path); // rotated only at next-leg start
+        Assert.Equal(firstSession, _eventLog.Path); // no rotation for a leg that does not exist
+        var parked = _store.Snapshot();
+        Assert.Equal("Turnaround", parked.View!.State);
+        Assert.Equal(1, parked.View.LegIndex);
+        Assert.Single(parked.Legs);
+        Assert.DoesNotContain(_arbiter.Requests, r => r.Text.StartsWith("Leg 2.", StringComparison.Ordinal));
+
+        // The return plan lands: now the leg begins, with THAT plan as its route.
+        _ofp.Set(Ofp("YMML", "YSSY", "QF2", id: "2"));
+        _legEvents.RaiseLegBegan("req:2", "req:1");
+
+        Assert.NotEqual(firstSession, _eventLog.Path); // rotated at next-leg start
         var snapshot = _store.Snapshot();
         Assert.Equal("OnLeg", snapshot.View!.State);
         Assert.Equal(2, snapshot.View.LegIndex);
-        Assert.Equal("YMML", snapshot.Legs.Single(l => l.Index == 2).From); // From chains previous To
-        Assert.Contains(_arbiter.Requests, r => r.Text == "Leg 2. New sector.");
+        var leg = snapshot.Legs.Single(l => l.Index == 2);
+        Assert.Equal("YMML", leg.From);
+        Assert.Equal("YSSY", leg.To);
+        Assert.Equal("QF2", leg.FlightNo);
+        var sector = Assert.Single(_arbiter.Requests, r => r.Text.StartsWith("Leg 2. New sector", StringComparison.Ordinal));
+        Assert.Equal("Leg 2. New sector, Yankee Mike Mike Lima to Yankee Sierra Sierra Yankee.", sector.Text);
         Assert.Empty(_company.Messages); // progressive mode has no plan to read
+    }
+
+    [Fact]
+    public void NewPlan_WithoutARoute_SaysTheShortLine()
+    {
+        _service.TryStartDay("test", T0);
+        CompleteLegOne(T0.AddMinutes(90), DebriefFacts.Empty with { BlockMinutes = 80 });
+
+        _service.HandleLegBegan("req:2", T0.AddMinutes(130));
+
+        Assert.Contains(_arbiter.Requests, r => r.Text == "Leg 2. New sector.");
     }
 
     [Fact]
@@ -272,7 +305,7 @@ public sealed class CompanyDayServiceTests : IDisposable
         Assert.Contains(_arbiter.Requests, r => r.Text == "Duty day started — 2 sectors planned.");
 
         CompleteLegOne(T0.AddMinutes(125), DebriefFacts.Empty with { BlockMinutes = 50, Destination = "EGCC" });
-        _service.HandlePhase(FlightPhase.Preflight, T0.AddMinutes(150));
+        _service.HandleLegBegan("req:2", T0.AddMinutes(150));
 
         var message = Assert.Single(_company.Messages);
         // No IAirportNames registered here, so the ICAOs fall back to spelled form (#70).
@@ -363,7 +396,7 @@ public sealed class CompanyDayServiceTests : IDisposable
 
         // On a leg (not a turnaround) idle time never closes the day either.
         _options.AutoCloseIdleMinutes = 90;
-        _service.HandlePhase(FlightPhase.Preflight, T0.AddMinutes(700));
+        _service.HandleLegBegan("req:2", T0.AddMinutes(700));
         _service.ProcessTick(T0.AddMinutes(700 + 600));
         Assert.True(_store.Snapshot().View!.Active);
     }
@@ -379,6 +412,96 @@ public sealed class CompanyDayServiceTests : IDisposable
         Assert.NotNull(view);
         Assert.True(view.Active);
         Assert.Equal(0, view.LegsCompleted);
+    }
+
+    /// <summary>ADR-0019 §8: a plan loaded after the end starts a new duty day — leg 1 seeded
+    /// from it, no Preflight edge needed (the aircraft may already be powered).</summary>
+    [Fact]
+    public void AfterEndedDay_ANewPlanAutoStartsAFreshDay_SeededFromIt()
+    {
+        _service.TryStartDay("test", T0);
+        _service.TryEndDay("test", T0.AddMinutes(30));
+
+        _ofp.Set(Ofp("EGLL", "EHAM", "BAW432", id: "9"));
+        _service.HandleLegBegan("req:9", T0.AddMinutes(40));
+
+        var snapshot = _store.Snapshot();
+        Assert.True(snapshot.View!.Active);
+        Assert.Equal(1, snapshot.View.LegIndex);
+        Assert.Equal("EGLL", snapshot.View.From);
+        Assert.Equal("EHAM", snapshot.View.To);
+
+        // With the automation off the plan starts nothing.
+        _service.TryEndDay("test", T0.AddMinutes(50));
+        _options.AutoStart = false;
+        _service.HandleLegBegan("req:10", T0.AddMinutes(60));
+        Assert.False(_store.Snapshot().View!.Active);
+    }
+
+    // ---- the phantom leg of the older build (issue #212, audit row A3) ----
+
+    /// <summary>EGLL 2026-11-01: `daystate.json` ended with `currentLegIndex 3` and a leg 3
+    /// EHAM→EGLL that duplicated leg 2 and never moved — the old Preflight-edge start after the
+    /// day's last landing. A resume drops it and puts the day back in its turnaround.</summary>
+    [Fact]
+    public void Restart_DropsThePhantomLegOfAnOlderBuild()
+    {
+        var engine = new CompanyDayEngine();
+        engine.StartDay(null, 15, T0);
+        engine.StampOffBlocks(T0.AddMinutes(10));
+        engine.SeedRouteFromOfp("EHAM", "EGLL", "BAW433");
+        engine.CompleteLeg("session-1", T0.AddMinutes(60));
+        var phantom = engine.StartNextLeg()!; // the old build: Preflight edge, flown plan as route
+        engine.SeedRouteFromOfp("EHAM", "EGLL", "BAW433");
+        Assert.Equal(2, phantom.Index); // leg 2 is the phantom here
+        new DayStateFile(OptionsSupport.Monitor(_options), NullLogger<DayStateFile>.Instance).Save(engine.Day!);
+
+        var second = Create();
+        try
+        {
+            second.Start();
+            var snapshot = _store.Snapshot();
+            Assert.Equal("Turnaround", snapshot.View!.State);
+            Assert.Equal(1, snapshot.View.LegIndex);
+            Assert.Single(snapshot.Legs);
+            Assert.Equal("Leg 1 complete.", second.DebriefContextLine);
+        }
+        finally
+        {
+            second.Dispose();
+        }
+
+        // Persisted: a third start finds no phantom to drop.
+        var third = new CompanyDayEngine();
+        third.Resume(new DayStateFile(OptionsSupport.Monitor(_options), NullLogger<DayStateFile>.Instance).Load());
+        Assert.Null(third.DropPhantomLeg());
+        Assert.Single(third.Day!.Legs);
+    }
+
+    [Fact]
+    public void DropPhantomLeg_LeavesARealNextLegAlone()
+    {
+        var engine = new CompanyDayEngine();
+        engine.StartDay(null, 15, T0);
+        engine.StampOffBlocks(T0.AddMinutes(10));
+        engine.SeedRouteFromOfp("EGLL", "EHAM", "BAW432");
+        engine.CompleteLeg("session-1", T0.AddMinutes(60));
+        engine.StartNextLeg();
+        engine.SeedRouteFromOfp("EHAM", "EGLL", "BAW433"); // a different route: the return leg
+
+        Assert.Null(engine.DropPhantomLeg());
+        Assert.Equal(2, engine.Day!.Legs.Count);
+
+        // A duplicate route that already pushed back is a flown leg, never a phantom.
+        var flown = new CompanyDayEngine();
+        flown.StartDay(null, 15, T0);
+        flown.StampOffBlocks(T0.AddMinutes(10));
+        flown.SeedRouteFromOfp("EGLL", "EGLL", "TRAIN1");
+        flown.CompleteLeg("session-1", T0.AddMinutes(60));
+        flown.StartNextLeg();
+        flown.SeedRouteFromOfp("EGLL", "EGLL", "TRAIN2");
+        flown.StampOffBlocks(T0.AddMinutes(90));
+        Assert.Null(flown.DropPhantomLeg());
     }
 
     // ---- debrief context line + resume ----
@@ -470,8 +593,8 @@ public sealed class CompanyDayServiceTests : IDisposable
         _ofp.Set(Ofp("LHBP", "EDDM", "DLH1688", id: "3"));
         Assert.Equal("LHBP", _store.Snapshot().Legs.Single().To);
 
-        // Next leg: From chains, To and the flight number come from the OFP.
-        _service.HandlePhase(FlightPhase.Preflight, T0.AddMinutes(150));
+        // Next leg (begun by that plan): From chains, To and the flight number come from the OFP.
+        _legEvents.RaiseLegBegan("req:3", "req:2");
         var next = _store.Snapshot().Legs.Single(l => l.Index == 2);
         Assert.Equal("LHBP", next.From);
         Assert.Equal("EDDM", next.To);

@@ -13,9 +13,11 @@ public sealed class DayOptions : IOptionSection
 
     /// <summary>Master on/off for automatic day tracking. Voice ("start duty day") and the
     /// web button work regardless — parity with Prosim2FO, where an explicit request always
-    /// wins over the automation toggle.</summary>
+    /// wins over the automation toggle. On by default since 1.0 (ADR-0019 §7, issue #216): the
+    /// leg-boundary machine runs always and the duty day gives its legs names and an end; a
+    /// settings.json that says <c>false</c> keeps saying it.</summary>
     [OptionField(FieldKind.Bool, "speechSettings.company.day.track")]
-    public bool Enabled { get; set; }
+    public bool Enabled { get; set; } = true;
 
     /// <summary>Begin a day automatically at the first Preflight (else use "start duty day").</summary>
     [OptionField(FieldKind.Bool, "speechSettings.company.day.autoStart", DependsOn = "Enabled")]

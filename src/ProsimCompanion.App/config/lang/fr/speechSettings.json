@@ -153,17 +153,17 @@
       "overriddenByRoster": "Overridden by the roster — the drawn First Officer's value applies.",
       "roster": {
         "title": "Roster",
-        "hint": "A different First Officer each duty day, drawn from fo-roster.json",
+        "hint": "Un copilote différent chaque jour calendaire du simulateur, tiré de fo-roster.json",
         "mode": {
           "label": "Roster",
-          "hint": "Off keeps the persona above. Daily draws a new FO per duty day. Pinned keeps the one you pin below."
+          "hint": "Off garde la persona ci-dessus. Quotidien tire un nouveau copilote au premier tronçon de chaque jour calendaire du simulateur ; une journée de service ouverte garde son copilote. Épinglé garde celui épinglé ci-dessous."
         },
         "gateIntro": {
           "label": "Gate introduction",
-          "hint": "The FO introduces themselves once per duty day at the first preflight."
+          "hint": "Le copilote se présente une fois par tirage, à la porte, dès que le plan du tronçon est chargé."
         },
         "current": "On duty",
-        "nobody": "Nobody drawn yet — the draw comes at the duty-day start or the first preflight.",
+        "nobody": "Personne tiré pour l'instant — le tirage a lieu au chargement du premier plan de la journée.",
         "hours": "{0} h on type",
         "empty": "The roster file holds no officers.",
         "columns": {
@@ -699,7 +699,7 @@
         "hint": "Suivi de service multi-secteurs : temps bloc et de service, résumés d'escale, bilan de fin de journée. Pas un calcul de limitations de temps de vol",
         "track": {
           "label": "Suivre les journées de service automatiquement",
-          "hint": "Désactivé : \"start duty day\" et la page /day fonctionnent toujours à la main."
+          "hint": "Activé par défaut depuis la 1.0 (ADR-0019). Off : dire start duty day et la page /day fonctionnent toujours à la main."
         },
         "autoStart": "Commencer au premier prévol",
         "turnaround": {
@@ -1627,7 +1627,7 @@
       },
       "rosterMode": {
         "off": "Off (one persona)",
-        "daily": "Daily (a new FO per duty day)",
+        "daily": "Quotidien (un nouveau copilote par jour du simulateur)",
         "pinned": "Pinned (the FO pinned below)"
       },
       "formality": {

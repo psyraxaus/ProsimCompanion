@@ -153,17 +153,17 @@
       "overriddenByRoster": "Overridden by the roster — the drawn First Officer's value applies.",
       "roster": {
         "title": "Roster",
-        "hint": "A different First Officer each duty day, drawn from fo-roster.json",
+        "hint": "Un primer oficial distinto cada día de calendario del simulador, elegido de fo-roster.json",
         "mode": {
           "label": "Roster",
-          "hint": "Off keeps the persona above. Daily draws a new FO per duty day. Pinned keeps the one you pin below."
+          "hint": "Apagado mantiene la persona de arriba. Diario elige un nuevo FO en el primer tramo de cada día de calendario del simulador; una jornada de servicio abierta conserva su FO. Fijado mantiene el que fijes abajo."
         },
         "gateIntro": {
           "label": "Gate introduction",
-          "hint": "The FO introduces themselves once per duty day at the first preflight."
+          "hint": "El FO se presenta una vez por sorteo, en la puerta, cuando el plan del tramo está cargado."
         },
         "current": "On duty",
-        "nobody": "Nobody drawn yet — the draw comes at the duty-day start or the first preflight.",
+        "nobody": "Nadie elegido aún: el sorteo llega cuando se carga el primer plan del día.",
         "hours": "{0} h on type",
         "empty": "The roster file holds no officers.",
         "columns": {
@@ -699,7 +699,7 @@
         "hint": "Seguimiento de la jornada en varios sectores: cifras de bloque y servicio, resúmenes de escala, un cierre de jornada. No es un cálculo de límites de tiempo de vuelo",
         "track": {
           "label": "Seguir las jornadas automáticamente",
-          "hint": "Apagado: \"start duty day\" y la página /day siguen funcionando a mano."
+          "hint": "Activado por defecto desde 1.0 (ADR-0019). Apagado: decir start duty day y la página /day siguen funcionando a mano."
         },
         "autoStart": "Empezar en el primer prevuelo",
         "turnaround": {
@@ -1627,7 +1627,7 @@
       },
       "rosterMode": {
         "off": "Off (one persona)",
-        "daily": "Daily (a new FO per duty day)",
+        "daily": "Diario (un nuevo FO por día del simulador)",
         "pinned": "Pinned (the FO pinned below)"
       },
       "formality": {

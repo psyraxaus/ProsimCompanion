@@ -153,17 +153,17 @@
       "overriddenByRoster": "Overridden by the roster — the drawn First Officer's value applies.",
       "roster": {
         "title": "Roster",
-        "hint": "A different First Officer each duty day, drawn from fo-roster.json",
+        "hint": "Een andere First Officer per sim-kalenderdag, getrokken uit fo-roster.json",
         "mode": {
           "label": "Roster",
-          "hint": "Off keeps the persona above. Daily draws a new FO per duty day. Pinned keeps the one you pin below."
+          "hint": "Uit houdt de persona hierboven. Dagelijks trekt op het eerste leg van elke sim-kalenderdag een nieuwe FO — een open dienstdag houdt zijn FO. Vastgepind houdt degene die je hieronder vastpint."
         },
         "gateIntro": {
           "label": "Gate introduction",
-          "hint": "The FO introduces themselves once per duty day at the first preflight."
+          "hint": "De FO stelt zich één keer per trekking voor, aan de gate zodra het plan van het leg geladen is."
         },
         "current": "On duty",
-        "nobody": "Nobody drawn yet — the draw comes at the duty-day start or the first preflight.",
+        "nobody": "Nog niemand getrokken — de trekking komt wanneer het eerste plan van de dag geladen wordt.",
         "hours": "{0} h on type",
         "empty": "The roster file holds no officers.",
         "columns": {
@@ -699,7 +699,7 @@
         "hint": "Dienstregistratie over meerdere sectoren: blok- en diensttijden, turnaround-samenvattingen, een dagafsluiting. Geen berekening van vliegtijdlimieten",
         "track": {
           "label": "Dienstdagen automatisch bijhouden",
-          "hint": "Uit: \"start duty day\" en de pagina /day werken nog met de hand."
+          "hint": "Sinds 1.0 standaard aan (ADR-0019). Uit: start duty day zeggen en de pagina /day werken nog met de hand."
         },
         "autoStart": "Beginnen bij de eerste preflight",
         "turnaround": {
@@ -1627,7 +1627,7 @@
       },
       "rosterMode": {
         "off": "Off (one persona)",
-        "daily": "Daily (a new FO per duty day)",
+        "daily": "Dagelijks (een nieuwe FO per sim-dag)",
         "pinned": "Pinned (the FO pinned below)"
       },
       "formality": {

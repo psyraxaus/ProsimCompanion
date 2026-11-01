@@ -28,10 +28,11 @@ public sealed class FoRosterVoiceFeatureTests : IDisposable
 
     private readonly string _dir = Directory.CreateTempSubdirectory("pc-roster-feature-").FullName;
     private readonly PersonaOptions _persona = new() { Enabled = true, Roster = { Mode = PersonaRosterOptions.ModeDaily } };
-    private readonly DayOptions _day = new() { Enabled = false };
     private readonly FakePhaseSource _phases = new();
     private readonly FakeArbiter _arbiter = new();
     private readonly DayStatusStore _dayStore = new();
+    private readonly FakeLegBoundaryEvents _legEvents = new();
+    private readonly LegBoundaryStore _legStore = new();
     private readonly FakeClock _clock = new();
     private readonly JsonlEventLog _eventLog;
     private readonly FoRosterChangeStore _change = new(new GroundOpsSignals());
@@ -59,12 +60,25 @@ public sealed class FoRosterVoiceFeatureTests : IDisposable
         }
     }
 
+    /// <summary>The leg boundary says a plan is loaded and the leg is being prepared (state
+    /// None) — the Preflight edge is then a draw opportunity (ADR-0019 §8).</summary>
+    private void PlanLoaded(string planId)
+        => _legStore.Update(_ => new LegBoundarySnapshot(LegBoundaryState.None, planId, false, false, DateTimeOffset.UtcNow, "test"));
+
+    /// <summary>Deboarding complete: the plan in the store is the arrival's.</summary>
+    private void Turnaround(string planId)
+        => _legStore.Update(_ => new LegBoundarySnapshot(LegBoundaryState.Turnaround, planId, true, false, DateTimeOffset.UtcNow, "test"));
+
+    private void OpenDay(int legsCompleted, string dayId = "day-1")
+        => _dayStore.Update(new DaySnapshot(new DayView(true, legsCompleted > 0 ? "Turnaround" : "OnLeg", legsCompleted + 1, legsCompleted + 1, legsCompleted, null, null, 0, 0, null), [], null, null, dayId));
+
+    private void NoDay()
+        => _dayStore.Update(new DaySnapshot(new DayView(false, "Ended", 1, 1, 1, null, null, 0, 0, null), [], null, null, "day-1"));
+
     private FoRosterVoiceFeature Create()
     {
         var persona = new Mock<IOptionsMonitor<PersonaOptions>>();
         persona.SetupGet(m => m.CurrentValue).Returns(() => _persona);
-        var day = new Mock<IOptionsMonitor<DayOptions>>();
-        day.SetupGet(m => m.CurrentValue).Returns(() => _day);
         _roster = new FoRosterService(
             persona.Object,
             new FoRosterStateFile(NullLogger<FoRosterStateFile>.Instance, Path.Combine(_dir, "state.json")),
@@ -78,7 +92,7 @@ public sealed class FoRosterVoiceFeatureTests : IDisposable
             SpeechTestSupport.Persona(_persona), persona.Object, SpeechTestSupport.BriefingMonitor(new BriefingOptions()),
             _eventLog, NullLogger<StyledSpeechService>.Instance);
         var feature = new FoRosterVoiceFeature(
-            _roster, _change, persona.Object, day.Object, _phases, _dayStore, _arbiter, styled, _eventLog,
+            _roster, _change, persona.Object, _phases, _dayStore, _legEvents, _legStore, _arbiter, styled, _eventLog,
             NullLogger<FoRosterVoiceFeature>.Instance, _clock);
         feature.Start();
         return feature;
@@ -95,11 +109,18 @@ public sealed class FoRosterVoiceFeatureTests : IDisposable
     private int Intros => _arbiter.Tags.Count(t => t == FoRosterVoiceFeature.IntroTag);
 
     [Fact]
-    public async Task FirstPreflight_DrawsAndSpeaksTheIntroOnce_ThenNotAgainTheSameDay()
+    public async Task FirstPlanInPreflight_DrawsAndSpeaksTheIntroOnce_ThenNotAgainTheSameDay()
     {
         var feature = Create();
 
+        // Powered, parked, no plan yet: nothing to draw for.
         _phases.SetPhase(FlightPhase.Preflight);
+        await AwaitIntro(feature);
+        Assert.Null(_roster.Current);
+
+        // The day's first plan lands: the draw, and the intro at once (already in Preflight).
+        PlanLoaded("req:1");
+        _legEvents.RaiseLegBegan("req:1", null, LegBoundaryState.None);
         await AwaitIntro(feature);
 
         Assert.NotNull(_roster.Current);
@@ -108,30 +129,63 @@ public sealed class FoRosterVoiceFeatureTests : IDisposable
         Assert.Equal(SpeechPriority.Low, intro.Priority);
         Assert.StartsWith("Morning captain, Sam here", intro.Text, StringComparison.Ordinal);
         Assert.Contains("about 2400 hours", intro.Text, StringComparison.Ordinal);
+        Assert.Equal("sim:2026-11-01", _roster.State.DrawnFor);
 
-        // A second leg the same sim day: no new draw, no second intro.
+        // A second leg the same sim day (deboarded, then the return plan): no new draw, no second intro.
         _phases.SetPhase(FlightPhase.Shutdown);
+        Turnaround("req:1");
         _phases.SetPhase(FlightPhase.Preflight);
+        PlanLoaded("req:2");
+        _legEvents.RaiseLegBegan("req:2", "req:1");
         await AwaitIntro(feature);
         Assert.Equal(1, Intros);
         Assert.Equal("sim:2026-11-01", _roster.State.DrawnFor);
     }
 
+    /// <summary>The app started after the plan was loaded (no leg-began edge to hear): the
+    /// Preflight with that leg's plan is the opportunity. The arrival's Preflight edge, with
+    /// the flown plan still in the store, is not.</summary>
     [Fact]
-    public async Task NewSimDay_DrawsAgain_AndGreetsAgain()
+    public async Task PreflightWithThePlan_Draws_TheArrivalsPreflightDoesNot()
+    {
+        PlanLoaded("req:1");
+        var feature = Create();
+        _phases.SetPhase(FlightPhase.Preflight);
+        await AwaitIntro(feature);
+        var first = _roster.Current!.Id;
+        Assert.Equal(1, Intros);
+
+        // EHAM 2026-11-01: the sim date rolled over in flight; deboarding complete, Preflight
+        // edge, old plan in the store — no draw (the boundary is Turnaround, not a planned leg).
+        _clock.LocalDate = new DateOnly(2026, 11, 2);
+        _phases.SetPhase(FlightPhase.Shutdown);
+        Turnaround("req:1");
+        _phases.SetPhase(FlightPhase.Preflight);
+        await AwaitIntro(feature);
+        Assert.Equal(first, _roster.Current!.Id);
+        Assert.Equal(1, Intros);
+    }
+
+    [Fact]
+    public async Task NewSimDay_NewPlan_NoOpenDay_DrawsAgainAndGreetsAgain()
     {
         var feature = Create();
         _phases.SetPhase(FlightPhase.Preflight);
+        PlanLoaded("req:1");
+        _legEvents.RaiseLegBegan("req:1", null, LegBoundaryState.None);
         await AwaitIntro(feature);
         var first = _roster.Current!.Id;
 
         _clock.LocalDate = new DateOnly(2026, 11, 2);
         _phases.SetPhase(FlightPhase.Shutdown);
         _phases.SetPhase(FlightPhase.Preflight);
+        PlanLoaded("req:2");
+        _legEvents.RaiseLegBegan("req:2", "req:1");
         await AwaitIntro(feature);
 
         Assert.NotEqual(first, _roster.Current!.Id);
         Assert.Equal(2, Intros);
+        Assert.Equal("sim:2026-11-02", _roster.State.DrawnFor);
     }
 
     [Fact]
@@ -140,7 +194,9 @@ public sealed class FoRosterVoiceFeatureTests : IDisposable
         _persona.Roster.Mode = PersonaRosterOptions.ModeOff;
         var feature = Create();
 
+        PlanLoaded("req:1");
         _phases.SetPhase(FlightPhase.Preflight);
+        _legEvents.RaiseLegBegan("req:1", null, LegBoundaryState.None);
         await AwaitIntro(feature);
 
         Assert.Null(_roster.Current);
@@ -149,33 +205,63 @@ public sealed class FoRosterVoiceFeatureTests : IDisposable
         Assert.False(((ProsimCompanion.Speech.Recognition.IVoiceFeature)feature).Enabled);
     }
 
+    /// <summary>ADR-0019 §8 / issue #219: an open duty day past its first leg pins its FO
+    /// whatever the calendar does (EHAM 2026-11-01: Hanna became Sam in the turnaround); after
+    /// the end of duty a new plan on the same sim date keeps the FO, a new sim date draws.</summary>
     [Fact]
-    public async Task DayMode_DrawsWhenTheDayStarts_AndTheRestartedDayKeepsTheFo()
+    public async Task OpenDutyDay_PinsTheFoAcrossASimDateRollover_EndOfDutyReleasesPerSimDate()
     {
-        _day.Enabled = true;
         var feature = Create();
+        OpenDay(legsCompleted: 0); // the day auto-started at the first Preflight, before the plan
         _phases.SetPhase(FlightPhase.Preflight);
-        await AwaitIntro(feature);
-        Assert.Null(_roster.Current); // day mode on, no day open: nothing drawn
-
-        _dayStore.Update(new DaySnapshot(new DayView(true, "OnLeg", 1, 1, 0, null, null, 0, 0, null), [], null, null, "day-1"));
+        PlanLoaded("req:1");
+        _legEvents.RaiseLegBegan("req:1", null, LegBoundaryState.None);
         await AwaitIntro(feature);
         var drawn = _roster.Current!.Id;
-        Assert.Equal("day:day-1", _roster.State.DrawnFor);
+        Assert.Equal("sim:2026-11-01", _roster.State.DrawnFor);
         Assert.Equal(1, Intros);
 
-        // The same day published again (a restart resuming it): same FO, no second intro.
-        _dayStore.Update(new DaySnapshot(new DayView(true, "Turnaround", 1, 1, 1, null, null, 60, 90, null), [], null, null, "day-1"));
+        // Leg 1 flown, the sim date rolls over in the turnaround, the return plan lands: same FO.
+        OpenDay(legsCompleted: 1);
+        _clock.LocalDate = new DateOnly(2026, 11, 2);
         _phases.SetPhase(FlightPhase.Shutdown);
+        Turnaround("req:1");
         _phases.SetPhase(FlightPhase.Preflight);
+        PlanLoaded("req:2");
+        _legEvents.RaiseLegBegan("req:2", "req:1");
         await AwaitIntro(feature);
         Assert.Equal(drawn, _roster.Current!.Id);
         Assert.Equal(1, Intros);
+
+        // A restart publishing the same open day: same FO, no second intro.
+        OpenDay(legsCompleted: 1);
+        await AwaitIntro(feature);
+        Assert.Equal(drawn, _roster.Current!.Id);
+        Assert.Equal(1, Intros);
+
+        // End of duty, then another plan the same sim date (2026-11-01 stamp vs 11-02 now):
+        // the stamp differs, so this IS a new sim day for the roster — a draw is correct here.
+        // Same-date case first: roll the clock back to the stamped date.
+        _clock.LocalDate = new DateOnly(2026, 11, 1);
+        NoDay();
+        PlanLoaded("req:3");
+        _legEvents.RaiseLegBegan("req:3", "req:2", LegBoundaryState.None);
+        await AwaitIntro(feature);
+        Assert.Equal(drawn, _roster.Current!.Id); // same sim date: same FO
+
+        // New sim date, new plan, no open day: a new FO.
+        _clock.LocalDate = new DateOnly(2026, 11, 2);
+        PlanLoaded("req:4");
+        _legEvents.RaiseLegBegan("req:4", "req:3", LegBoundaryState.None);
+        await AwaitIntro(feature);
+        Assert.NotEqual(drawn, _roster.Current!.Id);
+        Assert.Equal(2, Intros);
     }
 
     [Fact]
     public async Task NewFirstOfficer_AsksFirst_AndYesRedraws()
     {
+        PlanLoaded("req:1");
         var feature = Create();
         _phases.SetPhase(FlightPhase.Preflight);
         await AwaitIntro(feature);
@@ -194,6 +280,7 @@ public sealed class FoRosterVoiceFeatureTests : IDisposable
     [Fact]
     public async Task WhoIsFlying_NamesTheOfficer()
     {
+        PlanLoaded("req:1");
         var feature = Create();
         _phases.SetPhase(FlightPhase.Preflight);
         await AwaitIntro(feature);

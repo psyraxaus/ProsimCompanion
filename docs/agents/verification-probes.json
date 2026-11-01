@@ -3067,12 +3067,61 @@
       ],
       "checks": [
         "assert-present: after every 'day.started' or 'day.leg.started' (or a 'day.resumed' with an open leg) while an OFP is loaded ('ofp.loaded' earlier in this or a previous session), a 'day.leg.route' {leg, from, to, flightNo, source:'ofp'} names the same leg with the OFP's origin/destination — within seconds when the OFP was already loaded, else at the next 'ofp.loaded'.",
+        "assert-present (ADR-0019 §5, #212): every 'day.leg.started' carries {leg, planId, from, to, flightNo} and follows a 'leg.boundary' {legBegan true} for that planId within a second — the leg begins on its plan. assert-absent: a 'day.leg.started' on the arrival's Shutdown → Preflight edge with no new 'ofp.loaded' between (EHAM 2026-11-01 01:50:33Z 'Leg 2 EGLL→EHAM', the flown plan); a 'day.leg.route' whose from/to equal the previous completed leg's for a leg that never pushes back; the FO's sector line is 'Leg n. New sector, <origin> to <destination>.' spoken at the plan, never 'Leg n. New sector.' at the Preflight edge.",
         "assert-present: every 'ofp.loaded' event carries origin and destination (requestId, flightNumber when SimBrief has one); one per distinct plan, no repeats for the same requestId+route.",
         "assert-absent: a 'day.leg.route' for a leg that already has a 'day.leg.completed' — a completed leg never takes a later OFP (the return plan loaded in the turnaround belongs to the next leg).",
         "assert-present: a session with NO 'flight.route' (speech off, no briefing) but an 'ofp.loaded' before the landing still folds with origin/destination — 'logbook.folded' {origin, destination} present (Mario's 2026-10-10 session-20261010-091717 folded with neither).",
         "requires-human: Duty Day page FROM/TO card and the legs rail show the ICAO codes from the first minute of the day (not '---- → ----' / 'Leg 1 · ? → ?'); block and duty figures read as h:mm with an HRS unit and never ellipsize."
       ],
-      "notes": "Added 2026-10-11 (issue #164, Mario + owner reports 2026-10-10). Progressive legs now take From/To/FlightNo from the OfpStore at day start, next-leg start, resume and on every OFP change while the leg is open (planned legs only fill gaps). Core's OfpEventRecorder writes 'ofp.loaded'; DebriefFactExtractor falls back to the last plan loaded before the landing when no 'flight.route' exists."
+      "notes": "Added 2026-10-11 (issue #164, Mario + owner reports 2026-10-10). Progressive legs now take From/To/FlightNo from the OfpStore at day start, next-leg start, resume and on every OFP change while the leg is open (planned legs only fill gaps). Core's OfpEventRecorder writes 'ofp.loaded'; DebriefFactExtractor falls back to the last plan loaded before the landing when no 'flight.route' exists. 2026-11-02 (#212, ADR-0019 §1/§5): the next leg starts on ILegBoundaryEvents.LegBegan (a different plan), never on the Preflight edge; the event-log session rotates there too, so the turnaround's own events stay with the arrival."
+    },
+    {
+      "id": "day-no-phantom-leg",
+      "issue": 212,
+      "state": "fixed-unverified",
+      "kind": "assert-absent",
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "assert-absent: after the day's LAST landing (Shutdown, deboarding, no new 'ofp.loaded') any 'day.leg.started' — the Duty Day page shows the day in Turnaround with 'the next leg starts when a new OFP is loaded' and NO next-leg row (EGLL 2026-11-01 05:24:23Z 'Leg 3 EHAM→EGLL' after the final landing; daystate.json ended with currentLegIndex 3, leg 3 landed:false).",
+        "assert-present (older state file): a start over a daystate.json that holds a never-moved leg duplicating the completed leg before it writes ONE 'day.leg.dropped' {leg, reason 'phantom…'} and a Warning 'Day state held a never-flown leg …'; the resumed day reads Turnaround with the previous leg current. assert-absent: a 'day.leg.dropped' for a leg with an off-blocks stamp or a different route.",
+        "assert-present: the 'day.leg.completed' of a leg is followed by its 'day.leg.started' successor ONLY after an 'ofp.loaded' whose requestId differs from the completed leg's plan (same plan re-imported: nothing)."
+      ],
+      "machine": {
+        "kind": "required-fields",
+        "source": "session",
+        "type": "day.leg.started",
+        "fields": [
+          "leg",
+          "planId"
+        ]
+      },
+      "notes": "ADR-0019 §1/§5 (owner 2026-11-02, audit rows A3/B1, owner question 5: no leg-3 row). CompanyDayService.HandleLegBegan (ILegBoundaryEvents.LegBegan) rotates the session, starts the next leg, seeds it from the plan that began it and speaks 'Leg n. New sector, <from> to <to>.'; HandlePhase's Preflight case now only auto-starts a day when none is open; CompanyDayEngine.DropPhantomLeg (pure) repairs the older build's state file on resume."
+    },
+    {
+      "id": "roster-one-per-sim-day",
+      "issue": 219,
+      "state": "fixed-unverified",
+      "kind": "assert-absent",
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "assert-absent: a 'persona.rosterDraw' with reason 'new-leg' or 'preflight' while a duty day is open with one or more legs completed ('day.leg.completed' earlier, no 'day.ended' since) — an open duty day pins its FO until end of duty whatever the sim date does (EHAM 2026-11-01 03:00:26Z: Hanna → Sam mid-day, reason sim-day).",
+        "assert-absent: two 'persona.rosterDraw' (reasons new-leg / preflight) with the same drawnFor 'sim:yyyy-MM-dd'; a 'persona.rosterDraw' whose drawnFor starts with 'day:' (the stamp is always the sim calendar day since 1.0).",
+        "assert-present: the first 'persona.rosterDraw' of a sim day comes within a second of a 'leg.boundary' {legBegan true} (reason 'new-leg') or, for an app started after the plan was loaded, at the Preflight edge with the leg boundary None (reason 'preflight'); never at the arrival's Shutdown → Preflight edge (leg.boundary Turnaround). After a 'day.ended', a new plan the same sim date draws nobody; a new sim date with a new plan draws (reason new-leg).",
+        "requires-human: with the roster on, the gate intro is spoken once per draw, in Preflight, after the plan is in — 'Morning captain, <name> here…' — and 'who's flying with me today' names the same FO on every leg of the day."
+      ],
+      "machine": {
+        "kind": "signature",
+        "source": "session",
+        "type": "persona.rosterDraw",
+        "contains": "\"drawnFor\":\"day:\""
+      },
+      "notes": "ADR-0019 §8 (owner 2026-11-02, audit row A11, owner question 4: one FO per sim calendar day, never per day id, never mid-day; narrows #194). FoRosterTriggerCore (pure): opportunity = LegBegan OR (InPreflight AND the leg boundary holds a planned leg), AND the sim-local date differs from the stamp, AND no open duty day past its first leg with an FO on duty. FoRosterVoiceFeature subscribes ILegBoundaryEvents.LegBegan and reads LegBoundaryStore; DayOptions is no longer an input."
     },
     {
       "id": "si-request-stand-fragment",

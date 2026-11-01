@@ -153,17 +153,17 @@
       "overriddenByRoster": "Overridden by the roster — the drawn First Officer's value applies.",
       "roster": {
         "title": "Roster",
-        "hint": "A different First Officer each duty day, drawn from fo-roster.json",
+        "hint": "A different First Officer each sim calendar day, drawn from fo-roster.json",
         "mode": {
           "label": "Roster",
-          "hint": "Off keeps the persona above. Daily draws a new FO per duty day. Pinned keeps the one you pin below."
+          "hint": "Off keeps the persona above. Daily draws a new FO on the first leg of each sim calendar day — an open duty day keeps its FO. Pinned keeps the one you pin below."
         },
         "gateIntro": {
           "label": "Gate introduction",
-          "hint": "The FO introduces themselves once per duty day at the first preflight."
+          "hint": "The FO introduces themselves once per draw, at the gate once the leg's plan is loaded."
         },
         "current": "On duty",
-        "nobody": "Nobody drawn yet — the draw comes at the duty-day start or the first preflight.",
+        "nobody": "Nobody drawn yet — the draw comes when the first plan of the day is loaded.",
         "hours": "{0} h on type",
         "empty": "The roster file holds no officers.",
         "columns": {
@@ -699,7 +699,7 @@
         "hint": "Multi-sector duty tracking: block and duty figures, turnaround summaries, an end-of-day round-up. Not a flight-time-limits calculation",
         "track": {
           "label": "Track duty days automatically",
-          "hint": "Off: \"start duty day\" and the /day page still work by hand."
+          "hint": "On by default since 1.0 (ADR-0019). Off: saying start duty day and the /day page still work by hand."
         },
         "autoStart": "Start at the first preflight",
         "turnaround": {
@@ -1627,7 +1627,7 @@
       },
       "rosterMode": {
         "off": "Off (one persona)",
-        "daily": "Daily (a new FO per duty day)",
+        "daily": "Daily (a new FO per sim day)",
         "pinned": "Pinned (the FO pinned below)"
       },
       "formality": {

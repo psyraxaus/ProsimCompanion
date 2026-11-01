@@ -183,64 +183,89 @@ public sealed class FoRosterTests : IDisposable
     // ---- the trigger core ----
 
     private static FoRosterTriggerInputs Inputs(
-        bool active = true, bool pinned = false, bool dayMode = false, string? dayId = null, bool edge = false,
-        bool inPreflight = false, DateOnly? simDate = null, string? drawnFor = null, bool hasCurrent = true,
-        bool introDone = false, bool introEnabled = true)
-        => new(active, pinned, dayMode, dayId, edge, inPreflight, simDate, new DateOnly(2026, 11, 1), drawnFor, hasCurrent, introDone, introEnabled);
+        bool active = true, bool pinned = false, int? legsCompleted = null, bool legBegan = false,
+        bool legPlanned = false, bool inPreflight = false, DateOnly? simDate = null, string? drawnFor = null,
+        bool hasCurrent = true, bool introDone = false, bool introEnabled = true)
+        => new(active, pinned, legsCompleted, legBegan, legPlanned, inPreflight, simDate, new DateOnly(2026, 11, 1), drawnFor, hasCurrent, introDone, introEnabled);
 
     [Fact]
     public void Trigger_RosterOff_DoesNothing()
-        => Assert.Equal(FoRosterTriggerDecision.Nothing, FoRosterTriggerCore.Evaluate(Inputs(active: false, edge: true, inPreflight: true)));
+        => Assert.Equal(FoRosterTriggerDecision.Nothing, FoRosterTriggerCore.Evaluate(Inputs(active: false, legBegan: true, inPreflight: true)));
 
+    // ADR-0019 §8 / issue #219: one FO per sim calendar day, drawn when a leg begins.
     [Fact]
-    public void Trigger_DayModeOff_DrawsOnTheFirstPreflightOfANewSimDay_NotTheSameDay()
+    public void Trigger_NewLeg_DrawsOnANewSimDate_NotTheSameDate()
     {
-        var newDay = FoRosterTriggerCore.Evaluate(Inputs(edge: true, inPreflight: true, simDate: new DateOnly(2026, 11, 2), drawnFor: "sim:2026-11-01"));
-        Assert.Equal(("sim:2026-11-02", "sim-day", true), (newDay.NewStamp, newDay.Reason, newDay.Intro));
+        var newDay = FoRosterTriggerCore.Evaluate(Inputs(legBegan: true, inPreflight: true, simDate: new DateOnly(2026, 11, 2), drawnFor: "sim:2026-11-01"));
+        Assert.Equal(("sim:2026-11-02", "new-leg", true), (newDay.NewStamp, newDay.Reason, newDay.Intro));
 
-        var sameDay = FoRosterTriggerCore.Evaluate(Inputs(edge: true, inPreflight: true, simDate: new DateOnly(2026, 11, 1), drawnFor: "sim:2026-11-01", introDone: true));
+        var sameDay = FoRosterTriggerCore.Evaluate(Inputs(legBegan: true, inPreflight: true, simDate: new DateOnly(2026, 11, 1), drawnFor: "sim:2026-11-01", introDone: true));
         Assert.Equal(FoRosterTriggerDecision.Nothing, sameDay);
 
         // No sim date: the wall date stands in.
-        var fallback = FoRosterTriggerCore.Evaluate(Inputs(edge: true, inPreflight: true));
+        var fallback = FoRosterTriggerCore.Evaluate(Inputs(legBegan: true));
         Assert.Equal("sim:2026-11-01", fallback.NewStamp);
+        Assert.False(fallback.Intro); // cold and dark: the intro waits for Preflight
 
-        // Not at the edge: the sim day never draws mid-flight.
-        Assert.Null(FoRosterTriggerCore.Evaluate(Inputs(inPreflight: true, simDate: new DateOnly(2026, 11, 3), drawnFor: "sim:2026-11-01", introDone: true)).NewStamp);
+        // The old "day:" stamp of a pre-1.0 state file is simply a different stamp.
+        Assert.Equal("sim:2026-11-01", FoRosterTriggerCore.Evaluate(Inputs(legBegan: true, drawnFor: "day:day-20261101-002148")).NewStamp);
     }
 
     [Fact]
-    public void Trigger_DayModeOn_DrawsPerDayId_AndKeepsTheFoAcrossARestart()
+    public void Trigger_PreflightWithThePlan_IsAnOpportunity_ABarePreflightOrTheArrivalsIsNot()
     {
-        var started = FoRosterTriggerCore.Evaluate(Inputs(dayMode: true, dayId: "day-1"));
-        Assert.Equal(("day:day-1", "day.started"), (started.NewStamp, started.Reason));
-        Assert.False(started.Intro); // not in Preflight yet
+        // The app started after the plan: Preflight + the leg planned draws.
+        var late = FoRosterTriggerCore.Evaluate(Inputs(inPreflight: true, legPlanned: true));
+        Assert.Equal(("sim:2026-11-01", "preflight"), (late.NewStamp, late.Reason));
 
-        var restart = FoRosterTriggerCore.Evaluate(Inputs(dayMode: true, dayId: "day-1", drawnFor: "day:day-1", introDone: true, inPreflight: true, edge: true));
-        Assert.Equal(FoRosterTriggerDecision.Nothing, restart);
+        // Powered with no plan: nothing to draw for.
+        Assert.Null(FoRosterTriggerCore.Evaluate(Inputs(inPreflight: true)).NewStamp);
 
-        var noDay = FoRosterTriggerCore.Evaluate(Inputs(dayMode: true, edge: true, inPreflight: true));
-        Assert.Null(noDay.NewStamp);
-        Assert.False(noDay.Intro); // nothing drawn for yet
+        // The arrival's Preflight edge (boundary Turnaround → legPlanned false) on a new sim
+        // date: no draw — EHAM 2026-11-01's Hanna → Sam.
+        Assert.Null(FoRosterTriggerCore.Evaluate(Inputs(inPreflight: true, simDate: new DateOnly(2026, 11, 2), drawnFor: "sim:2026-11-01", introDone: true)).NewStamp);
+
+        // A plan loaded cold and dark: not yet (the leg-began edge itself draws; this is the re-evaluation).
+        Assert.Null(FoRosterTriggerCore.Evaluate(Inputs(legPlanned: true)).NewStamp);
+    }
+
+    [Fact]
+    public void Trigger_OpenDutyDayPastItsFirstLeg_PinsTheFo_UntilEndOfDuty()
+    {
+        // Mid-day sim-date rollover with an open day and an FO on duty: no draw.
+        var pinned = FoRosterTriggerCore.Evaluate(Inputs(legBegan: true, legsCompleted: 1, inPreflight: true, simDate: new DateOnly(2026, 11, 2), drawnFor: "sim:2026-11-01", introDone: true));
+        Assert.Equal(FoRosterTriggerDecision.Nothing, pinned);
+
+        // The day's first leg: the day is open but has flown nothing — a draw is allowed.
+        Assert.Equal("sim:2026-11-02", FoRosterTriggerCore.Evaluate(Inputs(legBegan: true, legsCompleted: 0, simDate: new DateOnly(2026, 11, 2), drawnFor: "sim:2026-11-01")).NewStamp);
+
+        // An open day with nobody drawn yet pins nobody.
+        Assert.Equal("sim:2026-11-02", FoRosterTriggerCore.Evaluate(Inputs(legBegan: true, legsCompleted: 1, simDate: new DateOnly(2026, 11, 2), hasCurrent: false)).NewStamp);
+
+        // End of duty (no open day), a new plan the same sim date: same FO.
+        Assert.Null(FoRosterTriggerCore.Evaluate(Inputs(legBegan: true, simDate: new DateOnly(2026, 11, 1), drawnFor: "sim:2026-11-01", introDone: true)).NewStamp);
+
+        // End of duty, a new plan on a new sim date: a draw.
+        Assert.Equal("sim:2026-11-02", FoRosterTriggerCore.Evaluate(Inputs(legBegan: true, simDate: new DateOnly(2026, 11, 2), drawnFor: "sim:2026-11-01")).NewStamp);
     }
 
     [Fact]
     public void Trigger_IntroOncePerStamp_InPreflightOnly_AndNeverWhenOff()
     {
-        var due = FoRosterTriggerCore.Evaluate(Inputs(inPreflight: true, drawnFor: "day:d", introDone: false));
+        var due = FoRosterTriggerCore.Evaluate(Inputs(inPreflight: true, drawnFor: "sim:2026-11-01", introDone: false));
         Assert.True(due.Intro);
 
-        Assert.False(FoRosterTriggerCore.Evaluate(Inputs(inPreflight: true, drawnFor: "day:d", introDone: true)).Intro);
-        Assert.False(FoRosterTriggerCore.Evaluate(Inputs(inPreflight: false, drawnFor: "day:d")).Intro);
-        Assert.False(FoRosterTriggerCore.Evaluate(Inputs(inPreflight: true, drawnFor: "day:d", introEnabled: false)).Intro);
-        Assert.False(FoRosterTriggerCore.Evaluate(Inputs(inPreflight: true, drawnFor: "day:d", hasCurrent: false)).Intro);
+        Assert.False(FoRosterTriggerCore.Evaluate(Inputs(inPreflight: true, drawnFor: "sim:2026-11-01", introDone: true)).Intro);
+        Assert.False(FoRosterTriggerCore.Evaluate(Inputs(inPreflight: false, drawnFor: "sim:2026-11-01")).Intro);
+        Assert.False(FoRosterTriggerCore.Evaluate(Inputs(inPreflight: true, drawnFor: "sim:2026-11-01", introEnabled: false)).Intro);
+        Assert.False(FoRosterTriggerCore.Evaluate(Inputs(inPreflight: true, drawnFor: "sim:2026-11-01", hasCurrent: false)).Intro);
     }
 
     [Fact]
-    public void Trigger_Pinned_AdoptsTheNewDay_SoTheIntroRepeatsPerDay_ButNobodyIsDrawn()
+    public void Trigger_Pinned_AdoptsTheNewSimDay_SoTheIntroRepeatsPerDay_ButNobodyIsDrawn()
     {
-        var decision = FoRosterTriggerCore.Evaluate(Inputs(pinned: true, dayMode: true, dayId: "day-2", drawnFor: "day:day-1", introDone: true, inPreflight: true));
-        Assert.Equal("day:day-2", decision.NewStamp); // the caller adopts instead of drawing in pinned mode
+        var decision = FoRosterTriggerCore.Evaluate(Inputs(pinned: true, legBegan: true, simDate: new DateOnly(2026, 11, 2), drawnFor: "sim:2026-11-01", introDone: true, inPreflight: true));
+        Assert.Equal("sim:2026-11-02", decision.NewStamp); // the caller adopts instead of drawing in pinned mode
         Assert.True(decision.Intro);
     }
 }

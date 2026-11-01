@@ -17,16 +17,24 @@ namespace ProsimCompanion.Speech.Day;
 
 /// <summary>
 /// Company day mode (Prosim2FO semantics): tracks a multi-leg rotation as one continuous duty —
-/// turnaround detection at Shutdown, per-leg session rotation at the next Preflight, cumulative
-/// block/duty via the ONE <see cref="DayMath"/> formula set, and an end-of-day summary + logbook
-/// fold. Convenience tracking, never FTL compliance. The state machine itself is the pure
+/// turnaround detection at Shutdown, the next leg on the next leg's OFP, cumulative block/duty
+/// via the ONE <see cref="DayMath"/> formula set, and an end-of-day summary + logbook fold.
+/// Convenience tracking, never FTL compliance. The state machine itself is the pure
 /// <see cref="CompanyDayEngine"/>; this service adds the clock, persistence, speech and events.
+///
+/// <para>A leg begins when its OFP is loaded (ADR-0019 §1/§5, issue #212): the next leg starts
+/// on <see cref="ILegBoundaryEvents.LegBegan"/> — a DIFFERENT plan in the store — never on the
+/// arrival's Shutdown → Preflight edge. Before this the Preflight edge started "Leg 2. New
+/// sector" thirty seconds after deboarding with the plan just flown as its route, and the
+/// day's last landing grew a phantom leg (EGLL 2026-11-01). The Preflight edge now only
+/// auto-starts a day when none is open.</para>
 ///
 /// <para>Leg facts are filled by this service acting as the Order-40 session-finalization step —
 /// after the debrief (10), logbook (20) and tech log (30) have read the same session file — which
 /// replaces the predecessor's fragile 1700 ms "hopefully after the debrief" delay with an
-/// explicit ordering guarantee. The event-log session rotates ONLY at next-leg start, so the
-/// finalization steps always read the completed leg's file before it is retired.</para>
+/// explicit ordering guarantee. The event-log session rotates ONLY at next-leg start (the new
+/// plan), so the finalization steps always read the completed leg's file before it is retired
+/// and the turnaround's own events (deboarding, the FMS clear) stay with the arrival.</para>
 ///
 /// <para>Deviation watch is post-hoc by design: the plan-vs-reality comparison runs at leg
 /// completion against the extracted destination, because this codebase emits
@@ -59,6 +67,10 @@ public sealed class CompanyDayService : IVoiceFeature, ISessionFinalizationStep,
     // Optional: with no name source, airports stay spelled ("E G L L") — issue #70.
     private readonly Core.Speech.ISpokenText _spokenText;
 
+    // The "a leg began" edge (ADR-0019 §1): a different OFP landed. Core-owned, so the Day
+    // engine never reads the phase edge for it.
+    private readonly ILegBoundaryEvents _legBoundary;
+
     private readonly object _gate = new();
     private readonly CompanyDayEngine _engine = new();
     private DateTimeOffset _lastActivityUtc = DateTimeOffset.UtcNow;
@@ -79,12 +91,15 @@ public sealed class CompanyDayService : IVoiceFeature, ISessionFinalizationStep,
         IOptionsMonitor<DayOptions> options,
         ILogger<CompanyDayService> logger,
         Core.Speech.ISpokenText spokenText,
-        Core.Aircraft.Ofp.OfpStore ofp)
+        Core.Aircraft.Ofp.OfpStore ofp,
+        ILegBoundaryEvents legBoundary)
     {
         ArgumentNullException.ThrowIfNull(spokenText);
         ArgumentNullException.ThrowIfNull(ofp);
+        ArgumentNullException.ThrowIfNull(legBoundary);
         _spokenText = spokenText;
         _ofp = ofp;
+        _legBoundary = legBoundary;
         ArgumentNullException.ThrowIfNull(flight);
         ArgumentNullException.ThrowIfNull(eventLog);
         ArgumentNullException.ThrowIfNull(extractor);
@@ -160,6 +175,7 @@ public sealed class CompanyDayService : IVoiceFeature, ISessionFinalizationStep,
         DaySnapshot snapshot;
         string? resumedDayId = null;
         int legIndex = 0, legCount = 0;
+        int? phantomDropped = null;
         lock (_gate)
         {
             if (_started)
@@ -170,8 +186,10 @@ public sealed class CompanyDayService : IVoiceFeature, ISessionFinalizationStep,
             _started = true;
             ConfigureFdp();
             _engine.Resume(_stateFile.Load());
+            phantomDropped = _engine.DropPhantomLeg();
             _flight.PhaseChanged += OnPhaseChanged;
             _ofp.Changed += OnOfpChanged;
+            _legBoundary.LegBegan += OnLegBegan;
             _timer = new Timer(_ => TimerTick(), null, TimeSpan.FromSeconds(60), TimeSpan.FromSeconds(60));
 
             if (_engine.Day is { IsOpen: true } day)
@@ -180,6 +198,11 @@ public sealed class CompanyDayService : IVoiceFeature, ISessionFinalizationStep,
                 _lastActivityUtc = DateTimeOffset.UtcNow;
                 legIndex = day.CurrentLegIndex;
                 legCount = day.Legs.Count;
+                if (phantomDropped is not null)
+                {
+                    _stateFile.Save(day);
+                }
+
                 SeedRouteFromOfpLocked(); // a resumed open leg takes the OFP already loaded
             }
 
@@ -187,6 +210,14 @@ public sealed class CompanyDayService : IVoiceFeature, ISessionFinalizationStep,
         }
 
         _store.Update(snapshot);
+        if (phantomDropped is { } dropped)
+        {
+            _logger.LogWarning(
+                "Day state held a never-flown leg {Leg} that duplicated the leg before it (an older build started it on the Preflight edge) — dropped; the day is back in its turnaround",
+                dropped);
+            _eventLog.Record("day.leg.dropped", new { dayId = resumedDayId, leg = dropped, reason = "phantom: duplicated the completed leg, never moved" });
+        }
+
         if (resumedDayId is not null)
         {
             _eventLog.Record("day.resumed", new { dayId = resumedDayId, leg = legIndex });
@@ -213,8 +244,105 @@ public sealed class CompanyDayService : IVoiceFeature, ISessionFinalizationStep,
     {
         _flight.PhaseChanged -= OnPhaseChanged;
         _ofp.Changed -= OnOfpChanged;
+        _legBoundary.LegBegan -= OnLegBegan;
         _timer?.Dispose();
     }
+
+    // ---- a leg began: a different OFP landed (ADR-0019 §1/§5, issue #212) ----
+
+    private void OnLegBegan(object? sender, LegBeganEventArgs e)
+    {
+        try
+        {
+            HandleLegBegan(e.PlanId, DateTimeOffset.UtcNow);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Day leg-began handling failed");
+        }
+    }
+
+    /// <summary>
+    /// The next leg begins on its plan: in a turnaround the event-log session rotates, the
+    /// next leg opens with the new OFP as its route and the FO announces the sector — "Leg 2.
+    /// New sector, Amsterdam to Heathrow." With no day open (the first plan of the day landed
+    /// before any Preflight, or a plan after an end of duty) the day auto-starts here when the
+    /// automation is on, leg 1 seeded from the plan. On a leg already under way the plan only
+    /// re-seeds the route (the <see cref="OnOfpChanged"/> path). Exposed for tests.
+    /// </summary>
+    public void HandleLegBegan(string planId, DateTimeOffset nowUtc)
+    {
+        var options = _options.CurrentValue;
+        DaySnapshot? snapshot = null;
+        string? speak = null;
+        string? companyMessage = null;
+        var autoStart = false;
+
+        lock (_gate)
+        {
+            _lastActivityUtc = nowUtc;
+            var day = _engine.Day;
+            if (day is null || !day.IsOpen)
+            {
+                autoStart = options.Enabled && options.AutoStart;
+            }
+            else if (day.State == DayPhase.Turnaround)
+            {
+                // Rotate FIRST so the new leg's events land in a fresh file. The completed
+                // leg's file was read by the finalization steps back at Shutdown; the
+                // turnaround's own events stayed with the arrival.
+                _eventLog.StartNewSession();
+                var leg = _engine.StartNextLeg();
+                if (leg is not null)
+                {
+                    SeedRouteFromOfpLocked(); // the plan that began this leg is its route
+                    _stateFile.Save(day);
+                    _eventLog.Record("day.leg.started", new
+                    {
+                        leg = leg.Index,
+                        planId,
+                        from = leg.From,
+                        to = leg.To,
+                        flightNo = leg.FlightNo,
+                    });
+                    snapshot = _engine.BuildSnapshot(nowUtc);
+                    speak = NewSectorLine(leg);
+                    if (day.Mode == DayMode.Planned)
+                    {
+                        companyMessage = NextSectorMessage(leg);
+                    }
+                }
+            }
+        }
+
+        if (autoStart)
+        {
+            TryStartDay("ofp", nowUtc);
+        }
+
+        if (snapshot is not null)
+        {
+            _store.Update(snapshot);
+        }
+
+        if (speak is not null)
+        {
+            Speak(speak, SpeechPriority.Low);
+        }
+
+        if (companyMessage is not null)
+        {
+            _company.DeliverMessage(companyMessage);
+        }
+    }
+
+    /// <summary>"Leg 2. New sector, Amsterdam to Heathrow." — the route when the plan has
+    /// both ends, "Leg 2. New sector." otherwise. Airports by name when known, spelled
+    /// otherwise (issue #70).</summary>
+    private string NewSectorLine(DayLeg leg)
+        => !string.IsNullOrEmpty(leg.From) && !string.IsNullOrEmpty(leg.To)
+            ? $"Leg {leg.Index}. New sector, {SpokenAirport(leg.From)} to {SpokenAirport(leg.To)}."
+            : $"Leg {leg.Index}. New sector.";
 
     // ---- OFP → open leg route (issue #164) ----
 
@@ -283,13 +411,14 @@ public sealed class CompanyDayService : IVoiceFeature, ISessionFinalizationStep,
         }
     }
 
-    /// <summary>One phase edge — exposed for tests; the event handler passes the wall clock.</summary>
+    /// <summary>One phase edge — exposed for tests; the event handler passes the wall clock.
+    /// Off-blocks and on-blocks stamp the leg; the Preflight edge only auto-starts a day when
+    /// none is open. In a turnaround the Preflight edge does NOTHING to the legs — the next leg
+    /// waits for its plan (<see cref="HandleLegBegan"/>).</summary>
     public void HandlePhase(FlightPhase current, DateTimeOffset nowUtc)
     {
         var options = _options.CurrentValue;
         DaySnapshot? snapshot = null;
-        string? speak = null;
-        string? companyMessage = null;
         var autoStart = false;
 
         lock (_gate)
@@ -324,26 +453,6 @@ public sealed class CompanyDayService : IVoiceFeature, ISessionFinalizationStep,
                         }
 
                         break;
-
-                    case FlightPhase.Preflight when day.State == DayPhase.Turnaround:
-                        // Rotate FIRST so the new leg's events land in a fresh file. The completed
-                        // leg's file was read by the finalization steps back at Shutdown.
-                        _eventLog.StartNewSession();
-                        var leg = _engine.StartNextLeg();
-                        if (leg is not null)
-                        {
-                            _stateFile.Save(day);
-                            _eventLog.Record("day.leg.started", new { leg = leg.Index });
-                            SeedRouteFromOfpLocked(); // the next sector's OFP is usually loaded by now
-                            snapshot = _engine.BuildSnapshot(nowUtc);
-                            speak = $"Leg {leg.Index}. New sector.";
-                            if (day.Mode == DayMode.Planned)
-                            {
-                                companyMessage = NextSectorMessage(leg);
-                            }
-                        }
-
-                        break;
                 }
             }
         }
@@ -356,16 +465,6 @@ public sealed class CompanyDayService : IVoiceFeature, ISessionFinalizationStep,
         if (snapshot is not null)
         {
             _store.Update(snapshot);
-        }
-
-        if (speak is not null)
-        {
-            Speak(speak, SpeechPriority.Low);
-        }
-
-        if (companyMessage is not null)
-        {
-            _company.DeliverMessage(companyMessage);
         }
     }
 

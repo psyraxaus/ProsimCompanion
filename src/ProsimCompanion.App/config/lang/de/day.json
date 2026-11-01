@@ -6,6 +6,7 @@
     "notWired": "Der Company-Day-Modus ist in diesem Build nicht verdrahtet (siehe WIRING-DAY.md).",
     "status": "Status",
     "noDay": "Kein Diensttag",
+    "turnaroundNoPlan": "Turnaround — das nächste Leg beginnt, wenn ein neuer OFP geladen wird.",
     "start": "Diensttag beginnen",
     "end": "Diensttag beenden",
     "startHint": "Sag \"start duty day\" oder drücke die Schaltfläche. Mit aktiviertem Day-Modus und Autostart beginnt ein Tag auch beim ersten Preflight. Lege eine rotations/*.json-Datei für einen geplanten Tag ab.",

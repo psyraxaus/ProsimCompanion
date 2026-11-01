@@ -6,6 +6,7 @@
     "notWired": "El modo jornada de compañía no está cableado en esta compilación (ver WIRING-DAY.md).",
     "status": "Estado",
     "noDay": "Sin jornada de servicio",
+    "turnaroundNoPlan": "Turnaround: el siguiente tramo empieza cuando se carga un nuevo OFP.",
     "start": "Iniciar jornada",
     "end": "Finalizar jornada",
     "startHint": "Di \"start duty day\" o pulsa el botón. Con el modo jornada activado y el inicio automático, una jornada también empieza en el primer Preflight. Deja un archivo rotations/*.json para una jornada planificada.",

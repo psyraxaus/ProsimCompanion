@@ -153,17 +153,17 @@
       "overriddenByRoster": "Overridden by the roster — the drawn First Officer's value applies.",
       "roster": {
         "title": "Roster",
-        "hint": "A different First Officer each duty day, drawn from fo-roster.json",
+        "hint": "Ein anderer Erster Offizier an jedem Sim-Kalendertag, gezogen aus fo-roster.json",
         "mode": {
           "label": "Roster",
-          "hint": "Off keeps the persona above. Daily draws a new FO per duty day. Pinned keeps the one you pin below."
+          "hint": "Aus behält die Persona oben. Täglich zieht auf dem ersten Leg jedes Sim-Kalendertags einen neuen FO — ein offener Diensttag behält seinen FO. Angepinnt behält den unten angepinnten."
         },
         "gateIntro": {
           "label": "Gate introduction",
-          "hint": "The FO introduces themselves once per duty day at the first preflight."
+          "hint": "Der FO stellt sich einmal pro Ziehung vor, am Gate, sobald der Plan des Legs geladen ist."
         },
         "current": "On duty",
-        "nobody": "Nobody drawn yet — the draw comes at the duty-day start or the first preflight.",
+        "nobody": "Noch niemand gezogen — die Ziehung kommt, wenn der erste Plan des Tages geladen wird.",
         "hours": "{0} h on type",
         "empty": "The roster file holds no officers.",
         "columns": {
@@ -699,7 +699,7 @@
         "hint": "Dienstverfolgung über mehrere Sektoren: Block- und Dienstzeiten, Turnaround-Zusammenfassungen, ein Tagesabschluss. Keine Flugzeitgrenzen-Berechnung",
         "track": {
           "label": "Diensttage automatisch verfolgen",
-          "hint": "Aus: \"start duty day\" und die Seite /day funktionieren weiter von Hand."
+          "hint": "Seit 1.0 standardmäßig an (ADR-0019). Aus: start duty day sagen und die Seite /day funktionieren weiter von Hand."
         },
         "autoStart": "Beim ersten Preflight beginnen",
         "turnaround": {
@@ -1627,7 +1627,7 @@
       },
       "rosterMode": {
         "off": "Off (one persona)",
-        "daily": "Daily (a new FO per duty day)",
+        "daily": "Täglich (ein neuer FO pro Sim-Tag)",
         "pinned": "Pinned (the FO pinned below)"
       },
       "formality": {

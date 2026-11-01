@@ -397,14 +397,18 @@ When enabled, the FO gets a personality:
 ### A different First Officer each day (the roster)
 
 Off by default — the **Roster** card on the same page (`persona.roster.mode`). With it on
-**daily**, a different FO is drawn each duty day from
+**daily**, a different FO is drawn each **sim calendar day** from
 `%LOCALAPPDATA%\ProsimCompanion\config\fo-roster.json` (six are shipped; edit the file to
 make your own crew — each entry has an `id`, `name`, `experience`, `formality`, `chattiness`,
-`confidence`, `hoursOnType`, `base` and an optional `voice`). The draw happens when the duty
-day starts (company day mode on) or at the first preflight of a new sim calendar day (day
-mode off — the sim's own date, not your PC's clock), never repeats yesterday's FO, and
-survives an app restart mid-day. **Pinned** keeps the FO you pin on the card until you press
-Release; **Draw again** draws now.
+`confidence`, `hoursOnType`, `base` and an optional `voice`). The draw happens when the day's
+first leg begins — the first OFP of the day is loaded (or, for an app started after the plan,
+at the first preflight) — on the sim's own date, not your PC's clock; it never repeats
+yesterday's FO and survives an app restart mid-day. **One FO per duty day** (ADR-0019): once a
+duty day has flown a leg, its FO stays until you end the duty, whatever the sim's calendar
+does in a turnaround (a midnight rollover between legs no longer swaps your First Officer);
+a new plan after "end duty day" on the same sim date keeps the same FO, a new sim date draws
+a new one. **Pinned** keeps the FO you pin on the card until you press Release; **Draw
+again** draws now.
 
 - While the roster is on, the drawn FO's name, experience, formality, chattiness and
   confidence replace the four persona fields above (they read "overridden by the roster" and
@@ -412,7 +416,7 @@ Release; **Draw again** draws now.
 - A `voice` of the form `provider:id` gives that FO their own voice for every FO line —
   Kokoro ids are the ones the Voices page lists (`kokoro:af_sky`, `kokoro:bm_lewis`, …),
   ElevenLabs ids work as `elevenlabs:<voiceId>`. No voice = the configured First Officer voice.
-- **Gate introduction** (on): once per duty day, at the first preflight, the FO says *"Morning
+- **Gate introduction** (on): once per draw, at the gate once the leg's plan is in, the FO says *"Morning
   captain, Sam here, I'll be your First Officer today — about 2400 hours on the type."* (the
   sim clock picks the greeting word; a nervous FO adds "Looking forward to it."). Low
   priority — anything operational talks over it.

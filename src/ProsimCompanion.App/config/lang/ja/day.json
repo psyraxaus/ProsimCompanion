@@ -6,6 +6,7 @@
     "notWired": "このビルドにはカンパニーデイモードが組み込まれていません（WIRING-DAY.md を参照）。",
     "status": "状態",
     "noDay": "勤務日なし",
+    "turnaroundNoPlan": "ターンアラウンド — 新しい OFP が読み込まれると次のレグが始まります。",
     "start": "勤務日を開始",
     "end": "勤務日を終了",
     "startHint": "\"start duty day\" と言うか、ボタンを押してください。デイモードと自動開始がオンなら、最初の Preflight でも勤務日が始まります。計画済みの勤務日には rotations/*.json ファイルを置いてください。",

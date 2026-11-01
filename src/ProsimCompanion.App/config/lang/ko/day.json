@@ -6,6 +6,7 @@
     "notWired": "이 빌드에는 컴퍼니 데이 모드가 연결되어 있지 않습니다 (WIRING-DAY.md 참조).",
     "status": "상태",
     "noDay": "근무일 없음",
+    "turnaroundNoPlan": "턴어라운드 — 새 OFP가 로드되면 다음 레그가 시작됩니다.",
     "start": "근무일 시작",
     "end": "근무일 종료",
     "startHint": "\"start duty day\"라고 말하거나 버튼을 누르세요. 데이 모드와 자동 시작이 켜져 있으면 첫 Preflight에서도 근무일이 시작됩니다. 계획된 근무일은 rotations/*.json 파일을 넣어 두세요.",

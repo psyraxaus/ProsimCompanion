@@ -153,17 +153,17 @@
       "overriddenByRoster": "Overridden by the roster — the drawn First Officer's value applies.",
       "roster": {
         "title": "Roster",
-        "hint": "A different First Officer each duty day, drawn from fo-roster.json",
+        "hint": "시뮬레이터 달력 날짜마다 다른 부기장을 fo-roster.json에서 추첨",
         "mode": {
           "label": "Roster",
-          "hint": "Off keeps the persona above. Daily draws a new FO per duty day. Pinned keeps the one you pin below."
+          "hint": "끄기는 위의 페르소나를 유지합니다. 매일은 시뮬레이터 달력 날짜의 첫 레그에서 새 FO를 추첨하며, 열려 있는 근무일은 FO를 유지합니다. 고정은 아래에서 고정한 FO를 유지합니다."
         },
         "gateIntro": {
           "label": "Gate introduction",
-          "hint": "The FO introduces themselves once per duty day at the first preflight."
+          "hint": "FO는 추첨마다 한 번, 레그의 플랜이 로드된 뒤 게이트에서 자기소개를 합니다."
         },
         "current": "On duty",
-        "nobody": "Nobody drawn yet — the draw comes at the duty-day start or the first preflight.",
+        "nobody": "아직 추첨되지 않음 — 그날의 첫 플랜이 로드될 때 추첨합니다.",
         "hours": "{0} h on type",
         "empty": "The roster file holds no officers.",
         "columns": {
@@ -699,7 +699,7 @@
         "hint": "다중 섹터 근무 추적: 블록 및 근무 시간, 턴어라운드 요약, 하루 마무리. 비행 시간 제한 계산이 아닙니다",
         "track": {
           "label": "근무일 자동 추적",
-          "hint": "꺼짐: \"start duty day\"와 /day 페이지는 여전히 수동으로 작동합니다."
+          "hint": "1.0부터 기본 켜짐 (ADR-0019). 꺼도 start duty day 발화와 /day 페이지는 수동으로 동작합니다."
         },
         "autoStart": "첫 프리플라이트에서 시작",
         "turnaround": {
@@ -1627,7 +1627,7 @@
       },
       "rosterMode": {
         "off": "Off (one persona)",
-        "daily": "Daily (a new FO per duty day)",
+        "daily": "매일 (시뮬레이터 하루마다 새 FO)",
         "pinned": "Pinned (the FO pinned below)"
       },
       "formality": {

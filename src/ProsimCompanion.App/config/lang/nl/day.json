@@ -6,6 +6,7 @@
     "notWired": "De Company Day-modus is in deze build niet aangesloten (zie WIRING-DAY.md).",
     "status": "Status",
     "noDay": "Geen dienstdag",
+    "turnaroundNoPlan": "Turnaround — het volgende leg begint wanneer een nieuw OFP geladen is.",
     "start": "Dienstdag starten",
     "end": "Dienstdag beëindigen",
     "startHint": "Zeg \"start duty day\", of druk op de knop. Met de dagmodus ingeschakeld en automatisch starten aan begint een dag ook bij de eerste Preflight. Zet een rotations/*.json-bestand neer voor een geplande dag.",
