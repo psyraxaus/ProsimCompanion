@@ -101,7 +101,7 @@ What the code does today (mapped 2026-11-02; file references at that commit):
     `docs/testing/2026-11-02-duty-day-flow-audit.md`; each approved gap becomes one GitHub
     issue (`ready-for-agent`) linking this ADR and the report line.
 
-Owner's own setting for **Reset FMS after landing or failure**: _to be recorded_ (the audit
+Owner's own setting for **Reset FMS after landing or failure**: **off** (2026-11-02; the owner did not know the option existed — both values are supported, the audit
 replays that case first).
 
 ## Consequences
