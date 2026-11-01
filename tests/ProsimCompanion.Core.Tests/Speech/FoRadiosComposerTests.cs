@@ -227,4 +227,19 @@ public sealed class FoRadiosComposerTests
         Assert.Equal("Good evening, Finnair-niner-six-two, at the holding point.",
             CheckInComposer.Compose(stopped with { DepartureRunway = null })!.Transmit);
     }
+
+    // EGLL→EHAM 2026-11-01 00:51Z (owner report): ATC's own intentions are not read back.
+    [Theory]
+    [InlineData("Speedbird-four-three-two, Expect the REDF1A arrival. I'll have you descending in about 5 minutes. Say the word if you want to descend sooner.",
+        "Expect the REDF1A arrival, Speedbird-four-three-two.", ReadbackKind.Readback)]
+    [InlineData("Speedbird-four-three-two, I'll have you descending in about 5 minutes.", "Roger, Speedbird-four-three-two.", ReadbackKind.Acknowledge)]
+    [InlineData("Speedbird-four-three-two, I'll call your descent shortly, let me know if you need lower.", "Roger, Speedbird-four-three-two.", ReadbackKind.Acknowledge)]
+    [InlineData("Speedbird-four-three-two, I'll have you descending shortly, maintain FL290 for now.", "Maintain FL290 for now, Speedbird-four-three-two.", ReadbackKind.Readback)]
+    public void AtcIntentions_AreAcknowledged_NotReadBack(string atc, string expected, ReadbackKind kind)
+    {
+        var readback = ReadbackComposer.Compose(atc, "Speedbird-four-three-two", "London Control");
+        Assert.NotNull(readback);
+        Assert.Equal(expected, readback.Transmit);
+        Assert.Equal(kind, readback.Kind);
+    }
 }

@@ -13,6 +13,10 @@ public enum ReadbackKind
 
     /// <summary>"Contacting &lt;station&gt; on &lt;freq&gt;." — followed by the tune and the check-in.</summary>
     Handoff,
+
+    /// <summary>"Roger." — ATC told us something that needs no read-back (owner report
+    /// 2026-11-01: "I'll have you descending in about 5 minutes").</summary>
+    Acknowledge,
 }
 
 /// <summary>One FO transmission: the text for sayAs and the text for the FO's own voice.</summary>
@@ -44,6 +48,14 @@ public static partial class ReadbackComposer
     // "climb altitude 6,000" went out as "Climb altitude 6, 000.").
     [GeneratedRegex(@"(\d),(\d{3})\b", RegexOptions.CultureInvariant)]
     private static partial Regex Thousands();
+
+    // ATC talking ABOUT what it will do, or inviting us to ask, is not an instruction (EGLL→EHAM
+    // 2026-11-01 00:51Z: "Expect the REDF1A arrival. I'll have you descending in about 5
+    // minutes. Say the word if you want to descend sooner." was read back word for word — the
+    // "5" and "descend" looked like an instruction). Such a segment is dropped; when nothing
+    // else is left the FO answers "Roger".
+    [GeneratedRegex(@"\b(?:I\s?'?ll|I will|I'?m going to|we\s?'?ll|we will|you\s?'?ll|you will|say the word|let me know|let us know|if you (?:want|need|would|prefer|like)|in about \d+|shortly|be advised|no delay expected|I'?ll call|I'?ll get back)\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    private static partial Regex Advisory();
 
     // Broadcasts are not addressed to us and get no read-back (EGLL 2026-10-29: the FO read
     // "All aircraft be advised, information Sierra is now current. QNH 1028" back as "QNH 1028").
@@ -92,6 +104,7 @@ public static partial class ReadbackComposer
         }
 
         var clauses = new List<string>();
+        var advisory = false;
         foreach (var raw in SplitClauses(text))
         {
             var clause = StripCallsign(raw, callsign);
@@ -101,11 +114,16 @@ public static partial class ReadbackComposer
             clause = Thousands().Replace(clause, $"$1{ThousandsMark}$2");
 
             // Segment by comma: greetings and "Identified" go; an unknown station's
-            // self-identification ("Kastrup Tower", first, short, no digits) goes too.
+            // self-identification ("Kastrup Tower", first, short, no digits) goes too; ATC's
+            // own intentions ("I'll have you descending in about 5 minutes") go, remembered
+            // for the "Roger".
             var segments = clause.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
                 .Select(s => s.Replace(ThousandsMark, ','))
                 .Where(s => s.Length > 0 && !IsNoise(s))
                 .ToList();
+            var kept = segments.Where(s => !Advisory().IsMatch(s)).ToList();
+            advisory |= kept.Count < segments.Count;
+            segments = kept;
             if (segments.Count > 1 && !LooksLikeInstruction(segments[0]) && segments[0].Split(' ').Length <= 3)
             {
                 segments.RemoveAt(0);
@@ -127,7 +145,13 @@ public static partial class ReadbackComposer
 
         if (clauses.Count == 0)
         {
-            return null;
+            if (!advisory)
+            {
+                return null;
+            }
+
+            var ack = WithCallsign("Roger.", callsign);
+            return new Readback(ack, RadioSpeech.Spoken(ack), ReadbackKind.Acknowledge);
         }
 
         var joined = WithCallsign(string.Join(" ", clauses), callsign);
