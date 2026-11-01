@@ -26,6 +26,13 @@ public interface IFlightStatePart
     /// "landed" edge) take a lower number than the stores they guard.</summary>
     int RestoreOrder => 100;
 
+    /// <summary>True for a part that belongs to the gap BETWEEN legs rather than to a flight
+    /// (ADR-0019 §9, issue #220: the leg-boundary state). The service keeps writing such parts
+    /// after the Shutdown finalisation and a ColdAndDark commit, when every flight part is
+    /// suspended, as a boundary-only document; only a new leg, the end of duty or the age
+    /// limit drops them.</summary>
+    bool PersistsAcrossLegs => false;
+
     /// <summary>Raised after the part's state changed; the service debounces the write.</summary>
     event Action? Changed;
 
@@ -73,9 +80,24 @@ public enum FlightStateRestoreVerdict
 
 /// <summary>
 /// The pure startup rule (issue #167): a snapshot is restored only when it is young enough
-/// AND the aircraft is the same AND the EFB still reports the SimBrief plan imported (or the
-/// MCDU carries the snapshot's route). Every input is nullable so the rule can say "not yet"
-/// while ProSim is still delivering values — a missing value is never read as a mismatch.
+/// AND the aircraft is the same AND the plan is the same — the plan the app already holds
+/// (its request id), else the EFB's "SimBrief plan imported" flag NOT contradicted by the
+/// MCDU route, else the MCDU route itself. Every input is nullable so the rule can say "not
+/// yet" while ProSim is still delivering values — a missing value is never read as a mismatch.
+/// <para>
+/// ADR-0019 §9 (issue #220, audit A13): the EFB flag alone used to be enough, so a plan
+/// imported in the EFB while the app was down (the flag is true for ANY imported plan) would
+/// have restored the previous plan's snapshot. Now a request id the app already holds decides
+/// outright, and the flag is overruled by a valid MCDU route that is not the snapshot's. The
+/// residual — flag true, MCDU empty, no plan held — still restores: nothing contradicts it.
+/// </para>
+/// <para>
+/// A <b>boundary-only</b> document (every part <see cref="IFlightStatePart.PersistsAcrossLegs"/>:
+/// the leg-boundary state between two legs) belongs to the turnaround, not to a plan: it is
+/// restored on the aircraft and the age alone — the FMS may be cleared, the EFB may still
+/// hold the flown plan, a different plan held by the app means the leg already began and
+/// the boundary is over (discard).
+/// </para>
 /// </summary>
 public static class FlightStateSnapshotRules
 {
@@ -86,7 +108,9 @@ public static class FlightStateSnapshotRules
         bool? planImported,
         string? fmsOrigin,
         string? fmsDestination,
-        string? aircraftTitle)
+        string? aircraftTitle,
+        string? currentRequestId = null,
+        bool boundaryOnly = false)
     {
         ArgumentNullException.ThrowIfNull(snapshot);
 
@@ -122,17 +146,43 @@ public static class FlightStateSnapshotRules
             return (FlightStateRestoreVerdict.Restore, "same aircraft, no OFP identity to compare");
         }
 
-        if (planImported == true)
+        // The plan the app already holds is the strongest witness: the same id is the same
+        // leg, a different id is the next one (or another flight altogether).
+        if (!string.IsNullOrWhiteSpace(currentRequestId))
         {
-            return (FlightStateRestoreVerdict.Restore, "EFB still reports the SimBrief plan imported");
+            return string.Equals(currentRequestId.Trim(), identity.OfpRequestId.Trim(), StringComparison.Ordinal)
+                ? (FlightStateRestoreVerdict.Restore, $"the app already holds the snapshot's plan (request {currentRequestId})")
+                : (FlightStateRestoreVerdict.Discard,
+                    boundaryOnly
+                        ? $"a different plan (request {currentRequestId}) is already loaded — the leg began, the turnaround is over"
+                        : $"the app holds request {currentRequestId}, the snapshot was {identity.OfpRequestId}");
         }
 
-        var fmsMatches = FmsPlanRules.IsValidIcao(fmsOrigin) && FmsPlanRules.IsValidIcao(fmsDestination)
+        if (boundaryOnly)
+        {
+            // Between two legs the FMS is cleared or still the flown pair and the EFB still
+            // says "imported" for the flown plan: none of that identifies anything. Same
+            // aircraft, young enough, no other plan held — the boundary stands.
+            return (FlightStateRestoreVerdict.Restore, "leg-boundary state (between legs): same aircraft, no other plan held");
+        }
+
+        var fmsPairValid = FmsPlanRules.IsValidIcao(fmsOrigin) && FmsPlanRules.IsValidIcao(fmsDestination);
+        var fmsMatches = fmsPairValid
             && string.Equals(fmsOrigin, identity.OriginIcao, StringComparison.OrdinalIgnoreCase)
             && string.Equals(fmsDestination, identity.DestinationIcao, StringComparison.OrdinalIgnoreCase);
         if (fmsMatches)
         {
             return (FlightStateRestoreVerdict.Restore, $"MCDU route {fmsOrigin}-{fmsDestination} matches the snapshot");
+        }
+
+        if (planImported == true)
+        {
+            // The flag is true for whatever plan the EFB holds — a route in the box that is
+            // not the snapshot's says it is another one (ADR-0019 §9).
+            return fmsPairValid
+                ? (FlightStateRestoreVerdict.Discard,
+                    $"EFB reports a plan imported but the MCDU route ({fmsOrigin}-{fmsDestination}) is not the snapshot's ({identity.OriginIcao}-{identity.DestinationIcao}) — another plan")
+                : (FlightStateRestoreVerdict.Restore, "EFB still reports the SimBrief plan imported and the MCDU does not contradict it");
         }
 
         if (planImported is null || fmsOrigin is null || fmsDestination is null)

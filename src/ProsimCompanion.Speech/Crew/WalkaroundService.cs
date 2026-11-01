@@ -256,7 +256,7 @@ public sealed class WalkaroundService : Core.Hosting.IStartupModule, IDisposable
         return action;
     }
 
-    // ---- the flight-state snapshot part (owner rule 2026-11-01: no walkaround after a restart) ----
+    // ---- the flight-state snapshot part (ADR-0019 §9: a restart is invisible) -----------------
 
     /// <inheritdoc />
     public string Key => "walkaround";
@@ -273,8 +273,8 @@ public sealed class WalkaroundService : Core.Hosting.IStartupModule, IDisposable
             state = _core.Capture();
         }
 
-        // Always a node, even Idle: the part's presence is what tells a restart "this cycle
-        // was already under way", so an idle cycle is skipped too.
+        // Always a node, even Idle: the restart then knows the cycle's walk had not happened
+        // yet (still possible) rather than guessing.
         return JsonSerializer.SerializeToNode(state, FlightStateSnapshotStore.JsonOptions);
     }
 
@@ -283,22 +283,34 @@ public sealed class WalkaroundService : Core.Hosting.IStartupModule, IDisposable
     {
         ArgumentNullException.ThrowIfNull(node);
         var saved = node.Deserialize<WalkaroundSnapshotState>(FlightStateSnapshotStore.JsonOptions);
-        WalkaroundState before;
+        WalkaroundRestartOutcome outcome;
         lock (_gate)
         {
-            before = _core.SkipCycle();
+            outcome = _core.AdoptRestart(saved);
             _pendingFinding = null;
         }
 
-        if (_availability.Snapshot() is { IsAway: true, Reason: FoAvailabilityStore.WalkaroundReason })
+        if (outcome != WalkaroundRestartOutcome.StillPossible
+            && _availability.Snapshot() is { IsAway: true, Reason: FoAvailabilityStore.WalkaroundReason })
         {
             _availability.Clear();
         }
 
-        _logger.LogInformation(
-            "FO walkaround skipped for this departure — the app restarted mid-turnaround (snapshot state {Saved})",
-            saved?.State.ToString() ?? before.ToString());
-        _eventLog.Record("walkaround.skipped", new { reason = "restart", snapshotState = saved?.State.ToString() ?? before.ToString() });
+        var savedState = saved?.State.ToString() ?? WalkaroundState.Idle.ToString();
+        switch (outcome)
+        {
+            case WalkaroundRestartOutcome.StillPossible:
+                _logger.LogInformation("FO walkaround still possible this departure after the restart — it runs on the ready edge unless boarding has started");
+                break;
+            case WalkaroundRestartOutcome.WalkEnded:
+                _logger.LogInformation("FO walkaround was in progress when the app went down — the FO is back, no report");
+                break;
+            default:
+                _logger.LogInformation("FO walkaround already done this departure (snapshot state {Saved}) — not repeated", savedState);
+                break;
+        }
+
+        _eventLog.Record("walkaround.restored", new { snapshotState = savedState, outcome = outcome.ToString(), state = State.ToString() });
     }
 
     /// <summary>The sample as the core sees it — exposed for the tests' tables.</summary>
@@ -307,7 +319,7 @@ public sealed class WalkaroundService : Core.Hosting.IStartupModule, IDisposable
         var facts = _ground.Facts;
         GsxServiceStage? refuel = null;
         var prepComplete = false;
-        var boardingDone = false;
+        var boardingObserved = false;
         try
         {
             var snapshot = _diagnostics.Snapshot();
@@ -320,7 +332,7 @@ public sealed class WalkaroundService : Core.Hosting.IStartupModule, IDisposable
                 }
                 else if (string.Equals(row.ServiceId, GsxServiceIds.Boarding, StringComparison.OrdinalIgnoreCase))
                 {
-                    boardingDone = row.Stage == GsxServiceStage.Completed;
+                    boardingObserved = WalkaroundCore.BoardingStarted(row.Stage);
                 }
             }
         }
@@ -329,7 +341,7 @@ public sealed class WalkaroundService : Core.Hosting.IStartupModule, IDisposable
             _logger.LogDebug(ex, "GSX diagnostics read failed");
         }
 
-        return new WalkaroundSample(_flight.CurrentPhase, _flight.IsLive, facts.Parked, facts.EnginesOff, prepComplete, refuel, nowUtc, boardingDone);
+        return new WalkaroundSample(_flight.CurrentPhase, _flight.IsLive, facts.Parked, facts.EnginesOff, prepComplete, refuel, nowUtc, boardingObserved);
     }
 
     private async Task AnnounceAsync(DateTimeOffset nowUtc)

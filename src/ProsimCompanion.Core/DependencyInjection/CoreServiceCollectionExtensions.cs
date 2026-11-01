@@ -151,6 +151,11 @@ public static class CoreServiceCollectionExtensions
         services.AddSingleton<Flight.LegBoundaryStore>();
         services.AddStartupModule<Flight.LegBoundaryService>();
         services.AddSingleton<Flight.ILegBoundaryEvents>(p => p.GetRequiredService<Flight.LegBoundaryService>());
+        // The boundary state is the one snapshot part that persists across legs (ADR-0019 §9,
+        // issue #220): a restart in a turnaround lands in the same Turnaround / Awaiting plan
+        // state; the GSX resync's tracking LVARs are the fallback through ILegBoundaryRecovery.
+        services.AddSingleton<Flight.IFlightStatePart>(p => p.GetRequiredService<Flight.LegBoundaryService>());
+        services.AddSingleton<Flight.ILegBoundaryRecovery>(p => p.GetRequiredService<Flight.LegBoundaryService>());
         // Radios tile (owner request 2026-10-25): COM1 from the push read model, the
         // SayIntentions assignment from the Speech pillar; the tune is dataref standby-then-swap.
         services.AddSingleton<Radios.RadioStore>();

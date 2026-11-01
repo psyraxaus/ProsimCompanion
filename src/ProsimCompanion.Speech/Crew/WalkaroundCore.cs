@@ -44,8 +44,10 @@ public enum WalkaroundAction
 /// <param name="EnginesOff">The committed engines-off fact.</param>
 /// <param name="PrepComplete">The GSX ground prep's stage reads Complete (jetway / stairs on).</param>
 /// <param name="RefuelStage">The refuel row on the service board; a call abandons the walk.</param>
-/// <param name="BoardingDone">The boarding row on the service board reads Completed: the doors
-/// are about to close, the FO does not go outside any more (owner report 2026-11-01).</param>
+/// <param name="BoardingObserved">The boarding row on the service board reads Called, Requested,
+/// Active or Completed — boarding has started (or is over, the seeded Completed of a resync
+/// included): the FO does not go outside any more (owner report 2026-11-01; ADR-0019 §9 — the
+/// walk is allowed when boarding has not started, restart or not).</param>
 public sealed record WalkaroundSample(
     FlightPhase Phase,
     bool Live,
@@ -54,7 +56,20 @@ public sealed record WalkaroundSample(
     bool PrepComplete,
     GsxServiceStage? RefuelStage,
     DateTimeOffset NowUtc,
-    bool BoardingDone = false);
+    bool BoardingObserved = false);
+
+/// <summary>What a restart did to the walk (ADR-0019 §9, issue #220).</summary>
+public enum WalkaroundRestartOutcome
+{
+    /// <summary>Nothing had happened this cycle: the walk is still possible on the ready edge.</summary>
+    StillPossible,
+
+    /// <summary>The FO was outside when the app went down: simply back, no report.</summary>
+    WalkEnded,
+
+    /// <summary>The walk had already happened (reported or abandoned): over for this cycle.</summary>
+    AlreadyDone,
+}
 
 /// <summary>What the walkaround keeps across an app restart (the flight-state snapshot part).</summary>
 public sealed record WalkaroundSnapshotState(WalkaroundState State, DateTimeOffset? DepartedAtUtc, DateTimeOffset? ReportDueUtc);
@@ -67,12 +82,14 @@ public sealed record WalkaroundSnapshotState(WalkaroundState State, DateTimeOffs
 /// aircraft stops being ready. The shell owns the clock, the speech, the stores and the
 /// findings.
 ///
-/// Restart (owner rule 2026-11-01, first 1.0.0-rc.1 leg): the baseline alone did not hold —
-/// at startup the phase and the GSX prep stage arrive seconds apart, so the first ticks read
-/// "not ready" and the resync's seeded Complete looked like an edge; the FO walked out of an
-/// aircraft whose boarding had finished. A restored flight-state snapshot now ends the walk
-/// for that cycle (<see cref="SkipCycle"/>) whatever state it held, and a completed boarding
-/// is never ready.
+/// Restart (owner rule 2026-11-01, first 1.0.0-rc.1 leg; revised by ADR-0019 §9 on 2026-11-02,
+/// issue #220): the baseline alone did not hold — at startup the phase and the GSX prep stage
+/// arrive seconds apart, so the first ticks read "not ready" and the resync's seeded Complete
+/// looked like an edge; the FO walked out of an aircraft whose boarding had finished. The
+/// first fix skipped the whole cycle after any restart; the owner's rule is now "a restart is
+/// invisible": a boarding that has started (any stage from Called on, the seeded Completed
+/// included) is never ready, and a restored snapshot (<see cref="AdoptRestart"/>) only ends a
+/// walk that was in progress or already done — an idle cycle stays armed for its edge.
 /// </summary>
 public sealed class WalkaroundCore
 {
@@ -97,27 +114,47 @@ public sealed class WalkaroundCore
     }
 
     /// <summary>The ready predicate: at the gate, live, parked, engines off, prep complete,
-    /// boarding not completed.</summary>
+    /// boarding not started.</summary>
     public static bool IsReady(WalkaroundSample sample)
     {
         ArgumentNullException.ThrowIfNull(sample);
-        return sample.Live && sample.Phase.IsAtGate() && sample.Parked && sample.EnginesOff && sample.PrepComplete && !sample.BoardingDone;
+        return sample.Live && sample.Phase.IsAtGate() && sample.Parked && sample.EnginesOff && sample.PrepComplete && !sample.BoardingObserved;
     }
+
+    /// <summary>Boarding has started as far as the service board can tell: any stage from the
+    /// trigger on, the seeded Completed of a startup resync included.</summary>
+    public static bool BoardingStarted(GsxServiceStage? boardingStage)
+        => boardingStage is GsxServiceStage.Called or GsxServiceStage.Requested or GsxServiceStage.Active or GsxServiceStage.Completed;
 
     /// <summary>The state worth keeping across a restart.</summary>
     public WalkaroundSnapshotState Capture() => new(State, DepartedAtUtc, ReportDueUtc);
 
-    /// <summary>An app restart inside a departure cycle: the walk is over for this cycle,
-    /// whatever the snapshot held — a walk in progress is neither resumed nor reported (the
-    /// FO is simply back), an idle cycle does not start one. Returns the state it replaced.</summary>
-    public WalkaroundState SkipCycle()
+    /// <summary>An app restart inside a departure cycle (ADR-0019 §9): a walk in progress is
+    /// neither resumed nor reported — the FO is simply back; a walk already reported or
+    /// abandoned stays done; an idle cycle stays armed, baselined "not ready" so the ready
+    /// state it finds at startup counts as its edge (boarding started blocks it regardless).</summary>
+    public WalkaroundRestartOutcome AdoptRestart(WalkaroundSnapshotState? saved)
     {
-        var before = State;
-        State = WalkaroundState.Done;
+        var state = saved?.State ?? WalkaroundState.Idle;
         DepartedAtUtc = null;
         ReportDueUtc = null;
-        _lastReady = null;
-        return before;
+        switch (state)
+        {
+            case WalkaroundState.Idle:
+                State = WalkaroundState.Idle;
+                _lastReady = false;
+                return WalkaroundRestartOutcome.StillPossible;
+
+            case WalkaroundState.Departed:
+                State = WalkaroundState.Done;
+                _lastReady = null;
+                return WalkaroundRestartOutcome.WalkEnded;
+
+            default:
+                State = WalkaroundState.Done;
+                _lastReady = null;
+                return WalkaroundRestartOutcome.AlreadyDone;
+        }
     }
 
     /// <summary>The away window: minimum plus the 0–1 roll's share of the spread, never

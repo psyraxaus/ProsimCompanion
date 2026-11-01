@@ -1,6 +1,9 @@
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using Microsoft.Extensions.Logging;
 using ProsimCompanion.Core.Aircraft;
 using ProsimCompanion.Core.Aircraft.Ofp;
+using ProsimCompanion.Core.Day;
 using ProsimCompanion.Core.Diagnostics.Ecam;
 using ProsimCompanion.Core.EventLog;
 using ProsimCompanion.Core.State;
@@ -16,9 +19,21 @@ namespace ProsimCompanion.Core.Flight;
 /// <c>leg.boundary</c> session event and one line on the Diagnostics RECENT list; an FMS
 /// clear is also an <c>fms.cleared</c> event whether or not it counted. Degrade-not-fail:
 /// with ProSim absent the FMS refs never change and the machine simply never leaves None.
+/// <para>
+/// <b>Restart</b> (ADR-0019 §9, issue #220): the machine is the <c>turnaround</c> part of the
+/// flight-state snapshot — the one part that <see cref="IFlightStatePart.PersistsAcrossLegs"/>,
+/// written while a boundary is in progress and restored before the OFP part so the flown
+/// plan's id is already known when the OFP comes back (no false "first plan" edge). With no
+/// snapshot the GSX startup resync may hand in "deboarded" from its tracking LVARs
+/// (<see cref="ILegBoundaryRecovery"/>). The end of duty (<see cref="DutyDaySignals"/>) puts
+/// the machine back to None: no boundary is in progress once the day is closed.
+/// </para>
 /// </summary>
-public sealed class LegBoundaryService : ILegBoundaryEvents, IDisposable
+public sealed class LegBoundaryService : ILegBoundaryEvents, ILegBoundaryRecovery, IFlightStatePart, IDisposable
 {
+    public const string SnapshotPartName = "turnaround";
+    public const string RestoredReason = "restored from the flight-state snapshot";
+
     private readonly GroundOpsSignals _signals;
     private readonly FmsPlanWatcher _fms;
     private readonly OfpStore _ofp;
@@ -27,6 +42,7 @@ public sealed class LegBoundaryService : ILegBoundaryEvents, IDisposable
     private readonly JsonlEventLog _eventLog;
     private readonly DiagEventLog _diagEvents;
     private readonly ILogger<LegBoundaryService> _logger;
+    private readonly DutyDaySignals? _dutyDay;
     private readonly LegBoundaryCore _core = new();
     private readonly object _gate = new();
 
@@ -38,7 +54,8 @@ public sealed class LegBoundaryService : ILegBoundaryEvents, IDisposable
         LegBoundaryStore store,
         JsonlEventLog eventLog,
         DiagEventLog diagEvents,
-        ILogger<LegBoundaryService> logger)
+        ILogger<LegBoundaryService> logger,
+        DutyDaySignals? dutyDay = null)
     {
         ArgumentNullException.ThrowIfNull(signals);
         ArgumentNullException.ThrowIfNull(fms);
@@ -56,6 +73,7 @@ public sealed class LegBoundaryService : ILegBoundaryEvents, IDisposable
         _eventLog = eventLog;
         _diagEvents = diagEvents;
         _logger = logger;
+        _dutyDay = dutyDay;
 
         // A plan already in the store (restored before this module woke) is the current leg.
         var current = OfpPlanIdentity.PlanId(_ofp.Current);
@@ -73,9 +91,114 @@ public sealed class LegBoundaryService : ILegBoundaryEvents, IDisposable
         _fms.Cleared += OnFmsCleared;
         _ofp.Changed += OnOfpChanged;
         _flight.PhaseChanged += OnPhaseChanged;
+        if (_dutyDay is not null)
+        {
+            _dutyDay.DayEnded += OnDutyDayEnded;
+        }
     }
 
     public event EventHandler<LegBeganEventArgs>? LegBegan;
+
+    // ---- the flight-state snapshot part (ADR-0019 §9, issue #220) -----------------------------
+
+    /// <inheritdoc />
+    public string Key => SnapshotPartName;
+
+    /// <summary>Before the OFP part (10): the flown plan's id must be in the machine when the
+    /// OFP store fires, or the restored OFP reads as the first plan of a new leg.</summary>
+    public int RestoreOrder => 5;
+
+    /// <inheritdoc />
+    public bool PersistsAcrossLegs => true;
+
+    /// <inheritdoc />
+    public event Action? Changed;
+
+    /// <inheritdoc />
+    public JsonNode? Capture()
+    {
+        LegBoundarySnapshot snapshot;
+        lock (_gate)
+        {
+            snapshot = _core.Snapshot;
+        }
+
+        // Nothing between legs → nothing to come back to; a plain "a leg is planned" state
+        // is the OFP part's business.
+        return snapshot is { State: LegBoundaryState.None, Deboarded: false, FmsCleared: false }
+            ? null
+            : JsonSerializer.SerializeToNode(snapshot, FlightStateSnapshotStore.JsonOptions);
+    }
+
+    /// <inheritdoc />
+    public void Restore(JsonNode node)
+    {
+        ArgumentNullException.ThrowIfNull(node);
+        var saved = node.Deserialize<LegBoundarySnapshot>(FlightStateSnapshotStore.JsonOptions);
+        if (saved is null)
+        {
+            return;
+        }
+
+        LegBoundaryState before;
+        lock (_gate)
+        {
+            before = _core.Snapshot.State;
+            _core.Restore(saved with { Reason = RestoredReason });
+        }
+
+        PublishAdopted(before, saved.State, RestoredReason, saved.PlanId);
+        _logger.LogInformation(
+            "Leg boundary restored from the flight-state snapshot: {State} (deboarded {Deboarded}, FMS cleared {FmsCleared}, flown plan {PlanId})",
+            saved.State, saved.Deboarded, saved.FmsCleared, saved.PlanId ?? "-");
+    }
+
+    /// <inheritdoc />
+    public bool AdoptDeboardedFromEvidence(string source)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(source);
+        LegBoundaryChange? change;
+        lock (_gate)
+        {
+            if (_core.Snapshot is not { State: LegBoundaryState.None, Deboarded: false, FmsCleared: false })
+            {
+                return false; // a snapshot or a live edge already said where we are
+            }
+
+            change = _core.Deboarded(DateTimeOffset.UtcNow);
+            if (change is not null)
+            {
+                _core.Restore(_core.Snapshot with { Reason = "deboarding complete — " + source });
+            }
+        }
+
+        if (change is null)
+        {
+            return false;
+        }
+
+        Publish(change with { Reason = "deboarding complete — " + source, Warning = null });
+        return true;
+    }
+
+    private void OnDutyDayEnded(DutyDayEnded ended)
+    {
+        LegBoundaryState before;
+        lock (_gate)
+        {
+            before = _core.Snapshot.State;
+            if (_core.Snapshot is { State: LegBoundaryState.None, Deboarded: false, FmsCleared: false })
+            {
+                return;
+            }
+
+            _core.Restore(LegBoundarySnapshot.Empty with { ChangedAtUtc = DateTimeOffset.UtcNow, Reason = "end of duty" });
+        }
+
+        PublishAdopted(before, LegBoundaryState.None, $"end of duty ({ended.Source}) — no boundary in progress", null);
+    }
+
+    // ---- the live edges --------------------------------------------------------------------------
 
     private void OnArrivalCompleted()
     {
@@ -149,6 +272,38 @@ public sealed class LegBoundaryService : ILegBoundaryEvents, IDisposable
         Publish(change);
     }
 
+    // ---- publishing ------------------------------------------------------------------------------
+
+    /// <summary>A state adopted from outside the live edges (a snapshot, the end of duty): the
+    /// store, the record and the diagnostics line, never the leg-began edge.</summary>
+    private void PublishAdopted(LegBoundaryState from, LegBoundaryState to, string reason, string? planId)
+    {
+        var snapshot = _core.Snapshot;
+        _store.Update(_ => snapshot);
+        _logger.LogInformation("Leg boundary {From} → {To}: {Reason}", from, to, reason);
+        _eventLog.Record("leg.boundary", new
+        {
+            state = to.ToString(),
+            previous = from.ToString(),
+            reason,
+            warning = (string?)null,
+            planId,
+            legBegan = false,
+            deboarded = snapshot.Deboarded,
+            fmsCleared = snapshot.FmsCleared,
+        });
+        _diagEvents.Push(new DiagEvent(
+            DateTimeOffset.UtcNow,
+            to switch
+            {
+                LegBoundaryState.Turnaround => "TURNAROUND",
+                LegBoundaryState.AwaitingPlan => "AWAITING PLAN",
+                _ => "LEG BOUNDARY CLEARED",
+            },
+            DiagState.Normal));
+        Changed?.Invoke();
+    }
+
     private void Publish(LegBoundaryChange? change)
     {
         if (change is null)
@@ -190,6 +345,8 @@ public sealed class LegBoundaryService : ILegBoundaryEvents, IDisposable
             },
             change.Warning is null ? DiagState.Normal : DiagState.Caution));
 
+        Changed?.Invoke();
+
         if (change.LegBegan && change.PlanId is { } planId)
         {
             try
@@ -209,5 +366,9 @@ public sealed class LegBoundaryService : ILegBoundaryEvents, IDisposable
         _fms.Cleared -= OnFmsCleared;
         _ofp.Changed -= OnOfpChanged;
         _flight.PhaseChanged -= OnPhaseChanged;
+        if (_dutyDay is not null)
+        {
+            _dutyDay.DayEnded -= OnDutyDayEnded;
+        }
     }
 }

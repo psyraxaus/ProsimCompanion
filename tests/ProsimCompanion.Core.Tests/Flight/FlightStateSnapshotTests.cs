@@ -80,6 +80,48 @@ public sealed class FlightStateSnapshotTests : IDisposable
     }
 
     [Fact]
+    public void Rule_ThePlanTheAppHolds_DecidesOutright()
+    {
+        // ADR-0019 §9 (issue #220, audit A13): the request id, never the EFB flag alone.
+        Assert.Equal(FlightStateRestoreVerdict.Restore,
+            FlightStateSnapshotRules.Validate(Snapshot(), Now, MaxAge, planImported: false, null, null, "Airbus A320 FIN", currentRequestId: "189301241").Verdict);
+        var (verdict, reason) = FlightStateSnapshotRules.Validate(Snapshot(), Now, MaxAge, planImported: true, "EFHK", "EGCC", "Airbus A320 FIN", currentRequestId: "190000001");
+        Assert.Equal(FlightStateRestoreVerdict.Discard, verdict);
+        Assert.Contains("190000001", reason, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Rule_TheEfbFlag_IsOverruledByAnotherRouteInTheMcdu()
+    {
+        // The flag is true for whatever plan the EFB holds — a plan imported while the app was
+        // down with its route already in the box is another flight.
+        var (verdict, reason) = FlightStateSnapshotRules.Validate(Snapshot(), Now, MaxAge, planImported: true, "EGCC", "EFHK", "Airbus A320 FIN");
+        Assert.Equal(FlightStateRestoreVerdict.Discard, verdict);
+        Assert.Contains("another plan", reason, StringComparison.Ordinal);
+
+        // An empty box does not contradict the flag: the residual case still restores.
+        Assert.Equal(FlightStateRestoreVerdict.Restore,
+            FlightStateSnapshotRules.Validate(Snapshot(), Now, MaxAge, planImported: true, "", "", "Airbus A320 FIN").Verdict);
+    }
+
+    [Fact]
+    public void Rule_ABoundaryOnlyDocument_NeedsOnlyTheAircraft_UnlessAnotherPlanIsHeld()
+    {
+        // Between legs the FMS is cleared or still the flown pair and the EFB still says
+        // "imported" for the flown plan — none of it identifies anything.
+        Assert.Equal(FlightStateRestoreVerdict.Restore,
+            FlightStateSnapshotRules.Validate(Snapshot(), Now, MaxAge, planImported: true, "", "", "Airbus A320 FIN", boundaryOnly: true).Verdict);
+        Assert.Equal(FlightStateRestoreVerdict.Restore,
+            FlightStateSnapshotRules.Validate(Snapshot(), Now, MaxAge, planImported: false, "EGCC", "EFHK", "Airbus A320 FIN", boundaryOnly: true).Verdict);
+        Assert.Equal(FlightStateRestoreVerdict.Wait,
+            FlightStateSnapshotRules.Validate(Snapshot(), Now, MaxAge, planImported: null, null, null, aircraftTitle: null, boundaryOnly: true).Verdict);
+        Assert.Equal(FlightStateRestoreVerdict.Discard,
+            FlightStateSnapshotRules.Validate(Snapshot(), Now, MaxAge, planImported: true, null, null, "Airbus A320 FIN", currentRequestId: "190000001", boundaryOnly: true).Verdict);
+        Assert.Equal(FlightStateRestoreVerdict.Discard,
+            FlightStateSnapshotRules.Validate(Snapshot(writtenUtc: Now.AddHours(-19)), Now, MaxAge, planImported: true, null, null, "Airbus A320 FIN", boundaryOnly: true).Verdict);
+    }
+
+    [Fact]
     public void Rule_WithoutAnOfpIdentity_NeedsOnlyTheAircraftAndTheAge()
     {
         Assert.Equal(FlightStateRestoreVerdict.Restore, FlightStateSnapshotRules.Validate(Snapshot(requestId: null), Now, MaxAge, false, "----", "----", "Airbus A320 FIN").Verdict);
@@ -117,11 +159,13 @@ public sealed class FlightStateSnapshotTests : IDisposable
 
     // ---- the service ------------------------------------------------------------------------------
 
-    private sealed class FakePart(string key, int order) : IFlightStatePart
+    private sealed class FakePart(string key, int order, bool persists = false) : IFlightStatePart
     {
         public string Key => key;
 
         public int RestoreOrder => order;
+
+        public bool PersistsAcrossLegs => persists;
 
         public event Action? Changed;
 
@@ -345,6 +389,58 @@ public sealed class FlightStateSnapshotTests : IDisposable
         part.Touch();
         await Task.Delay(FlightStateSnapshotService.WriteDelay + TimeSpan.FromMilliseconds(400));
         Assert.NotNull(h.File.Load());              // the next leg writes again
+    }
+
+    [Fact]
+    public async Task BoundaryPart_IsKeptThroughColdAndDark_AndWrittenAloneWhileSuspended()
+    {
+        // ADR-0019 §9 (issue #220): the leg-boundary part outlives the flight parts — a
+        // power-down between legs keeps it, and only it, so a restart lands in Turnaround.
+        var flight = new FakePart("minima", 40) { Value = JsonValue.Create("m") };
+        var boundary = new FakePart("turnaround", 5, persists: true) { Value = JsonValue.Create("t1") };
+        var h = new Harness(_dir, [flight, boundary]);
+        h.Service.Start();
+        h.Evidence();
+        h.Service.EvaluateRestore();
+        h.Phase.SetPhase(FlightPhase.Preflight);
+
+        flight.Touch();
+        await Task.Delay(FlightStateSnapshotService.WriteDelay + TimeSpan.FromMilliseconds(400));
+        Assert.Equal(["minima", "turnaround"], h.File.Load()!.Parts.Keys.Order().ToArray());
+
+        h.Phase.SetPhase(FlightPhase.ColdAndDark);          // invalidates, suspends — keeps the boundary
+        var kept = h.File.Load();
+        Assert.NotNull(kept);
+        Assert.Equal(["turnaround"], kept!.Parts.Keys.ToArray());
+
+        flight.Touch();                                     // a flight part while suspended: nothing
+        boundary.Value = JsonValue.Create("t2");
+        boundary.Touch();                                   // the boundary part: written alone
+        await Task.Delay(FlightStateSnapshotService.WriteDelay + TimeSpan.FromMilliseconds(400));
+        var written = h.File.Load()!;
+        Assert.Equal(["turnaround"], written.Parts.Keys.ToArray());
+        Assert.Equal("t2", written.Parts["turnaround"]!.GetValue<string>());
+
+        boundary.Value = null;                              // the boundary ended (a new leg): the file goes
+        boundary.Touch();
+        await Task.Delay(FlightStateSnapshotService.WriteDelay + TimeSpan.FromMilliseconds(400));
+        Assert.Null(h.File.Load());
+    }
+
+    [Fact]
+    public void BoundaryOnlyDocument_RestoresOnAColdAndDarkAircraft()
+    {
+        var boundary = new FakePart("turnaround", 5, persists: true);
+        var h = new Harness(_dir, [new FakePart("minima", 40), boundary]);
+        h.File.Save(Snapshot(parts: new() { ["turnaround"] = JsonValue.Create("t") }));
+        h.Service.Start();
+        h.Phase.SetPhase(FlightPhase.ColdAndDark);
+        h.Evidence(imported: true, origin: "", destination: "");
+        h.Service.EvaluateRestore();
+
+        Assert.True(h.Service.Decided);
+        Assert.True(h.Service.Restored);
+        Assert.Equal(["turnaround"], boundary.Log.ToArray());
     }
 
     [Fact]

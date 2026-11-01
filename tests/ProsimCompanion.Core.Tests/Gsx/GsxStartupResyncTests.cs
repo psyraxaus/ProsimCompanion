@@ -33,6 +33,29 @@ public sealed class GsxStartupResyncTests
             ConfiguredServices, planLoaded);
 
     [Fact]
+    public void BetweenLegs_NeedsTurnaround_DeboardingDone_AndNoDepartureProgress()
+    {
+        // ADR-0019 §9 (issue #220): the leg-boundary fallback with no snapshot — the EHAM
+        // 2026-11-01 restart 2 (turnaround LVAR, deboarding done, nothing of leg 2 run yet).
+        var between = Evidence(turnaround: true, doneLvars: ["Deboarding"]);
+        Assert.True(GsxStartupResync.BetweenLegs(GsxStartupResync.Assess(between), between));
+
+        // The GPU seed is exempt from "progress" too.
+        var withGpu = Evidence(turnaround: true, doneLvars: ["Deboarding", "Gpu"]);
+        Assert.True(GsxStartupResync.BetweenLegs(GsxStartupResync.Assess(withGpu), withGpu));
+
+        // Catering of the next leg already done: a leg is under way, not between legs.
+        var legUnderWay = Evidence(turnaround: true, doneLvars: ["Deboarding", "Catering"]);
+        Assert.False(GsxStartupResync.BetweenLegs(GsxStartupResync.Assess(legUnderWay), legUnderWay));
+
+        // No arrival this session, or no deboarding proof: nothing is known.
+        var noTurnaround = Evidence(turnaround: false, doneLvars: ["Deboarding"]);
+        Assert.False(GsxStartupResync.BetweenLegs(GsxStartupResync.Assess(noTurnaround), noTurnaround));
+        var noDeboarding = Evidence(turnaround: true);
+        Assert.False(GsxStartupResync.BetweenLegs(GsxStartupResync.Assess(noDeboarding), noDeboarding));
+    }
+
+    [Fact]
     public void UnpushedPlanRefs_NeverCondemnValidLvars()
     {
         // Issue #30 regression (2026-08-23 09:29 restart): the assessment ran 5 s after app

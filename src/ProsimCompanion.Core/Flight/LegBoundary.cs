@@ -71,6 +71,17 @@ public interface ILegBoundaryEvents
     event EventHandler<LegBeganEventArgs>? LegBegan;
 }
 
+/// <summary>The restart fallback (ADR-0019 §9, issue #220): when no flight-state snapshot
+/// came back, the GSX startup resync's tracking LVARs (an arrival this sim session, deboarding
+/// done, no departure progress) may still say "between legs". The machine adopts the step
+/// only while it knows nothing itself — a restored snapshot, or edges already seen, win.</summary>
+public interface ILegBoundaryRecovery
+{
+    /// <summary>Deboarding completed before this process started, by the resync's evidence.
+    /// Returns true when the machine took the step (it was in None with nothing seen).</summary>
+    bool AdoptDeboardedFromEvidence(string source);
+}
+
 /// <summary>
 /// The pure leg-boundary machine (ADR-0019 §2). Three edges feed it — deboarding complete,
 /// FMS cleared, a different plan loaded — and the order is preferred, never required: any

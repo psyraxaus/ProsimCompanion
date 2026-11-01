@@ -28,6 +28,11 @@ namespace ProsimCompanion.Core.Flight;
 /// a ColdAndDark commit, the cycle reset the stamps honour, and the finalised Shutdown —
 /// after the last two the file stays gone until the next leg shows itself (a new OFP, a
 /// push, a taxi), so a restart at the gate between legs restores nothing of the old one.
+/// The one exception (ADR-0019 §9, issue #220) is a part that
+/// <see cref="IFlightStatePart.PersistsAcrossLegs"/> — the leg-boundary state — which keeps
+/// being written as a <b>boundary-only</b> document through the Shutdown finalisation and a
+/// ColdAndDark power-down, so a restart in a turnaround lands in the same Turnaround /
+/// Awaiting plan state; the end of duty and a new plan drop it with the rest.
 /// </para>
 /// <para>
 /// <b>Plan-only fetch</b>: with nothing valid to restore and the aircraft already airborne
@@ -45,6 +50,7 @@ public sealed class FlightStateSnapshotService : IStartupModule, IDisposable
     private const int PlanFetchMaxAttempts = 3;
 
     private readonly IReadOnlyList<IFlightStatePart> _parts;
+    private readonly Dictionary<IFlightStatePart, Action> _partHandlers = new(ReferenceEqualityComparer.Instance);
     private readonly FlightStateSnapshotStore _file;
     private readonly OfpStore _ofp;
     private readonly IFlightPhaseSource _flight;
@@ -68,6 +74,7 @@ public sealed class FlightStateSnapshotService : IStartupModule, IDisposable
     private bool _restored;
     private bool _writesSuspended;
     private bool _dirty;
+    private bool _boundaryDirty;
     private bool _started;
     private bool _disposed;
     private string? _lastOfpRequestId;
@@ -184,7 +191,10 @@ public sealed class FlightStateSnapshotService : IStartupModule, IDisposable
 
         foreach (var part in _parts)
         {
-            part.Changed += OnPartChanged;
+            var captured = part;
+            Action handler = () => OnPartChanged(captured);
+            _partHandlers[part] = handler;
+            part.Changed += handler;
         }
 
         _flight.PhaseChanged += OnPhaseChanged;
@@ -247,6 +257,7 @@ public sealed class FlightStateSnapshotService : IStartupModule, IDisposable
 
             snapshot = _loaded;
             var planImported = _planImported is { RawValue: not null } imported ? imported.Value : (bool?)null;
+            var boundaryOnly = IsBoundaryOnly(snapshot);
             (verdict, reason) = FlightStateSnapshotRules.Validate(
                 snapshot,
                 _clock(),
@@ -254,15 +265,19 @@ public sealed class FlightStateSnapshotService : IStartupModule, IDisposable
                 planImported,
                 _fmsOrigin is { RawValue: not null } o ? o.Value : null,
                 _fmsDestination is { RawValue: not null } d ? d.Value : null,
-                _aircraftTitle is { RawValue: not null } t ? t.Value : null);
+                _aircraftTitle is { RawValue: not null } t ? t.Value : null,
+                _ofp.Current?.RequestId,
+                boundaryOnly);
             if (verdict == FlightStateRestoreVerdict.Wait)
             {
                 return;
             }
 
             // A cold and dark aircraft is a new flight whatever the EFB still says: the
-            // previous leg's minima, log and latches have no business in it.
-            if (verdict == FlightStateRestoreVerdict.Restore && _flight.CurrentPhase == FlightPhase.ColdAndDark)
+            // previous leg's minima, log and latches have no business in it. The leg-boundary
+            // state is not of a flight — a turnaround survives a power-down on the ground
+            // (ADR-0019 §9), so a boundary-only document is kept.
+            if (verdict == FlightStateRestoreVerdict.Restore && _flight.CurrentPhase == FlightPhase.ColdAndDark && !boundaryOnly)
             {
                 (verdict, reason) = (FlightStateRestoreVerdict.Discard, "aircraft is cold and dark — a new flight");
             }
@@ -337,7 +352,21 @@ public sealed class FlightStateSnapshotService : IStartupModule, IDisposable
 
     // ---- writes -------------------------------------------------------------------------------
 
-    private void OnPartChanged()
+    /// <summary>True when every part in the document belongs to the gap between legs (the
+    /// leg-boundary state) — such a file is judged and kept by the turnaround's rules, not a
+    /// flight's. An empty document is not boundary-only.</summary>
+    private bool IsBoundaryOnly(FlightStateSnapshotFile snapshot)
+    {
+        if (snapshot.Parts.Count == 0)
+        {
+            return false;
+        }
+
+        var boundaryKeys = _parts.Where(p => p.PersistsAcrossLegs).Select(p => p.Key).ToHashSet(StringComparer.Ordinal);
+        return snapshot.Parts.Keys.All(boundaryKeys.Contains);
+    }
+
+    private void OnPartChanged(IFlightStatePart part)
     {
         var ofpRequestId = _ofp.Current?.RequestId;
         lock (_gate)
@@ -363,6 +392,15 @@ public sealed class FlightStateSnapshotService : IStartupModule, IDisposable
 
             if (_writesSuspended)
             {
+                // Between legs only the boundary part is written (ADR-0019 §9, issue #220):
+                // the flight parts stay suspended until the next leg shows itself.
+                if (!part.PersistsAcrossLegs)
+                {
+                    return;
+                }
+
+                _boundaryDirty = true;
+                _writeTimer.Change(WriteDelay, Timeout.InfiniteTimeSpan);
                 return;
             }
 
@@ -375,17 +413,38 @@ public sealed class FlightStateSnapshotService : IStartupModule, IDisposable
     {
         try
         {
+            bool boundaryOnly;
             lock (_gate)
             {
-                if (!_dirty || _writesSuspended || !_decided || _disposed)
+                if (!_decided || _disposed)
                 {
                     return;
                 }
 
-                _dirty = false;
+                if (_writesSuspended)
+                {
+                    if (!_boundaryDirty)
+                    {
+                        return;
+                    }
+
+                    _boundaryDirty = false;
+                    boundaryOnly = true;
+                }
+                else
+                {
+                    if (!_dirty)
+                    {
+                        return;
+                    }
+
+                    _dirty = false;
+                    _boundaryDirty = false;
+                    boundaryOnly = false;
+                }
             }
 
-            _file.Save(Build());
+            SaveOrClear(Build(boundaryOnly));
         }
         catch (Exception ex)
         {
@@ -393,12 +452,31 @@ public sealed class FlightStateSnapshotService : IStartupModule, IDisposable
         }
     }
 
-    /// <summary>The document as the parts see it now. Exposed for tests.</summary>
-    public FlightStateSnapshotFile Build()
+    /// <summary>A document with no parts is nothing to come back to: the file goes rather than
+    /// an empty shell being restored (a boundary document after the boundary ended).</summary>
+    private void SaveOrClear(FlightStateSnapshotFile document)
+    {
+        if (document.Parts.Count == 0)
+        {
+            _file.Clear();
+            return;
+        }
+
+        _file.Save(document);
+    }
+
+    /// <summary>The document as the parts see it now. Exposed for tests. With
+    /// <paramref name="boundaryOnly"/> only the parts that persist across legs are captured.</summary>
+    public FlightStateSnapshotFile Build(bool boundaryOnly = false)
     {
         var parts = new Dictionary<string, JsonNode?>(StringComparer.Ordinal);
         foreach (var part in _parts)
         {
+            if (boundaryOnly && !part.PersistsAcrossLegs)
+            {
+                continue;
+            }
+
             try
             {
                 if (part.Capture() is { } node)
@@ -432,7 +510,8 @@ public sealed class FlightStateSnapshotService : IStartupModule, IDisposable
     {
         if (e.Current == FlightPhase.ColdAndDark)
         {
-            Invalidate("ColdAndDark", suspend: true);
+            // A power-down on the ground between legs keeps the leg-boundary state (ADR-0019 §9).
+            Invalidate("ColdAndDark", suspend: true, keepBoundary: true);
         }
         else if (e.Current is FlightPhase.PushbackAndStart or FlightPhase.TaxiOut or FlightPhase.TakeoffRoll)
         {
@@ -463,16 +542,20 @@ public sealed class FlightStateSnapshotService : IStartupModule, IDisposable
             return;
         }
 
-        Invalidate("flight cycle reset", suspend: false);
+        Invalidate("flight cycle reset", suspend: false, keepBoundary: true);
     }
 
-    private void OnShutdownFinalized() => Invalidate("shutdown finalised", suspend: true);
+    private void OnShutdownFinalized() => Invalidate("shutdown finalised", suspend: true, keepBoundary: true);
 
     /// <summary>End of duty (ADR-0019 §8, issue #218): nothing of the old leg may come back on
-    /// the next start — the file goes and writes stay off until a new plan's request id.</summary>
-    private void OnDutyDayEnded(Day.DutyDayEnded ended) => Invalidate($"end of duty ({ended.Source})", suspend: true);
+    /// the next start — the file goes, the leg-boundary state with it, and writes stay off
+    /// until a new plan's request id.</summary>
+    private void OnDutyDayEnded(Day.DutyDayEnded ended) => Invalidate($"end of duty ({ended.Source})", suspend: true, keepBoundary: false);
 
-    private void Invalidate(string trigger, bool suspend)
+    /// <summary>Drops the file. With <paramref name="keepBoundary"/> the parts that persist
+    /// across legs are written straight back as a boundary-only document (ADR-0019 §9): the
+    /// flight is over, the turnaround is not.</summary>
+    private void Invalidate(string trigger, bool suspend, bool keepBoundary)
     {
         lock (_gate)
         {
@@ -482,6 +565,7 @@ public sealed class FlightStateSnapshotService : IStartupModule, IDisposable
             }
 
             _dirty = false;
+            _boundaryDirty = false;
             _writeTimer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
             _writesSuspended = suspend;
         }
@@ -489,6 +573,25 @@ public sealed class FlightStateSnapshotService : IStartupModule, IDisposable
         _file.Clear();
         _logger.LogInformation("Flight-state snapshot invalidated: {Trigger}{Suspended}", trigger,
             suspend ? " — not written again until the next leg starts" : "");
+
+        if (!keepBoundary)
+        {
+            return;
+        }
+
+        try
+        {
+            var boundary = Build(boundaryOnly: true);
+            if (boundary.Parts.Count > 0)
+            {
+                _file.Save(boundary);
+                _logger.LogInformation("Flight-state snapshot keeps the leg-boundary state only ({Parts})", string.Join(", ", boundary.Parts.Keys));
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Flight-state boundary write failed");
+        }
     }
 
     // ---- plan-only fetch ----------------------------------------------------------------------
@@ -586,6 +689,7 @@ public sealed class FlightStateSnapshotService : IStartupModule, IDisposable
     public void Dispose()
     {
         bool flush;
+        bool flushBoundary;
         lock (_gate)
         {
             if (_disposed)
@@ -594,14 +698,17 @@ public sealed class FlightStateSnapshotService : IStartupModule, IDisposable
             }
 
             flush = _dirty && _decided && !_writesSuspended;
+            flushBoundary = _boundaryDirty && _decided && _writesSuspended;
             _disposed = true;
         }
 
         _writeTimer.Dispose();
-        foreach (var part in _parts)
+        foreach (var (part, handler) in _partHandlers)
         {
-            part.Changed -= OnPartChanged;
+            part.Changed -= handler;
         }
+
+        _partHandlers.Clear();
 
         _flight.PhaseChanged -= OnPhaseChanged;
         _signals.FlightCycleReset -= OnFlightCycleReset;
@@ -620,12 +727,12 @@ public sealed class FlightStateSnapshotService : IStartupModule, IDisposable
             subscription.ValueChanged -= OnEvidenceChanged;
         }
 
-        if (flush)
+        if (flush || flushBoundary)
         {
             // A clean exit keeps the last state: the next start is the restart case.
             try
             {
-                _file.Save(Build());
+                SaveOrClear(Build(boundaryOnly: flushBoundary));
             }
             catch (Exception ex)
             {

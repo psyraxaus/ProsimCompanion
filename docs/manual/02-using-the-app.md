@@ -358,10 +358,15 @@ passenger count — nothing is written to the EFB again), the off-blocks and tak
 their fuel, the Fuel Log rows already stamped, the arrival minima you entered, the running
 chrono and the once-per-flight items that already happened (cabin secure, the final loadsheet
 notification). The state lives in `%LOCALAPPDATA%\ProsimCompanion\state\flight-state.json`;
-it is restored only when ProSim reports the same aircraft and the EFB (or the MCDU route)
-still shows the same flight, and never when the file is older than the limit on **Settings →
-Display & Flight Data → After a restart in flight** (18 hours by default; the card also has
-the switch). Without a saved state the app no longer invents a takeoff time: the debrief and
+it is restored only when ProSim reports the same aircraft and the same plan — the plan the
+app already holds, else the EFB's imported flag not contradicted by another route in the
+MCDU, else the MCDU route itself — and never when the file is older than the limit on
+**Settings → Display & Flight Data → After a restart in flight** (18 hours by default; the
+card also has the switch). **A restart in a turnaround** (ADR-0019) comes back the same way:
+the TURNAROUND / AWAITING PLAN state is the one part of that file that outlives the flight
+— kept through the shutdown and a cold-and-dark power-down, dropped by the next plan or the
+end of duty — so the app never reads "PREFLIGHT with nothing" between legs; with no file at
+all, the GSX tracking LVARs (an arrival this session, deboarding done) stand in. Without a saved state the app no longer invents a takeoff time: the debrief and
 the logbook say *takeoff time unknown (app started in flight)*, the Fuel Log marks the fixes
 already behind you as *not recorded* and, if the MCDU has a plan, the OFP is fetched from
 SimBrief for the app's own bookkeeping only — **Fetch OFP** on the INIT page remains the full

@@ -458,7 +458,10 @@ Off by default — the **Walkaround** card on Crew & Company → Ground Crew
 engines off and the ground preparation (jetway or stairs) has completed, the FO says *"I'll do
 the walkaround, captain"* and is away for six to ten minutes:
 
-- An app restart mid-turnaround never sends the FO out again: the walk is over for that departure (whatever it was doing), and the FO does not go outside once boarding is complete.
+- The FO does not go outside once boarding has started (any Boarding stage from Called on).
+  An app restart is invisible (ADR-0019): a walk that was in progress ends with the FO
+  simply back in the seat (no report), a walk already done is never repeated, and a
+  departure whose walk had not happened yet still gets it once the aircraft is ready.
 - While away, your questions get *"The First Officer is on the walkaround, captain."*
   **"Stop"**, **"I have controls"**, **"quiet please"** and the GSX requests still work.
 - The refuel call waits for the report (the Flight Status refuel row says so). Call the
@@ -476,7 +479,7 @@ the walkaround, captain"* and is away for six to ten minutes:
   (**Allow no-go findings**, off) is raised regardless and the FO says so — nothing is
   blocked, you decide. A raised item is in the next briefing's open-items clause.
 
-A restart mid-turnaround never repeats a walk already done.
+A restart never repeats a walk already done, and never stops one that had not happened yet.
 
 ### Scenario mode — something goes wrong, rarely
 
@@ -563,6 +566,9 @@ The purser calls the flight deck twice a flight: *"cabin secure"* a random while
 doors close with the beacon on, and *"cabin secure for landing"* on approach. Each call
 rings the interphone chime, the header shows CABIN CALLING, and the purser waits until CAB
 is selected on an audio panel (or the grace runs out) before speaking; the FO acknowledges.
+A third, quieter call closes the arrival: *"Cabin's empty, captain."* once GSX deboarding
+completes — the moment the Flight Status card's TURNAROUND chip lights (ADR-0019). Once per
+leg, no FO acknowledgement.
 
 **FO answers cabin calls** (Settings → Crew & Company → Cabin Crew; off by default):
 on the ground — during pushback, engine start and taxi-out — and/or in the air — descent and
@@ -684,6 +690,12 @@ ground with *"engine failure after V1"*. The drill is a JSON file like the other
 Three switches under Settings → Flight Deck → MCDU → **FO-side duties**, all off by
 default. They let the FO do what a pilot monitoring does on their own side — and nothing on
 yours.
+
+One line needs no switch (ADR-0019): load the next leg's OFP at a turnaround while the FMS
+still holds the plan you just flew, and the FO says once *"Captain, the FMS still holds the
+previous flight plan."* Clear the FMS first (the IOS **Reset FMS**, or ProSim's *Reset FMS
+after landing or failure* option) or program the new route before the plan lands, and nothing
+is said.
 
 - **Baro follow** — the FO follows your altimeter. Set STD on your side in the climb and a
   moment later the FO says *"Standard."*, waits three seconds for a *"negative"*, pushes STD on

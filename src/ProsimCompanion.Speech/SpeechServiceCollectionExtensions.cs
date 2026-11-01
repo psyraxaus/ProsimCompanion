@@ -108,6 +108,9 @@ public static class SpeechServiceCollectionExtensions
         services.AddStartupModule<FoSide.FoSideDutiesService>();
         services.AddVoiceFeature<FoSide.FmgcCrossCheckService>();
         services.AddStartupModule<FoSide.FmgcCrossCheckService>();
+        // ADR-0019 §3 (issue #215): the one-time "the FMS still holds the previous flight plan"
+        // when a new OFP lands while the FMS still carries the flown pair.
+        services.AddStartupModule<FoSide.FmsPlanReminderService>();
         services.AddSingleton<Commands.SpokenTokenSource>();
         services.AddVoiceFeature<Commands.ConfiguredVoiceCommands>();
         services.AddVoiceFeature<Callouts.EngineFlapCallFeature>();
@@ -353,8 +356,9 @@ public static class SpeechServiceCollectionExtensions
         // The FO's exterior walkaround (issue #196): announce, away, the interphone report, a
         // finding into the tech log; the raise question's table for the shared dialogue.
         services.AddStartupModule<Crew.WalkaroundService>();
-        // The walkaround's cycle rides the flight-state snapshot so an app restart never sends the
-        // FO outside again (owner rule 2026-11-01).
+        // The walkaround's cycle rides the flight-state snapshot: a restart ends a walk in
+        // progress (the FO is simply back) and never repeats one already done; an idle cycle
+        // stays armed — "a restart is invisible" (ADR-0019 §9, issue #220).
         services.AddSingleton<Core.Flight.IFlightStatePart>(p => p.GetRequiredService<Crew.WalkaroundService>());
         services.AddSingleton(Crew.WalkaroundRaisePhrases.Table);
         // Scenario mode (issue #197, ADR-0018): the one serialised failure-write path — a

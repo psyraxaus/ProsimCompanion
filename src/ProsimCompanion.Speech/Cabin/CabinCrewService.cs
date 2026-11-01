@@ -41,9 +41,20 @@ namespace ProsimCompanion.Speech.Cabin;
 /// snapshot (issue #167): after a restart the cabin does not report secure a second time
 /// and the purser's pending cruise call survives.
 /// </para>
+/// <para>
+/// "Cabin's empty, captain." (ADR-0019 §2, issue #214): the purser's one call at the end of
+/// the arrival, when GSX deboarding completes — the Turnaround step of the leg boundary made
+/// audible. Low priority through the same call flow; once per leg (re-armed when the next leg
+/// begins, or by a take-off for a leg flown on an MCDU plan alone).
+/// </para>
 /// </summary>
 public sealed class CabinCrewService : Core.Hosting.IStartupModule, IDisposable, IFlightStatePart
 {
+    public const string CabinEmptyLine = "Cabin's empty, captain.";
+    public const string CabinEmptyTag = "cabin.empty";
+    private static readonly TimeSpan CabinEmptyRetry = TimeSpan.FromSeconds(30);
+    private const int CabinEmptyAttempts = 3;
+
     private readonly IProsimDataRefs _dataRefs;
     private readonly IFlightDataSource _flightData;
     private readonly IFlightPhaseSource _flight;
@@ -60,8 +71,10 @@ public sealed class CabinCrewService : Core.Hosting.IStartupModule, IDisposable,
     private readonly IOptionsMonitor<SpeechOptions>? _speechOptions;
     private readonly IMicOwnership? _mic;
     private readonly CabinCruiseQueryDialogue? _cruiseQuery;
+    private readonly ILegBoundaryEvents? _legBoundary;
     private readonly CabinCrewCore _core = new();
     private readonly CancellationTokenSource _shutdown = new();
+    private int _cabinEmptyReported;
 
     private IDataRefSubscription<bool>? _doorLF;
     private IDataRefSubscription<bool>? _doorLA;
@@ -89,7 +102,8 @@ public sealed class CabinCrewService : Core.Hosting.IStartupModule, IDisposable,
         GroundOpsSignals? signals = null,
         IOptionsMonitor<SpeechOptions>? speechOptions = null,
         IMicOwnership? mic = null,
-        CabinCruiseQueryDialogue? cruiseQuery = null)
+        CabinCruiseQueryDialogue? cruiseQuery = null,
+        ILegBoundaryEvents? legBoundary = null)
     {
         ArgumentNullException.ThrowIfNull(dataRefs);
         ArgumentNullException.ThrowIfNull(flightData);
@@ -120,6 +134,7 @@ public sealed class CabinCrewService : Core.Hosting.IStartupModule, IDisposable,
         _speechOptions = speechOptions;
         _mic = mic;
         _cruiseQuery = cruiseQuery;
+        _legBoundary = legBoundary;
     }
 
     public void Start()
@@ -147,11 +162,30 @@ public sealed class CabinCrewService : Core.Hosting.IStartupModule, IDisposable,
         _reads = [_doorLF, _doorLA, _doorRF, _doorRA, _signs, .. _cabLatches];
 
         _flight.PhaseChanged += OnPhaseChanged;
+        if (_signals is not null)
+        {
+            _signals.ArrivalCompleted += OnArrivalCompleted;
+        }
+
+        if (_legBoundary is not null)
+        {
+            _legBoundary.LegBegan += OnLegBegan;
+        }
     }
 
     public void Dispose()
     {
         _flight.PhaseChanged -= OnPhaseChanged;
+        if (_signals is not null)
+        {
+            _signals.ArrivalCompleted -= OnArrivalCompleted;
+        }
+
+        if (_legBoundary is not null)
+        {
+            _legBoundary.LegBegan -= OnLegBegan;
+        }
+
         _timer?.Dispose();
         _shutdown.Cancel();
         foreach (var read in _reads)
@@ -174,6 +208,63 @@ public sealed class CabinCrewService : Core.Hosting.IStartupModule, IDisposable,
         if (before != _core.Capture())
         {
             Changed?.Invoke();
+        }
+
+        if (e.Current.IsAirborne())
+        {
+            // A leg flown on an MCDU plan alone never fires the leg-began edge: the take-off
+            // re-arms the arrival's one "cabin's empty" instead.
+            Interlocked.Exchange(ref _cabinEmptyReported, 0);
+        }
+    }
+
+    // ---- "cabin's empty" at deboarding complete (ADR-0019 §2, issue #214) ---------------------
+
+    private void OnLegBegan(object? sender, LegBeganEventArgs e) => Interlocked.Exchange(ref _cabinEmptyReported, 0);
+
+    private void OnArrivalCompleted()
+    {
+        if (!_options.CurrentValue.Enabled || _reads.Length == 0)
+        {
+            return;
+        }
+
+        // The relay's DeboardingCompleted is not once-per-cycle (Completed, then Callable
+        // again): the latch makes it one call per leg.
+        if (Interlocked.Exchange(ref _cabinEmptyReported, 1) == 1)
+        {
+            return;
+        }
+
+        _eventLog.Record("cabin.empty", new { phase = _flight.CurrentPhase.ToString() });
+        _logger.LogInformation("Deboarding complete — the purser reports the cabin empty");
+        _ = ReportCabinEmptyAsync();
+    }
+
+    /// <summary>The call through the normal flow at Low priority; a cabin already on a call
+    /// (the hail reply, a turbulence line) gets a few retries rather than losing the report.</summary>
+    private async Task ReportCabinEmptyAsync()
+    {
+        try
+        {
+            for (var attempt = 1; attempt <= CabinEmptyAttempts; attempt++)
+            {
+                if (await AnnounceAsync(CabinEmptyTag, CabinEmptyLine, foAckText: null, ttl: TimeSpan.FromMinutes(2), priority: SpeechPriority.Low).ConfigureAwait(false))
+                {
+                    return;
+                }
+
+                await Task.Delay(CabinEmptyRetry, _shutdown.Token).ConfigureAwait(false);
+            }
+
+            _logger.LogInformation("Purser 'cabin's empty' dropped — the cabin was on another call for {Attempts} tries", CabinEmptyAttempts);
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Purser 'cabin's empty' failed");
         }
     }
 
@@ -342,7 +433,7 @@ public sealed class CabinCrewService : Core.Hosting.IStartupModule, IDisposable,
     /// this module's call flow — chime, CAB latch or grace, purser voice, optional FO
     /// acknowledgement. False when a call is already in progress (the caller retries later);
     /// the cabin never talks over itself.</summary>
-    public async Task<bool> AnnounceAsync(string tag, string purserText, string? foAckText = null, TimeSpan? ttl = null)
+    public async Task<bool> AnnounceAsync(string tag, string purserText, string? foAckText = null, TimeSpan? ttl = null, SpeechPriority priority = SpeechPriority.Normal)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(tag);
         ArgumentException.ThrowIfNullOrWhiteSpace(purserText);
@@ -352,11 +443,11 @@ public sealed class CabinCrewService : Core.Hosting.IStartupModule, IDisposable,
         }
 
         _busy = true;
-        await RunReportAsync(tag, purserText, foAckText, ttl).ConfigureAwait(false);
+        await RunReportAsync(tag, purserText, foAckText, ttl, priority).ConfigureAwait(false);
         return true;
     }
 
-    private async Task RunReportAsync(string tag, string purserText, string? foAckText, TimeSpan? ttl = null)
+    private async Task RunReportAsync(string tag, string purserText, string? foAckText, TimeSpan? ttl = null, SpeechPriority priority = SpeechPriority.Normal)
     {
         var options = _options.CurrentValue;
         // The window is judged at the moment of the call, never re-judged mid-wait: a call
@@ -376,7 +467,7 @@ public sealed class CabinCrewService : Core.Hosting.IStartupModule, IDisposable,
             // stays role-less (that's the FO). An auto-answered call always gets the FO's
             // acknowledgement: the FO took the call, so the FO closes it.
             await _arbiter.EnqueueAsync(new SpeechRequest(
-                purserText, SpeechPriority.Normal, Ttl: ttl, Tag: tag,
+                purserText, priority, Ttl: ttl, Tag: tag,
                 Role: SpeechRole.Purser)).ConfigureAwait(false);
             var ack = foAckText ?? (answered ? AckTextFor(tag, options) : null);
             if (!string.IsNullOrWhiteSpace(ack))

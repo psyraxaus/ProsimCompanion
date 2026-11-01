@@ -239,15 +239,29 @@ public sealed class WalkaroundTests
         }
     }
 
-    // ---- restart and boarding (owner rule 2026-11-01: never a walkaround after an app restart) ----
+    // ---- restart and boarding (ADR-0019 §9, issue #220: a restart is invisible; boarding started blocks the walk) ----
 
     [Fact]
-    public void BoardingCompleted_IsNeverReady()
+    public void BoardingStarted_IsNeverReady()
     {
-        Assert.False(WalkaroundCore.IsReady(Sample() with { BoardingDone = true }));
+        Assert.False(WalkaroundCore.IsReady(Sample() with { BoardingObserved = true }));
         var core = Baselined();
-        Assert.Equal(WalkaroundAction.None, core.Evaluate(Sample() with { BoardingDone = true }, Options(), () => 0));
+        Assert.Equal(WalkaroundAction.None, core.Evaluate(Sample() with { BoardingObserved = true }, Options(), () => 0));
         Assert.Equal(WalkaroundState.Idle, core.State);
+    }
+
+    [Theory]
+    [InlineData(GsxServiceStage.Called, true)]
+    [InlineData(GsxServiceStage.Requested, true)]
+    [InlineData(GsxServiceStage.Active, true)]
+    [InlineData(GsxServiceStage.Completed, true)]
+    [InlineData(GsxServiceStage.Waiting, false)]
+    [InlineData(GsxServiceStage.Held, false)]
+    [InlineData(GsxServiceStage.Skipped, false)]
+    [InlineData(null, false)]
+    public void BoardingStarted_IsAnyStageFromTheTriggerOn(GsxServiceStage? stage, bool started)
+    {
+        Assert.Equal(started, WalkaroundCore.BoardingStarted(stage));
     }
 
     [Fact]
@@ -260,32 +274,42 @@ public sealed class WalkaroundTests
         Assert.Equal(WalkaroundAction.Announce, core.Evaluate(Sample(), Options(), () => 0));
     }
 
+    [Fact]
+    public void RestoredIdleCycle_StaysArmed_AndWalksOnTheReadyState_UnlessBoardingStarted()
+    {
+        // ADR-0019 §9: a restart is invisible — an idle cycle restored from the snapshot walks
+        // on the ready state it finds (the 2026-11-01 staggered startup counts as its edge)...
+        var core = new WalkaroundCore();
+        Assert.Equal(WalkaroundRestartOutcome.StillPossible, core.AdoptRestart(new WalkaroundSnapshotState(WalkaroundState.Idle, null, null)));
+        Assert.Equal(WalkaroundState.Idle, core.State);
+        Assert.Equal(WalkaroundAction.None, core.Evaluate(Sample(prepComplete: false), Options(), () => 0));
+        Assert.Equal(WalkaroundAction.Announce, core.Evaluate(Sample(), Options(), () => 0));
+
+        // ...but never once boarding has started (#196's rule that stays: the seeded Completed
+        // of the resync reads as started too).
+        var blocked = new WalkaroundCore();
+        blocked.AdoptRestart(null);
+        Assert.Equal(WalkaroundAction.None, blocked.Evaluate(Sample(prepComplete: false), Options(), () => 0));
+        Assert.Equal(WalkaroundAction.None, blocked.Evaluate(Sample() with { BoardingObserved = true }, Options(), () => 0));
+        Assert.Equal(WalkaroundState.Idle, blocked.State);
+    }
+
     [Theory]
-    [InlineData(WalkaroundState.Idle)]
-    [InlineData(WalkaroundState.Departed)]
-    [InlineData(WalkaroundState.Done)]
-    public void RestoredSnapshot_SkipsTheCycle_WhateverItHeld(WalkaroundState saved)
+    [InlineData(WalkaroundState.Departed, WalkaroundRestartOutcome.WalkEnded)]
+    [InlineData(WalkaroundState.Reported, WalkaroundRestartOutcome.AlreadyDone)]
+    [InlineData(WalkaroundState.Abandoned, WalkaroundRestartOutcome.AlreadyDone)]
+    [InlineData(WalkaroundState.Done, WalkaroundRestartOutcome.AlreadyDone)]
+    public void RestoredWalkInProgressOrDone_EndsTheWalk_NeverRepeatsIt(WalkaroundState saved, WalkaroundRestartOutcome expected)
     {
         var core = new WalkaroundCore();
-        if (saved == WalkaroundState.Departed)
-        {
-            core.Evaluate(Sample(prepComplete: false), Options(), () => 0);
-            Assert.Equal(WalkaroundAction.Announce, core.Evaluate(Sample(), Options(), () => 0));
-        }
-        else if (saved == WalkaroundState.Done)
-        {
-            core.Evaluate(Sample(prepComplete: false), Options(), () => 0);
-            core.Evaluate(Sample(), Options(), () => 0);
-            core.Evaluate(Sample(now: T0.AddMinutes(11)), Options(), () => 0);
-            core.Evaluate(Sample(now: T0.AddMinutes(11)), Options(), () => 0);
-        }
+        var outcome = core.AdoptRestart(new WalkaroundSnapshotState(saved, T0, T0.AddMinutes(7)));
 
-        Assert.Equal(saved, core.Capture().State);
-        Assert.Equal(saved, core.SkipCycle());
+        Assert.Equal(expected, outcome);
         Assert.Equal(WalkaroundState.Done, core.State);
         Assert.Null(core.DepartedAtUtc);
+        Assert.Null(core.ReportDueUtc);
 
-        // The staggered startup after the restore: no edge is ever acted on this cycle...
+        // No edge is acted on this cycle...
         Assert.Equal(WalkaroundAction.None, core.Evaluate(Sample(prepComplete: false), Options(), () => 0));
         Assert.Equal(WalkaroundAction.None, core.Evaluate(Sample(), Options(), () => 0));
         Assert.Equal(WalkaroundAction.None, core.Evaluate(Sample(now: T0.AddMinutes(11)), Options(), () => 0));

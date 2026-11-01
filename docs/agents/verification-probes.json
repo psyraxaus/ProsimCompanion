@@ -4294,7 +4294,7 @@
         "assert-present: ONE walkaround.started {plannedMinutes, phase} per departure cycle, then ONE walkaround.reported {durationMinutes ≥ walkaround.minMinutes, finding (id or null), severity, onInterphone, text} — the report never earlier than minMinutes after the start, never later than maxMinutes + the INT grace; the speech.spoken for the report is tagged walkaround.report; with onInterphone a ground.calling-style MECH press precedes it (log 'INT channel not selected within grace' when nobody selected INT).",
         "assert-present: between walkaround.started and walkaround.reported every utterance that a non-safety feature would have taken is answered 'The First Officer is on the walkaround, captain.' (speech.spoken tagged walkaround.busy, voice.unmatched context fo-away); 'stop', 'I have controls', 'quiet please' and the GSX requests still act. The refuel row of the service board holds with 'waiting for the First Officer's walkaround report' (GSX decision log / Flight Status) and is never Called before walkaround.reported.",
         "assert-present (finding): walkaround.finding {finding, outcome ∈ none|cosmetic|deice|ask|raise}: deice → a deice-question raised with prompt 'We'll need de-icing, captain — request it?' and NO techlog item; ask → walkaround.raiseQuestion with 'I'd like to raise it in the tech log — shall I?', then on yes techlog.prefilledRaise {confirmed} + walkaround.techLogRaised (a tech-log defect with source walkaround:<id>) or on no walkaround.noted; raise (noGo, allowNoGo on) → walkaround.techLogRaised {confirmed: false} and the FO's 'I've raised it in the tech log'.",
-        "assert-absent: a second walkaround.started in one departure cycle; a walkaround.started after the session's flight-state-restored event (an app restart mid-turnaround; 2026-11-01 signature: the first ticks read not-ready, the resync seeded prep Complete 3 s later and the FO walked out with boarding finished) — the restart writes walkaround.skipped {reason restart, snapshotState} instead and no walkaround.started follows in that cycle; a walkaround.started while the service board's Boarding row reads Completed; walkaround.reported after walkaround.abandoned in the same cycle; a refuel Called while the FO is away without walkaround.abandoned following; a walkaround.techLogRaised for a finding with outcome deice.",
+        "assert-absent: a second walkaround.started in one departure cycle; a walkaround.started while the service board's Boarding row reads Called, Requested, Active or Completed (boarding has started — the seeded Completed of a startup resync included; 2026-11-01 signature: the first ticks read not-ready, the resync seeded prep Complete 3 s later and the FO walked out with boarding finished); a walkaround.started after a walkaround.restored {outcome WalkEnded|AlreadyDone} in the same cycle (ADR-0019 §9, issue #220: a restart ends a walk in progress or already done — an idle cycle restored {outcome StillPossible} MAY still start one, that is not a defect); walkaround.reported after walkaround.abandoned in the same cycle; a refuel Called while the FO is away without walkaround.abandoned following; a walkaround.techLogRaised for a finding with outcome deice.",
         "assert-present (abandon): a gsx.requestRefuel (voice / Stream Deck) while away → walkaround.abandoned {durationMinutes} and 'Abandoning the walkaround' at Low priority; no walkaround.finding.",
         "requires-human: the report came on the interphone in the FO's own voice with the intercom timbre (role FirstOfficerOnInterphone), the MECH lamp flashed, and the Flight Status refuel row showed the walkaround hold."
       ],
@@ -4688,6 +4688,115 @@
         }
       },
       "notes": "ADR-0019 §2 (audit row B7). GsxSimbriefReloadService.IsNextLegPlan: before any arrival every plan counts; after one, DeparturePumpGatherer.NextLegOfpLoaded against DepartureCycleLatches' arrival baseline (the turnaround auto-start's own test) — applied on the OFP edge and the Couatl SID change alike."
+    },
+    {
+      "id": "turnaround-restart",
+      "issue": 220,
+      "state": "fixed-unverified",
+      "kind": "assert-present",
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "assert-present: an app restart while the leg boundary is Turnaround or AwaitingPlan (a leg.boundary with that state in the previous session, no leg.boundary {legBegan true} after it) writes, in the new session, flight-state-restored {items contains 'turnaround'} and a leg.boundary {state <the same state>, previous 'None', reason 'restored from the flight-state snapshot', legBegan false} before any ofp.loaded; the Flight Status card shows the same TURNAROUND / AWAITING PLAN chip as before the restart (log 'Leg boundary restored from the flight-state snapshot').",
+        "assert-present: the flight-state file written between legs holds the 'turnaround' part ALONE (log 'Flight-state snapshot keeps the leg-boundary state only (turnaround)' after 'invalidated: shutdown finalised' or 'invalidated: ColdAndDark'); a ColdAndDark power-down between legs keeps it (log line above), the end of duty drops it (log 'invalidated: end of duty' with no 'keeps the leg-boundary state' after it) and a restart then restores nothing.",
+        "assert-absent: a leg.boundary {legBegan true, reason 'first plan of the session'} in a session that restored the turnaround part — the flown plan coming back from the OFP part is the same leg; a flight-state-restored for a snapshot whose plan differs from the request id the app already holds (log 'the app holds request … the snapshot was …' → flight-state-discarded) or whose EFB flag is contradicted by another route in the MCDU ('another plan').",
+        "assert-present (fallback): with NO flight-state file and the tracking LVARs saying turnaround + Deboarding done + no departure service of the next leg, the GSX startup resync writes the decision 'leg boundary: Turnaround adopted from the tracking LVARs' and a leg.boundary {state 'Turnaround', reason 'deboarding complete — startup resync: tracking LVARs'}; never when a snapshot restored the state first (the decision line is absent)."
+      ],
+      "machine": {
+        "kind": "signature",
+        "source": "session",
+        "type": "leg.boundary",
+        "contains": "restored from the flight-state snapshot",
+        "trigger": {
+          "source": "session",
+          "type": "flight-state-restored",
+          "contains": "turnaround"
+        }
+      },
+      "notes": "ADR-0019 §9 (audit rows A12, A13). Core LegBoundaryService is the 'turnaround' IFlightStatePart (PersistsAcrossLegs, RestoreOrder 5 — before the OFP part); FlightStateSnapshotService writes boundary-only documents while flight writes are suspended and keeps them through ColdAndDark / shutdown finalise (not the end of duty); FlightStateSnapshotRules.Validate gained currentRequestId (decides outright) and boundaryOnly (title + age only); ILegBoundaryRecovery + GsxStartupResync.BetweenLegs are the LVAR fallback. EHAM 2026-11-01 restart 2 (03:00Z) is the case: no file, FMS cleared, PREFLIGHT with no plan."
+    },
+    {
+      "id": "walkaround-after-restart",
+      "issue": 220,
+      "state": "fixed-unverified",
+      "kind": "assert-present",
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "Only with groundCrew.walkaround.enabled = true. ADR-0019 §9 supersedes #196's 'never after an app restart' (owner decision 2026-11-02); #196's 'never once boarding is complete' stays and widens to 'never once boarding has started'.",
+        "assert-present: an app restart at the gate before boarding was called writes walkaround.restored {snapshotState 'Idle', outcome 'StillPossible', state 'Idle'} (log 'FO walkaround still possible this departure after the restart') and, once the aircraft is parked, engines off, prep Complete and the Boarding row below Called, ONE walkaround.started follows as on a cold start — EHAM 2026-11-01 leg two (four restarts, no walkaround at all, walkaround.skipped {reason restart} ×4) is the signature that must not recur.",
+        "assert-present: a restart while the FO was outside writes walkaround.restored {snapshotState 'Departed', outcome 'WalkEnded', state 'Done'} (log 'was in progress when the app went down — the FO is back, no report') and no walkaround.reported follows; a restart after the report writes {snapshotState 'Reported'|'Done', outcome 'AlreadyDone'} and no second walkaround.started in that cycle.",
+        "assert-absent: any walkaround.skipped {reason restart} (the event no longer exists); a walkaround.started while the service board's Boarding row reads Called / Requested / Active / Completed; a walkaround.started after walkaround.restored {outcome WalkEnded|AlreadyDone} in the same departure cycle."
+      ],
+      "machine": {
+        "kind": "required-fields",
+        "source": "session",
+        "type": "walkaround.restored",
+        "fields": [
+          "snapshotState",
+          "outcome",
+          "state"
+        ]
+      },
+      "notes": "ADR-0019 §9 (audit row A14). Speech WalkaroundCore.AdoptRestart replaces SkipCycle (Idle → still armed with the baseline 'not ready'; Departed → Done, FO back; Reported/Abandoned/Done → Done); WalkaroundSample.BoardingObserved (WalkaroundCore.BoardingStarted: Called/Requested/Active/Completed) replaces BoardingDone. The probe fo-walkaround's assert-absent was reworded to match."
+    },
+    {
+      "id": "purser-cabin-empty",
+      "issue": 214,
+      "state": "fixed-unverified",
+      "kind": "assert-present",
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "assert-present: within seconds of gsx-service {Deboarding, Completed} (the ground-ops ArrivalCompleted) the session carries cabin.empty {phase}, then the purser call flow — cabin.calling {report 'cabin.empty'}, the interphone chime, the CAB wait or grace — and cabin.report {report 'cabin.empty', text \"Cabin's empty, captain.\"} with the speech.spoken tagged cabin.empty at Low priority in the purser role (log 'Deboarding complete — the purser reports the cabin empty'). This is the Turnaround step of the leg boundary made audible (ADR-0019 §2): leg.boundary {state 'Turnaround'} and cabin.empty belong to the same deboarding.",
+        "assert-absent: a second cabin.empty for the same arrival (the relay's DeboardingCompleted repeats — Completed, then Callable — and the latch makes it one call per leg; it re-arms on leg.boundary {legBegan true} or a take-off); a cabin.empty with cabinCrew.enabled false; an FO acknowledgement after it (none is configured for this report).",
+        "assert-present (busy): with the cabin on another call at that moment (a hail reply, a turbulence line) the report is retried every 30 s up to three times (log 'dropped — the cabin was on another call for 3 tries' only when all three failed)."
+      ],
+      "machine": {
+        "kind": "signature",
+        "source": "session",
+        "type": "cabin.report",
+        "contains": "cabin.empty",
+        "trigger": {
+          "source": "session",
+          "type": "cabin.empty",
+          "contains": ""
+        }
+      },
+      "notes": "ADR-0019 §2 (audit row A6). Speech CabinCrewService: GroundOpsSignals.ArrivalCompleted → AnnounceAsync('cabin.empty', CabinEmptyLine, priority Low) through the existing chime / CAB / purser-voice flow; EHAM 2026-11-01 01:50:03Z and EGLL 05:23:53Z had the notification only, no crew line."
+    },
+    {
+      "id": "fo-fms-still-holds",
+      "issue": 215,
+      "state": "fixed-unverified",
+      "kind": "assert-present",
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "assert-present: a new OFP landing (ofp.loaded of a different plan) while the leg boundary is Turnaround — the leg.boundary {legBegan true} carries previous 'Turnaround' and the warning 'the new plan arrived while the FMS still held the previous plan' — AND the FMS origin/destination still read the flown pair writes fo.fms-reminder {planId, previousPlanId, fmsOrigin, fmsDestination, newOrigin, newDestination} and the FO says once, at Normal priority, tagged fo.fmsReminder: 'Captain, the FMS still holds the previous flight plan.' (log 'reminding once').",
+        "assert-absent: a fo.fms-reminder when the leg began from AwaitingPlan (the FMS was cleared first — IOS Reset FMS, or ProSim's 'Reset FMS after landing' option; leg.boundary previous 'AwaitingPlan'); when the FMS already reads the new plan's pair at that moment (EHAM 2026-11-01: EHAM→EGLL went into the FMS at 03:03:55Z, 71 s before the OFP — no reminder would have been due); on the first plan of the session; a second fo.fms-reminder for the same planId."
+      ],
+      "machine": {
+        "kind": "required-fields",
+        "source": "session",
+        "type": "fo.fms-reminder",
+        "fields": [
+          "planId",
+          "fmsOrigin",
+          "fmsDestination",
+          "newOrigin",
+          "newDestination"
+        ]
+      },
+      "notes": "ADR-0019 §3 (audit row A7). Speech FoSide.FmsPlanReminderService: ILegBoundaryEvents.LegBegan with From == Turnaround, FmsPlanWatcher.Origin/Destination against the new OfpStore plan (pure ShouldRemind). One per leg by construction (the leg-began edge fires once per plan). Read-and-speak only."
     }
   ]
 }

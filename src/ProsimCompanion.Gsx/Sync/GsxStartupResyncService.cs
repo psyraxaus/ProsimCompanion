@@ -76,6 +76,20 @@ public static class GsxStartupResync
     private static readonly HashSet<string> ProgressExempt =
         new(StringComparer.OrdinalIgnoreCase) { GsxServiceIds.Deboarding, GsxServiceIds.Gpu };
 
+    /// <summary>The restart fallback for the leg boundary (ADR-0019 §9, issue #220): with no
+    /// flight-state snapshot, the tracking LVARs alone can still say "between legs" — an
+    /// arrival this sim session, deboarding done, and no departure service of the next leg
+    /// seeded (the exempt deboarding / GPU seeds do not count). Anything else means a leg is
+    /// under way, or nothing is known, and the machine is left alone.</summary>
+    public static bool BetweenLegs(ResyncVerdict verdict, ResyncEvidence evidence)
+    {
+        ArgumentNullException.ThrowIfNull(verdict);
+        ArgumentNullException.ThrowIfNull(evidence);
+        return verdict.Turnaround
+            && evidence.ServiceDoneLvars.Contains(GsxServiceIds.Deboarding)
+            && verdict.SeedCompleted.All(seed => ProgressExempt.Contains(seed.ServiceId));
+    }
+
     public static ResyncVerdict Assess(ResyncEvidence evidence)
     {
         ArgumentNullException.ThrowIfNull(evidence);
@@ -225,6 +239,7 @@ public sealed class GsxStartupResyncService : IDisposable
     private readonly ISimVars _simVars;
     private readonly SimSessionStore _simSession;
     private readonly GsxResyncState _resyncState;
+    private readonly Core.Flight.ILegBoundaryRecovery? _legBoundary;
     private readonly GroundOpsSignals _signals;
     private readonly ConnectionStatusStore _connectionStatus;
     private readonly IOptionsMonitor<GsxOptions> _options;
@@ -271,7 +286,8 @@ public sealed class GsxStartupResyncService : IDisposable
         ConnectionStatusStore connectionStatus,
         IOptionsMonitor<GsxOptions> options,
         GsxDiagnosticsStore diagnostics,
-        ILogger<GsxStartupResyncService> logger)
+        ILogger<GsxStartupResyncService> logger,
+        Core.Flight.ILegBoundaryRecovery? legBoundary = null)
     {
         ArgumentNullException.ThrowIfNull(api);
         ArgumentNullException.ThrowIfNull(lifecycle);
@@ -297,6 +313,7 @@ public sealed class GsxStartupResyncService : IDisposable
         _options = options;
         _diagnostics = diagnostics;
         _logger = logger;
+        _legBoundary = legBoundary;
 
         foreach (var serviceId in TrackedServices)
         {
@@ -555,6 +572,14 @@ public sealed class GsxStartupResyncService : IDisposable
         else if (verdict.Turnaround)
         {
             RecordDecision("turnaround leg detected from tracking LVARs");
+        }
+
+        // ADR-0019 §9 (issue #220): the leg-boundary machine's fallback when no snapshot came
+        // back — it adopts the step only while it knows nothing itself.
+        if (_legBoundary is not null && GsxStartupResync.BetweenLegs(verdict, evidence)
+            && _legBoundary.AdoptDeboardedFromEvidence("startup resync: tracking LVARs"))
+        {
+            RecordDecision("leg boundary: Turnaround adopted from the tracking LVARs (deboarding done, no departure progress, no snapshot)");
         }
 
         _resyncState.MarkAssessed(
