@@ -217,4 +217,22 @@ public sealed class GsxServiceLifecycleTrackerTests
 
         Assert.Equal([("Boarding", GsxServiceLifecycleEvent.Completed)], _events); // deboarding never replayed
     }
+
+    [Fact]
+    public void ObservedProgress_IsPerService_AndASeedDoesNotCount()
+    {
+        // ADR-0019 §6 (issue #213): the new-plan reset asks about BOARDING alone.
+        _tracker.Process(Services(("Refueling", GsxServiceState.Callable), ("Boarding", GsxServiceState.Callable)));
+        _tracker.Process(Services(("Refueling", GsxServiceState.Active), ("Boarding", GsxServiceState.Callable)));
+        Assert.True(_tracker.ObservedProgress("Refueling"));
+        Assert.False(_tracker.ObservedProgress("Boarding"));
+        Assert.True(_tracker.AnyObservedProgress(new HashSet<string>(StringComparer.OrdinalIgnoreCase)));
+
+        _tracker.SeedCompleted("Boarding"); // the startup resync's word, not an observation
+        Assert.False(_tracker.ObservedProgress("Boarding"));
+
+        _tracker.Unseed("Boarding"); // the crew calls it: the seed is forgotten …
+        _tracker.MarkCalled("Boarding"); // … and the call itself is an observation
+        Assert.True(_tracker.ObservedProgress("boarding"));
+    }
 }

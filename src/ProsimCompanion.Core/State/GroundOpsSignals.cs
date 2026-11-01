@@ -26,9 +26,18 @@ public sealed class GroundOpsSignals
     /// delay owned by the subscriber).</summary>
     public event Action? BoardingCompleted;
 
-    /// <summary>The ground-ops cycle reset for a new turnaround (raised at the GSX arrival
-    /// reset). Loadsheet caches/edition counters reset here.</summary>
+    /// <summary>The ground-ops cycle reset for a new leg: raised at the GSX arrival reset and,
+    /// since ADR-0019 §6 (issue #213), when a DIFFERENT plan lands at the stand before boarding
+    /// has started. Loadsheet caches, edition counters, upcall and notification latches reset
+    /// here. <see cref="LastFlightCycleResetKind"/> tells a handler which of the two it is —
+    /// the arrival-side state (the startup resync's turnaround LVARs, the flight-state
+    /// snapshot) must survive a new-plan reset, which only concerns the departure.</summary>
     public event Action? FlightCycleReset;
+
+    /// <summary>Why the <see cref="FlightCycleReset"/> being raised right now was raised. Set
+    /// before the event fires and read by its handlers on the raising thread; between resets it
+    /// holds the last reason.</summary>
+    public FlightCycleResetKind LastFlightCycleResetKind { get; private set; } = FlightCycleResetKind.Arrival;
 
     /// <summary>GSX de-icing completed; the argument is the applied fluid type from
     /// <c>L:FSDT_GSX_DEICING_TYPE</c> (1=Type I … 4=Type IV, 0 = unknown). Arms the holdover
@@ -94,11 +103,28 @@ public sealed class GroundOpsSignals
         BoardingCompleted?.Invoke();
     }
 
-    public void RaiseFlightCycleReset()
+    public void RaiseFlightCycleReset() => RaiseFlightCycleReset(FlightCycleResetKind.Arrival);
+
+    /// <summary>Raises the cycle reset with its reason (see <see cref="FlightCycleResetKind"/>).</summary>
+    public void RaiseFlightCycleReset(FlightCycleResetKind kind)
     {
+        LastFlightCycleResetKind = kind;
         Volatile.Write(ref _boardingUnderway, 0);
         FlightCycleReset?.Invoke();
     }
 
     public void RaiseDeiceCompleted(int fluidType) => DeiceCompleted?.Invoke(fluidType);
+}
+
+/// <summary>Why a <see cref="GroundOpsSignals.FlightCycleReset"/> was raised.</summary>
+public enum FlightCycleResetKind
+{
+    /// <summary>The arrival boundary (TaxiIn → Shutdown): the whole cycle, arrival side
+    /// included, starts over for the turnaround.</summary>
+    Arrival,
+
+    /// <summary>A different plan landed at the stand before boarding started (ADR-0019 §6,
+    /// issue #213): the departure side starts over; the arrival side (deboarding, GPU, jetway,
+    /// the turnaround LVARs, the restart snapshot) is left as it stands.</summary>
+    NewPlan,
 }

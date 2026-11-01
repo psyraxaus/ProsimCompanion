@@ -4415,7 +4415,7 @@
       ],
       "checks": [
         "assert-present: a different SimBrief plan (new requestId, else a new origin–destination) loading while the aircraft is parked with every engine off writes ONE gsx-cycle-reset {reason 'new flight plan', planId, origin, destination, cycleWasComplete} and the decision 'departure cycle reset: new flight plan … — the departure services start over', then a fresh departure sequence for the new leg (gsx-departure-started on 'commence ground services' / the auto start), boarding and catering called again; the companion ServiceDone tracking LVARs of the departure one-shots read 0 afterwards (a restart after the reset resyncs fresh).",
-        "assert-absent: a gsx-cycle-reset while a departure service outside deboarding/GPU/jetway is Called, Active or Completed for the plan the cycle was opened with (a late re-import mid-boarding); a second gsx-cycle-reset for the same planId; a reset with an engine running or the aircraft moving; a replayed Deboarding Completed edge after the reset (the arrival side is kept).",
+        "assert-absent: a gsx-cycle-reset while GSX BOARDING is Called, Active or Completed for the plan the cycle was opened with (a late re-import mid-boarding; since #213 refuel or catering already run do NOT hold the old leg); a second gsx-cycle-reset for the same planId; a reset with an engine running or the aircraft moving; a replayed Deboarding Completed edge after the reset (the arrival side is kept).",
         "assert-present (manual call): 'request boarding' / 'request catering' on a completion the startup resync only seeded is CALLED (log '… the crew's call overrides the startup-resync seed'), never 'has already completed this turnaround'."
       ],
       "notes": "Owner rule 2026-11-01 ('a new plan is a new leg'): EHAM turnaround — app restarted 14:00 local at the gate, resync seeded leg one's boarding (EFB status) and assumed catering, 'commence ground services' 14:01 closed the cycle at 14:03:54 with nothing called, leg two's plan landed 14:05:06, 'request boarding/catering' refused. Gsx NewPlanCycleReset (pure) + GsxAutomationService.OnOfpChanged (lifecycle.ResetCycle(keep arrival side), cycle.BeginTurnaroundCycle, pax target + slot reset, tracking LVARs cleared); resync EFB-status proof needs a non-empty cabin and the never-re-call assumption needs BOARDING proven; DepartureSequencer never reports AllDone behind a closed plan gate; GsxServiceControl forgets a seeded-only completion on the crew's call."
@@ -4558,6 +4558,136 @@
         }
       },
       "notes": "ADR-0019 §8 (audit row B4). DaySummaryComposer.Compose(day, now, defectTitles): the legs' FuelUsedKg (new DayLeg field, filled by CompanyDayEngine.ApplyLegFacts from DebriefFacts.FuelUsedKg — the #155 takeoff-minus-on-blocks burn), FormatFuel (tonnes to one decimal from 1,000 kg, kilograms to the nearest ten below); titles from ITechLogService.Defects matched by RaisedFlight ∈ the day's session ids or RaisedDate within the day's UTC dates (CompanyDayService.DefectTitlesRaisedSafe). DialogueHoldRule exempts the 'day.debrief' prefix; the written summary is the same string."
+    },
+    {
+      "id": "new-plan-flight-cycle-reset",
+      "issue": 213,
+      "state": "fixed-unverified",
+      "kind": "assert-present",
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "assert-present: a DIFFERENT plan loading at the stand (engines off, parked) before GSX Boarding was called/active/completed this cycle writes gsx-cycle-reset {reason 'new flight plan', planId, cycleWasComplete <the value BEFORE the reset>, flightCycleReset true}, and in the same second the cross-feature cycle reset fires: gate-status-changed back to Closed 'Not called' (when it was ClosedAfterBoarding), the loadsheet edition counters restart (the next prelim is edition 1), the upcall / notification latches re-arm (the new leg's 'refueling complete' and 'ready for pushback' notifications are SENT — EHAM 2026-11-01 leg two's ready-for-pushback never was), the walkaround re-arms.",
+        "assert-present: a new plan after refuel and/or catering already ran for the old plan STILL resets (only a boarding under way holds the old leg) — the log 'departure cycle reset: new flight plan …' with Refueling/Catering called again for the new leg.",
+        "assert-absent: a gsx-cycle-reset {reason 'new flight plan'} while GSX Boarding is Called, Active or Completed for the plan the cycle was opened with; after the new-plan reset any write of the companion Turnaround or PrepDone LVARs by the startup resync (PrepDone must stay 1 — a restart must not re-drive the reposition), or a 'flight-state … invalidated: flight cycle reset' log line (the restart memory survives); a replayed Deboarding Completed, GPU or jetway edge (the arrival side is kept)."
+      ],
+      "machine": {
+        "kind": "signature",
+        "source": "session",
+        "type": "gsx-cycle-reset",
+        "contains": "\"flightCycleReset\":true",
+        "trigger": {
+          "source": "session",
+          "type": "ofp.loaded",
+          "contains": ""
+        }
+      },
+      "notes": "ADR-0019 §6 (audit rows A4, A5). GroundOpsSignals.RaiseFlightCycleReset(FlightCycleResetKind.NewPlan) from GsxAutomationService.OnOfpChanged after the departure-side reset; LastFlightCycleResetKind lets GsxStartupResyncService and FlightStateSnapshotService ignore a NewPlan reset (arrival-side state). NewPlanCycleReset.ShouldReset takes boardingObserved (GsxServiceLifecycleTracker.ObservedProgress(Boarding); seeds do not count) instead of any-service progress. cycleWasComplete is read before BeginTurnaroundCycle (#223, audit B5)."
+    },
+    {
+      "id": "gate-monitor-restart-reset",
+      "issue": 213,
+      "state": "fixed-unverified",
+      "kind": "assert-present",
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "assert-present: after an app restart at the gate following an arrival, with GSX still reporting the previous leg's Boarding completed and its boarded counter (119/119) while ProSim's seat occupation is empty, the gate monitor reads Closed 'Not called' (log 'Gate monitor: Closed …') — a restored ClosedAfterBoarding is undone on the first evaluation that sees the empty cabin, with or without an OFP in the store, and the first OFP after the restart is adopted on a Closed strip.",
+        "assert-absent: a gate-status-changed to ClosedAfterBoarding at the gate while the cabin is empty and no boarding is Called/Requested/Active (EHAM 2026-11-01 03:01:13Z, 119/119 through the new OFP until the next restart); a reset of a ClosedAfterBoarding strip over a FULL cabin (restart after boarding, before pushback — the close is real)."
+      ],
+      "machine": {
+        "kind": "signature",
+        "source": "log",
+        "contains": "Gate monitor: Closed",
+        "trigger": {
+          "source": "session",
+          "type": "session-started",
+          "contains": ""
+        }
+      },
+      "notes": "ADR-0019 §6 (audit row B2; the hole #173 left). GateMonitorInputs.CabinEmpty from aircraft.passengers.seatOccupation.string (SeatMap.Parse, none taken) in GateMonitorService.ReadInputs; GateMonitorCore: a Completed boarding stage over an empty cabin at the gate is 'staleClose' — no evidence for the forward steps, and a latched ClosedAfterBoarding resets. Assumes the app boards the ProSim cabin itself (GsxBoardingSync) so a real completed boarding leaves seats taken."
+    },
+    {
+      "id": "fmgc-crosscheck-new-leg",
+      "issue": 221,
+      "state": "fixed-unverified",
+      "kind": "assert-absent",
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "assert-absent: an fo.crossCheck {source 'auto'} (and its spoken 'INIT page: <flown origin> to <flown destination>') after landing, on the arrival's Shutdown → Preflight edge, while the FMS still holds the plan just flown (EHAM 2026-11-01 01:50:58Z 'INIT page: EGLL to EHAM' at EHAM; EGLL 05:24:54Z 'EHAM to EGLL').",
+        "assert-present: on the next leg, once leg.boundary {legBegan true} has fired for the new plan and the FMGC INIT and V1 are entered at the gate, exactly one fo.crossCheck {source 'auto'} naming the NEW origin and destination; 'cross-check' by voice works at any time regardless."
+      ],
+      "machine": {
+        "kind": "signature",
+        "source": "session",
+        "type": "fo.crossCheck",
+        "contains": "\"source\":\"auto\"",
+        "trigger": {
+          "source": "session",
+          "type": "leg.boundary",
+          "contains": "\"legBegan\":true"
+        }
+      },
+      "notes": "ADR-0019 §1 (audit row B3). FmgcCrossCheckService: armed for the first leg, disarmed on GroundOpsSignals.ArrivalCompleted (deboarding complete), re-armed on ILegBoundaryEvents.LegBegan; AutoDue(..., armed) is the pure rule."
+    },
+    {
+      "id": "leg-block-after-inflight-restart",
+      "issue": 223,
+      "state": "fixed-unverified",
+      "kind": "assert-present",
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "assert-present: a leg whose event-log session began in flight (app restart after take-off; the session has no Preflight → PushbackAndStart/TaxiOut edge) still gets blockMinutes and flightMinutes in daystate.json and the logbook from the restored flight-times stamps (session 'flight-times' {offBlocksUtc, takeoffUtc} written by the snapshot restore), the Duty Day page shows the leg's block, the turnaround line 'Leg n — block …' is spoken (when on), and the day summary totals both legs (EHAM→EGLL 2026-11-01: 54 min, not missing; the day's block 131, not 77).",
+        "assert-absent: a completed leg with a null block in daystate.json while the session carries a flight-times offBlocksUtc and an on-blocks edge or stamp."
+      ],
+      "machine": {
+        "kind": "signature",
+        "source": "session",
+        "type": "day.leg.completed",
+        "contains": "",
+        "trigger": {
+          "source": "session",
+          "type": "session-started",
+          "contains": ""
+        }
+      },
+      "notes": "ADR-0019 §8/§9 (audit row B6). DebriefFactExtractor: block = (phase-edge off-block ?? flight-times offBlocksUtc) → (Shutdown edge ?? onBlocksUtc stamp); flight = (liftoff edge ?? takeoffUtc stamp) → (LandingRollout edge ?? landingUtc stamp). The phase edges stay first (the session's own observation)."
+    },
+    {
+      "id": "gsx-simbrief-reload-new-plan-only",
+      "issue": 223,
+      "state": "fixed-unverified",
+      "kind": "assert-absent",
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "assert-absent: with gsx.reloadSimbriefOnNewOfp on, a 'SimBrief reload (new OFP …)' decision / gsx.simbriefReload at the DESTINATION for the plan the aircraft arrived with, on the arrival's Preflight edge or a Couatl restart (EGLL 2026-11-01 05:24:24Z, request 191949682 reloaded at EGLL after flying EHAM→EGLL on it).",
+        "assert-present: the reload still runs once for the FIRST plan of the session (no arrival yet) and once for every plan other than the arrival's that loads at the gate afterwards."
+      ],
+      "machine": {
+        "kind": "signature",
+        "source": "session",
+        "type": "gsx.simbriefReload",
+        "contains": "new OFP",
+        "trigger": {
+          "source": "session",
+          "type": "ofp.loaded",
+          "contains": ""
+        }
+      },
+      "notes": "ADR-0019 §2 (audit row B7). GsxSimbriefReloadService.IsNextLegPlan: before any arrival every plan counts; after one, DeparturePumpGatherer.NextLegOfpLoaded against DepartureCycleLatches' arrival baseline (the turnaround auto-start's own test) — applied on the OFP edge and the Couatl SID change alike."
     }
   ]
 }

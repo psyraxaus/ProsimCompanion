@@ -264,4 +264,30 @@ public sealed class DebriefFactExtractorTests : IDisposable
         Assert.Equal("EDDM", reality.Origin);      // plan fills the gap the briefing left
         Assert.Equal("LHBP", reality.Destination); // the briefing's route wins where it exists
     }
+
+    [Fact]
+    public void Extract_SessionBegunInFlight_TakesBlockAndFlightTimesFromTheRestoredStamps()
+    {
+        // Issue #223 (EHAM→EGLL 2026-11-01): the app restarted in the descent, the new session
+        // had no push/taxi edge, and leg two read no block minutes — the day summary said 77
+        // minutes (leg one alone) for a two-leg day. The flight-times stamps restored from the
+        // snapshot carry the leg's off-blocks and takeoff.
+        var path = new SessionLogBuilder()
+            .At("11:35:00").Event("session-started")
+            .At("11:35:01").Event("flight-times", new { offBlocksUtc = "2026-08-08T10:54:00Z", takeoffUtc = "2026-08-08T11:05:00Z", takeoffFobKg = 7000.0 })
+            .At("11:35:02").Phase("Unknown", "Descent")
+            .At("11:40:00").Phase("Descent", "Approach")
+            .At("11:44:00").Phase("Approach", "LandingRollout", groundSpeedKt: 131.0)
+            .At("11:44:01").Event("flight-times", new { landingUtc = "2026-08-08T11:44:00Z", landingFobKg = 5000.0 })
+            .At("11:46:00").Phase("LandingRollout", "TaxiIn")
+            .At("11:48:00").Phase("TaxiIn", "Shutdown")
+            .At("11:48:01").Event("flight-times", new { onBlocksUtc = "2026-08-08T11:48:00Z", onBlocksFobKg = 4900.0 })
+            .Write(_dir);
+
+        var facts = _extractor.Extract(path);
+
+        Assert.Equal(54, facts.BlockMinutes);
+        Assert.Equal(39, facts.FlightMinutes);
+        Assert.Equal(2100.0, facts.FuelUsedKg);
+    }
 }

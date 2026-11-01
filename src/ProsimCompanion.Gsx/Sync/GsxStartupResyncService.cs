@@ -370,6 +370,15 @@ public sealed class GsxStartupResyncService : IDisposable
     /// leg's progress tracking starts clean.</summary>
     private void OnFlightCycleReset()
     {
+        if (_signals.LastFlightCycleResetKind == FlightCycleResetKind.NewPlan)
+        {
+            // A different plan at the stand (ADR-0019 §6, issue #213) is the departure's
+            // business: the turnaround LVAR already reads 1, PrepDone must stay 1 (an app
+            // restart after the reset would otherwise re-drive the reposition under the
+            // passengers) and the departure one-shots are cleared by the automation itself.
+            return;
+        }
+
         _prepLvarLatched = false;
         // The verdict is one-shot, but the arrival is not (issue #168): an app started in
         // flight assessed "no turnaround" at cruise; the next leg's cold-and-dark check must

@@ -59,6 +59,7 @@ public sealed class GsxSimbriefReloadService : Core.Hosting.IStartupModule, IGsx
     private readonly GsxDiagnosticsStore _diagnostics;
     private readonly JsonlEventLog _eventLog;
     private readonly ILogger<GsxSimbriefReloadService> _logger;
+    private readonly Automation.DepartureCycleLatches _latches;
     private readonly SemaphoreSlim _runLock = new(1, 1);
     private readonly object _gate = new();
     private string? _pendingRequestId;
@@ -73,8 +74,11 @@ public sealed class GsxSimbriefReloadService : Core.Hosting.IStartupModule, IGsx
         IOptionsMonitor<GsxOptions> options,
         GsxDiagnosticsStore diagnostics,
         JsonlEventLog eventLog,
-        ILogger<GsxSimbriefReloadService> logger)
+        ILogger<GsxSimbriefReloadService> logger,
+        Automation.DepartureCycleLatches latches)
     {
+        ArgumentNullException.ThrowIfNull(latches);
+        _latches = latches;
         ArgumentNullException.ThrowIfNull(api);
         ArgumentNullException.ThrowIfNull(executor);
         ArgumentNullException.ThrowIfNull(ofpStore);
@@ -122,6 +126,15 @@ public sealed class GsxSimbriefReloadService : Core.Hosting.IStartupModule, IGsx
             return;
         }
 
+        // The plan the aircraft arrived with is not a new OFP for GSX (issue #223, ADR-0019
+        // §2; EGLL 2026-11-01 05:24Z: the reload re-ran at the destination for the plan just
+        // flown). Before any arrival this session every plan counts; after one, only a plan
+        // other than the arrival's (the turnaround auto-start's own test).
+        if (!IsNextLegPlan(ofp))
+        {
+            return;
+        }
+
         lock (_gate)
         {
             if (string.Equals(ofp.RequestId, _doneRequestId, StringComparison.Ordinal)
@@ -136,6 +149,15 @@ public sealed class GsxSimbriefReloadService : Core.Hosting.IStartupModule, IGsx
         TryAutoReload();
     }
 
+    /// <summary>Whether <paramref name="ofp"/> is a plan GSX should read for the NEXT leg: any
+    /// plan before an arrival this session, else one other than the arrival's baseline.</summary>
+    private bool IsNextLegPlan(OfpData ofp)
+    {
+        var latches = _latches.Snapshot();
+        return !latches.ArrivalOfpKnown
+            || Automation.DeparturePumpGatherer.NextLegOfpLoaded(latches.ArrivalOfpKnown, latches.ArrivalOfp, ofp);
+    }
+
     private void OnReadinessChanged(GsxReadiness readiness) => TryAutoReload();
 
     private void OnPhaseChanged(object? sender, FlightPhaseChangedEventArgs e) => TryAutoReload();
@@ -144,10 +166,11 @@ public sealed class GsxSimbriefReloadService : Core.Hosting.IStartupModule, IGsx
     /// current OFP becomes pending again.</summary>
     private void OnSidChanged(string? oldSid, string? newSid)
     {
+        var current = _ofpStore.Current;
         lock (_gate)
         {
             _doneRequestId = null;
-            _pendingRequestId = _ofpStore.Current?.RequestId;
+            _pendingRequestId = current is not null && IsNextLegPlan(current) ? current.RequestId : null;
         }
 
         TryAutoReload();

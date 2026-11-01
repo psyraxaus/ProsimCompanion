@@ -277,8 +277,13 @@ card off.
    "No flight plan loaded yet" when there is none.
    **A new plan is a new leg.** Load the next flight's SimBrief plan at the stand (MCDU or EFB,
    engines off) and the departure services start over for it — catering and boarding run again
-   even if the app was restarted after the arrival. A running turnaround is never reset by a
-   re-import of the same plan.
+   even if the app was restarted after the arrival, and so do the gate monitor, the loadsheet
+   editions, the crew's upcalls and the notifications (everything the arrival resets). Refuel
+   or catering already run for the previous plan do not hold it: they are called again for the
+   new leg. Only a boarding already under way keeps the old leg, and a re-import of the same
+   plan never resets anything. The gate monitor also trusts the cabin over GSX's counter: a
+   "completed" boarding over an empty cabin after a restart is the previous leg's and reads
+   *Not called*.
 4. **Loadsheets.** The preliminary loadsheet arrives when refuel starts; the final one after
    boarding completes (dispatcher delay). Doors close and the jetway retracts on final —
    or, with the beacon sequence enabled, everything runs off the beacon: APU up → doors →

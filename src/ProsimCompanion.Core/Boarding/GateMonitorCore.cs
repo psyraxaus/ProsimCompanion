@@ -17,6 +17,10 @@ namespace ProsimCompanion.Core.Boarding;
 /// <param name="GsxConnected">False renders "GSX offline" instead of "Not called".</param>
 /// <param name="OfpRequestId">The current OFP's request id, or null without a plan. A new id
 /// is a new leg (issue #173): the latch resets so the second leg gets its own chain.</param>
+/// <param name="CabinEmpty">ProSim's seat occupation: true when no seat is taken, null when
+/// unknown. A CLOSED-after-boarding strip over an empty cabin is the previous leg's (issue
+/// #213, EHAM 2026-11-01: an app restart at the gate read GSX's 119/119 and latched leg one's
+/// close until the next restart) — the strip resets whatever GSX's stale counter says.</param>
 public sealed record GateMonitorInputs(
     GsxServiceStage? BoardingStage,
     int? PaxTarget,
@@ -27,7 +31,8 @@ public sealed record GateMonitorInputs(
     DateTimeOffset? StdUtc,
     DateTimeOffset NowUtc,
     bool GsxConnected,
-    string? OfpRequestId = null);
+    string? OfpRequestId = null,
+    bool? CabinEmpty = null);
 
 /// <summary>
 /// Pure gate-monitor state machine (owner spec 2026-09-22). States only move forward
@@ -88,11 +93,20 @@ public sealed class GateMonitorCore
         // next call (EGCC 2026-10-11: 122/122 all through the turnaround). It moves the state
         // FORWARD only while GSX itself says a boarding is called, running or done; the raw
         // count still keeps the Preflight auto-reset below conservative within a leg.
-        var paxReported = inputs.PaxBoarded is > 0;
+        // A "completed" boarding over an EMPTY cabin at the gate is the previous leg's (issue
+        // #213, ADR-0019 §6; EHAM 2026-11-01: after an app restart GSX still reported leg one's
+        // Boarding completed at 119/119 while the cabin had deboarded). The app boards the
+        // ProSim cabin itself as GSX boards (GsxBoardingSync), so a real completed boarding
+        // always leaves seats taken. Such a reading is no evidence: it neither opens nor closes
+        // the strip, and a close it already latched is undone below.
+        var staleClose = inputs.CabinEmpty == true
+            && inputs.Phase.IsAtGate()
+            && inputs.BoardingStage == GsxServiceStage.Completed;
+        var paxReported = inputs.PaxBoarded is > 0 && !staleClose;
         var paxFlowing = paxReported
             && inputs.BoardingStage is GsxServiceStage.Called or GsxServiceStage.Requested
                 or GsxServiceStage.Active or GsxServiceStage.Completed;
-        var completed = inputs.BoardingStage == GsxServiceStage.Completed;
+        var completed = inputs.BoardingStage == GsxServiceStage.Completed && !staleClose;
         // Taxi-out through taxi-in: the gate is behind us. Shutdown is NOT past the gate for
         // this purpose — the arrival's cycle reset lands there, and a Closed strip must not
         // re-close itself before the next leg's boarding is even called (issue #173).
@@ -111,6 +125,26 @@ public sealed class GateMonitorCore
         {
             Reset(inputs.NowUtc);
             _ofpRequestId = inputs.OfpRequestId is { Length: > 0 } ? inputs.OfpRequestId : null;
+        }
+
+        // The restart hole #173 left (issue #213, ADR-0019 §6): GSX's boarded counter still
+        // showed leg one's 119/119 after the restart, so the rule above never fired, and the
+        // first OFP after the restart was adopted as the leg's id with the stale close in
+        // place. A closed-after-boarding strip at the gate over an EMPTY cabin, with no boarding
+        // running, is the previous leg's whatever the counter says.
+        if (_state == GateState.ClosedAfterBoarding
+            && inputs.Phase.IsAtGate()
+            && inputs.CabinEmpty == true
+            && inputs.BoardingStage is not (GsxServiceStage.Active or GsxServiceStage.Called or GsxServiceStage.Requested))
+        {
+            Reset(inputs.NowUtc);
+            _ofpRequestId = inputs.OfpRequestId is { Length: > 0 } ? inputs.OfpRequestId : null;
+        }
+
+        if (staleClose)
+        {
+            // The stale reading must not re-close the strip on the next step either.
+            inputs = inputs with { BoardingStage = GsxServiceStage.Waiting, PaxBoarded = null };
         }
 
         // The count GSX shows when boarding is CALLED is still the previous leg's total (EHAM

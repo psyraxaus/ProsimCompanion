@@ -32,6 +32,7 @@ public sealed class GateMonitorService : IDisposable
     private readonly ILogger<GateMonitorService> _logger;
     private readonly GroundOpsSignals _signals;
     private readonly IDataRefSubscription<bool> _door1L;
+    private readonly IDataRefSubscription<string?> _seatOccupation;
     private readonly IDisposable _diagnosticsSubscription;
     private readonly GateMonitorCore _core = new();
     private readonly object _gate = new();
@@ -79,6 +80,10 @@ public sealed class GateMonitorService : IDisposable
 
         _door1L = dataRefs.Subscribe(ProsimDataRefNames.Door1L);
         _door1L.ValueChanged += OnEvidenceChanged;
+        // The cabin's own word on "boarded" (issue #213): an empty cabin under a closed strip
+        // is the previous leg's close, whatever GSX's stale counter says.
+        _seatOccupation = dataRefs.Subscribe(ProsimDataRefNames.PaxSeatOccupationString);
+        _seatOccupation.ValueChanged += OnEvidenceChanged;
         _diagnosticsSubscription = diagnostics.Observe(_ => Evaluate());
         _flight.PhaseChanged += OnPhaseChanged;
         _signals.FlightCycleReset += OnFlightCycleReset;
@@ -172,7 +177,8 @@ public sealed class GateMonitorService : IDisposable
             std,
             now,
             gsxConnected,
-            string.IsNullOrWhiteSpace(ofp?.RequestId) ? null : ofp.RequestId);
+            string.IsNullOrWhiteSpace(ofp?.RequestId) ? null : ofp.RequestId,
+            _seatOccupation.RawValue is null ? null : !SeatMap.Parse(_seatOccupation.Value).Any(seat => seat));
     }
 
     private (DateTimeOffset Ofp, DateTimeOffset Aligned)? _lastAlignmentNoted;
@@ -267,5 +273,7 @@ public sealed class GateMonitorService : IDisposable
         _diagnosticsSubscription.Dispose();
         _door1L.ValueChanged -= OnEvidenceChanged;
         _door1L.Dispose();
+        _seatOccupation.ValueChanged -= OnEvidenceChanged;
+        _seatOccupation.Dispose();
     }
 }

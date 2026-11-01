@@ -455,6 +455,14 @@ public sealed class FlightStateSnapshotService : IStartupModule, IDisposable
             return;
         }
 
+        if (_signals.LastFlightCycleResetKind == State.FlightCycleResetKind.NewPlan)
+        {
+            // A different plan at the stand (ADR-0019 §6, issue #213): the new request id
+            // already replaced the file through the OFP part; the departure stores re-write
+            // themselves on their next change. Nothing of the restart memory is dropped.
+            return;
+        }
+
         Invalidate("flight cycle reset", suspend: false);
     }
 

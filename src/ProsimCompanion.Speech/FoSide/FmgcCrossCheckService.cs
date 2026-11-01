@@ -43,9 +43,16 @@ public sealed class FmgcCrossCheckService : IVoiceFeature, Core.Hosting.IStartup
     private readonly IDataRefSubscription<int> _v2;
     private readonly IDataRefSubscription<int> _flex;
     private readonly object _gate = new();
+    private readonly ILegBoundaryEvents _legBoundary;
     private Timer? _timer;
     private int _ticking;
     private bool _autoDone;
+    // The auto trigger belongs to a leg whose plan is in (ADR-0019 §1, issue #221): armed for
+    // the first leg, disarmed when the arrival is done with the aircraft (the flown plan still
+    // satisfies "origin, destination and V1 settled" on the arrival's Shutdown → Preflight
+    // edge — EHAM 2026-11-01: "INIT page: EGLL to EHAM" spoken after landing at EHAM), armed
+    // again when a different plan begins the next leg.
+    private bool _armed = true;
 
     public FmgcCrossCheckService(
         IOptionsMonitor<SpeechOptions> speech,
@@ -56,8 +63,11 @@ public sealed class FmgcCrossCheckService : IVoiceFeature, Core.Hosting.IStartup
         ISpeechArbiter arbiter,
         JsonlEventLog eventLog,
         ILogger<FmgcCrossCheckService> logger,
-        GroundOpsSignals signals)
+        GroundOpsSignals signals,
+        ILegBoundaryEvents legBoundary)
     {
+        ArgumentNullException.ThrowIfNull(legBoundary);
+        _legBoundary = legBoundary;
         ArgumentNullException.ThrowIfNull(speech);
         ArgumentNullException.ThrowIfNull(dataRefs);
         ArgumentNullException.ThrowIfNull(flight);
@@ -111,6 +121,8 @@ public sealed class FmgcCrossCheckService : IVoiceFeature, Core.Hosting.IStartup
     public void Start()
     {
         _signals.FlightCycleReset += OnReset;
+        _signals.ArrivalCompleted += OnArrivalCompleted;
+        _legBoundary.LegBegan += OnLegBegan;
         _flight.SessionReset += OnReset;
         _timer = new Timer(_ => Tick(), null, 3000, 1000);
     }
@@ -119,6 +131,8 @@ public sealed class FmgcCrossCheckService : IVoiceFeature, Core.Hosting.IStartup
     {
         _timer?.Dispose();
         _signals.FlightCycleReset -= OnReset;
+        _signals.ArrivalCompleted -= OnArrivalCompleted;
+        _legBoundary.LegBegan -= OnLegBegan;
         _flight.SessionReset -= OnReset;
         foreach (var read in _aligning.Cast<IDataRefSubscription>().Concat(_minutes).Concat(_attitude).Concat([_origin, _destination, _cruise, _v1, _vr, _v2, _flex]))
         {
@@ -134,6 +148,38 @@ public sealed class FmgcCrossCheckService : IVoiceFeature, Core.Hosting.IStartup
         }
     }
 
+    /// <summary>Deboarding complete: the flown plan in the box is history — no cross-check
+    /// until the next leg's plan begins it (issue #221).</summary>
+    private void OnArrivalCompleted()
+    {
+        lock (_gate)
+        {
+            _armed = false;
+            _autoDone = false;
+        }
+    }
+
+    private void OnLegBegan(object? sender, LegBeganEventArgs e)
+    {
+        lock (_gate)
+        {
+            _armed = true;
+            _autoDone = false;
+        }
+    }
+
+    /// <summary>Whether the auto trigger is armed for the current leg — public for tests.</summary>
+    public bool Armed
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return _armed;
+            }
+        }
+    }
+
     public bool TryHandle(string utterance)
     {
         if (!FoSidePhrases.IsCrossCheck(utterance))
@@ -145,9 +191,12 @@ public sealed class FmgcCrossCheckService : IVoiceFeature, Core.Hosting.IStartup
         return true;
     }
 
-    /// <summary>The auto trigger, pure: at the gate, FMGC init settled (route and V1 entered), once per cycle.</summary>
-    public static bool AutoDue(FlightPhase phase, bool live, string? origin, string? destination, int v1, bool doneThisCycle)
-        => !doneThisCycle && live && phase.IsAtGate()
+    /// <summary>The auto trigger, pure: at the gate, FMGC init settled (route and V1 entered),
+    /// once per cycle, and only while <paramref name="armed"/> — a leg whose plan has begun
+    /// (ADR-0019 §1): the arrival's Preflight edge with the flown plan still in the box never
+    /// qualifies (issue #221).</summary>
+    public static bool AutoDue(FlightPhase phase, bool live, string? origin, string? destination, int v1, bool doneThisCycle, bool armed = true)
+        => armed && !doneThisCycle && live && phase.IsAtGate()
             && !string.IsNullOrWhiteSpace(origin) && !string.IsNullOrWhiteSpace(destination) && v1 > 0;
 
     private void Tick()
@@ -167,7 +216,7 @@ public sealed class FmgcCrossCheckService : IVoiceFeature, Core.Hosting.IStartup
             bool due;
             lock (_gate)
             {
-                due = AutoDue(_flight.CurrentPhase, _flight.IsLive && !_origin.IsStale, _origin.Value, _destination.Value, _v1.Value, _autoDone);
+                due = AutoDue(_flight.CurrentPhase, _flight.IsLive && !_origin.IsStale, _origin.Value, _destination.Value, _v1.Value, _autoDone, _armed);
                 if (due)
                 {
                     _autoDone = true;

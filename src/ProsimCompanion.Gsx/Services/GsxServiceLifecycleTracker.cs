@@ -239,6 +239,20 @@ public sealed class GsxServiceLifecycleTracker : IGsxServiceLifecycleView
         }
     }
 
+    /// <summary>Whether ONE service was really called, active or completed this cycle (a seed
+    /// does not count) — the "boarding has started" test behind the new-plan cycle reset
+    /// (ADR-0019 §6, issue #213): refuel or catering already run for the old plan do not hold
+    /// the old leg; a boarding under way does.</summary>
+    public bool ObservedProgress(string serviceId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(serviceId);
+        lock (_gate)
+        {
+            return _cycles.TryGetValue(serviceId, out var cycle) && !cycle.Seeded
+                && (cycle.WasCalled || cycle.WasActive || cycle.CompletedNotified);
+        }
+    }
+
     /// <summary>
     /// Starts a fresh cycle for ONE service so its lifecycle edges fire again — the fuel
     /// top-up path (2026-09-19): the crew raises the block fuel after the truck already

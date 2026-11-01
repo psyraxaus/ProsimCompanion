@@ -29,6 +29,7 @@ public sealed class GsxSimbriefReloadServiceTests : IAsyncDisposable
     private readonly OfpStore _ofp = new();
     private readonly GsxOptions _options = new() { MenuOpenTimeoutMs = 300, IntentVerifyTimeoutMs = 300 };
     private readonly GsxDiagnosticsStore _diagnostics = new();
+    private readonly ProsimCompanion.Gsx.Automation.DepartureCycleLatches _latches = new();
     private readonly GsxSimbriefReloadService _service;
 
     public GsxSimbriefReloadServiceTests()
@@ -44,7 +45,8 @@ public sealed class GsxSimbriefReloadServiceTests : IAsyncDisposable
             options,
             _diagnostics,
             _eventLog,
-            NullLogger<GsxSimbriefReloadService>.Instance);
+            NullLogger<GsxSimbriefReloadService>.Instance,
+            _latches);
     }
 
     public async ValueTask DisposeAsync()
@@ -361,5 +363,25 @@ public sealed class GsxSimbriefReloadServiceTests : IAsyncDisposable
         public GsxOptions CurrentValue { get; } = value;
         public GsxOptions Get(string? name) => CurrentValue;
         public IDisposable? OnChange(Action<GsxOptions, string?> listener) => null;
+    }
+
+    [Fact]
+    public async Task Automatic_ThePlanTheAircraftArrivedWith_IsNotReloaded_TheNextLegsIs()
+    {
+        // Issue #223 (ADR-0019 §2), EGLL 2026-11-01 05:24Z: the reload re-ran at the destination
+        // for the plan just flown. After an arrival only a plan other than the arrival's counts.
+        _options.ReloadSimbriefOnNewOfp = true;
+        GsxWithSimbriefLine();
+        var flown = new OfpData { RequestId = "A", OriginIcao = "EGLL", DestinationIcao = "EHAM" };
+        _latches.ResetForArrival(flown);
+        _service.Start();
+
+        _ofp.Set(flown);
+        await Task.Delay(200);
+        Assert.Empty(_api.Commands);
+
+        _ofp.Set(new OfpData { RequestId = "B", OriginIcao = "EHAM", DestinationIcao = "EGLL" });
+        await WaitForPicksAsync(1);
+        Assert.Single(_api.Commands, c => c.Verb == "menu.pick");
     }
 }

@@ -239,8 +239,11 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl, IG
         {
             var current = _ofpStore.Current;
             var data = _flightState.Snapshot().Data;
-            var observed = _lifecycle.AnyObservedProgress(NewPlanCycleReset.ArrivalSide);
-            if (!NewPlanCycleReset.ShouldReset(current, _lastResetPlanId, _cycle.Complete, observed, data))
+            // Only a boarding under way holds the old leg (ADR-0019 §6, issue #213): refuel
+            // and catering already run for the old plan are reset like the rest and re-called.
+            var boardingObserved = _lifecycle.ObservedProgress(GsxServiceIds.Boarding);
+            var cycleWasComplete = _cycle.Complete; // read BEFORE the reset clears it (#223)
+            if (!NewPlanCycleReset.ShouldReset(current, _lastResetPlanId, cycleWasComplete, boardingObserved, data))
             {
                 return;
             }
@@ -259,8 +262,15 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl, IG
                 planId = id,
                 origin = current?.OriginIcao,
                 destination = current?.DestinationIcao,
-                cycleWasComplete = _cycle.Complete,
+                cycleWasComplete,
+                flightCycleReset = true,
             });
+            // Everything the arrival resets, the new plan resets too (ADR-0019 §6): the gate
+            // monitor, the loadsheet editions, the upcall and notification latches, the
+            // walkaround — EHAM 2026-11-01: leg two's "ready for pushback" was never sent
+            // because leg one's latch still stood. Kind NewPlan: the startup resync's
+            // turnaround LVARs and the restart snapshot leave this one alone.
+            _groundOpsSignals.RaiseFlightCycleReset(FlightCycleResetKind.NewPlan);
             Pump();
         }
         catch (Exception ex)

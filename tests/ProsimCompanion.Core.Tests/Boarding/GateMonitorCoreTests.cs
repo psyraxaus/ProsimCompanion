@@ -19,8 +19,9 @@ public sealed class GateMonitorCoreTests
         FlightPhase phase = FlightPhase.Preflight,
         DateTimeOffset? now = null,
         DateTimeOffset? std = null,
-        bool gsx = true)
-        => new(stage, target, boarded, door, bridge, phase, std ?? Std, now ?? T0, gsx);
+        bool gsx = true,
+        bool? cabinEmpty = null)
+        => new(stage, target, boarded, door, bridge, phase, std ?? Std, now ?? T0, gsx, null, cabinEmpty);
 
     private static GateStatusSnapshot Eval(GateMonitorCore core, GateMonitorInputs inputs, int pct = 90, int minutes = 10)
         => core.Evaluate(inputs, "B12", pct, minutes);
@@ -382,5 +383,51 @@ public sealed class GateMonitorCoreTests
         Assert.Equal(GateState.ClosedAfterBoarding, Eval(departing, Inputs(stage: GsxServiceStage.Waiting, target: 129, boarded: 129, door: false, phase: FlightPhase.TaxiOut)).State);
         // And an app started in the cruise still reads closed-after-boarding.
         Assert.Equal(GateState.ClosedAfterBoarding, Eval(new GateMonitorCore(), Inputs(stage: null, phase: FlightPhase.Cruise)).State);
+    }
+
+    // ---- issue #213: the restart hole #173 left (EHAM 2026-11-01) ----
+
+    [Fact]
+    public void RestoredClosedAfterBoarding_OverAnEmptyCabin_ResetsOnTheFirstOfpAfterARestart()
+    {
+        // The app restarted at the gate after the arrival: GSX still showed leg one's 119/119
+        // with Boarding "completed", the cabin was empty, and the first OFP after the restart
+        // (leg two's) was adopted with the stale close in place until the next restart.
+        var core = new GateMonitorCore();
+        // The seat string arrives a moment after GSX's first read: the close latches first …
+        Eval(core, Inputs(stage: GsxServiceStage.Completed, target: 119, boarded: 119, door: false, cabinEmpty: null) with { OfpRequestId = null });
+        Assert.Equal(GateState.ClosedAfterBoarding, core.State);
+
+        // … and is undone the moment the empty cabin is known, OFP or no OFP.
+        var s = Eval(core, Inputs(stage: GsxServiceStage.Completed, target: 119, boarded: 119, door: false, cabinEmpty: true, now: T0.AddMinutes(1)) with { OfpRequestId = "191949682" });
+        Assert.Equal(GateState.Closed, s.State);
+        Assert.Equal("Not called", s.Detail);
+
+        // The stale reading never re-closes it on later ticks either.
+        var later = Eval(core, Inputs(stage: GsxServiceStage.Completed, target: 119, boarded: 119, door: false, cabinEmpty: true, now: T0.AddMinutes(2)) with { OfpRequestId = "191949682" });
+        Assert.Equal(GateState.Closed, later.State);
+    }
+
+    [Fact]
+    public void AStaleCompletedBoarding_OverAnEmptyCabin_NeverLatchesInTheFirstPlace()
+    {
+        // Seat string known from the first read: nothing to undo.
+        var core = new GateMonitorCore();
+        var s = Eval(core, Inputs(stage: GsxServiceStage.Completed, target: 119, boarded: 119, door: false, cabinEmpty: true) with { OfpRequestId = null });
+        Assert.Equal(GateState.Closed, s.State);
+    }
+
+    [Fact]
+    public void ClosedAfterBoarding_OverAFullCabin_Stays()
+    {
+        // Restart after boarding, before pushback (9cbd82b): the cabin is full, the close is real.
+        var core = new GateMonitorCore();
+        Eval(core, Inputs(stage: GsxServiceStage.Completed, target: 119, boarded: 119, door: false, cabinEmpty: false) with { OfpRequestId = "191949682" });
+        var s = Eval(core, Inputs(stage: GsxServiceStage.Completed, target: 119, boarded: 119, door: false, cabinEmpty: false, now: T0.AddMinutes(1)) with { OfpRequestId = "191949682" });
+        Assert.Equal(GateState.ClosedAfterBoarding, s.State);
+
+        // Unknown occupancy (ProSim absent) never moves the state on its own either.
+        var unknown = Eval(core, Inputs(stage: GsxServiceStage.Completed, target: 119, boarded: 119, door: false, cabinEmpty: null, now: T0.AddMinutes(2)) with { OfpRequestId = "191949682" });
+        Assert.Equal(GateState.ClosedAfterBoarding, unknown.State);
     }
 }

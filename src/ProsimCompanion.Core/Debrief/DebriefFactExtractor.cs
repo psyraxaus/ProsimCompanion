@@ -459,10 +459,19 @@ public sealed class DebriefFactExtractor : IDebriefFactExtractor
                 }
             }
 
-            int? blockMin = offBlock is { } ob && onBlock is { } on && on > ob
+            // The phase edges first (they are this session's own observation); the flight-times
+            // stamps as the fallback — a session that began in flight after an app restart has
+            // no push/taxi edge, but the restored stamps carry the leg's off-blocks and takeoff
+            // (issue #223, EHAM→EGLL 2026-11-01: leg two read no block, the day summary said
+            // 77 minutes for a 131-minute day).
+            var blockFrom = offBlock ?? stampOff;
+            var blockTo = onBlock ?? stampOn;
+            int? blockMin = blockFrom is { } ob && blockTo is { } on && on > ob
                 ? (int)Math.Round((on - ob).TotalMinutes)
                 : null;
-            int? flightMin = liftoff is { } lo && touchdown is { } td && td > lo
+            var flightFrom = liftoff ?? stampTakeoff;
+            var flightTo = touchdown ?? stampLanding;
+            int? flightMin = flightFrom is { } lo && flightTo is { } td && td > lo
                 ? (int)Math.Round((td - lo).TotalMinutes)
                 : null;
             double? startFob = takeoffFob;

@@ -8,9 +8,11 @@ namespace ProsimCompanion.Gsx.Automation;
 /// "A new plan is a new leg" (owner rule 2026-11-01, EHAM): when a different SimBrief plan
 /// lands while the aircraft is parked with the engines off, the departure side starts over —
 /// the service cycles, the pax target, the tracking memory — so boarding and catering run for
-/// the new leg whatever the previous one left behind. Guards: never while a departure service
-/// for the current plan is already under way (a late re-import mid-boarding must not reset a
-/// running turnaround), never for the same plan twice, never away from the stand. Pure.
+/// the new leg whatever the previous one left behind. Guards: never once BOARDING for the
+/// current plan has started (a late re-import mid-boarding must not reset a running
+/// turnaround — ADR-0019 §6, issue #213: refuel or catering already run for the old plan do
+/// not hold the old leg, they are simply re-called for the new one), never for the same plan
+/// twice, never away from the stand. Pure.
 /// </summary>
 public static class NewPlanCycleReset
 {
@@ -30,13 +32,13 @@ public static class NewPlanCycleReset
 
     /// <summary>Whether the plan that just landed starts a new leg. <paramref name="lastResetPlanId"/>
     /// is the plan the last reset ran for (or the plan the cycle was started with), so the same
-    /// plan never resets twice; <paramref name="observedProgress"/> is true when a departure
-    /// service outside the arrival side was really called, active or completed this cycle.</summary>
+    /// plan never resets twice; <paramref name="boardingObserved"/> is true when GSX Boarding
+    /// was really called, active or completed this cycle (a startup-resync seed does not count).</summary>
     public static bool ShouldReset(
         OfpData? current,
         string? lastResetPlanId,
         bool cycleComplete,
-        bool observedProgress,
+        bool boardingObserved,
         FlightDataSnapshot? data)
     {
         var id = PlanId(current);
@@ -51,7 +53,7 @@ public static class NewPlanCycleReset
         }
 
         // A cycle that is complete is over whatever it did; an open one is reset only while
-        // nothing of the departure has begun for the plan it was opened with.
-        return cycleComplete || !observedProgress;
+        // boarding has not begun for the plan it was opened with.
+        return cycleComplete || !boardingObserved;
     }
 }
