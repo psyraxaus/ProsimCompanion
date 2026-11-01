@@ -1,3 +1,5 @@
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ProsimCompanion.Core.Aircraft;
@@ -28,7 +30,7 @@ namespace ProsimCompanion.Speech.Crew;
 /// (confirmation kept), no-go is raised regardless. A refuel called meanwhile abandons the
 /// walk. Read-and-speak only beyond the upcalls' allow-listed MECH press.
 /// </summary>
-public sealed class WalkaroundService : Core.Hosting.IStartupModule, IDisposable
+public sealed class WalkaroundService : Core.Hosting.IStartupModule, IDisposable, IFlightStatePart
 {
     public const string ReportTag = "walkaround.report";
     public const string AnnounceLine = "I'll do the walkaround, captain.";
@@ -229,6 +231,7 @@ public sealed class WalkaroundService : Core.Hosting.IStartupModule, IDisposable
                 return WalkaroundAction.None;
             }
 
+            var before = _core.State;
             action = _core.Evaluate(sample, options, Roll);
             duration = _core.Duration(nowUtc);
             switch (action)
@@ -243,9 +246,59 @@ public sealed class WalkaroundService : Core.Hosting.IStartupModule, IDisposable
                     _inFlight = Task.Run(() => AbandonAsync(duration), CancellationToken.None);
                     break;
             }
+
+            if (_core.State != before)
+            {
+                Changed?.Invoke();
+            }
         }
 
         return action;
+    }
+
+    // ---- the flight-state snapshot part (owner rule 2026-11-01: no walkaround after a restart) ----
+
+    /// <inheritdoc />
+    public string Key => "walkaround";
+
+    /// <inheritdoc />
+    public event Action? Changed;
+
+    /// <inheritdoc />
+    public JsonNode? Capture()
+    {
+        WalkaroundSnapshotState state;
+        lock (_gate)
+        {
+            state = _core.Capture();
+        }
+
+        // Always a node, even Idle: the part's presence is what tells a restart "this cycle
+        // was already under way", so an idle cycle is skipped too.
+        return JsonSerializer.SerializeToNode(state, FlightStateSnapshotStore.JsonOptions);
+    }
+
+    /// <inheritdoc />
+    public void Restore(JsonNode node)
+    {
+        ArgumentNullException.ThrowIfNull(node);
+        var saved = node.Deserialize<WalkaroundSnapshotState>(FlightStateSnapshotStore.JsonOptions);
+        WalkaroundState before;
+        lock (_gate)
+        {
+            before = _core.SkipCycle();
+            _pendingFinding = null;
+        }
+
+        if (_availability.Snapshot() is { IsAway: true, Reason: FoAvailabilityStore.WalkaroundReason })
+        {
+            _availability.Clear();
+        }
+
+        _logger.LogInformation(
+            "FO walkaround skipped for this departure — the app restarted mid-turnaround (snapshot state {Saved})",
+            saved?.State.ToString() ?? before.ToString());
+        _eventLog.Record("walkaround.skipped", new { reason = "restart", snapshotState = saved?.State.ToString() ?? before.ToString() });
     }
 
     /// <summary>The sample as the core sees it — exposed for the tests' tables.</summary>
@@ -254,6 +307,7 @@ public sealed class WalkaroundService : Core.Hosting.IStartupModule, IDisposable
         var facts = _ground.Facts;
         GsxServiceStage? refuel = null;
         var prepComplete = false;
+        var boardingDone = false;
         try
         {
             var snapshot = _diagnostics.Snapshot();
@@ -263,7 +317,10 @@ public sealed class WalkaroundService : Core.Hosting.IStartupModule, IDisposable
                 if (string.Equals(row.ServiceId, GsxServiceIds.Refueling, StringComparison.OrdinalIgnoreCase))
                 {
                     refuel = row.Stage;
-                    break;
+                }
+                else if (string.Equals(row.ServiceId, GsxServiceIds.Boarding, StringComparison.OrdinalIgnoreCase))
+                {
+                    boardingDone = row.Stage == GsxServiceStage.Completed;
                 }
             }
         }
@@ -272,7 +329,7 @@ public sealed class WalkaroundService : Core.Hosting.IStartupModule, IDisposable
             _logger.LogDebug(ex, "GSX diagnostics read failed");
         }
 
-        return new WalkaroundSample(_flight.CurrentPhase, _flight.IsLive, facts.Parked, facts.EnginesOff, prepComplete, refuel, nowUtc);
+        return new WalkaroundSample(_flight.CurrentPhase, _flight.IsLive, facts.Parked, facts.EnginesOff, prepComplete, refuel, nowUtc, boardingDone);
     }
 
     private async Task AnnounceAsync(DateTimeOffset nowUtc)

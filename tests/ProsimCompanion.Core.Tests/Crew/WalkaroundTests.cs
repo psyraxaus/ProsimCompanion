@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.Extensions.Logging.Abstractions;
 using ProsimCompanion.Core.Configuration;
 using ProsimCompanion.Core.Crew;
@@ -236,5 +237,71 @@ public sealed class WalkaroundTests
             {
             }
         }
+    }
+
+    // ---- restart and boarding (owner rule 2026-11-01: never a walkaround after an app restart) ----
+
+    [Fact]
+    public void BoardingCompleted_IsNeverReady()
+    {
+        Assert.False(WalkaroundCore.IsReady(Sample() with { BoardingDone = true }));
+        var core = Baselined();
+        Assert.Equal(WalkaroundAction.None, core.Evaluate(Sample() with { BoardingDone = true }, Options(), () => 0));
+        Assert.Equal(WalkaroundState.Idle, core.State);
+    }
+
+    [Fact]
+    public void StaggeredStartup_WithoutSnapshot_StillArmsOnTheEdge()
+    {
+        // The 2026-11-01 signature: the first ticks read "not ready" (phase/prep not in yet),
+        // the resync seeds prep Complete seconds later — an edge the baseline cannot tell apart.
+        var core = new WalkaroundCore();
+        Assert.Equal(WalkaroundAction.None, core.Evaluate(Sample(prepComplete: false), Options(), () => 0));
+        Assert.Equal(WalkaroundAction.Announce, core.Evaluate(Sample(), Options(), () => 0));
+    }
+
+    [Theory]
+    [InlineData(WalkaroundState.Idle)]
+    [InlineData(WalkaroundState.Departed)]
+    [InlineData(WalkaroundState.Done)]
+    public void RestoredSnapshot_SkipsTheCycle_WhateverItHeld(WalkaroundState saved)
+    {
+        var core = new WalkaroundCore();
+        if (saved == WalkaroundState.Departed)
+        {
+            core.Evaluate(Sample(prepComplete: false), Options(), () => 0);
+            Assert.Equal(WalkaroundAction.Announce, core.Evaluate(Sample(), Options(), () => 0));
+        }
+        else if (saved == WalkaroundState.Done)
+        {
+            core.Evaluate(Sample(prepComplete: false), Options(), () => 0);
+            core.Evaluate(Sample(), Options(), () => 0);
+            core.Evaluate(Sample(now: T0.AddMinutes(11)), Options(), () => 0);
+            core.Evaluate(Sample(now: T0.AddMinutes(11)), Options(), () => 0);
+        }
+
+        Assert.Equal(saved, core.Capture().State);
+        Assert.Equal(saved, core.SkipCycle());
+        Assert.Equal(WalkaroundState.Done, core.State);
+        Assert.Null(core.DepartedAtUtc);
+
+        // The staggered startup after the restore: no edge is ever acted on this cycle...
+        Assert.Equal(WalkaroundAction.None, core.Evaluate(Sample(prepComplete: false), Options(), () => 0));
+        Assert.Equal(WalkaroundAction.None, core.Evaluate(Sample(), Options(), () => 0));
+        Assert.Equal(WalkaroundAction.None, core.Evaluate(Sample(now: T0.AddMinutes(11)), Options(), () => 0));
+        Assert.Equal(WalkaroundState.Done, core.State);
+
+        // ...and the next departure cycle arms again on its own edge.
+        core.OnFlightCycleReset();
+        Assert.Equal(WalkaroundAction.Announce, core.Evaluate(Sample(), Options(), () => 0));
+    }
+
+    [Fact]
+    public void SnapshotState_RoundTripsThroughJson()
+    {
+        var state = new WalkaroundSnapshotState(WalkaroundState.Departed, T0, T0.AddMinutes(7));
+        var node = JsonSerializer.SerializeToNode(state, FlightStateSnapshotStore.JsonOptions);
+        var back = node!.Deserialize<WalkaroundSnapshotState>(FlightStateSnapshotStore.JsonOptions);
+        Assert.Equal(state, back);
     }
 }

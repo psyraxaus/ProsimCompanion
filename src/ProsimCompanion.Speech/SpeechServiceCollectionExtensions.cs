@@ -347,6 +347,9 @@ public static class SpeechServiceCollectionExtensions
         // The FO's exterior walkaround (issue #196): announce, away, the interphone report, a
         // finding into the tech log; the raise question's table for the shared dialogue.
         services.AddStartupModule<Crew.WalkaroundService>();
+        // The walkaround's cycle rides the flight-state snapshot so an app restart never sends the
+        // FO outside again (owner rule 2026-11-01).
+        services.AddSingleton<Core.Flight.IFlightStatePart>(p => p.GetRequiredService<Crew.WalkaroundService>());
         services.AddSingleton(Crew.WalkaroundRaisePhrases.Table);
         // Scenario mode (issue #197, ADR-0018): the one serialised failure-write path — a
         // startup module (the tick), a hosted service (the clear-all at exit), the

@@ -441,6 +441,7 @@ Off by default — the **Walkaround** card on Crew & Company → Ground Crew
 engines off and the ground preparation (jetway or stairs) has completed, the FO says *"I'll do
 the walkaround, captain"* and is away for six to ten minutes:
 
+- An app restart mid-turnaround never sends the FO out again: the walk is over for that departure (whatever it was doing), and the FO does not go outside once boarding is complete.
 - While away, your questions get *"The First Officer is on the walkaround, captain."*
   **"Stop"**, **"I have controls"**, **"quiet please"** and the GSX requests still work.
 - The refuel call waits for the report (the Flight Status refuel row says so). Call the

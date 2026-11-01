@@ -44,6 +44,8 @@ public enum WalkaroundAction
 /// <param name="EnginesOff">The committed engines-off fact.</param>
 /// <param name="PrepComplete">The GSX ground prep's stage reads Complete (jetway / stairs on).</param>
 /// <param name="RefuelStage">The refuel row on the service board; a call abandons the walk.</param>
+/// <param name="BoardingDone">The boarding row on the service board reads Completed: the doors
+/// are about to close, the FO does not go outside any more (owner report 2026-11-01).</param>
 public sealed record WalkaroundSample(
     FlightPhase Phase,
     bool Live,
@@ -51,15 +53,26 @@ public sealed record WalkaroundSample(
     bool EnginesOff,
     bool PrepComplete,
     GsxServiceStage? RefuelStage,
-    DateTimeOffset NowUtc);
+    DateTimeOffset NowUtc,
+    bool BoardingDone = false);
+
+/// <summary>What the walkaround keeps across an app restart (the flight-state snapshot part).</summary>
+public sealed record WalkaroundSnapshotState(WalkaroundState State, DateTimeOffset? DepartedAtUtc, DateTimeOffset? ReportDueUtc);
 
 /// <summary>
 /// The pure walkaround state machine (issue #196): arms on the EDGE into "at the gate, live,
-/// parked, engines off, ground prep complete" — baselined on first observation like the
-/// upcalls, so a mid-turnaround restart never replays a walk already done — and runs once per
-/// departure cycle: announce, a random away window, the report; or abandon when the refuel is
-/// called (by voice or Stream Deck) or the aircraft stops being ready. The shell owns the
-/// clock, the speech, the stores and the findings.
+/// parked, engines off, ground prep complete, boarding not yet complete" — baselined on first
+/// observation like the upcalls — and runs once per departure cycle: announce, a random away
+/// window, the report; or abandon when the refuel is called (by voice or Stream Deck) or the
+/// aircraft stops being ready. The shell owns the clock, the speech, the stores and the
+/// findings.
+///
+/// Restart (owner rule 2026-11-01, first 1.0.0-rc.1 leg): the baseline alone did not hold —
+/// at startup the phase and the GSX prep stage arrive seconds apart, so the first ticks read
+/// "not ready" and the resync's seeded Complete looked like an edge; the FO walked out of an
+/// aircraft whose boarding had finished. A restored flight-state snapshot now ends the walk
+/// for that cycle (<see cref="SkipCycle"/>) whatever state it held, and a completed boarding
+/// is never ready.
 /// </summary>
 public sealed class WalkaroundCore
 {
@@ -83,11 +96,28 @@ public sealed class WalkaroundCore
         _lastReady = false;
     }
 
-    /// <summary>The ready predicate: at the gate, live, parked, engines off, prep complete.</summary>
+    /// <summary>The ready predicate: at the gate, live, parked, engines off, prep complete,
+    /// boarding not completed.</summary>
     public static bool IsReady(WalkaroundSample sample)
     {
         ArgumentNullException.ThrowIfNull(sample);
-        return sample.Live && sample.Phase.IsAtGate() && sample.Parked && sample.EnginesOff && sample.PrepComplete;
+        return sample.Live && sample.Phase.IsAtGate() && sample.Parked && sample.EnginesOff && sample.PrepComplete && !sample.BoardingDone;
+    }
+
+    /// <summary>The state worth keeping across a restart.</summary>
+    public WalkaroundSnapshotState Capture() => new(State, DepartedAtUtc, ReportDueUtc);
+
+    /// <summary>An app restart inside a departure cycle: the walk is over for this cycle,
+    /// whatever the snapshot held — a walk in progress is neither resumed nor reported (the
+    /// FO is simply back), an idle cycle does not start one. Returns the state it replaced.</summary>
+    public WalkaroundState SkipCycle()
+    {
+        var before = State;
+        State = WalkaroundState.Done;
+        DepartedAtUtc = null;
+        ReportDueUtc = null;
+        _lastReady = null;
+        return before;
     }
 
     /// <summary>The away window: minimum plus the 0–1 roll's share of the spread, never
