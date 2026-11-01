@@ -679,6 +679,38 @@
       "notes": "Core.Speech.Phraseology is the one rule table (letters in context, numbers, abbreviations) the arbiter applies to every line before synthesis; the radios composer uses the same table with hyphens for its SI read-backs. payload.spoken on speech.spoken is new in this build (null = unchanged). Pronunciation itself still needs ears: listen for 'Golf five' on the next briefing with a TWY NOTAM."
     },
     {
+      "id": "briefing-dialogue-hold-and-questions",
+      "issue": 201,
+      "state": "fixed-unverified",
+      "kind": "assert-present",
+      "sources": [
+        "session"
+      ],
+      "checks": [
+        "assert-present (dialogue hold): between a dialogue's prompt and its answer — minima ('Confirm the approach minimums.' … minima.captured), a captain's question (briefing.threats / briefing.questions raised … answered), the tech-log raise, the ECAM drill — no speech.spoken with a Normal/Low tag outside sayintentions.* / fo.* / briefing.* / checklist.* / ecam.* / abnormal.*; such lines appear as speech.deferred (rule dialogueHold) and play after the borrow ends (EGLL 2026-11-01 11:55 signature: 'Seat belt signs, captain?' between 'Decision altitude one eight seven feet, confirm?' and the answer).",
+        "assert-present (minima): ONE 'Confirm the approach minimums.', ONE '…, confirm?' and ONE minima.captured per arrival briefing when the captain answers within the window; when the FO had to repeat ('… — say confirmed, or say the minimums again.'), a bare 'confirmed' / 'affirm' closes it (minima.captured {how: 'confirmed on the retry'}) — the captain never repeats the number.",
+        "assert-present (questions): after every briefing.spoken (arrival; departure after the briefing.threats round settles) a briefing.questions {prompt 'Any questions, captain?', departure} raised; 'no questions' / 'no' / 'nothing' → briefing.questions {outcome: complete, questionsAsked} and speech 'Briefing complete.'; a question → briefing.questions {outcome: question, captainAsked}, an fo.query + fo.answer for it, then a briefing.questions raised with prompt 'Anything else, captain?' (at most 3 questions); a minute of silence → outcome complete, reason unanswered, and 'Briefing complete.'.",
+        "assert-absent: a briefing.questions raised while a briefing.threats question stands; two 'Any questions, captain?' for one briefing; 'Briefing complete.' spoken over an fo.answer (the follow-up waits for the answer task).",
+        "requires-human: the round feels natural — the FO does not ask over its own answer, and 'Briefing complete.' closes it audibly."
+      ],
+      "notes": "Owner request 2026-11-01 (EGLL→EHAM, 1.0.0-rc.1). Speech DialogueHoldRule (arbiter rule: Defer while IMicOwnership.IsBorrowed for tagged Normal/Low requests outside the exempt families), MicOwnership listen deadline frozen while SpeechStatusStore.NowPlaying is set, MinimaCaptureDialogue remembers the value last read back, Core BriefingQuestionsStore + Speech BriefingQuestionsPhrases over the shared CaptainsQuestionDialogue, BriefingService.AskForQuestionsAfter chained behind the threats question. Switch briefing.askForQuestions (on)."
+    },
+    {
+      "id": "fo-radios-fix-names-region",
+      "issue": 202,
+      "state": "fixed-unverified",
+      "kind": "assert-absent",
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "assert-absent: a sayintentions.checkin whose transmit names the SID/STAR with words that are not the fix's own name from the OFP navlog or the DFD near the airport — the 2026-11-01 01:01Z signature 'on Redfern Railway Station one Alpha' for REDF1A at EHAM (an Australian VFR point). The check-in now passes the OFP origin (SID) / destination (STAR) to the fix-name chain; a four-letter base that prefixes exactly one five-letter navlog fix speaks that fix ('Redfa one Alpha'); the DFD never answers a waypoint lookup without a region.",
+        "assert-present: the briefing.spoken narrative and the sayintentions.checkin transmit name the same STAR the same way ('Redfa one Alpha' in both, never 'Redf' in one and a place name in the other)."
+      ],
+      "notes": "OfpFixNames four-letter prefix rule, DfdNavDataProvider.FixName region guard, FoRadiosService.BuildCheckInContext airport hints (OfpStore). The flight.json STAR ident is SI's; 'REDF1A' is the ARINC 424 computer code for the REDFA 1A STAR."
+    },
+    {
       "id": "airport-common-names",
       "issue": 70,
       "state": "closed-regression-watch",
@@ -3884,6 +3916,7 @@
         "assert-absent: any 'sayintentions.comms' or 'sayintentions.atc-readout' event while the switch is on (the hand-over by phase and its readouts must be inert); any setVar of SIAI_COPILOT to 1 is not logged — check instead that the SI copilot never spoke in the SayIntentions transcript after the flight became active.",
         "watch: 'sent: false' on a readback (sayAs HTTP failure) and 'radioBusyAtTx: true' (transmitted into a busy frequency after the 8 s cap); either repeated = a timing problem to report.",
         "requires-human: ATC accepted each read-back and moved on (no 'say again' / repeat from SI ATC); the arrival check-in wording sounded right (descent / approach / taxi-in forms were never heard from the copilot — composed from the climb pattern); the push approval read-back ('Push and start approved. Face North-East.') is acceptable or should be dropped like the copilot does.",
+        "assert-present (2026-11-01, ATIS question): an ATC line asking 'have you got / do you have information X?' is answered inside the read-back — '…, information Victor, <callsign>.' when X is the letter the destination (airborne) / local (on the ground) weather card holds, '…, negative, we have information Uniform, <callsign>.' when ours is another, 'Negative, request information Victor, <callsign>.' when none; the question clause itself never appears in the transmit (EHAM 2026-11-01 01:05:28Z signature: the question was ignored). assert-absent: a transmit containing 'have you got' / 'do you have', or an ATC-explanation segment ('This will give you room to descend', 01:07Z).",
         "assert-present (2026-11-01, ATC intentions): an ATC line whose segments state ATC's own intentions or invite a request ('I'll have you descending in about 5 minutes', 'say the word if you want to descend sooner', 'let me know', 'shortly') is answered with only its instruction segments read back ('Expect the REDF1A arrival, Speedbird-four-three-two.') or, with none, 'Roger, <callsign>.' (sayintentions.readback payload.kind acknowledge). assert-absent: a sayintentions.readback whose transmit contains 'I'll', 'say the word', 'let me know' or 'in about N minutes' (EGLL→EHAM 2026-11-01 00:51:28Z signature).",
         "assert-present (2026-10-31, taxiway letters): a taxi instruction whose route lists bare letters ('via Z, T, A', 'via A') is read back with every taxiway as its NATO word — payload.transmit 'via Zulu, Tango, Alpha' / 'via Alpha' (letter+digit stays 'Alpha-one'); the spoken text the same with spaces. assert-absent: a transmit carrying 'via <single capital letter>' after a routing word (LKPR/EGLL 2026-10-31 signature).",
         "assert-present (2026-10-31, cleared altitude): after ATC 'descend altitude 3,500 feet' / 'Continue descent to FL070' the log 'FO radios: cleared level …' (Debug) or the next check-in's 'for …' names THAT level; the check-in never says 'for <level>' for a level already behind the aircraft in the direction of flight (EGLL 2026-10-31 01:18 signature: 'descending through 1,200 for FL70 … inbound runway 9L' on final with 3,500 ft cleared). A check-in on final with no cleared level below the aircraft carries no 'for' clause.",

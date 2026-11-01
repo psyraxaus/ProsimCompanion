@@ -369,6 +369,14 @@ public sealed class DfdNavDataProvider
             {
                 candidates = rows.Where(r => string.Equals(r.Region, region, StringComparison.OrdinalIgnoreCase));
             }
+            else if (table.Airport is not null || table.Table.Contains("waypoint", StringComparison.OrdinalIgnoreCase))
+            {
+                // No airport to rank by: a waypoint table's one world-wide row is as likely a
+                // truncated ident as the fix itself (issue #202, 2026-11-01: "REDF" for the EHAM
+                // STAR REDF1A named an Australian VFR point "Redfern Railway Station"). Only a
+                // navaid may answer without a region.
+                continue;
+            }
 
             var list = candidates.ToList();
             if (list.Count == 0)

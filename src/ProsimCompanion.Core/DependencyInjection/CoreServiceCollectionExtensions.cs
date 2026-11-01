@@ -204,6 +204,10 @@ public static class CoreServiceCollectionExtensions
         // (issue #180): the briefing asks, the FO dialogue takes the free-text answer.
         services.AddSingleton<ThreatsQuestionStore>();
         services.AddSingleton<ICaptainsQuestionStore>(p => p.GetRequiredService<ThreatsQuestionStore>());
+        // "Any questions, captain?" after every briefing (issue #201): "no questions" closes
+        // with "Briefing complete", a question is answered and the FO asks again.
+        services.AddSingleton<BriefingQuestionsStore>();
+        services.AddSingleton<ICaptainsQuestionStore>(p => p.GetRequiredService<BriefingQuestionsStore>());
         // "Change First Officer now — are you sure?" behind the "new first officer" re-draw (issue #194).
         services.AddSingleton<Persona.FoRosterChangeStore>();
         services.AddSingleton<ICaptainsQuestionStore>(p => p.GetRequiredService<Persona.FoRosterChangeStore>());

@@ -295,7 +295,10 @@ instruction is read back and closed with your callsign (*"Climb FL140, Speedbird
 then swap), and eight seconds later the FO checks in on the new frequency: *"Good evening,
 Finnair 962, climbing through FL180 for FL210 on KEMA5C."* — the greeting from the sim's local
 clock, the level from ProSim, the cleared level from ATC's last instruction, the SID or STAR from
-SayIntentions. Broadcasts to all aircraft (an ATIS change) get no read-back. Stands are always
+SayIntentions. Broadcasts to all aircraft (an ATIS change) get no read-back; ATC's own plans and
+explanations ("I'll have you descending in about five minutes", "this will give you room to
+descend") are answered *"Roger"* or left out of the read-back, and *"have you got information
+Victor?"* is answered from the ATIS letter the weather cards hold. Stands are always
 spelled digit by digit on the radio (*"stand three one one"*, never "three hundred and eleven").
 Your own calls (clearance, push, taxi, takeoff requests) stay the voice requests below; at the
 holding point say *"ready for departure"*, *"request departure"* or *"request takeoff"* and the
@@ -327,6 +330,16 @@ comes from MSFS, not from the PC clock, and when MSFS is not running the FO open
   bear on the landing — MEL category A or B, or anything about brakes, gear, spoilers,
   reversers, autobrake or anti-skid (Settings → Crew & Company → Tech Log & Logbook →
   **Open items in the briefings**).
+- **After the briefing** the FO asks *"Any questions, captain?"*. Say *"no questions"* (or
+  *"no"*, *"nothing"*) and the FO closes with *"Briefing complete."*; ask something and the FO
+  answers it, then asks *"Anything else, captain?"* (three questions at most); a minute of
+  silence also closes the briefing. On a departure this comes after *"any other threats?"*.
+  Switch: Settings → Flight Deck → Briefings & LLM → Briefings → **Ask for questions after the
+  briefing** (on). The arrival briefing still opens with *"Confirm the approach minimums."*:
+  say the value, the FO reads it back, say *"confirmed"* — and if the FO has to ask again, a bare
+  *"confirmed"* is enough, you never repeat the number. While the FO waits for your answer in
+  any such dialogue, the other prompts (cabin questions, ground calls, small talk) wait too, and
+  the listening window does not count the FO's own talking time.
 - **Emergency brief and threats** (Settings → Flight Deck → Briefings & LLM →
   **Emergency Briefing & Threats**, off by default). With **Takeoff emergency brief** on, the
   departure briefing ends the way a line crew briefs it: the rejected-takeoff split (*below one

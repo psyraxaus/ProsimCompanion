@@ -1110,6 +1110,11 @@
         "hint": "Cada cifra que escribe el LLM se comprueba contra los hechos.",
         "more": "Una comprobación fallida recurre a la plantilla plana."
       },
+      "askForQuestions": {
+        "label": "Ask for questions after the briefing",
+        "hint": "The FO ends every briefing with \"Any questions, captain?\" — \"no questions\" gets \"Briefing complete\"; a question is answered, then \"Anything else, captain?\".",
+        "more": "Free text needs the transcription server. With the offline engine, or after a minute of silence, the FO says \"Briefing complete\". On a departure the question comes after \"any other threats?\"."
+      },
       "dfdBefore": "La ruta de la base de datos DFD de Navigraph está en",
       "dfdLink": "Configuración → Datos de navegación",
       "dfdAfter": ".",

@@ -77,6 +77,7 @@ public sealed class BriefingService : IVoiceFeature, IDisposable
     // it has and asks nothing.
     private readonly TakeoffPerfStore? _takeoffPerf;
     private readonly ThreatsQuestionStore? _threats;
+    private readonly BriefingQuestionsStore? _questions;
     // Wind limits (issue #182). Optional: without the options (tests) the briefing has no
     // wind-limit clause.
     private readonly IOptionsMonitor<SopOptions>? _sop;
@@ -120,8 +121,10 @@ public sealed class BriefingService : IVoiceFeature, IDisposable
         IOptionsMonitor<AircraftLimitsOptions>? aircraftLimits = null,
         RunwayConditionStore? runwayCondition = null,
         Core.Aircraft.Ofp.OfpStore? ofp = null,
-        Core.Aircraft.ISimLocalTime? localTime = null)
+        Core.Aircraft.ISimLocalTime? localTime = null,
+        BriefingQuestionsStore? questions = null)
     {
+        _questions = questions;
         _persona = persona;
         _narrator = narrator;
         _techLog = techLog;
@@ -252,7 +255,7 @@ public sealed class BriefingService : IVoiceFeature, IDisposable
                     Rewrite = sentence => BriefingComposer.FixGreeting(sentence, facts.TimeOfDay),
                 }).ConfigureAwait(false);
                 _eventLog.Record("briefing.spoken", new { departure, narrative = result.Text, streamed = true, timeOfDay = facts.TimeOfDay });
-                AskForThreats(facts);
+                AskForQuestionsAfter(AskForThreats(facts), departure);
                 return;
             }
 
@@ -264,7 +267,7 @@ public sealed class BriefingService : IVoiceFeature, IDisposable
             // threats question below never talks over the briefing.
             await _arbiter.EnqueueAsync(new SpeechRequest(narrative, SpeechPriority.Normal, Tag: tag))
                 .ConfigureAwait(false);
-            AskForThreats(facts);
+            AskForQuestionsAfter(AskForThreats(facts), departure);
         }
         catch (Exception ex)
         {
@@ -309,16 +312,58 @@ public sealed class BriefingService : IVoiceFeature, IDisposable
     /// <summary>Raises "any other threats, captain?" after a departure briefing that spoke the
     /// emergency section (issue #180, <c>briefing.askForThreats</c>). The shared dialogue voices
     /// it and takes the answer; the store's TTL settles silence.</summary>
-    private void AskForThreats(BriefingFacts facts)
+    private bool AskForThreats(BriefingFacts facts)
     {
         if (_threats is null || facts.Emergency is null || !facts.IsDeparture || !_options.CurrentValue.AskForThreats)
         {
-            return;
+            return false;
         }
 
         if (!_threats.Ask())
         {
             _logger.LogDebug("Threats question not raised — one already stands");
+            return false;
+        }
+
+        return true;
+    }
+
+    /// <summary>Raises "Any questions, captain?" (issue #201) — straight away, or once the
+    /// threats question just raised has been answered or has timed out, so the two never
+    /// talk over each other. The questions round itself is the shared dialogue's.</summary>
+    private void AskForQuestionsAfter(bool threatsAsked, bool departure)
+    {
+        if (_questions is null || !_options.CurrentValue.AskForQuestions)
+        {
+            return;
+        }
+
+        if (!threatsAsked || _threats is null)
+        {
+            Raise();
+            return;
+        }
+
+        EventHandler<(bool Accepted, string Source)>? once = null;
+        once = (_, _) =>
+        {
+            _threats.Answered -= once;
+            Raise();
+        };
+        _threats.Answered += once;
+        if (!_threats.Asking.QuestionStands)
+        {
+            // Answered between the raise and the subscription.
+            _threats.Answered -= once;
+            Raise();
+        }
+
+        void Raise()
+        {
+            if (!_questions.Ask(departure))
+            {
+                _logger.LogDebug("Briefing questions not raised — a round already stands");
+            }
         }
     }
 

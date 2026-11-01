@@ -137,6 +137,10 @@ public sealed class MinimaCaptureDialogue
             await _arbiter.SpeakAsync("Confirm the approach minimums.", SpeechPriority.Normal, cancellationToken)
                 .ConfigureAwait(false);
 
+            // The value last read back: on any later turn a bare "confirmed" closes on it, so
+            // the captain never repeats the number after an interruption (owner request
+            // 2026-11-01, issue #201: the FO asked for the number twice).
+            ArrivalMinima? readBack = null;
             for (var attempt = 0; attempt <= options.MinimaMaxRetries; attempt++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -154,6 +158,11 @@ public sealed class MinimaCaptureDialogue
                 }
 
                 var parsed = MinimaParser.TryParse(heard);
+                if (parsed is null && readBack is not null && IsAffirm(heard))
+                {
+                    return Capture(readBack, "confirmed on the retry");
+                }
+
                 if (parsed is null)
                 {
                     await _arbiter.SpeakAsync("Say again the minimums.", SpeechPriority.Normal, cancellationToken)
@@ -161,27 +170,36 @@ public sealed class MinimaCaptureDialogue
                     continue;
                 }
 
+                readBack = parsed;
                 await _arbiter.SpeakAsync(
                     $"{Capitalize(BriefingComposer.MinimaCallout(parsed))}, confirm?", SpeechPriority.Normal, cancellationToken)
                     .ConfigureAwait(false);
                 var answer = await _mic.ListenAsync(ConfirmVocabulary.All, timeout, cancellationToken)
                     .ConfigureAwait(false);
-                if (answer is not null
-                    && ConfirmVocabulary.Affirm.Any(a => answer.Contains(a, StringComparison.OrdinalIgnoreCase)))
+                if (answer is not null && IsAffirm(answer))
                 {
-                    _minima.Set(parsed);
-                    _eventLog.Record("minima.captured", new { kind = parsed.Kind.ToString(), altitudeFt = parsed.AltitudeFt });
-                    return parsed;
+                    return Capture(parsed, null);
                 }
 
-                await _arbiter.SpeakAsync("Say the minimums again.", SpeechPriority.Normal, cancellationToken)
-                    .ConfigureAwait(false);
+                await _arbiter.SpeakAsync(
+                    $"{Capitalize(BriefingComposer.MinimaCallout(parsed))} — say confirmed, or say the minimums again.",
+                    SpeechPriority.Normal, cancellationToken).ConfigureAwait(false);
             }
 
             _eventLog.Record("minima.notBriefed", new { heard = (string?)null });
             return null;
         }
     }
+
+    private ArrivalMinima Capture(ArrivalMinima minima, string? how)
+    {
+        _minima.Set(minima);
+        _eventLog.Record("minima.captured", new { kind = minima.Kind.ToString(), altitudeFt = minima.AltitudeFt, how });
+        return minima;
+    }
+
+    private static bool IsAffirm(string heard)
+        => ConfirmVocabulary.Affirm.Any(a => heard.Contains(a, StringComparison.OrdinalIgnoreCase));
 
     private static string Capitalize(string text)
         => text.Length == 0 ? text : char.ToUpperInvariant(text[0]) + text[1..];

@@ -89,4 +89,35 @@ public sealed class ProcedureSpeechTests
     {
         public string? Name(string ident, string? nearAirportIcao) => NameOf(ident);
     }
+
+    // Issue #202 (EHAM 2026-11-01): SayIntentions names the STAR "REDF1A" for the fix REDFA;
+    // the one navlog fix the four-letter base prefixes is the word to say.
+    [Fact]
+    public void OfpFixNames_FourLetterBase_IsTheOneFiveLetterNavlogFix()
+    {
+        var store = new OfpStore();
+        store.Set(new OfpData
+        {
+            Navlog =
+            [
+                new OfpFix("REDFA", new GeoPoint(52.2, 5.1), null, null, null, IsProcedure: true, Name: "REDFA"),
+                new OfpFix("LAM", new GeoPoint(51.65, 0.15), null, null, null, IsProcedure: false, Name: "LAMBOURNE"),
+            ],
+        });
+        var names = new OfpFixNames(store);
+
+        Assert.Equal("REDFA", names.Name("REDF", "EHAM"));
+        Assert.Equal("Redfa one Alpha", new SpokenText(fixNames: names).Procedure("REDF1A", "EHAM"));
+        Assert.Null(names.Name("RED", null));   // three letters: never a prefix guess
+
+        store.Set(new OfpData
+        {
+            Navlog =
+            [
+                new OfpFix("REDFA", new GeoPoint(52.2, 5.1), null, null, null, IsProcedure: true, Name: "REDFA"),
+                new OfpFix("REDFO", new GeoPoint(52.3, 5.2), null, null, null, IsProcedure: false, Name: "REDFO"),
+            ],
+        });
+        Assert.Null(names.Name("REDF", "EHAM")); // two candidates: no answer, the base is spoken as a word
+    }
 }

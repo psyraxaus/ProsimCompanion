@@ -1110,6 +1110,11 @@
         "hint": "Every figure the LLM writes is checked against the facts.",
         "more": "A failed check falls back to the plain template."
       },
+      "askForQuestions": {
+        "label": "Ask for questions after the briefing",
+        "hint": "The FO ends every briefing with \"Any questions, captain?\" — \"no questions\" gets \"Briefing complete\"; a question is answered, then \"Anything else, captain?\".",
+        "more": "Free text needs the transcription server. With the offline engine, or after a minute of silence, the FO says \"Briefing complete\". On a departure the question comes after \"any other threats?\"."
+      },
       "dfdBefore": "The Navigraph DFD database path lives under",
       "dfdLink": "Setup → Nav Data",
       "dfdAfter": ".",

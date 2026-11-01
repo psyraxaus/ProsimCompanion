@@ -297,4 +297,34 @@ public sealed class MicOwnershipTests
         _window.Hear("test phrase");
         Assert.Equal(2, probe.Handled); // and resumes after the borrow ends
     }
+
+    // Issue #201: the listen window does not count time while the FO is talking.
+    [Fact]
+    public async Task Listen_DoesNotCountTime_WhileTheFoIsSpeaking()
+    {
+        var status = new ProsimCompanion.Core.State.SpeechStatusStore();
+        var mic = new MicOwnership(_window, NullLogger<MicOwnership>.Instance, null, status);
+        status.Update(s => s with { NowPlaying = "Seat belt signs, captain?" });
+
+        var listen = mic.ListenAsync([], TimeSpan.FromMilliseconds(400), CancellationToken.None);
+        await Task.Delay(900);
+        Assert.False(listen.IsCompleted); // 900 ms of FO speech: the 400 ms window is untouched
+
+        status.Update(s => s with { NowPlaying = null });
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        Assert.Null(await listen);        // now the window runs out
+        Assert.InRange(sw.ElapsedMilliseconds, 200, 3000);
+    }
+
+    [Fact]
+    public async Task Listen_StillHears_WhileTheFoIsSpeaking()
+    {
+        var status = new ProsimCompanion.Core.State.SpeechStatusStore();
+        var mic = new MicOwnership(_window, NullLogger<MicOwnership>.Instance, null, status);
+        status.Update(s => s with { NowPlaying = "talking" });
+        var listen = mic.ListenAsync([], TimeSpan.FromSeconds(5), CancellationToken.None);
+        await Task.Delay(50);
+        _window.Hear("confirmed");
+        Assert.Equal("confirmed", await listen);
+    }
 }

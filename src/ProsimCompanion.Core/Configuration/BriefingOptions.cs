@@ -123,6 +123,14 @@ public sealed class BriefingOptions : IOptionSection
     [OptionField(FieldKind.Bool, "speechSettings.briefing.emergency.askForThreats", DependsOn = "TakeoffEmergencyBrief")]
     public bool AskForThreats { get; set; } = true;
 
+    /// <summary>After every briefing (and after the threats question on a departure) the FO
+    /// asks "Any questions, captain?" — "no questions" closes with "Briefing complete.", a
+    /// question is answered and the FO asks "Anything else, captain?", silence closes the
+    /// same way (owner request 2026-11-01, issue #201). Free text needs the LAN
+    /// transcription engine; the closed-grammar engine times out to "Briefing complete".</summary>
+    [OptionField(FieldKind.Bool, "speechSettings.briefing.askForQuestions")]
+    public bool AskForQuestions { get; set; } = true;
+
     /// <summary>Acceleration altitude above the aerodrome, feet. The takeoff performance
     /// calculator carries no such figure, so this operator default is the only source; the
     /// briefing adds the airport elevation (rounded to 100 ft) when the DFD knows it.</summary>

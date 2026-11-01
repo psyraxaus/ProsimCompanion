@@ -54,8 +54,17 @@ public static partial class ReadbackComposer
     // minutes. Say the word if you want to descend sooner." was read back word for word — the
     // "5" and "descend" looked like an instruction). Such a segment is dropped; when nothing
     // else is left the FO answers "Roger".
-    [GeneratedRegex(@"\b(?:I\s?'?ll|I will|I'?m going to|we\s?'?ll|we will|you\s?'?ll|you will|say the word|let me know|let us know|if you (?:want|need|would|prefer|like)|in about \d+|shortly|be advised|no delay expected|I'?ll call|I'?ll get back)\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    // "This will give you room to descend" (EHAM 2026-11-01 01:07Z) is ATC explaining itself —
+    // the same family: dropped, never read back.
+    [GeneratedRegex(@"\b(?:I\s?'?ll|I will|I'?m going to|we\s?'?ll|we will|you\s?'?ll|you will|say the word|let me know|let us know|if you (?:want|need|would|prefer|like)|in about \d+|shortly|be advised|no delay expected|I'?ll call|I'?ll get back|th(?:is|at) (?:will|should|is going to|gives|is for)|to give you|room to|for (?:spacing|sequencing|separation)|due to traffic|because)\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex Advisory();
+
+    // "have you got information Victor?" (EHAM 2026-11-01 01:05Z, owner report): ATC's question
+    // about the ATIS is answered, not ignored — "information Victor" when it is the letter we
+    // hold, "negative, we have information Uniform" when ours is older, "negative, request
+    // information Victor" when we hold none. The clause itself is never read back.
+    [GeneratedRegex(@"\b(?:(?:have|do) you (?:got|have|received|copied)|confirm you have|you have|got)\s+(?:the\s+)?(?:(?:latest|current)\s+)?(?:ATIS\s+)?information\s+(?<letter>[A-Za-z][a-z\-]*)\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    private static partial Regex AtisQuestion();
 
     // Broadcasts are not addressed to us and get no read-back (EGLL 2026-10-29: the FO read
     // "All aircraft be advised, information Sierra is now current. QNH 1028" back as "QNH 1028").
@@ -82,7 +91,9 @@ public static partial class ReadbackComposer
     /// <param name="callsign">Our callsign as SayIntentions writes it ("Finnair-niner-six-two").</param>
     /// <param name="station">The station's long name when known ("Kastrup Tower") — stripped
     /// from the front of the instruction, where SI ATC identifies itself on a check-in reply.</param>
-    public static Readback? Compose(string atcText, string? callsign, string? station)
+    /// <param name="ourAtisLetter">The ATIS letter we hold for the airport in question (null
+    /// when none): ATC's "have you got information Victor?" is answered from it.</param>
+    public static Readback? Compose(string atcText, string? callsign, string? station, string? ourAtisLetter = null)
     {
         if (string.IsNullOrWhiteSpace(atcText))
         {
@@ -93,6 +104,15 @@ public static partial class ReadbackComposer
         if (Broadcast().IsMatch(text))
         {
             return null; // "All aircraft be advised …" — an ATIS-style broadcast, not for us
+        }
+
+        // The ATIS question is answered, never read back: the clause goes, the answer closes
+        // the transmission (EHAM 2026-11-01).
+        string? atisAnswer = null;
+        if (AtisQuestion().Match(text) is { Success: true } atis)
+        {
+            atisAnswer = AtisAnswer(atis.Groups["letter"].Value, ourAtisLetter);
+            text = text.Remove(atis.Index, atis.Length);
         }
 
         if (Handoff().Match(text) is { Success: true } handoff
@@ -145,6 +165,12 @@ public static partial class ReadbackComposer
 
         if (clauses.Count == 0)
         {
+            if (atisAnswer is not null)
+            {
+                var answer = WithCallsign(Capitalize(atisAnswer) + ".", callsign);
+                return new Readback(answer, RadioSpeech.Spoken(answer), ReadbackKind.Readback);
+            }
+
             if (!advisory)
             {
                 return null;
@@ -154,9 +180,52 @@ public static partial class ReadbackComposer
             return new Readback(ack, RadioSpeech.Spoken(ack), ReadbackKind.Acknowledge);
         }
 
-        var joined = WithCallsign(string.Join(" ", clauses), callsign);
+        var body = string.Join(" ", clauses);
+        if (atisAnswer is not null)
+        {
+            body = body.TrimEnd().TrimEnd('.', ',', ';') + ", " + atisAnswer + ".";
+        }
+
+        var joined = WithCallsign(body, callsign);
         return new Readback(joined, RadioSpeech.Spoken(joined), ReadbackKind.Readback);
     }
+
+    /// <summary>The answer to "have you got information X?" (pure, for the tests): "information
+    /// X" when X is ours, "negative, we have information Y" when ours is another, "negative,
+    /// request information X" when we hold none. The letters are NATO words as ATC says them
+    /// or single letters; the answer always uses the NATO word.</summary>
+    public static string AtisAnswer(string asked, string? ours)
+    {
+        ArgumentNullException.ThrowIfNull(asked);
+        var askedLetter = LetterOf(asked);
+        var oursLetter = ours is null ? null : LetterOf(ours);
+        var askedWord = askedLetter is { } a ? Core.Speech.NatoPhonetics.Word(a) ?? asked : asked;
+        if (oursLetter is null)
+        {
+            return $"negative, request information {askedWord}";
+        }
+
+        if (askedLetter == oursLetter)
+        {
+            return $"information {askedWord}";
+        }
+
+        return $"negative, we have information {Core.Speech.NatoPhonetics.Word(oursLetter.Value)}";
+    }
+
+    private static char? LetterOf(string word)
+    {
+        var trimmed = word.Trim();
+        if (trimmed.Length == 1 && char.IsAsciiLetter(trimmed[0]))
+        {
+            return char.ToUpperInvariant(trimmed[0]);
+        }
+
+        return Core.Speech.NatoPhonetics.TryParseWord(trimmed, out var letter) ? letter : null;
+    }
+
+    private static string Capitalize(string text)
+        => text.Length == 0 ? text : char.ToUpperInvariant(text[0]) + text[1..];
 
     /// <summary>"Climb FL140." + "Speedbird-eight-five-zero" → "Climb FL140, Speedbird-eight-five-zero."
     /// The callsign closes the transmission the way a crew does; a blank callsign changes nothing.</summary>

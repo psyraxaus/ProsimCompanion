@@ -242,4 +242,39 @@ public sealed class FoRadiosComposerTests
         Assert.Equal(expected, readback.Transmit);
         Assert.Equal(kind, readback.Kind);
     }
+
+    // EHAM 2026-11-01 01:05Z (owner report): "have you got information Victor?" is answered.
+    [Theory]
+    [InlineData("Speedbird-four-three-two, Schiphol Approach, Identified. Good morning. Expect the ILS runway 18R approach into Schiphol. And have you got information Victor?", "V",
+        "Expect the ILS runway 18R approach into Schiphol, information Victor, Speedbird-four-three-two.")]
+    [InlineData("Speedbird-four-three-two, Expect the ILS runway 18R approach into Schiphol. And have you got information Victor?", "U",
+        "Expect the ILS runway 18R approach into Schiphol, negative, we have information Uniform, Speedbird-four-three-two.")]
+    [InlineData("Speedbird-four-three-two, do you have information Victor?", null, "Negative, request information Victor, Speedbird-four-three-two.")]
+    [InlineData("Speedbird-four-three-two, confirm you have the latest ATIS information V.", "V", "Information Victor, Speedbird-four-three-two.")]
+    public void AtisQuestion_IsAnswered_NeverReadBack(string atc, string? ours, string expected)
+    {
+        var readback = ReadbackComposer.Compose(atc, "Speedbird-four-three-two", "Schiphol Approach", ours);
+        Assert.NotNull(readback);
+        Assert.Equal(expected, readback.Transmit);
+        Assert.DoesNotContain("have you got", readback.Transmit, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Theory]
+    [InlineData("Victor", "V", "information Victor")]
+    [InlineData("V", "v", "information Victor")]
+    [InlineData("Victor", "Uniform", "negative, we have information Uniform")]
+    [InlineData("Victor", null, "negative, request information Victor")]
+    public void AtisAnswer_Shapes(string asked, string? ours, string expected)
+        => Assert.Equal(expected, ReadbackComposer.AtisAnswer(asked, ours));
+
+    // EHAM 2026-11-01 01:07Z: ATC explaining itself is not read back either.
+    [Fact]
+    public void AtcExplanations_AreDropped_FromTheReadback()
+    {
+        var readback = ReadbackComposer.Compose(
+            "Speedbird-four-three-two, Turn left heading 060, vectors for the ILS runway 18R approach. This will give you room to descend.",
+            "Speedbird-four-three-two", "Schiphol Approach");
+        Assert.Equal("Turn left heading 060, vectors for the ILS runway 18R approach, Speedbird-four-three-two.", readback!.Transmit);
+        Assert.Equal(ReadbackKind.Readback, readback.Kind);
+    }
 }

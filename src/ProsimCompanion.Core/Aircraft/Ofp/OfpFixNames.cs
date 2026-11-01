@@ -51,6 +51,34 @@ public sealed class OfpFixNames : IFixNames
             }
         }
 
-        return best?.Name?.Trim();
+        if (best is not null)
+        {
+            return best.Name?.Trim();
+        }
+
+        // A four-letter base is a five-letter fix cut short (SayIntentions' flight.json names
+        // the EHAM STAR "REDF1A" for REDFA; issue #202): the one navlog fix that starts with
+        // it IS the fix — its ident ("REDFA") is the word to say, never a world-wide guess
+        // ("Redfern Railway Station", 2026-11-01). Two candidates = no answer.
+        if (wanted.Length == 4)
+        {
+            string? only = null;
+            foreach (var fix in navlog)
+            {
+                if (fix.Ident.Length == 5 && fix.Ident.StartsWith(wanted, StringComparison.OrdinalIgnoreCase))
+                {
+                    if (only is not null && !only.Equals(fix.Ident, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return null;
+                    }
+
+                    only = fix.Ident;
+                }
+            }
+
+            return only;
+        }
+
+        return null;
     }
 }

@@ -63,7 +63,8 @@ public sealed class SpeechArbiterService : ISpeechArbiter, ISpeechControl, IDisp
         Persona.QuietState quietState,
         Crew.AccentVoiceResolver? accents = null,
         Core.Diagnostics.Metrics.VoiceTurnTracker? turns = null,
-        Core.Persona.IFoRosterService? roster = null)
+        Core.Persona.IFoRosterService? roster = null,
+        Recognition.IMicOwnership? mic = null)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(voices);
@@ -92,6 +93,9 @@ public sealed class SpeechArbiterService : ISpeechArbiter, ISpeechControl, IDisp
             new SterileCockpitRule(() => options.CurrentValue),
             // "quiet please": drops the Low band while the session latch is engaged.
             new Persona.QuietCockpitRule(quietState),
+            // A dialogue waiting for the pilot's answer holds the other features' prompts
+            // (issue #201); without a mic seam (tests) nothing is ever held.
+            new DialogueHoldRule(() => mic?.IsBorrowed ?? false),
         ]);
         _store.Update(s => s with { Enabled = options.CurrentValue.Enabled });
         _pump = Task.Run(PumpAsync);

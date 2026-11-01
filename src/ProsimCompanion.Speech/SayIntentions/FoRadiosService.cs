@@ -40,6 +40,8 @@ public sealed class FoRadiosService : Core.Hosting.IStartupModule, IDisposable
     private readonly Core.Speech.ISpokenText? _spokenText;
     private readonly RunwayLocator? _runways;
     private readonly IDepartureRunwaySource? _departureRunway;
+    private readonly Core.Aircraft.Ofp.OfpStore? _ofp;
+    private readonly Core.Weather.HeroWeatherStore? _weather;
     private readonly RadioClearGate _radioGate;
     private readonly SemaphoreSlim _transmitGate = new(1, 1);
     private readonly CancellationTokenSource _shutdown = new();
@@ -68,8 +70,12 @@ public sealed class FoRadiosService : Core.Hosting.IStartupModule, IDisposable
         ISimVars? simVars = null,
         Core.Speech.ISpokenText? spokenText = null,
         RunwayLocator? runways = null,
-        IDepartureRunwaySource? departureRunway = null)
+        IDepartureRunwaySource? departureRunway = null,
+        Core.Aircraft.Ofp.OfpStore? ofp = null,
+        Core.Weather.HeroWeatherStore? weather = null)
     {
+        _ofp = ofp;
+        _weather = weather;
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(monitor);
         ArgumentNullException.ThrowIfNull(arbiter);
@@ -296,7 +302,7 @@ public sealed class FoRadiosService : Core.Hosting.IStartupModule, IDisposable
                 return;
             }
 
-            var readback = ReadbackComposer.Compose(tx.Text, flight.Callsign, tx.Station);
+            var readback = ReadbackComposer.Compose(tx.Text, flight.Callsign, tx.Station, OurAtisLetter());
             if (readback is null)
             {
                 // Same shape as a transmitted read-back (probe si-fo-radios reads payload.* and
@@ -454,7 +460,24 @@ public sealed class FoRadiosService : Core.Hosting.IStartupModule, IDisposable
             HoldingPointDistanceNm: Math.Max(0.05, _options.CurrentValue.CommsHandover.HoldingPointDistanceNm),
             // The crew's names for the procedures (2026-10-29) — flight.json names no airport,
             // so the OFP navlog tier answers and the DFD tier only when the ident is unique.
-            SidSpoken: flight.Sid is { Length: > 0 } ? _spokenText?.Procedure(flight.Sid) : null,
-            StarSpoken: flight.Star is { Length: > 0 } ? _spokenText?.Procedure(flight.Star) : null);
+            // The airport pins the fix-name lookup to its region (issue #202: without it the
+            // DFD named the EHAM STAR REDF1A "Redfern Railway Station" from an Australian row).
+            SidSpoken: flight.Sid is { Length: > 0 } ? _spokenText?.Procedure(flight.Sid, _ofp?.Current?.OriginIcao) : null,
+            StarSpoken: flight.Star is { Length: > 0 } ? _spokenText?.Procedure(flight.Star, _ofp?.Current?.DestinationIcao) : null);
+    }
+
+    /// <summary>The ATIS letter we hold for the airport ATC is asking about: the destination's
+    /// card once airborne, the local card on the ground. Null when no card has one.</summary>
+    private string? OurAtisLetter()
+    {
+        if (_weather is null)
+        {
+            return null;
+        }
+
+        var snapshot = _weather.Snapshot();
+        var airborne = _flightData?.Sample()?.OnGround == false;
+        var card = airborne && snapshot.Second.Role == Core.Weather.WeatherCardRole.Destination ? snapshot.Second : snapshot.Local;
+        return card.Status == Core.Weather.WxProbeStatus.Found ? card.Facts.AtisLetter : null;
     }
 }

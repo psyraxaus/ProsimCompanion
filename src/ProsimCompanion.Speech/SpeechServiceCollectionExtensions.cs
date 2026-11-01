@@ -224,6 +224,11 @@ public static class SpeechServiceCollectionExtensions
         // (issue #180): free-text answer, noted on the Core store.
         services.AddSingleton<Gsx.CaptainsQuestionPhrases>(p => Briefings.ThreatsQuestionPhrases.Create(
             p.GetRequiredService<ThreatsQuestionStore>(), p.GetRequiredService<Arbiter.ISpeechArbiter>()));
+        // "Any questions, captain?" after every briefing (issue #201): "no questions" →
+        // "Briefing complete"; a question → the FO question service, then "Anything else?".
+        services.AddSingleton<Gsx.CaptainsQuestionPhrases>(p => Briefings.BriefingQuestionsPhrases.Create(
+            p.GetRequiredService<BriefingQuestionsStore>(), p.GetRequiredService<Arbiter.ISpeechArbiter>(),
+            p.GetService<Questions.FoQuestionService>()));
         // "Issue a revised final?" after a last-minute change (issue #181), and the FO's
         // reading of a within-tolerance change off the loadsheet store.
         services.AddSingleton(Company.LmcRevisionPhrases.Table);

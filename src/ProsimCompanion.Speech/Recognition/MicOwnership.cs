@@ -12,8 +12,12 @@ namespace ProsimCompanion.Speech.Recognition;
 /// </summary>
 public sealed class MicOwnership : IMicOwnership
 {
+    /// <summary>How often the listen deadline is re-checked against the FO's own speech.</summary>
+    private static readonly TimeSpan Slice = TimeSpan.FromMilliseconds(250);
+
     private readonly IRecognitionWindow _window;
     private readonly ILogger<MicOwnership> _logger;
+    private readonly Core.State.SpeechStatusStore? _speech;
     private readonly object _gate = new();
 
     private BorrowScope? _active;
@@ -23,13 +27,17 @@ public sealed class MicOwnership : IMicOwnership
     /// to say (issue #172): while <see cref="ListenAsync"/> runs, its grammar is the expected
     /// reply — the minima confirm's "confirm, two seven niner feet" (EGLL 2026-10-31) echoes the
     /// FO's own read-back by design. Null (tests) registers nothing.</param>
-    public MicOwnership(IRecognitionWindow window, ILogger<MicOwnership> logger, ExpectedReplyStore? expectedReplies = null)
+    /// <param name="speech">The arbiter's status (what is playing now): the listen window does
+    /// not count time while the FO is talking (issue #201 — a radio read-back and a cabin
+    /// question ate the minima confirm's fifteen seconds). Null (tests) counts wall time.</param>
+    public MicOwnership(IRecognitionWindow window, ILogger<MicOwnership> logger, ExpectedReplyStore? expectedReplies = null, Core.State.SpeechStatusStore? speech = null)
     {
         ArgumentNullException.ThrowIfNull(window);
         ArgumentNullException.ThrowIfNull(logger);
 
         _window = window;
         _logger = logger;
+        _speech = speech;
         expectedReplies?.RegisterListenSource(() => _listenGrammar ?? []);
     }
 
@@ -84,15 +92,32 @@ public sealed class MicOwnership : IMicOwnership
         try
         {
             _window.OpenListeningWindow(grammar);
-            using var timeoutSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            timeoutSource.CancelAfter(timeout);
-            try
+            // The deadline moves on while the FO is speaking: the pilot cannot answer over
+            // the FO's own voice, so that time is not the pilot's.
+            var remaining = timeout;
+            var last = DateTimeOffset.UtcNow;
+            while (true)
             {
-                return await heard.Task.WaitAsync(timeoutSource.Token).ConfigureAwait(false);
-            }
-            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
-            {
-                return null; // timeout — the dialogue speaks its fallback line
+                cancellationToken.ThrowIfCancellationRequested();
+                var wait = remaining < Slice ? remaining : Slice;
+                if (wait <= TimeSpan.Zero)
+                {
+                    return null; // timeout — the dialogue speaks its fallback line
+                }
+
+                var done = await Task.WhenAny(heard.Task, Task.Delay(wait, cancellationToken)).ConfigureAwait(false);
+                if (done == heard.Task)
+                {
+                    return await heard.Task.ConfigureAwait(false);
+                }
+
+                var now = DateTimeOffset.UtcNow;
+                if (_speech?.Snapshot().NowPlaying is null)
+                {
+                    remaining -= now - last;
+                }
+
+                last = now;
             }
         }
         finally

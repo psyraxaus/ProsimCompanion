@@ -118,6 +118,14 @@ answers it. Silence is never an answer: the FO's listen window hands the decisio
 only the TTL clock settles an unanswered question (#166).
 _Avoid_: prompt, dialogue state, confirmation (that is the fuel-figure latch), ask/accept pair
 
+**Dialogue hold**:
+The arbiter rule that defers the other features' Normal/Low prompts (a cabin question, a
+ground call, small talk) while a guided dialogue holds the microphone and waits for the
+captain's answer; radio read-backs, the FO's own answers, the briefing, the checklist and the
+drill lines are exempt. Paired with the listen window that does not count the FO's own talking
+time. Deferred, never dropped: the items play when the borrow ends, their TTLs still counting.
+_Avoid_: mute, speech lock, dialogue priority
+
 ### Sim session
 
 **Session window**:
