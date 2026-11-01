@@ -14,6 +14,13 @@ public interface IMicOwnership
     /// <summary>True while a dialogue owns the microphone (routing must ignore results).</summary>
     bool IsBorrowed { get; }
 
+    /// <summary>True only while the borrowing dialogue is inside <see cref="ListenAsync"/> —
+    /// the window in which other prompts must wait. While the dialogue is still SPEAKING its
+    /// question this is false: holding prompts then deadlocked the dialogue on its own
+    /// question (EGLL 2026-11-01 16:01: "did you mean gear down?" deferred by the hold its
+    /// own borrow had raised; the mic was never returned and voice commands died).</summary>
+    bool IsListening => IsBorrowed;
+
     /// <summary>Raised AFTER a borrow was released and the pre-borrow window replayed, on the
     /// releaser's thread. Consumers that own a standing window (the checklist engine's idle
     /// grammar) re-assert it here: the replay restores the state captured at BORROW time, so

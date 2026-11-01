@@ -15,6 +15,13 @@ public sealed class MicOwnership : IMicOwnership
     /// <summary>How often the listen deadline is re-checked against the FO's own speech.</summary>
     private static readonly TimeSpan Slice = TimeSpan.FromMilliseconds(250);
 
+    /// <summary>Longest the FO's own speech may hold a listen past its timeout. NowPlaying is
+    /// cleared by the arbiter when a line ends; a line that never ends (a cancelled run, a
+    /// provider that hangs) must not hold the microphone for the rest of the flight.</summary>
+    internal static readonly TimeSpan MaxSpeechFreeze = TimeSpan.FromSeconds(60);
+
+    private int _listening;
+
     private readonly IRecognitionWindow _window;
     private readonly ILogger<MicOwnership> _logger;
     private readonly Core.State.SpeechStatusStore? _speech;
@@ -54,6 +61,9 @@ public sealed class MicOwnership : IMicOwnership
         }
     }
 
+    /// <inheritdoc />
+    public bool IsListening => Volatile.Read(ref _listening) == 1;
+
     public IDisposable Borrow(string owner)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(owner);
@@ -92,10 +102,12 @@ public sealed class MicOwnership : IMicOwnership
         try
         {
             _window.OpenListeningWindow(grammar);
+            Volatile.Write(ref _listening, 1);
             // The deadline moves on while the FO is speaking: the pilot cannot answer over
-            // the FO's own voice, so that time is not the pilot's.
+            // the FO's own voice, so that time is not the pilot's — up to a hard cap.
             var remaining = timeout;
             var last = DateTimeOffset.UtcNow;
+            var hardDeadline = last + timeout + MaxSpeechFreeze;
             while (true)
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -103,6 +115,12 @@ public sealed class MicOwnership : IMicOwnership
                 if (wait <= TimeSpan.Zero)
                 {
                     return null; // timeout — the dialogue speaks its fallback line
+                }
+
+                if (DateTimeOffset.UtcNow >= hardDeadline)
+                {
+                    _logger.LogWarning("Listening window closed by the hard cap — the FO's speech status never cleared ({Timeout} s timeout + {Cap} s)", (int)timeout.TotalSeconds, (int)MaxSpeechFreeze.TotalSeconds);
+                    return null;
                 }
 
                 var done = await Task.WhenAny(heard.Task, Task.Delay(wait, cancellationToken)).ConfigureAwait(false);
@@ -122,6 +140,7 @@ public sealed class MicOwnership : IMicOwnership
         }
         finally
         {
+            Volatile.Write(ref _listening, 0);
             _listenGrammar = null;
             _window.Accepted -= OnAccepted;
             _window.CloseListeningWindow();

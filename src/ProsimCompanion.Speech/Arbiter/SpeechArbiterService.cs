@@ -95,7 +95,9 @@ public sealed class SpeechArbiterService : ISpeechArbiter, ISpeechControl, IDisp
             new Persona.QuietCockpitRule(quietState),
             // A dialogue waiting for the pilot's answer holds the other features' prompts
             // (issue #201); without a mic seam (tests) nothing is ever held.
-            new DialogueHoldRule(() => mic?.IsBorrowed ?? false),
+            // Only while the dialogue listens: while it still speaks its own question the hold
+            // would defer that very question (EGLL 2026-11-01 16:01, voice commands dead).
+            new DialogueHoldRule(() => mic is { IsBorrowed: true, IsListening: true }),
         ]);
         _store.Update(s => s with { Enabled = options.CurrentValue.Enabled });
         _pump = Task.Run(PumpAsync);

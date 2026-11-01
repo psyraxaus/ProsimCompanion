@@ -125,6 +125,24 @@ public sealed class MicOwnershipTests
     }
 
     [Fact]
+    public async Task IsListening_IsTrueOnlyInsideListenAsync()
+    {
+        // The dialogue-hold rule reads this: a dialogue speaking its own question (borrowed,
+        // not yet listening) must never be held by its own borrow (EGLL 2026-11-01).
+        using var scope = _mic.Borrow("confirmCommand");
+        Assert.True(_mic.IsBorrowed);
+        Assert.False(_mic.IsListening);
+
+        var listen = _mic.ListenAsync(["yes", "no"], TimeSpan.FromSeconds(5), CancellationToken.None);
+        await Task.Delay(50);
+        Assert.True(_mic.IsListening);
+
+        _window.Hear("yes");
+        Assert.Equal("yes", await listen);
+        Assert.False(_mic.IsListening);
+    }
+
+    [Fact]
     public void Borrow_DisposeIsIdempotent()
     {
         _window.OpenListeningWindow(["a"]);

@@ -345,6 +345,10 @@ public sealed class SpokenChecklistEngine : Core.Hosting.IStartupModule, IDispos
         catch (OperationCanceledException)
         {
             _eventLog.Record("checklist.voice", new { name = definition.Checklist, phase = "cancelled" });
+            // The captain hears that the FO has stopped (owner request 2026-11-01): a silent
+            // stop looked like a dead voice pipeline. Fire-and-forget — the run's token is gone.
+            _ = _arbiter.EnqueueAsync(new SpeechRequest(
+                $"{definition.Checklist} checklist cancelled.", SpeechPriority.Normal, Ttl: TimeSpan.FromSeconds(20), Tag: "checklist.cancelled"));
         }
         catch (Exception ex)
         {

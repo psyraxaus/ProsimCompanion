@@ -19,6 +19,8 @@ public sealed class DialogueHoldRuleTests
     [InlineData("briefing.arrival", SpeechPriority.Normal, false)]
     [InlineData("checklist.read", SpeechPriority.Normal, false)]
     [InlineData("ecam.line", SpeechPriority.Normal, false)]
+    [InlineData("clarifier", SpeechPriority.Normal, false)]                  // "did you mean gear down?" — the dialogue's own question
+    [InlineData("confirmCommand", SpeechPriority.Normal, false)]
     [InlineData(null, SpeechPriority.Normal, false)]                          // the dialogues speak untagged
     [InlineData("cabin.turbulence.seatbelts", SpeechPriority.High, false)]    // callouts always go
     [InlineData("anything", SpeechPriority.Critical, false)]

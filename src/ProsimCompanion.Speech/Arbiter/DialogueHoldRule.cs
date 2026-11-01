@@ -15,12 +15,17 @@ namespace ProsimCompanion.Speech.Arbiter;
 /// (the dialogues speak untagged through <c>SpeakAsync</c>), the radio read-backs
 /// (<c>sayintentions.*</c> — ATC is waiting), the FO's own answers (<c>fo.*</c>, the
 /// "any questions" round), the briefing itself and the checklist (<c>briefing.*</c>,
-/// <c>checklist.*</c>) and the ECAM drill lines (<c>ecam.*</c>, <c>abnormal.*</c>).
+/// <c>checklist.*</c>), the ECAM drill lines (<c>ecam.*</c>, <c>abnormal.*</c>) and the
+/// dialogues' own questions (<c>clarifier</c>, <c>confirm*</c>). The accessor the arbiter
+/// wires in is "borrowed AND listening": a dialogue that is still speaking its question is
+/// never held by its own borrow (EGLL 2026-11-01 16:01: "did you mean gear down?" was
+/// deferred, the dialogue never reached its listen, the mic was never returned, and every
+/// voice command for the rest of the approach went to a dialogue that was not there).
 /// </summary>
 public sealed class DialogueHoldRule : ISpeechSuppressionRule
 {
     private static readonly string[] ExemptPrefixes =
-        ["sayintentions.", "fo.", "briefing.", "checklist.", "ecam.", "abnormal.", "minima.", "transition."];
+        ["sayintentions.", "fo.", "briefing.", "checklist.", "ecam.", "abnormal.", "minima.", "transition.", "clarifier", "confirm"];
 
     private readonly Func<bool> _micBorrowed;
 
