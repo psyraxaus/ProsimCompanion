@@ -18,7 +18,9 @@ What the code does today (mapped 2026-11-02; file references at that commit):
 - After landing the phase goes TaxiIn → Shutdown, then Shutdown → **Preflight** 30 s after
   deboarding completes (`turnaround-arrival-complete`, `FlightPhaseRules.cs:127`). No plan is
   needed. The Duty Day engine hears that Preflight edge and starts the next leg at once —
-  the FO says "Leg 2. New sector" with no plan loaded (`CompanyDayService.cs:328`).
+  the FO says "Leg 2. New sector" and the leg's route is seeded from the plan just FLOWN
+  (`CompanyDayService.cs:328-339`; audit A3: recorded "Leg 2 EGLL→EHAM" at EHAM, and a phantom
+  "Leg 3" after the final landing).
 - A new plan is known by its SimBrief request id (route as the fallback; the flight number
   does not count). The reset it triggers (#207, `NewPlanCycleReset.cs`) clears the departure
   services, the pax target and the tracking LVARs — not the gate monitor, loadsheet, upcalls
@@ -29,7 +31,10 @@ What the code does today (mapped 2026-11-02; file references at that commit):
   option **Reset FMS after landing or failure** (`system.config.Config.RESETFMS`) clears the
   FMS by itself after landing when on.
 - The Duty Day feature is off by default. When on, the day ends by voice, by the web button,
-  or after 90 min idle in turnaround. Ending writes a summary file; nothing is spoken.
+  or after 90 min idle in turnaround (the idle clock restarts on every phase edge and every
+  app restart). Ending writes a summary file and speaks it (Low priority; at EGLL 2026-11-01
+  the line was swallowed by the stuck dialogue hold, fixed in 33dba762) — the summary has no
+  fuel figure and counts defects instead of naming the tech-log entries (audit B4).
 - The flight-state snapshot is cleared at Shutdown and writes stay suspended until a new
   plan; a restart during a turnaround relies on the startup resync's tracking LVARs alone.
 - Deboarding complete drives the phase and a notification; no crew line is spoken.
@@ -51,6 +56,9 @@ What the code does today (mapped 2026-11-02; file references at that commit):
    - **Awaiting plan** — the FMS plan cleared: `aircraft.fms.origin` AND
      `aircraft.fms.destination` go from a value to empty while parked with the engines off.
      Event `fms.cleared`. The FMGC phase leaving DONE is logged as a witness, never required.
+     The owner clears the FMS with the IOS **Reset FMS** button (2026-11-02; at EHAM
+     2026-11-01 that is what happened between 01:51Z and 03:00Z). A subscription drop (value →
+     null, a ProSim restart) is NOT a clear; only value → empty counts.
    - **Preflight of the new leg** — a *different* OFP loaded (request id, else route). The FO
      announces the new sector (and may say the route). Ground preparation may begin.
    The order is preferred, never required: any step may come first (RESETFMS on puts step 2
@@ -70,7 +78,8 @@ What the code does today (mapped 2026-11-02; file references at that commit):
 
 5. **The Duty Day engine starts the next leg on the new OFP**, not on the Preflight edge. The
    Preflight edge only closes the arrival. The leg's route is seeded from the plan that began
-   it.
+   it. After the day's last landing the day stays in Turnaround with **no next-leg row** on the
+   Duty Day page (owner 2026-11-02, audit question 5); a leg row exists only once its OFP does.
 
 6. **A different plan at the same gate resets everything the arrival resets** — gate monitor,
    loadsheet, upcalls, notifications (`FlightCycleReset`) — when boarding has not started.
@@ -83,18 +92,28 @@ What the code does today (mapped 2026-11-02; file references at that commit):
 8. **End of duty is the pilot's act**, three ways, any one works: voice ("end of duty"), the
    web button (Flight Status and Duty Day cards), or accepting the FO's one-time offer —
    "Captain, is that the end of our duty day?" — asked after the aircraft has been cold and
-   dark, parked, with no plan for 10 minutes. No or silence leaves the day open. The 90-minute
-   idle auto-close stays as the backstop. On end of duty: a short spoken debrief (legs, block
+   dark, parked, with no plan for 10 minutes. No or silence leaves the day open. The idle
+   auto-close stays as the backstop, but it **counts from deboarding complete and defaults to
+   300 minutes** (owner 2026-11-02: the real EHAM turnaround was 88 minutes against the old
+   90-minute default; phase edges and restarts no longer restart the clock — only a new OFP or
+   an end of duty ends it). On end of duty: a short spoken debrief (legs, block
    time, fuel, tech-log entries), the day record closed (logbook and fuel log final), the
    roster FO released for the next sim day, the flight-state snapshot and the departure cycle
    cleared so a restart revives nothing, ground preparation held off until a new OFP. A plan
-   loaded after the end starts a **new duty day with the same FO** (the roster draws per sim
-   calendar day).
+   loaded after the end starts a **new duty day with the same FO**. **The roster draws one FO
+   per sim calendar day, never per day id and never mid-day** (owner 2026-11-02, audit A11;
+   this narrows #194's "a different First Officer each duty day": a day id change on the same
+   sim date keeps the FO, a new sim date draws). The spoken debrief is spoken even while a
+   dialogue hold is up (it ends the day; nothing outranks it then).
 
 9. **A restart is invisible.** During Turnaround or Awaiting plan the snapshot keeps a small
    turnaround part (deboarded, FMS cleared, last plan id) so a restart lands in the same leg
    state; the tracking-LVAR resync is the fallback. Never Preflight-with-nothing, never a
-   revived old leg.
+   revived old leg. The snapshot's identity check compares the plan's request id, never the
+   EFB's "imported" flag alone (audit A13). **The walkaround follows this rule too** (owner
+   2026-11-02, audit A14): it runs when boarding has not started, restart or not — this
+   supersedes #196's "never after an app restart"; what #196 keeps is "never once boarding is
+   complete". Leg block and flight times survive an in-flight restart (audit B6).
 
 10. **Deficiencies are of two kinds**, silent misses (the app does not do what this ADR says)
     ranked above wrong displays and wrong lines. The audit report lives at
