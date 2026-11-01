@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using ProsimCompanion.Core.Configuration;
 using ProsimCompanion.Core.DependencyInjection;
+using ProsimCompanion.Core.Profiles;
 using Xunit;
 
 namespace ProsimCompanion.Core.Tests.Configuration;
@@ -72,5 +73,66 @@ public sealed class GsxOptionsBindingTests
         Assert.Equal(
             GsxOptions.DefaultDepartureServices.Select(s => (s.Service, s.Activation, s.Constraint)),
             options.DepartureServices.Select(s => (s.Service, s.Activation, s.Constraint)));
+    }
+
+    // EHAM 2026-11-01: the aircraft profile's stored gsxSettings block is a whole GsxOptions the
+    // binder creates itself — its six default steps were already in the list when the profile's
+    // five were appended, and the applier wrote eleven into the file.
+    [Fact]
+    public void ProfileGsxBlock_DoesNotGetTheDefaultsPrependedToItsList()
+    {
+        var settings = new Dictionary<string, string?>
+        {
+            ["aircraftProfiles:profiles:0:id"] = "p1",
+            ["aircraftProfiles:profiles:0:name"] = "British Airways",
+        };
+        string[] profileSteps = ["Cleaning", "Lavatory", "Refueling", "Catering", "Water"];
+        for (var i = 0; i < profileSteps.Length; i++)
+        {
+            settings[$"aircraftProfiles:profiles:0:gsxSettings:departureServices:{i}:service"] = profileSteps[i];
+            settings[$"aircraftProfiles:profiles:0:gsxSettings:departureServices:{i}:activation"] = "afterCalled";
+        }
+
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(settings).Build();
+        var services = new ServiceCollection();
+        services.AddCoreServices(configuration, "settings.json");
+        using var provider = services.BuildServiceProvider();
+        var profiles = provider.GetRequiredService<IOptions<AircraftProfilesOptions>>().Value;
+
+        var block = Assert.Single(profiles.Profiles).GsxSettings!;
+        Assert.Equal(profileSteps, block.DepartureServices.Select(s => s.Service));
+    }
+
+    [Fact]
+    public void DuplicatedStepsInTheFile_AreDroppedKeepingTheFirst()
+    {
+        var options = Bind(new Dictionary<string, string?>
+        {
+            ["gsx:departureServices:0:service"] = "Catering",
+            ["gsx:departureServices:0:activation"] = "afterCalled",
+            ["gsx:departureServices:1:service"] = "Boarding",
+            ["gsx:departureServices:1:activation"] = "afterAllCompleted",
+            ["gsx:departureServices:2:service"] = "Catering",
+            ["gsx:departureServices:2:activation"] = "manual",
+        });
+
+        Assert.Equal(["Catering", "Boarding"], options.DepartureServices.Select(s => s.Service));
+        Assert.Equal(GsxServiceActivation.AfterCalled, options.DepartureServices[0].Activation);
+    }
+
+    [Fact]
+    public void Normalize_DropsDuplicatesAndBlanks_KeepsARemovedServiceRemoved()
+    {
+        var steps = new List<DepartureServiceStep>
+        {
+            new("Refueling", GsxServiceActivation.AfterCalled),
+            new("Catering", GsxServiceActivation.AfterCalled),
+            new("Refueling", GsxServiceActivation.Manual),
+            new("", GsxServiceActivation.Manual),
+        };
+
+        Assert.Equal(2, GsxOptions.NormalizeDepartureServices(steps));
+        Assert.Equal(["Refueling", "Catering"], steps.Select(s => s.Service)); // no Boarding appended: removed stays removed
+        Assert.Equal(0, GsxOptions.NormalizeDepartureServices(steps));
     }
 }

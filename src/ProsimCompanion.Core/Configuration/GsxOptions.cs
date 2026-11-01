@@ -4,7 +4,7 @@ namespace ProsimCompanion.Core.Configuration;
 /// Settings for GSX Pro integration. The Couatl Remote API port is intentionally NOT configurable
 /// here — it is always read from CouatlAddons.ini (see docs/integrations/gsx.md).
 /// </summary>
-public sealed class GsxOptions : IOptionSection
+public sealed class GsxOptions : IOptionSection, IOptionNormalize
 {
     public static string SectionName => "gsx";
 
@@ -130,6 +130,20 @@ public sealed class GsxOptions : IOptionSection
     /// activation gates it on the previous entry's observed GSX state (Prosim2GSX model).
     /// Remove an entry (or set activation Skip) to disable a service.</summary>
     public List<DepartureServiceStep> DepartureServices { get; set; } = [.. DefaultDepartureServices];
+
+    /// <summary>The departure order's one invariant (EHAM 2026-11-01: the file carried the six
+    /// defaults followed by five of them again): each service once — the first occurrence
+    /// wins, so a pilot's order survives. A service the pilot removed stays removed (that is
+    /// how a service is disabled). Returns the number of entries dropped.</summary>
+    public static int NormalizeDepartureServices(List<DepartureServiceStep> steps)
+    {
+        ArgumentNullException.ThrowIfNull(steps);
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        return steps.RemoveAll(s => string.IsNullOrWhiteSpace(s?.Service) || !seen.Add(s.Service.Trim()));
+    }
+
+    /// <inheritdoc />
+    public void Normalize() => NormalizeDepartureServices(DepartureServices);
 
     /// <summary>How long a sent service.trigger may wait for GSX to visibly pick the service up
     /// (mirror shows requested/active) before the call is considered dropped and retried. The

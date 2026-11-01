@@ -28,7 +28,14 @@ public static class OptionSectionServiceCollectionExtensions
         // Registration order matters: the clear must be configured before the section bind.
         services.Configure<TOptions>(static o => OptionsListBinding.ClearLists(o));
         services.Configure<TOptions>(configuration.GetSection(TOptions.SectionName));
-        services.PostConfigure<TOptions>(static o => OptionsListBinding.RestoreEmptyLists(o, new TOptions()));
+        services.PostConfigure<TOptions>(static o =>
+        {
+            OptionsListBinding.RestoreEmptyLists(o, new TOptions());
+            // Nested options objects (a profile's gsxSettings block) are created by the binder
+            // with their defaults in place and the file's items appended behind them — undone
+            // here, then every options type runs its own IOptionNormalize repair.
+            OptionsListBinding.NormalizeGraph(o);
+        });
         return services;
     }
 

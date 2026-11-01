@@ -44,6 +44,7 @@ public sealed class GateMonitorCore
     private DateTimeOffset? _changedAt;
     private string? _closedDetail;
     private string? _ofpRequestId;
+    private int? _paxBaseline;
 
     /// <summary>The current latched state.</summary>
     public GateState State => _state;
@@ -56,6 +57,7 @@ public sealed class GateMonitorCore
         _changedAt = now;
         _closedDetail = null;
         _ofpRequestId = null;
+        _paxBaseline = null;
     }
 
     /// <summary>Applies one evaluation. Thresholds come from the options (web-editable);
@@ -96,6 +98,9 @@ public sealed class GateMonitorCore
         // re-close itself before the next leg's boarding is even called (issue #173).
         var pastGate = !inputs.Phase.IsBeforeTaxiOut()
             && inputs.Phase is not (FlightPhase.Unknown or FlightPhase.Shutdown);
+        // The arrival's ground phases are "past the gate" for an OPEN strip (the departure
+        // is over), never a reason to re-close a CLOSED one (see the Closed step).
+        var closedPastGate = pastGate && inputs.Phase is not (FlightPhase.LandingRollout or FlightPhase.TaxiIn);
 
         // A closed-after-boarding leg that has reached a new Preflight with no boarding
         // evidence is the next turnaround: reset without waiting for the explicit signal.
@@ -108,12 +113,27 @@ public sealed class GateMonitorCore
             _ofpRequestId = inputs.OfpRequestId is { Length: > 0 } ? inputs.OfpRequestId : null;
         }
 
+        // The count GSX shows when boarding is CALLED is still the previous leg's total (EHAM
+        // 2026-11-01 14:41Z: boarding requested for leg two at 119 of 129 — leg one's 119 —
+        // and the card went FINAL CALL the same second). That figure is the baseline; the
+        // count is trusted for the thresholds only once GSX is actually boarding and the
+        // counter has moved off it (it restarts from zero and climbs).
+        if (_paxBaseline is null && inputs.BoardingStage is GsxServiceStage.Called or GsxServiceStage.Requested)
+        {
+            _paxBaseline = inputs.PaxBoarded ?? 0;
+        }
+
+        var paxTrusted = inputs.PaxBoarded is { } boardedNow
+            && inputs.BoardingStage is GsxServiceStage.Active or GsxServiceStage.Completed
+            && (_paxBaseline is null || boardedNow != _paxBaseline);
+        var trusted = paxTrusted ? inputs : inputs with { PaxBoarded = null };
+
         // Settle fully in one evaluation: an app started mid-boarding at 95 % must read
         // FINAL CALL now, not BOARDING for a tick and FINAL CALL on the next.
         var next = _state;
         for (var step = 0; step < 4; step++)
         {
-            var candidate = Step(next, inputs, completed, pastGate, paxFlowing, finalCallPaxPercent, finalCallMinutesBeforeStd);
+            var candidate = Step(next, trusted, completed, pastGate, closedPastGate, paxFlowing, finalCallPaxPercent, finalCallMinutesBeforeStd);
             if (candidate == next)
             {
                 break;
@@ -163,14 +183,18 @@ public sealed class GateMonitorCore
 
     /// <summary>One forward edge from <paramref name="state"/>, or the same state.</summary>
     private static GateState Step(
-        GateState state, GateMonitorInputs inputs, bool completed, bool pastGate, bool paxFlowing,
+        GateState state, GateMonitorInputs inputs, bool completed, bool pastGate, bool closedPastGate, bool paxFlowing,
         int finalCallPaxPercent, int finalCallMinutesBeforeStd)
     {
         var next = state;
         switch (state)
         {
             case GateState.Closed:
-                if (completed || pastGate)
+                // From CLOSED only a DEPARTURE behind us (taxi out, airborne) means "closed after
+                // boarding"; on the arrival ground phases the previous leg's reset must stay
+                // CLOSED (EHAM 2026-11-01: the strip re-closed itself with leg one's "Doors closed
+                // 09:40Z, 119/119" the moment the turnaround reset landed during the taxi in).
+                if (completed || closedPastGate)
                 {
                     next = GateState.ClosedAfterBoarding;
                 }

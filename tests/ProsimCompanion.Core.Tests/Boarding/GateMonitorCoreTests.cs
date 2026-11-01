@@ -345,4 +345,42 @@ public sealed class GateMonitorCoreTests
         Assert.Equal("B12", GateMonitorService.GateIdFrom(confirmed));
         Assert.Null(GateMonitorService.GateIdFrom(nothing));
     }
+
+    // EHAM 2026-11-01 14:41Z: boarding requested for leg two with GSX's counter still showing
+    // leg one's 119 aboard (target 129) — FINAL CALL the instant boarding was called.
+    [Fact]
+    public void StaleCountFromThePreviousLeg_NeverTriggersTheFinalCall()
+    {
+        var core = new GateMonitorCore();
+        Eval(core, Inputs());
+        Assert.Equal(GateState.Boarding, Eval(core, Inputs(stage: GsxServiceStage.Requested, target: 129, boarded: 119, door: true)).State);
+        // Still the old figure once GSX starts: not trusted until the counter moves.
+        Assert.Equal(GateState.Boarding, Eval(core, Inputs(stage: GsxServiceStage.Active, target: 129, boarded: 119, door: true)).State);
+        // GSX restarts its count: now the share is this leg's.
+        Assert.Equal(GateState.Boarding, Eval(core, Inputs(stage: GsxServiceStage.Active, target: 129, boarded: 5, door: true)).State);
+        Assert.Equal(GateState.FinalCall, Eval(core, Inputs(stage: GsxServiceStage.Active, target: 129, boarded: 117, door: true)).State);
+    }
+
+    // EHAM 2026-11-01: the turnaround reset landed during the taxi in and the strip re-closed
+    // itself at once with leg one's figures. From CLOSED, the arrival's ground phases are not
+    // "closed after boarding"; the next leg's boarding opens it as usual.
+    [Fact]
+    public void AfterTheArrivalReset_TheStripStaysClosed_UntilTheNextBoarding()
+    {
+        var core = new GateMonitorCore();
+        Eval(core, Inputs(stage: GsxServiceStage.Completed, target: 119, boarded: 119, door: false, phase: FlightPhase.Cruise));
+        Assert.Equal(GateState.ClosedAfterBoarding, core.State);
+
+        core.Reset(T0.AddHours(2));
+        Assert.Equal(GateState.Closed, Eval(core, Inputs(stage: GsxServiceStage.Waiting, target: 119, boarded: 119, door: true, phase: FlightPhase.TaxiIn, now: T0.AddHours(2))).State);
+        Assert.Equal(GateState.Closed, Eval(core, Inputs(stage: GsxServiceStage.Waiting, target: 119, boarded: 119, door: true, phase: FlightPhase.Shutdown, now: T0.AddHours(2))).State);
+        Assert.Equal("Not called", Eval(core, Inputs(stage: GsxServiceStage.Waiting, target: 119, boarded: 119, door: true, phase: FlightPhase.Preflight, now: T0.AddHours(2))).Detail);
+
+        // A strip that was OPEN when we taxied out still closes behind us.
+        var departing = new GateMonitorCore();
+        Eval(departing, Inputs(stage: GsxServiceStage.Called, target: 129, boarded: 0, door: true));
+        Assert.Equal(GateState.ClosedAfterBoarding, Eval(departing, Inputs(stage: GsxServiceStage.Waiting, target: 129, boarded: 129, door: false, phase: FlightPhase.TaxiOut)).State);
+        // And an app started in the cruise still reads closed-after-boarding.
+        Assert.Equal(GateState.ClosedAfterBoarding, Eval(new GateMonitorCore(), Inputs(stage: null, phase: FlightPhase.Cruise)).State);
+    }
 }
