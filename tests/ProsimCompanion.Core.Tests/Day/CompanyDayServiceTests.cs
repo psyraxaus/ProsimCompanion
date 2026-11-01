@@ -38,6 +38,10 @@ public sealed class CompanyDayServiceTests : IDisposable
     private readonly DayStatusStore _store = new();
     private readonly FakeLegBoundaryEvents _legEvents = new();
     private readonly ProsimCompanion.Core.Aircraft.Ofp.OfpStore _ofp = new();
+    private readonly ProsimCompanion.Core.State.GroundOpsSignals _signals = new();
+    private readonly ProsimCompanion.Core.State.EndOfDutyOfferStore _offer;
+    private readonly DutyDaySignals _dutySignals = new();
+    private readonly List<DutyDayEnded> _ended = [];
     private readonly Mock<IDebriefFactExtractor> _extractor = new();
     private readonly Mock<ITechLogService> _techLog = new();
     private readonly Mock<ILogbookService> _logbook = new();
@@ -59,6 +63,9 @@ public sealed class CompanyDayServiceTests : IDisposable
         };
         _extractor.Setup(e => e.Extract(It.IsAny<string>())).Returns(DebriefFacts.Empty);
         _techLog.SetupGet(t => t.OpenDefects).Returns([]);
+        _techLog.SetupGet(t => t.Defects).Returns([]);
+        _offer = new ProsimCompanion.Core.State.EndOfDutyOfferStore(_signals);
+        _dutySignals.DayEnded += e => _ended.Add(e);
         _service = Create();
     }
 
@@ -77,7 +84,10 @@ public sealed class CompanyDayServiceTests : IDisposable
         NullLogger<CompanyDayService>.Instance,
         new ProsimCompanion.Core.Speech.SpokenText(),
         _ofp,
-        _legEvents);
+        _legEvents,
+        _signals,
+        _offer,
+        _dutySignals);
 
     public void Dispose()
     {
@@ -371,22 +381,49 @@ public sealed class CompanyDayServiceTests : IDisposable
     }
 
     [Fact]
-    public void IdleTurnaround_AutoClosesAfterTheConfiguredIdleTime()
+    public void IdleTurnaround_AutoClosesAfterTheConfiguredIdleTime_FromOnBlocks()
     {
+        Assert.Equal(300, _options.AutoCloseIdleMinutes); // the 1.0 default (ADR-0019 §8)
         _service.TryStartDay("test", T0);
         _service.HandlePhase(FlightPhase.Shutdown, T0.AddMinutes(90));
 
-        _service.ProcessTick(T0.AddMinutes(90 + 30));
+        _service.ProcessTick(T0.AddMinutes(90 + 299));
         Assert.True(_store.Snapshot().View!.Active); // not yet
 
-        _service.ProcessTick(T0.AddMinutes(90 + 91));
+        _service.ProcessTick(T0.AddMinutes(90 + 300));
         Assert.False(_store.Snapshot().View!.Active);
         Assert.Contains(_arbiter.Requests,
             r => r.Text.StartsWith("That's the duty day complete.", StringComparison.Ordinal));
+        Assert.Equal("idle", Assert.Single(_ended).Source);
     }
 
     [Fact]
-    public void IdleClose_NeverFires_WhenDisabledOrOnLeg()
+    public void IdleClock_CountsFromDeboardingComplete_NotFromPhaseEdgesOrRestarts()
+    {
+        _options.AutoCloseIdleMinutes = 90;
+        _service.TryStartDay("test", T0);
+        _service.HandlePhase(FlightPhase.Shutdown, T0.AddMinutes(90));
+
+        // Deboarding completes 20 min after on-blocks: the clock restarts there (EHAM 2026-11-01
+        // was 88 min from shutdown to the new plan against the old 90-minute edge-reset clock).
+        _service.HandleDeboarded(T0.AddMinutes(110));
+        Assert.Contains(ReadEvents(), e => e.Contains("\"day.idle.started\"", StringComparison.Ordinal));
+
+        // Phase edges inside the turnaround (the Preflight after deboarding, a ColdAndDark) and
+        // a restart (a fresh service over the same state file) do NOT touch the clock.
+        _service.HandlePhase(FlightPhase.Preflight, T0.AddMinutes(111));
+        _service.HandlePhase(FlightPhase.ColdAndDark, T0.AddMinutes(150));
+        using var restarted = Create();
+        restarted.Start();
+
+        restarted.ProcessTick(T0.AddMinutes(110 + 89));
+        Assert.True(_store.Snapshot().View!.Active); // 89 min since deboarding
+        restarted.ProcessTick(T0.AddMinutes(110 + 90));
+        Assert.False(_store.Snapshot().View!.Active); // 90 min since deboarding, whatever the edges did
+    }
+
+    [Fact]
+    public void IdleClose_NeverFires_WhenDisabledOrOnLeg_AndANewPlanStopsTheClock()
     {
         _options.AutoCloseIdleMinutes = 0;
         _service.TryStartDay("test", T0);
@@ -394,11 +431,146 @@ public sealed class CompanyDayServiceTests : IDisposable
         _service.ProcessTick(T0.AddMinutes(90 + 600));
         Assert.True(_store.Snapshot().View!.Active);
 
-        // On a leg (not a turnaround) idle time never closes the day either.
+        // A new plan begins the next leg: the backstop clock stops.
         _options.AutoCloseIdleMinutes = 90;
         _service.HandleLegBegan("req:2", T0.AddMinutes(700));
         _service.ProcessTick(T0.AddMinutes(700 + 600));
         Assert.True(_store.Snapshot().View!.Active);
+    }
+
+    // ---- the FO's end-of-duty offer (ADR-0019 §8, #217) ----
+
+    [Fact]
+    public void Offer_ComesOnce_AfterTenMinutesColdAndDarkInATurnaround_AndYesEndsTheDay()
+    {
+        _service.Start(); // hooks the offer store's answer
+        _service.TryStartDay("test", T0);
+        _service.HandlePhase(FlightPhase.Shutdown, T0.AddMinutes(90));
+        _service.HandleDeboarded(T0.AddMinutes(100));
+
+        // Powered and parked: no offer however long.
+        _service.ProcessTick(T0.AddMinutes(100 + 60));
+        Assert.False(_offer.Asking.QuestionStands);
+
+        // Cold and dark at +170: the offer waits ten minutes from the dark edge, not the deboarding.
+        _service.HandlePhase(FlightPhase.ColdAndDark, T0.AddMinutes(170));
+        _service.ProcessTick(T0.AddMinutes(179));
+        Assert.False(_offer.Asking.QuestionStands);
+        _service.ProcessTick(T0.AddMinutes(180));
+        Assert.True(_offer.Asking.QuestionStands);
+        Assert.Equal(CompanyDayService.EndOfDutyPrompt, _offer.Asking.Question!.Prompt);
+        Assert.Contains(ReadEvents(), e => e.Contains("\"day.end-offer.raised\"", StringComparison.Ordinal));
+
+        // Yes (the dialogue's accept) ends the day as "offer".
+        Assert.True(_offer.Accept("voice"));
+        Assert.False(_store.Snapshot().View!.Active);
+        Assert.Equal("offer", Assert.Single(_ended).Source);
+    }
+
+    [Fact]
+    public void Offer_DeclinedOrSilent_LeavesTheDayOpen_AndIsNeverRepeatedThatDay()
+    {
+        _service.Start();
+        _service.TryStartDay("test", T0);
+        _service.HandlePhase(FlightPhase.Shutdown, T0.AddMinutes(90));
+        _service.HandleDeboarded(T0.AddMinutes(100));
+        _service.HandlePhase(FlightPhase.ColdAndDark, T0.AddMinutes(100));
+        _service.ProcessTick(T0.AddMinutes(110));
+        Assert.True(_offer.Asking.QuestionStands);
+
+        Assert.True(_offer.Decline("voice", "captain said no"));
+        Assert.True(_store.Snapshot().View!.Active);
+        Assert.Empty(_ended);
+
+        // Hours later, still dark: never asked again (the day state remembers the offer) —
+        // and a restart does not forget it either.
+        _service.ProcessTick(T0.AddMinutes(400));
+        Assert.False(_offer.Asking.QuestionStands);
+        using var restarted = Create();
+        restarted.Start();
+        restarted.HandlePhase(FlightPhase.ColdAndDark, T0.AddMinutes(401));
+        restarted.ProcessTick(T0.AddMinutes(420));
+        Assert.False(_offer.Asking.QuestionStands);
+    }
+
+    [Fact]
+    public void Offer_NeverComes_WhenSwitchedOff_OrPowerCameBack()
+    {
+        _options.EndOfDutyOfferMinutes = 0;
+        _service.TryStartDay("test", T0);
+        _service.HandlePhase(FlightPhase.Shutdown, T0.AddMinutes(90));
+        _service.HandlePhase(FlightPhase.ColdAndDark, T0.AddMinutes(95));
+        _service.ProcessTick(T0.AddMinutes(200));
+        Assert.False(_offer.Asking.QuestionStands);
+
+        // On, but the power came back at +200 (Preflight): the dark wait starts over.
+        _options.EndOfDutyOfferMinutes = 10;
+        _service.HandlePhase(FlightPhase.Preflight, T0.AddMinutes(200));
+        _service.ProcessTick(T0.AddMinutes(230));
+        Assert.False(_offer.Asking.QuestionStands);
+        _service.HandlePhase(FlightPhase.ColdAndDark, T0.AddMinutes(231));
+        _service.ProcessTick(T0.AddMinutes(241));
+        Assert.True(_offer.Asking.QuestionStands);
+    }
+
+    // ---- end of duty: the debrief and the signal (ADR-0019 §8, #218/#222) ----
+
+    [Fact]
+    public void EndDay_RaisesTheDutyDaySignal_WithdrawsTheOffer_AndTagsTheDebriefHoldExempt()
+    {
+        _service.TryStartDay("test", T0);
+        _service.HandlePhase(FlightPhase.Shutdown, T0.AddMinutes(90));
+        _service.HandleDeboarded(T0.AddMinutes(100));
+        _service.HandlePhase(FlightPhase.ColdAndDark, T0.AddMinutes(100));
+        _service.ProcessTick(T0.AddMinutes(110));
+        Assert.True(_offer.Asking.QuestionStands);
+
+        Assert.True(_service.TryEndDay("web", T0.AddMinutes(115)));
+
+        var ended = Assert.Single(_ended);
+        Assert.Equal("web", ended.Source);
+        Assert.False(_offer.Asking.QuestionStands); // the button answered the standing offer
+        var debrief = Assert.Single(_arbiter.Requests, r => r.Text.StartsWith("That's the duty day complete.", StringComparison.Ordinal));
+        Assert.Equal(CompanyDayService.DebriefTag, debrief.Tag);
+        Assert.False(ProsimCompanion.Speech.Arbiter.DialogueHoldRule.Holds(debrief));
+    }
+
+    [Fact]
+    public void EndDay_DebriefNamesFuelAndTheTechLogEntriesRaisedToday()
+    {
+        _techLog.SetupGet(t => t.Defects).Returns(
+        [
+            new TechLogDefect { Id = "d1", Title = "APU bleed valve fault", RaisedDate = T0.ToString("yyyy-MM-dd"), RaisedFlight = "other-session" },
+            new TechLogDefect { Id = "d2", Title = "Cabin reading light 12C", RaisedDate = "2020-01-01", RaisedFlight = Path.GetFileNameWithoutExtension(_eventLog.Path) },
+            new TechLogDefect { Id = "d3", Title = "Old entry from last week", RaisedDate = T0.AddDays(-7).ToString("yyyy-MM-dd"), RaisedFlight = "old" },
+        ]);
+
+        _service.TryStartDay("test", T0);
+        CompleteLegOne(T0.AddMinutes(90), DebriefFacts.Empty with { BlockMinutes = 80, Destination = "YMML", FuelUsedKg = 4250 });
+        Assert.True(_service.TryEndDay("voice", T0.AddMinutes(100)));
+
+        var debrief = Assert.Single(_arbiter.Requests, r => r.Text.StartsWith("That's the duty day complete.", StringComparison.Ordinal));
+        Assert.Contains(" Fuel used 4.3 tonnes.", debrief.Text, StringComparison.Ordinal);
+        Assert.Contains(" Tech log entries raised: APU bleed valve fault and Cabin reading light 12C.", debrief.Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Old entry", debrief.Text, StringComparison.Ordinal);
+        var summaryFile = Assert.Single(Directory.GetFiles(_sessionsDir, "*.summary.txt"));
+        Assert.Equal(debrief.Text, File.ReadAllText(summaryFile)); // the written summary says the same
+    }
+
+    private IReadOnlyList<string> ReadEvents()
+    {
+        var lines = new List<string>();
+        foreach (var file in Directory.GetFiles(_sessionsDir, "*.jsonl"))
+        {
+            using var stream = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            using var reader = new StreamReader(stream);
+            while (reader.ReadLine() is { } line)
+            {
+                lines.Add(line);
+            }
+        }
+
+        return lines;
     }
 
     [Fact]

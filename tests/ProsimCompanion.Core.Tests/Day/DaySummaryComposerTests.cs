@@ -78,6 +78,44 @@ public sealed class DaySummaryComposerTests
     }
 
     [Fact]
+    public void Compose_AddsFuelUsed_AndNamesTheTechLogEntries_ThreeAtMost()
+    {
+        var day = TwoLegDay();
+        day.Legs[0].FuelUsedKg = 2100;
+        day.Legs[1].FuelUsedKg = 2150;
+
+        var text = new DaySummaryComposer().Compose(day, T0.AddMinutes(400),
+            ["APU bleed valve fault", "Cabin reading light 12C", "Fuel quantity indication", "Nose gear steering light", "Pack 2 fault"]);
+
+        Assert.EndsWith(
+            " 1 memory drill called. Fuel used 4.3 tonnes."
+            + " Tech log entries raised: APU bleed valve fault, Cabin reading light 12C and Fuel quantity indication, and 2 more; 1 cleared.",
+            text);
+    }
+
+    [Fact]
+    public void Compose_FuelFromSomeLegsOnly_SaysSo_AndOneEntryIsSingular()
+    {
+        var day = TwoLegDay();
+        day.Legs[1].FuelUsedKg = 850;
+
+        var text = new DaySummaryComposer().Compose(day, T0.AddMinutes(400), ["APU bleed valve fault"]);
+
+        Assert.Contains(" Fuel used 850 kilograms over 1 of the 2 sectors.", text, StringComparison.Ordinal);
+        Assert.EndsWith(" Tech log entry raised: APU bleed valve fault; 1 cleared.", text);
+        Assert.DoesNotContain("1 defect raised", text, StringComparison.Ordinal); // the names replace the count
+    }
+
+    [Theory]
+    [InlineData(4250, "4.3 tonnes")]
+    [InlineData(1000, "1.0 tonnes")]
+    [InlineData(999, "1000 kilograms")]
+    [InlineData(846, "850 kilograms")]
+    [InlineData(10, "10 kilograms")]
+    public void FormatFuel_SpeaksTonnesFromAThousandKilograms(double kg, string expected)
+        => Assert.Equal(expected, DaySummaryComposer.FormatFuel(kg));
+
+    [Fact]
     public void BuildRecord_CarriesEveryAggregate()
     {
         var record = new DaySummaryComposer().BuildRecord(TwoLegDay(), T0.AddMinutes(400));

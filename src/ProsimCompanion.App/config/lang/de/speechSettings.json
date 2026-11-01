@@ -722,7 +722,11 @@
         "fdpFileHint": "Die FDP-Maximaltabelle ist ftl-easa.json in %LOCALAPPDATA%\\ProsimCompanion\\config — passe sie an das Schema deines Betreibers an.",
         "autoClose": {
           "label": "Nach Leerlauf automatisch schließen",
-          "hint": "Einen offenen Tag nach so langem Leerlauf in einem Turnaround schließen. 0 = nie."
+          "hint": "Einen offenen Tag so lange nach dem Ende der Ankunft (Deboarding abgeschlossen, sonst On-Blocks) ohne neuen Plan und ohne Dienstende schließen. 0 = nie. Phasenwechsel und Neustarts der App setzen die Zeit nicht zurück."
+        },
+        "endOfDutyOffer": {
+          "label": "FO bietet das Dienstende an nach",
+          "hint": "Nach so langer Zeit cold and dark, geparkt und ohne Plan fragt der FO einmal: „Captain, ist das das Ende unseres Diensttags?“ Ja beendet den Tag; Nein oder Schweigen lässt ihn offen. 0 = nie fragen."
         },
         "rotations": {
           "label": "Ordner für geplante Umläufe",

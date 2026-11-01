@@ -4473,6 +4473,91 @@
         ]
       },
       "notes": "ADR-0019 §2 (audit row A2). control.resetFMS is write-only (A322 catalog), so the press is invisible and only its effect is watched: Core FmsClearDetector (pure: arms on a present plan, fires once on both-empty, disarms on null) inside FmsPlanWatcher over the three Infrequent subscriptions; aircraft.fms.flightPhase is now a real DataRef<string?> read as a WITNESS only (ADR-0008 stays sensor-based). Owner's RESETFMS setting is off (2026-11-02); both values are supported (the detector does not care who cleared the box)."
+    },
+    {
+      "id": "day-end-offer",
+      "issue": 217,
+      "state": "fixed-unverified",
+      "kind": "assert-present",
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "assert-present: with the day in a turnaround (day.leg.completed, no later day.leg.started) and the phase ColdAndDark for day.endOfDutyOfferMinutes (default 10) after the later of the cold-and-dark edge and the idle start (day.idle.started on gsx-service {Deboarding, Completed}, else on-blocks), the session carries ONE day.end-offer.raised {dayId, prompt 'Captain, is that the end of our duty day?', afterMinutes} followed by the dialogue's day.end-offer {prompt} and the spoken prompt (speech.spoken, Low). 'Yes' → day.end-offer {outcome 'accepted'} then day.ended {source 'offer'}; 'no' or the 5-minute TTL → {outcome 'declined' | 'unanswered'} and the day stays open (no day.ended).",
+        "assert-absent: a second day.end-offer.raised for the same dayId (once per day, whatever the answer — also across an app restart: daystate.json carries endOfDutyOfferedUtc); an offer while the aircraft is powered (any phase but ColdAndDark); an offer while a leg is under way (day.leg.started after the last day.leg.completed); an offer with day.endOfDutyOfferMinutes 0.",
+        "assert-present (backstop): day.ended {source 'idle'} only once day.autoCloseIdleMinutes (default 300) have passed since day.idle.started (else the completed leg's on-blocks) — never earlier because of a phase edge or a restart; the EHAM 2026-11-01 turnaround (88 min shutdown → new plan) closes NO day under the default."
+      ],
+      "machine": {
+        "kind": "required-fields",
+        "source": "session",
+        "type": "day.end-offer.raised",
+        "fields": [
+          "dayId",
+          "prompt",
+          "afterMinutes"
+        ]
+      },
+      "notes": "ADR-0019 §8 (audit row A9, owner question 1). Core DayIdleRules (pure): IdleSince = daystate idleSinceUtc (set at CompleteLeg, overwritten at ArrivalCompleted via CompanyDayService.HandleDeboarded, cleared at StartNextLeg) else the leg's on-blocks; ShouldAutoClose / ShouldOffer. The offer is EndOfDutyOfferStore (Core, CaptainsQuestionStore adapter: YesNo, one ask, TTL counts as no) voiced by the shared CaptainsQuestionDialogue from Speech EndOfDutyPhrases (event day.end-offer). The old 90-minute clock reset on every phase edge and every restart (CompanyDayService._lastActivityUtc, gone)."
+    },
+    {
+      "id": "day-end-clears",
+      "issue": 218,
+      "state": "fixed-unverified",
+      "kind": "assert-present",
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "assert-present: every day.ended {dayId, legs, source} is followed within seconds by the log 'Flight-state snapshot invalidated: end of duty (<source>) — not written again until the next leg starts' and by gsx-cycle-reset {reason 'end of duty', planId, origin, destination, source} with the decision 'departure cycle reset: end of duty (…) — the departure services wait for a new flight plan'. After it: no flight-state-restored on the next app start unless a NEW ofp.loaded (different requestId) came first; no gsx-departure-started with source 'auto-turnaround' for the plan that was loaded when the day ended (only a different OFP, or 'commence ground services', starts the sequence); a standing turnaround-start-question or day.end-offer is withdrawn (no later answer events).",
+        "assert-present (roster): a new plan after day.ended on the SAME sim date raises no persona.rosterDraw (same FO); the first new plan on a NEW sim date does (probe roster-one-per-sim-day).",
+        "assert-absent: a gsx-service Deboarding/GPU/jetway edge replayed by the end-of-duty reset (the arrival side is kept); a day.leg.started without a day.started after day.ended (a plan after the end starts a NEW day — day.started {source 'ofp'} — never re-opens the old one)."
+      ],
+      "machine": {
+        "kind": "signature",
+        "trigger": {
+          "source": "session",
+          "type": "day.ended",
+          "contains": ""
+        },
+        "signature": {
+          "source": "session",
+          "type": "gsx-cycle-reset",
+          "contains": "\"reason\":\"end of duty\"",
+          "minCount": 1
+        }
+      },
+      "notes": "ADR-0019 §8 (audit row A10). Core Day.DutyDaySignals.DayEnded is the seam (Speech raises it last in CompanyDayService.TryEndDay, after the records are final); subscribers: FlightStateSnapshotService (Invalidate 'end of duty', writes suspended until a new request id), GsxAutomationService.OnDutyDayEnded (lifecycle.ResetCycle(keep arrival side), cycle.BeginTurnaroundCycle, pax target, latches.ResetForArrival(current plan) so NextLegOfpLoaded needs a DIFFERENT OFP, _lastResetPlanId pinned, turnaround question withdrawn, tracking LVARs cleared), the roster through DayStatusStore (an ended day pins nobody; the per-sim-date rule of #219 does the rest). FlightCycleReset is NOT raised here (its arrival-side subscribers would undo the arrival)."
+    },
+    {
+      "id": "day-debrief-content",
+      "issue": 222,
+      "state": "fixed-unverified",
+      "kind": "assert-present",
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "assert-present: the end-of-duty summary (speech.spoken starting 'That's the duty day complete.', tag day.debrief, Low) is SPOKEN within a minute of day.ended even while a dialogue holds the microphone (no speech.deferred {rule 'dialogueHold'} for tag day.debrief — EGLL 2026-11-01 05:25:03Z the summary died deferred); the text carries ' Fuel used <n.n tonnes | nnn kilograms>' when any completed leg's session had a fuel burn (flight-times takeoff and on-blocks FOB), 'over k of the n sectors' when some legs had none, and ' Tech log entries raised: <title>, <title> and <title>, and m more' naming the entries raised on the day's sessions or dated within the day (three at most), '; k cleared' when any were rectified; the <dayId>.summary.txt beside the sessions carries the same text.",
+        "assert-absent: a count-only '<n> defects raised' line when the tech log has the entries' titles; a fuel line with no leg carrying FuelUsedKg (nothing is invented); a day.debrief line deferred by the dialogue hold."
+      ],
+      "machine": {
+        "kind": "signature",
+        "trigger": {
+          "source": "session",
+          "type": "day.ended",
+          "contains": ""
+        },
+        "signature": {
+          "source": "session",
+          "type": "speech.spoken",
+          "contains": "That's the duty day complete.",
+          "minCount": 1
+        }
+      },
+      "notes": "ADR-0019 §8 (audit row B4). DaySummaryComposer.Compose(day, now, defectTitles): the legs' FuelUsedKg (new DayLeg field, filled by CompanyDayEngine.ApplyLegFacts from DebriefFacts.FuelUsedKg — the #155 takeoff-minus-on-blocks burn), FormatFuel (tonnes to one decimal from 1,000 kg, kilograms to the nearest ten below); titles from ITechLogService.Defects matched by RaisedFlight ∈ the day's session ids or RaisedDate within the day's UTC dates (CompanyDayService.DefectTitlesRaisedSafe). DialogueHoldRule exempts the 'day.debrief' prefix; the written summary is the same string."
     }
   ]
 }

@@ -24,8 +24,10 @@ namespace ProsimCompanion.Speech.Arbiter;
 /// </summary>
 public sealed class DialogueHoldRule : ISpeechSuppressionRule
 {
+    // "day.debrief" (ADR-0019 §8, issue #222): the end-of-duty debrief ends the day — nothing
+    // outranks it then, and the EGLL 2026-11-01 summary died deferred under a stuck hold.
     private static readonly string[] ExemptPrefixes =
-        ["sayintentions.", "fo.", "briefing.", "checklist.", "ecam.", "abnormal.", "minima.", "transition.", "clarifier", "confirm"];
+        ["sayintentions.", "fo.", "briefing.", "checklist.", "ecam.", "abnormal.", "minima.", "transition.", "clarifier", "confirm", "day.debrief"];
 
     private readonly Func<bool> _micBorrowed;
 

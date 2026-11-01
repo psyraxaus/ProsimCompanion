@@ -27,10 +27,20 @@ public sealed class DayOptions : IOptionSection
     [OptionField(FieldKind.Number, "speechSettings.company.day.allowance", Suffix = "min", Min = "0", DependsOn = "Enabled")]
     public int PostFlightAllowanceMinutes { get; set; } = 15;
 
-    /// <summary>Auto-close an open day after this many idle minutes in a turnaround
-    /// (0 = never).</summary>
+    /// <summary>The backstop (ADR-0019 §8, issue #217): auto-close an open day this many minutes
+    /// after the arrival let go of the aircraft — deboarding complete, else on-blocks — with no
+    /// new plan and no end of duty (0 = never). 300 since 1.0: the old 90 counted from the last
+    /// phase edge or app start and the real EHAM turnaround of 2026-11-01 ran 88 minutes against
+    /// it. A settings.json that names its own figure keeps it.</summary>
     [OptionField(FieldKind.Number, "speechSettings.company.day.autoClose", Suffix = "min", Min = "0", DependsOn = "Enabled")]
-    public int AutoCloseIdleMinutes { get; set; } = 90;
+    public int AutoCloseIdleMinutes { get; set; } = 300;
+
+    /// <summary>The FO's one-time offer (ADR-0019 §8, issue #217): "Captain, is that the end of
+    /// our duty day?" once the aircraft has been cold and dark, parked, with no plan for this
+    /// many minutes in a turnaround (0 = never offer). Yes ends the day; no or silence leaves it
+    /// open and the question is not asked again that day.</summary>
+    [OptionField(FieldKind.Number, "speechSettings.company.day.endOfDutyOffer", Suffix = "min", Min = "0", Max = "120", DependsOn = "Enabled")]
+    public int EndOfDutyOfferMinutes { get; set; } = 10;
 
     /// <summary>Planned-rotation JSON folder. Empty (the default since 2026-10-13) =
     /// <c>%LOCALAPPDATA%\ProsimCompanion\config\rotations</c>, which the app seeds with a

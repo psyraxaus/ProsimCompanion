@@ -722,7 +722,11 @@
         "fdpFileHint": "De FDP-maximumtabel is ftl-easa.json in %LOCALAPPDATA%\\ProsimCompanion\\config — pas hem aan het schema van je maatschappij aan.",
         "autoClose": {
           "label": "Automatisch sluiten na inactiviteit",
-          "hint": "Sluit een open dag na zo lang inactief in een turnaround. 0 = nooit."
+          "hint": "Sluit een open dag zo lang nadat de aankomst het vliegtuig losliet (deboarding voltooid, anders on-blocks) zonder nieuw plan en zonder einde dienst. 0 = nooit. Fasewissels en herstarts van de app zetten de tijd niet terug."
+        },
+        "endOfDutyOffer": {
+          "label": "FO biedt het einde van de dag aan na",
+          "hint": "Na zo lang cold and dark, geparkeerd en zonder plan vraagt de FO één keer: \"Captain, is dit het einde van onze dienstdag?\" Ja sluit de dag; nee of stilte laat hem open. 0 = nooit vragen."
         },
         "rotations": {
           "label": "Map met geplande rotaties",

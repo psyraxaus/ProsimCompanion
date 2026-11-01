@@ -722,7 +722,11 @@
         "fdpFileHint": "La table des maxima TSV est ftl-easa.json dans %LOCALAPPDATA%\\ProsimCompanion\\config — adapte-la au schéma de ton exploitant.",
         "autoClose": {
           "label": "Fermer automatiquement après inactivité",
-          "hint": "Fermer une journée ouverte après ce temps d'inactivité en escale. 0 = jamais."
+          "hint": "Fermer une journée ouverte ce temps après que l'arrivée a libéré l'avion (débarquement terminé, sinon on-blocks) sans nouveau plan ni fin de service. 0 = jamais. Les changements de phase et les redémarrages de l'app ne remettent pas le compteur à zéro."
+        },
+        "endOfDutyOffer": {
+          "label": "L'OPL propose de clore la journée après",
+          "hint": "Après ce temps avion froid, stationné et sans plan, l'OPL demande une fois : « Commandant, est-ce la fin de notre journée de service ? ». Oui clôt la journée ; non ou le silence la laisse ouverte. 0 = ne jamais demander."
         },
         "rotations": {
           "label": "Dossier des rotations planifiées",

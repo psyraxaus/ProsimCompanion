@@ -208,6 +208,12 @@ public static class CoreServiceCollectionExtensions
         // asks, the FO voice dialogue answers.
         services.AddSingleton<TurnaroundStartStore>();
         services.AddSingleton<ICaptainsQuestionStore>(p => p.GetRequiredService<TurnaroundStartStore>());
+        // "Captain, is that the end of our duty day?" (ADR-0019 §8, issue #217): the duty-day
+        // service asks once cold and dark with no plan, the FO dialogue answers; and the
+        // duty-day-ended seam the snapshot, the departure cycle and the roster subscribe to (#218).
+        services.AddSingleton<EndOfDutyOfferStore>();
+        services.AddSingleton<ICaptainsQuestionStore>(p => p.GetRequiredService<EndOfDutyOfferStore>());
+        services.AddSingleton<Day.DutyDaySignals>();
         // "Any other threats, captain?" after the emergency half of the takeoff briefing
         // (issue #180): the briefing asks, the FO dialogue takes the free-text answer.
         services.AddSingleton<ThreatsQuestionStore>();

@@ -722,7 +722,11 @@
         "fdpFileHint": "The FDP maximum table is ftl-easa.json in %LOCALAPPDATA%\\ProsimCompanion\\config — edit it for your operator's scheme.",
         "autoClose": {
           "label": "Auto-close after idle",
-          "hint": "Close an open day after this long idle in a turnaround. 0 = never."
+          "hint": "Close an open day this long after the arrival let go of the aircraft (deboarding complete, else on-blocks) with no new plan and no end of duty. 0 = never. Phase changes and app restarts do not reset it."
+        },
+        "endOfDutyOffer": {
+          "label": "FO offers to end the day after",
+          "hint": "Once cold and dark, parked, with no plan for this long, the FO asks once: \"Captain, is that the end of our duty day?\" Yes ends the day; no or silence leaves it open. 0 = never ask."
         },
         "rotations": {
           "label": "Planned rotations folder",

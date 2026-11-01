@@ -7,6 +7,7 @@ using ProsimCompanion.Core.EventLog;
 using ProsimCompanion.Core.Flight;
 using ProsimCompanion.Core.Logbook;
 using ProsimCompanion.Core.Sessions;
+using ProsimCompanion.Core.State;
 using ProsimCompanion.Core.TechLog;
 using ProsimCompanion.Core.VoiceReference;
 using ProsimCompanion.Speech.Arbiter;
@@ -41,6 +42,14 @@ namespace ProsimCompanion.Speech.Day;
 /// <c>flight.route</c> only when a briefing resolves — there is no continuous in-flight
 /// destination event to hang a live advisory on (the predecessor's mid-flight query needed
 /// one). When such an event exists, an in-flight variant can layer on top.</para>
+///
+/// <para>End of duty is the pilot's act (ADR-0019 §8, issues #217/#218/#222): voice, the web
+/// button, or the FO's one-time offer once the aircraft has been cold and dark with no plan for
+/// <c>day.endOfDutyOfferMinutes</c>. The idle backstop counts from deboarding complete (else
+/// on-blocks) — <see cref="DayIdleRules"/> — never from a phase edge or an app start. Ending
+/// speaks the debrief (fuel and the tech-log entries by name, exempt from the dialogue hold)
+/// and raises <see cref="DutyDaySignals.DayEnded"/> so the snapshot, the departure cycle and
+/// the roster let go of the old leg.</para>
 /// </summary>
 public sealed class CompanyDayService : IVoiceFeature, ISessionFinalizationStep, IDayControl, IDisposable
 {
@@ -71,9 +80,16 @@ public sealed class CompanyDayService : IVoiceFeature, ISessionFinalizationStep,
     // engine never reads the phase edge for it.
     private readonly ILegBoundaryEvents _legBoundary;
 
+    // Deboarding complete starts the idle backstop (ADR-0019 §8); the offer store carries the
+    // FO's "end of our duty day?" question; the duty-day signals tell the other pillars the
+    // day ended (issue #218).
+    private readonly GroundOpsSignals _signals;
+    private readonly EndOfDutyOfferStore _offer;
+    private readonly DutyDaySignals _dutySignals;
+
     private readonly object _gate = new();
     private readonly CompanyDayEngine _engine = new();
-    private DateTimeOffset _lastActivityUtc = DateTimeOffset.UtcNow;
+    private DateTimeOffset? _coldAndDarkSinceUtc;
     private Timer? _timer;
     private bool _started;
 
@@ -92,14 +108,23 @@ public sealed class CompanyDayService : IVoiceFeature, ISessionFinalizationStep,
         ILogger<CompanyDayService> logger,
         Core.Speech.ISpokenText spokenText,
         Core.Aircraft.Ofp.OfpStore ofp,
-        ILegBoundaryEvents legBoundary)
+        ILegBoundaryEvents legBoundary,
+        GroundOpsSignals signals,
+        EndOfDutyOfferStore endOfDutyOffer,
+        DutyDaySignals dutySignals)
     {
         ArgumentNullException.ThrowIfNull(spokenText);
         ArgumentNullException.ThrowIfNull(ofp);
         ArgumentNullException.ThrowIfNull(legBoundary);
+        ArgumentNullException.ThrowIfNull(signals);
+        ArgumentNullException.ThrowIfNull(endOfDutyOffer);
+        ArgumentNullException.ThrowIfNull(dutySignals);
         _spokenText = spokenText;
         _ofp = ofp;
         _legBoundary = legBoundary;
+        _signals = signals;
+        _offer = endOfDutyOffer;
+        _dutySignals = dutySignals;
         ArgumentNullException.ThrowIfNull(flight);
         ArgumentNullException.ThrowIfNull(eventLog);
         ArgumentNullException.ThrowIfNull(extractor);
@@ -190,12 +215,16 @@ public sealed class CompanyDayService : IVoiceFeature, ISessionFinalizationStep,
             _flight.PhaseChanged += OnPhaseChanged;
             _ofp.Changed += OnOfpChanged;
             _legBoundary.LegBegan += OnLegBegan;
+            _signals.ArrivalCompleted += OnArrivalCompleted;
+            _offer.Answered += OnOfferAnswered;
+            // A restart in the dark: the cold-and-dark wait for the offer starts now, never
+            // from a stamp this process did not see (the idle backstop has its own, persisted).
+            _coldAndDarkSinceUtc = _flight.CurrentPhase == FlightPhase.ColdAndDark ? DateTimeOffset.UtcNow : null;
             _timer = new Timer(_ => TimerTick(), null, TimeSpan.FromSeconds(60), TimeSpan.FromSeconds(60));
 
             if (_engine.Day is { IsOpen: true } day)
             {
                 resumedDayId = day.DayId;
-                _lastActivityUtc = DateTimeOffset.UtcNow;
                 legIndex = day.CurrentLegIndex;
                 legCount = day.Legs.Count;
                 if (phantomDropped is not null)
@@ -245,7 +274,42 @@ public sealed class CompanyDayService : IVoiceFeature, ISessionFinalizationStep,
         _flight.PhaseChanged -= OnPhaseChanged;
         _ofp.Changed -= OnOfpChanged;
         _legBoundary.LegBegan -= OnLegBegan;
+        _signals.ArrivalCompleted -= OnArrivalCompleted;
+        _offer.Answered -= OnOfferAnswered;
         _timer?.Dispose();
+    }
+
+    // ---- deboarding complete: the idle backstop counts from here (ADR-0019 §8, #217) ----
+
+    private void OnArrivalCompleted()
+    {
+        try
+        {
+            HandleDeboarded(DateTimeOffset.UtcNow);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Day deboarding handling failed");
+        }
+    }
+
+    /// <summary>GSX deboarding completed while the day is in a turnaround: the idle clock
+    /// restarts from this moment (on-blocks started it). Exposed for tests.</summary>
+    public void HandleDeboarded(DateTimeOffset nowUtc)
+    {
+        string? dayId = null;
+        lock (_gate)
+        {
+            if (!_engine.MarkDeboarded(nowUtc) || _engine.Day is not { } day)
+            {
+                return;
+            }
+
+            _stateFile.Save(day);
+            dayId = day.DayId;
+        }
+
+        _eventLog.Record("day.idle.started", new { dayId, from = "deboarding complete" });
     }
 
     // ---- a leg began: a different OFP landed (ADR-0019 §1/§5, issue #212) ----
@@ -280,7 +344,6 @@ public sealed class CompanyDayService : IVoiceFeature, ISessionFinalizationStep,
 
         lock (_gate)
         {
-            _lastActivityUtc = nowUtc;
             var day = _engine.Day;
             if (day is null || !day.IsOpen)
             {
@@ -414,7 +477,8 @@ public sealed class CompanyDayService : IVoiceFeature, ISessionFinalizationStep,
     /// <summary>One phase edge — exposed for tests; the event handler passes the wall clock.
     /// Off-blocks and on-blocks stamp the leg; the Preflight edge only auto-starts a day when
     /// none is open. In a turnaround the Preflight edge does NOTHING to the legs — the next leg
-    /// waits for its plan (<see cref="HandleLegBegan"/>).</summary>
+    /// waits for its plan (<see cref="HandleLegBegan"/>). No edge touches the idle backstop
+    /// (ADR-0019 §8): it counts from deboarding complete, whatever the phase does after.</summary>
     public void HandlePhase(FlightPhase current, DateTimeOffset nowUtc)
     {
         var options = _options.CurrentValue;
@@ -423,7 +487,9 @@ public sealed class CompanyDayService : IVoiceFeature, ISessionFinalizationStep,
 
         lock (_gate)
         {
-            _lastActivityUtc = nowUtc;
+            // The offer's cold-and-dark wait: from the first ColdAndDark edge, reset by any
+            // other phase (power back on = the pilot is not done).
+            _coldAndDarkSinceUtc = current == FlightPhase.ColdAndDark ? _coldAndDarkSinceUtc ?? nowUtc : null;
             var day = _engine.Day;
             if (day is null || !day.IsOpen)
             {
@@ -605,7 +671,6 @@ public sealed class CompanyDayService : IVoiceFeature, ISessionFinalizationStep,
             }
 
             var day = _engine.Day!;
-            _lastActivityUtc = nowUtc;
             _stateFile.Save(day);
             _eventLog.Record("day.started", new
             {
@@ -650,6 +715,16 @@ public sealed class CompanyDayService : IVoiceFeature, ISessionFinalizationStep,
 
         _store.Update(snapshot);
 
+        // A standing offer is answered by the act itself (the button, the voice command).
+        try
+        {
+            _offer.Withdraw();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "End-of-duty offer withdraw failed");
+        }
+
         try
         {
             _logbook.RecordDay(_composer.BuildRecord(ended, nowUtc));
@@ -661,17 +736,87 @@ public sealed class CompanyDayService : IVoiceFeature, ISessionFinalizationStep,
 
         try
         {
-            var text = _composer.Compose(ended, nowUtc);
+            // Fuel and the tech-log entries by name (ADR-0019 §8, #222); the debrief tag is
+            // exempt from the dialogue hold — it ends the day, nothing outranks it then.
+            var text = _composer.Compose(ended, nowUtc, DefectTitlesRaisedSafe(ended, nowUtc));
             PersistSummary(ended, text);
-            Speak(text, SpeechPriority.Low); // outranked by any late High/Critical speech
+            Speak(text, SpeechPriority.Low, DebriefTag);
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "End-of-day summary failed");
         }
 
+        // The other pillars let go of the old leg (issue #218): the snapshot, the departure
+        // cycle, the roster pin. Raised last, after the day's own records are final.
+        try
+        {
+            _dutySignals.RaiseDayEnded(new DutyDayEnded(ended.DayId, source, nowUtc));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "A duty-day-ended subscriber failed");
+        }
+
         _logger.LogInformation("Duty day {DayId} ended ({Source})", ended.DayId, source);
         return true;
+    }
+
+    /// <summary>The speech tag of the end-of-duty debrief — exempt from the dialogue hold.</summary>
+    public const string DebriefTag = "day.debrief";
+
+    /// <summary>The tech-log entries raised during the day, by title: raised on one of the
+    /// day's sessions, or dated within the day's calendar span (the tech log stamps UTC dates).
+    /// Empty when the tech log is off or unreadable — the composer falls back to the counts.</summary>
+    private IReadOnlyList<string> DefectTitlesRaisedSafe(DayState day, DateTimeOffset nowUtc)
+    {
+        try
+        {
+            var sessions = day.Legs.Select(l => l.SessionId).Where(s => !string.IsNullOrEmpty(s)).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var start = DayMath.ParseUtc(day.StartedUtc)?.UtcDateTime.Date;
+            var end = nowUtc.UtcDateTime.Date;
+            return _techLog.Defects
+                .Where(d => (d.RaisedFlight is { } flight && sessions.Contains(flight))
+                    || (start is { } s && DateTime.TryParseExact(d.RaisedDate, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture,
+                        System.Globalization.DateTimeStyles.AssumeUniversal | System.Globalization.DateTimeStyles.AdjustToUniversal, out var raised)
+                        && raised.Date >= s && raised.Date <= end))
+                .Select(d => d.Title)
+                .Where(t => !string.IsNullOrWhiteSpace(t))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Tech log entries for the day debrief unavailable");
+            return [];
+        }
+    }
+
+    // ---- the FO's end-of-duty offer (ADR-0019 §8, #217) ----
+
+    private void OnOfferAnswered(object? sender, (bool Accepted, string Source) answer)
+    {
+        try
+        {
+            HandleOfferAnswered(answer.Accepted, answer.Source, DateTimeOffset.UtcNow);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "End-of-duty offer answer handling failed");
+        }
+    }
+
+    /// <summary>Yes ends the day as "offer"; no (or the TTL's "timeout") leaves it open — the
+    /// offer was marked made when it was raised, so it is never repeated. Exposed for tests.</summary>
+    public void HandleOfferAnswered(bool accepted, string source, DateTimeOffset nowUtc)
+    {
+        if (accepted)
+        {
+            TryEndDay("offer", nowUtc);
+            return;
+        }
+
+        _logger.LogInformation("End-of-duty offer declined ({Source}) — the day stays open until 'end duty day' or the idle backstop", source);
     }
 
     private void PersistSummary(DayState day, string text)
@@ -704,12 +849,19 @@ public sealed class CompanyDayService : IVoiceFeature, ISessionFinalizationStep,
         }
     }
 
-    /// <summary>One 60 s tick: idle auto-close from a turnaround, else a view refresh so the
+    /// <summary>The FO's offer, word for word (the probe <c>day-end-offer</c> reads it).</summary>
+    public const string EndOfDutyPrompt = "Captain, is that the end of our duty day?";
+
+    /// <summary>One 60 s tick: the idle backstop from a turnaround (<see cref="DayIdleRules"/>:
+    /// from deboarding complete, else on-blocks — never a phase edge or an app start), the FO's
+    /// one-time end-of-duty offer once cold and dark with no plan, else a view refresh so the
     /// duty figure stays live on the web page. Exposed for tests.</summary>
     public void ProcessTick(DateTimeOffset nowUtc)
     {
         var options = _options.CurrentValue;
         var idleClose = false;
+        var offer = false;
+        string? dayId = null;
         DaySnapshot? snapshot = null;
         lock (_gate)
         {
@@ -718,14 +870,20 @@ public sealed class CompanyDayService : IVoiceFeature, ISessionFinalizationStep,
                 return;
             }
 
-            if (day.State == DayPhase.Turnaround
-                && options.AutoCloseIdleMinutes > 0
-                && (nowUtc - _lastActivityUtc).TotalMinutes >= options.AutoCloseIdleMinutes)
+            if (DayIdleRules.ShouldAutoClose(day, options.AutoCloseIdleMinutes, nowUtc))
             {
                 idleClose = true;
             }
             else
             {
+                if (DayIdleRules.ShouldOffer(day, options.EndOfDutyOfferMinutes, _coldAndDarkSinceUtc, nowUtc)
+                    && _engine.MarkEndOfDutyOffered(nowUtc))
+                {
+                    _stateFile.Save(day);
+                    offer = true;
+                    dayId = day.DayId;
+                }
+
                 snapshot = _engine.BuildSnapshot(nowUtc);
             }
         }
@@ -733,10 +891,21 @@ public sealed class CompanyDayService : IVoiceFeature, ISessionFinalizationStep,
         if (idleClose)
         {
             TryEndDay("idle", nowUtc);
+            return;
         }
-        else if (snapshot is not null)
+
+        if (snapshot is not null)
         {
             _store.Update(snapshot);
+        }
+
+        if (offer)
+        {
+            _eventLog.Record("day.end-offer.raised", new { dayId, prompt = EndOfDutyPrompt, afterMinutes = options.EndOfDutyOfferMinutes });
+            if (!_offer.Ask(EndOfDutyPrompt))
+            {
+                _logger.LogDebug("End-of-duty offer not raised — one already stands or was answered this cycle");
+            }
         }
     }
 
@@ -792,8 +961,8 @@ public sealed class CompanyDayService : IVoiceFeature, ISessionFinalizationStep,
         }
     }
 
-    private void Speak(string text, SpeechPriority priority)
-        => _ = _arbiter.EnqueueAsync(new SpeechRequest(text, priority, Tag: "day"));
+    private void Speak(string text, SpeechPriority priority, string tag = "day")
+        => _ = _arbiter.EnqueueAsync(new SpeechRequest(text, priority, Tag: tag));
 
     /// <summary>Loads the user's ftl-easa.json (the shipped table when absent or unreadable) and
     /// hands the engine the FDP settings; called at start and whenever the day options change.</summary>

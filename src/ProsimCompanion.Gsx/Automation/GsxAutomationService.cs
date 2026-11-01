@@ -79,6 +79,7 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl, IG
     private readonly DeiceRequestStore _deiceRequest;
     private readonly IDisposable _deiceObserver;
     private readonly TurnaroundStartStore _turnaroundStart;
+    private readonly Core.Day.DutyDaySignals? _dutyDay;
 
     public GsxAutomationService(
         IGsxRemoteApi api,
@@ -102,9 +103,11 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl, IG
         GsxPaxTargetArmer paxTarget,
         IGsxDecisionLog decisions,
         ILogger<GsxAutomationService> logger,
-        ISimVars? simVars = null)
+        ISimVars? simVars = null,
+        Core.Day.DutyDaySignals? dutyDay = null)
     {
         _simVars = simVars;
+        _dutyDay = dutyDay;
         ArgumentNullException.ThrowIfNull(api);
         ArgumentNullException.ThrowIfNull(slot);
         ArgumentNullException.ThrowIfNull(lifecycle);
@@ -181,7 +184,47 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl, IG
         _applier.SimbriefImported += Pump;
         // A new plan is a new leg (owner rule 2026-11-01): the departure side starts over.
         _ofpStore.Changed += OnOfpChanged;
+        if (_dutyDay is not null)
+        {
+            _dutyDay.DayEnded += OnDutyDayEnded;
+        }
+
         _pumpTimer = new Timer(_ => Pump(), null, PumpInterval, PumpInterval);
+    }
+
+    /// <summary>End of duty (ADR-0019 §8, issue #218): the departure side starts over and
+    /// ground preparation waits for a NEW plan — the plan in the store becomes the turnaround
+    /// baseline, so neither the auto-start nor a same-plan re-import revives the old leg; only
+    /// a different OFP (or the pilot's own "commence ground services") starts anything. The
+    /// arrival side (deboarding, GPU, jetway) is left as it stands — the aircraft is where it is.</summary>
+    private void OnDutyDayEnded(Core.Day.DutyDayEnded ended)
+    {
+        try
+        {
+            var current = _ofpStore.Current;
+            _lifecycle.ResetCycle(NewPlanCycleReset.ArrivalSide);
+            _cycle.BeginTurnaroundCycle();
+            _paxTarget.Reset();
+            _latches.ResetForArrival(current);
+            _lastResetPlanId = NewPlanCycleReset.PlanId(current) ?? _lastResetPlanId;
+            _turnaroundStart.Withdraw();
+            _slot.Reset("end of duty — departure cycle cleared");
+            ClearDepartureTracking();
+            _decisions.Record("departure cycle reset", $"end of duty ({ended.Source}) — the departure services wait for a new flight plan");
+            _decisions.RecordEvent("gsx-cycle-reset", new
+            {
+                reason = "end of duty",
+                planId = NewPlanCycleReset.PlanId(current),
+                origin = current?.OriginIcao,
+                destination = current?.DestinationIcao,
+                source = ended.Source,
+            });
+            Pump();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "End-of-duty departure cycle reset failed");
+        }
     }
 
     /// <summary>"A new plan is a new leg" (EHAM 2026-11-01: the app restarted at the gate after
@@ -381,6 +424,11 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl, IG
         _turnaroundStart.Answered -= OnTurnaroundStartAnswered;
         _applier.SimbriefImported -= Pump;
         _ofpStore.Changed -= OnOfpChanged;
+        if (_dutyDay is not null)
+        {
+            _dutyDay.DayEnded -= OnDutyDayEnded;
+        }
+
         _pumpTimer.Dispose();
         DisposeSmartButton();
         _runner.Dispose();

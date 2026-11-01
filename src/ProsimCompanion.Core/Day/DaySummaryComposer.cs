@@ -13,8 +13,11 @@ namespace ProsimCompanion.Core.Day;
 public interface IDaySummaryComposer
 {
     /// <summary>The spoken end-of-day summary: sectors, block/duty as "h hour(s) m minute(s)",
-    /// schedule delta, stabilized-approach record, abnormals, drills, defects.</summary>
-    string Compose(DayState day, DateTimeOffset nowUtc);
+    /// schedule delta, stabilized-approach record, abnormals, drills, fuel used, the tech-log
+    /// entries raised today by name (ADR-0019 §8, issue #222 — three at most, then "and n
+    /// more"); <paramref name="defectsRaised"/> null or empty falls back to the raised/cleared
+    /// counts the legs carry.</summary>
+    string Compose(DayState day, DateTimeOffset nowUtc, IReadOnlyList<string>? defectsRaised = null);
 
     /// <summary>The logbook day record (folded idempotently by DayId).</summary>
     LogbookDay BuildRecord(DayState day, DateTimeOffset nowUtc);
@@ -26,7 +29,10 @@ public sealed class DaySummaryComposer : IDaySummaryComposer
     /// <summary>The industry on-time threshold, minutes past the schedule (issue #185).</summary>
     public const int OnTimeToleranceMinutes = 15;
 
-    public string Compose(DayState day, DateTimeOffset nowUtc)
+    /// <summary>Tech-log entries named in the spoken debrief before "and n more".</summary>
+    public const int MaxNamedDefects = 3;
+
+    public string Compose(DayState day, DateTimeOffset nowUtc, IReadOnlyList<string>? defectsRaised = null)
     {
         ArgumentNullException.ThrowIfNull(day);
 
@@ -77,13 +83,64 @@ public sealed class DaySummaryComposer : IDaySummaryComposer
             sb.Append(CultureInfo.InvariantCulture, $" {drills} memory drill{DayMath.Plural(drills)} called.");
         }
 
-        if (raised > 0)
+        // Fuel (ADR-0019 §8, issue #222): the sum of the legs' takeoff-minus-on-blocks burns;
+        // a leg without fuel stamps contributes nothing and says so when it is the only data.
+        var fuelLegs = legs.Where(l => l.FuelUsedKg is > 0).ToList();
+        if (fuelLegs.Count > 0)
+        {
+            var fuel = fuelLegs.Sum(l => l.FuelUsedKg!.Value);
+            sb.Append(CultureInfo.InvariantCulture, $" Fuel used {FormatFuel(fuel)}");
+            sb.Append(fuelLegs.Count < legs.Count
+                ? $" over {fuelLegs.Count} of the {legs.Count} sectors."
+                : ".");
+        }
+
+        // The tech-log entries by name (issue #222): "Tech log: APU bleed fault, Cabin reading
+        // light 12C and Fuel quantity indication, and 2 more." Falls back to the counts when
+        // the caller has no titles (an older recording, a tech log that is switched off).
+        var titles = (defectsRaised ?? []).Where(t => !string.IsNullOrWhiteSpace(t)).Select(t => t.Trim()).ToList();
+        if (titles.Count > 0)
+        {
+            var named = titles.Take(MaxNamedDefects).ToList();
+            var more = titles.Count - named.Count;
+            sb.Append(CultureInfo.InvariantCulture, $" Tech log entr{(titles.Count == 1 ? "y" : "ies")} raised: {JoinSpoken(named)}");
+            if (more > 0)
+            {
+                sb.Append(CultureInfo.InvariantCulture, $", and {more} more");
+            }
+
+            sb.Append(rectified > 0 ? $"; {rectified} cleared." : ".");
+        }
+        else if (raised > 0)
         {
             sb.Append(CultureInfo.InvariantCulture, $" {raised} defect{DayMath.Plural(raised)} raised{(rectified > 0 ? $", {rectified} cleared" : "")}.");
         }
 
         return sb.ToString();
     }
+
+    /// <summary>"4.2 tonnes" from 1,000 kg up (one decimal), "850 kilograms" below — the
+    /// figure a crew would say, never a raw kilogram count in the thousands.</summary>
+    public static string FormatFuel(double kg)
+    {
+        if (kg >= 1000)
+        {
+            var tonnes = Math.Round(kg / 1000, 1, MidpointRounding.AwayFromZero);
+            return $"{tonnes.ToString("0.0", CultureInfo.InvariantCulture)} tonnes";
+        }
+
+        var rounded = (int)Math.Round(kg / 10, MidpointRounding.AwayFromZero) * 10;
+        return $"{rounded.ToString(CultureInfo.InvariantCulture)} kilogram{DayMath.Plural(rounded)}";
+    }
+
+    private static string JoinSpoken(IReadOnlyList<string> items)
+        => items.Count switch
+        {
+            0 => "",
+            1 => items[0],
+            2 => $"{items[0]} and {items[1]}",
+            _ => string.Join(", ", items.Take(items.Count - 1)) + $" and {items[^1]}",
+        };
 
     public LogbookDay BuildRecord(DayState day, DateTimeOffset nowUtc)
     {

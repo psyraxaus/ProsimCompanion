@@ -722,7 +722,11 @@
         "fdpFileHint": "La tabla de máximos de FDP es ftl-easa.json en %LOCALAPPDATA%\\ProsimCompanion\\config — edítala según el esquema de tu operador.",
         "autoClose": {
           "label": "Cerrar automáticamente tras inactividad",
-          "hint": "Cerrar una jornada abierta tras este tiempo inactiva en una escala. 0 = nunca."
+          "hint": "Cerrar una jornada abierta este tiempo después de que la llegada soltara el avión (desembarque completo, si no on-blocks) sin plan nuevo ni fin de jornada. 0 = nunca. Los cambios de fase y los reinicios de la app no lo reinician."
+        },
+        "endOfDutyOffer": {
+          "label": "El FO ofrece terminar la jornada tras",
+          "hint": "Tras este tiempo en frío y oscuro, estacionado y sin plan, el FO pregunta una vez: «Comandante, ¿terminamos la jornada?». Sí la cierra; no o silencio la deja abierta. 0 = no preguntar."
         },
         "rotations": {
           "label": "Carpeta de rotaciones planificadas",

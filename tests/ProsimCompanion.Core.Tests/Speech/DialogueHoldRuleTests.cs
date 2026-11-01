@@ -21,6 +21,8 @@ public sealed class DialogueHoldRuleTests
     [InlineData("ecam.line", SpeechPriority.Normal, false)]
     [InlineData("clarifier", SpeechPriority.Normal, false)]                  // "did you mean gear down?" — the dialogue's own question
     [InlineData("confirmCommand", SpeechPriority.Normal, false)]
+    [InlineData("day.debrief", SpeechPriority.Low, false)]                   // the end-of-duty debrief ends the day (#222)
+    [InlineData("day", SpeechPriority.Low, true)]                            // the day's other lines still wait
     [InlineData(null, SpeechPriority.Normal, false)]                          // the dialogues speak untagged
     [InlineData("cabin.turbulence.seatbelts", SpeechPriority.High, false)]    // callouts always go
     [InlineData("anything", SpeechPriority.Critical, false)]

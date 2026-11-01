@@ -59,6 +59,7 @@ public sealed class FlightStateSnapshotService : IStartupModule, IDisposable
     private readonly IDataRefSubscription<bool>? _planImported;
     private readonly IDataRefSubscription<string?>? _fmsOrigin;
     private readonly IDataRefSubscription<string?>? _fmsDestination;
+    private readonly Day.DutyDaySignals? _dutyDay;
     private readonly object _gate = new();
     private readonly Timer _writeTimer;
 
@@ -86,8 +87,10 @@ public sealed class FlightStateSnapshotService : IStartupModule, IDisposable
         SessionFinalizer? finalizer = null,
         ISimbriefImporter? importer = null,
         IProsimDataRefs? dataRefs = null,
-        Func<DateTimeOffset>? clock = null)
+        Func<DateTimeOffset>? clock = null,
+        Day.DutyDaySignals? dutyDay = null)
     {
+        _dutyDay = dutyDay;
         ArgumentNullException.ThrowIfNull(parts);
         ArgumentNullException.ThrowIfNull(file);
         ArgumentNullException.ThrowIfNull(ofp);
@@ -186,6 +189,10 @@ public sealed class FlightStateSnapshotService : IStartupModule, IDisposable
 
         _flight.PhaseChanged += OnPhaseChanged;
         _signals.FlightCycleReset += OnFlightCycleReset;
+        if (_dutyDay is not null)
+        {
+            _dutyDay.DayEnded += OnDutyDayEnded;
+        }
         if (_finalizer is not null)
         {
             _finalizer.Finalized += OnShutdownFinalized;
@@ -453,6 +460,10 @@ public sealed class FlightStateSnapshotService : IStartupModule, IDisposable
 
     private void OnShutdownFinalized() => Invalidate("shutdown finalised", suspend: true);
 
+    /// <summary>End of duty (ADR-0019 §8, issue #218): nothing of the old leg may come back on
+    /// the next start — the file goes and writes stay off until a new plan's request id.</summary>
+    private void OnDutyDayEnded(Day.DutyDayEnded ended) => Invalidate($"end of duty ({ended.Source})", suspend: true);
+
     private void Invalidate(string trigger, bool suspend)
     {
         lock (_gate)
@@ -586,6 +597,11 @@ public sealed class FlightStateSnapshotService : IStartupModule, IDisposable
 
         _flight.PhaseChanged -= OnPhaseChanged;
         _signals.FlightCycleReset -= OnFlightCycleReset;
+        if (_dutyDay is not null)
+        {
+            _dutyDay.DayEnded -= OnDutyDayEnded;
+        }
+
         if (_finalizer is not null)
         {
             _finalizer.Finalized -= OnShutdownFinalized;

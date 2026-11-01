@@ -137,7 +137,35 @@ public sealed class CompanyDayEngine
         }
 
         day.State = DayPhase.Turnaround;
+        day.IdleSinceUtc = Iso(nowUtc); // on-blocks starts the backstop; deboarding restarts it
         return day.CurrentLegIndex;
+    }
+
+    /// <summary>Deboarding complete in a turnaround (ADR-0019 §8, issue #217): the idle
+    /// backstop counts from here, not from on-blocks. False when the day is not in a turnaround
+    /// (a deboarding edge replayed on a leg, or no day).</summary>
+    public bool MarkDeboarded(DateTimeOffset nowUtc)
+    {
+        if (Day is not { IsOpen: true, State: DayPhase.Turnaround } day)
+        {
+            return false;
+        }
+
+        day.IdleSinceUtc = Iso(nowUtc);
+        return true;
+    }
+
+    /// <summary>Records the FO's end-of-duty offer (issue #217) so it is never made twice in a
+    /// day. False when no day is open or it was already offered.</summary>
+    public bool MarkEndOfDutyOffered(DateTimeOffset nowUtc)
+    {
+        if (Day is not { IsOpen: true } day || day.EndOfDutyOfferedUtc is not null)
+        {
+            return false;
+        }
+
+        day.EndOfDutyOfferedUtc = Iso(nowUtc);
+        return true;
     }
 
     /// <summary>A different OFP loaded while in a turnaround (ADR-0019 §1/§5 — the leg begins on
@@ -163,6 +191,7 @@ public sealed class CompanyDayEngine
         }
 
         day.State = DayPhase.OnLeg;
+        day.IdleSinceUtc = null; // the next leg began: the backstop clock stops
         return day.Current;
     }
 
@@ -234,6 +263,7 @@ public sealed class CompanyDayEngine
 
         leg.BlockMinutes = facts.BlockMinutes;
         leg.FlightMinutes = facts.FlightMinutes;
+        leg.FuelUsedKg = facts.FuelUsedKg ?? leg.FuelUsedKg; // the day's debrief totals it (#222)
         leg.Landed = facts.TouchdownGroundSpeedKt is not null || facts.FlightMinutes is not null;
         leg.Abnormals = facts.Abnormals.Count;
         leg.MemoryDrills = facts.MemoryDrills;

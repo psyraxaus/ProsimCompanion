@@ -220,6 +220,7 @@ public static class SpeechServiceCollectionExtensions
         services.AddSingleton(Gsx.GateChoicePhrases.Table);
         services.AddSingleton(Gsx.DeiceQuestionPhrases.Table);
         services.AddSingleton(Gsx.TurnaroundStartPhrases.Table);
+        services.AddSingleton(Day.EndOfDutyPhrases.Table);
         // "Any other threats, captain?" after the emergency half of the takeoff briefing
         // (issue #180): free-text answer, noted on the Core store.
         services.AddSingleton<Gsx.CaptainsQuestionPhrases>(p => Briefings.ThreatsQuestionPhrases.Create(

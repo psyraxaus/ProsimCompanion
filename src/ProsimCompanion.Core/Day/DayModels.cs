@@ -78,6 +78,11 @@ public sealed class DayLeg
     /// <summary>The roster First Officer who flew the leg (issue #194); null with the roster
     /// off. Additive — an older daystate.json loads unchanged.</summary>
     public string? FoName { get; set; }
+
+    /// <summary>Takeoff fuel minus on-blocks fuel for the leg (the debrief's "fuel used",
+    /// issue #155), kept here so the end-of-duty debrief can total it (ADR-0019 §8, issue
+    /// #222). Null when the leg's session had no fuel stamps. Additive.</summary>
+    public double? FuelUsedKg { get; set; }
 }
 
 /// <summary>The persisted duty-day state (<c>daystate.json</c>).</summary>
@@ -103,6 +108,15 @@ public sealed class DayState
     public int CurrentLegIndex { get; set; } = 1;
 
     public List<DayLeg> Legs { get; set; } = [];
+
+    /// <summary>When the current turnaround's idle clock started (ADR-0019 §8, issue #217):
+    /// deboarding complete, else on-blocks. Persisted so a restart keeps the clock; cleared
+    /// when the next leg begins. Null on a leg or in a daystate from an older build.</summary>
+    public string? IdleSinceUtc { get; set; }
+
+    /// <summary>When the FO offered to end the duty day (issue #217); the offer comes once per
+    /// day whatever the answer. Null until offered.</summary>
+    public string? EndOfDutyOfferedUtc { get; set; }
 
     public bool IsOpen => State != DayPhase.Ended;
 
