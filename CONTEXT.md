@@ -155,6 +155,42 @@ resets its per-flight latches on the false edge. ProSim connectivity alone is ne
 ProSim pushes plausible cold-and-dark data, faults included, with no MSFS session.
 _Avoid_: FO armed, ready flag, classification enabled
 
+### Duty day
+
+**Duty day**:
+One crew's working day in the aircraft: from the first leg's preparation to the pilot's
+explicit end of duty. It holds the legs flown, their block times and fuel, the FO on duty and
+the tech-log entries. It never ends on its own; the pilot ends it (voice, web, or by accepting
+the FO's offer once the aircraft is cold and dark with no plan). A plan loaded after the end
+starts a new duty day with the same FO — the roster draws per sim calendar day, not per
+duty day.
+_Avoid_: session (that is the app's event-log unit), rotation (the planned list of legs,
+which a duty day may follow)
+
+**Leg**:
+One flight of the duty day, from its plan to its arrival: one OFP, one departure cycle, one
+off-blocks, one on-blocks. A leg begins when its OFP is loaded, not when the aircraft is
+powered or when the previous leg's cabin empties.
+_Avoid_: sector (the FO's spoken word for the same thing), flight (ambiguous with the sim
+session and the flight state)
+
+**Leg boundary**:
+The three pilot-visible steps between two legs at a turnaround, each a state the Flight
+Status card shows: **Turnaround** (deboarding complete; parked, powered, cabin empty, the old
+plan still in the FMS), **Awaiting plan** (the FMS plan cleared; nothing to prepare), then
+the new leg's **Preflight** (a different OFP loaded; ground preparation may begin). The order
+is preferred, never required: any step may come first, a missed step is a warning, and a new
+OFP always begins the leg whatever else happened. The same OFP loaded twice is one leg.
+_Avoid_: turnaround phase (Turnaround is one state of the boundary, not a flight phase),
+reset
+
+**End of duty**:
+The pilot's act that closes the duty day: a short spoken debrief from the FO (legs, block
+time, fuel, tech-log entries), the day record closed (logbook and fuel log final), the roster
+FO released for the next sim day, the restart memory and the departure cycle cleared so
+nothing revives the old leg, and ground preparation held off until a new OFP arrives.
+_Avoid_: shutdown (that is the phase at the end of every leg), end of session
+
 ### Flight phase
 
 **Phase rule**:
