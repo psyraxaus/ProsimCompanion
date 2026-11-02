@@ -97,6 +97,8 @@ public sealed class GsxTriggerSlot : IGsxTriggerSlot, IDisposable
         {
             string busyServiceId;
             var duplicate = false;
+            var duplicateToggle = false;
+            var sentAgo = TimeSpan.Zero;
             await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
             try
             {
@@ -106,9 +108,14 @@ public sealed class GsxTriggerSlot : IGsxTriggerSlot, IDisposable
                     break;
                 }
                 busyServiceId = occupied.ServiceId;
-                duplicate = occupied.Watched
-                    && !request.NoConfirm
-                    && occupied.ServiceId.Equals(request.ServiceId, StringComparison.OrdinalIgnoreCase);
+                // Same service, same kind of send = a duplicate: watched behind watched (issue
+                // #157) and toggle behind a toggle still inside its spacing (issue #225). The
+                // mixed pairs keep waiting — a retraction after a connect, or a connect after
+                // a retraction, is a real second call.
+                duplicate = occupied.ServiceId.Equals(request.ServiceId, StringComparison.OrdinalIgnoreCase)
+                    && occupied.Watched != request.NoConfirm;
+                duplicateToggle = duplicate && request.NoConfirm;
+                sentAgo = DateTimeOffset.UtcNow - occupied.SentAt;
             }
             finally
             {
@@ -118,10 +125,20 @@ public sealed class GsxTriggerSlot : IGsxTriggerSlot, IDisposable
             // A call for the service already in flight is never queued behind itself (issue
             // #157, EFHK 2026-10-04 18:56:44Z): "confirm fuel" released the sequencer's hold,
             // the sequencer sent Refueling, the command's own request waited for the slot and
-            // sent Refueling again 1.5 s later, the moment GSX confirmed the first. Toggle
-            // sends (NoConfirm) keep the wait — a retraction after a connect is a real call.
+            // sent Refueling again 1.5 s later, the moment GSX confirmed the first. A toggle
+            // behind the same toggle (issue #225: four senders can ask for the jetway
+            // retraction within the same seconds — the beacon sequence, the on-final hook, the
+            // stairs-after-departure step and the crew) is refused the same way: the second
+            // send would re-connect what the first just retracted.
             if (duplicate || DateTimeOffset.UtcNow >= deadline)
             {
+                if (duplicateToggle)
+                {
+                    RecordDecision(
+                        $"trigger {request.ServiceId}",
+                        $"duplicate toggle refused — the same toggle went out {sentAgo.TotalSeconds:F1} s ago "
+                        + $"and is still inside its spacing ({request.Source}; issue #225)");
+                }
                 return new(GsxTriggerDispatchStatus.Busy, busyServiceId);
             }
 

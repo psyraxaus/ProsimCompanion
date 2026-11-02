@@ -8,6 +8,7 @@ using ProsimCompanion.Core.Flight;
 using ProsimCompanion.Core.State;
 using ProsimCompanion.Gsx.Gate;
 using ProsimCompanion.Gsx.Services;
+using ProsimCompanion.Gsx.Sync;
 
 namespace ProsimCompanion.Gsx.Automation;
 
@@ -72,7 +73,7 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl, IG
 
     private readonly GroundOpsSignals _groundOpsSignals;
     private readonly OfpStore _ofpStore;
-    private readonly ISimVars? _simVars;
+    private readonly CompanionTrackingLvars _tracking;
     private string? _lastResetPlanId;
     private readonly GsxResyncState _resyncState;
     private readonly FuelConfirmationStore _fuelConfirmation;
@@ -102,11 +103,12 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl, IG
         DepartureCycleLatches latches,
         GsxPaxTargetArmer paxTarget,
         IGsxDecisionLog decisions,
+        CompanionTrackingLvars tracking,
         ILogger<GsxAutomationService> logger,
-        ISimVars? simVars = null,
         Core.Day.DutyDaySignals? dutyDay = null)
     {
-        _simVars = simVars;
+        ArgumentNullException.ThrowIfNull(tracking);
+        _tracking = tracking;
         _dutyDay = dutyDay;
         ArgumentNullException.ThrowIfNull(api);
         ArgumentNullException.ThrowIfNull(slot);
@@ -209,7 +211,7 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl, IG
             _lastResetPlanId = NewPlanCycleReset.PlanId(current) ?? _lastResetPlanId;
             _turnaroundStart.Withdraw();
             _slot.Reset("end of duty — departure cycle cleared");
-            ClearDepartureTracking();
+            var trackingLvars = ClearDepartureTracking();
             _decisions.Record("departure cycle reset", $"end of duty ({ended.Source}) — the departure services wait for a new flight plan");
             _decisions.RecordEvent("gsx-cycle-reset", new
             {
@@ -218,6 +220,7 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl, IG
                 origin = current?.OriginIcao,
                 destination = current?.DestinationIcao,
                 source = ended.Source,
+                trackingLvars,
             });
             Pump();
         }
@@ -254,7 +257,7 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl, IG
             _cycle.BeginTurnaroundCycle();
             _paxTarget.Reset();
             _slot.Reset("new flight plan — departure cycle reset");
-            ClearDepartureTracking();
+            var trackingLvars = ClearDepartureTracking();
             _decisions.Record("departure cycle reset", $"new flight plan {id} ({current?.OriginIcao}→{current?.DestinationIcao}) — the departure services start over for the new leg");
             _decisions.RecordEvent("gsx-cycle-reset", new
             {
@@ -264,6 +267,7 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl, IG
                 destination = current?.DestinationIcao,
                 cycleWasComplete,
                 flightCycleReset = true,
+                trackingLvars,
             });
             // Everything the arrival resets, the new plan resets too (ADR-0019 §6): the gate
             // monitor, the loadsheet editions, the upcall and notification latches, the
@@ -281,31 +285,14 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl, IG
 
     /// <summary>Clears the companion tracking LVARs of the departure one-shots and the
     /// loadsheet editions, so a restart after the reset resyncs to a fresh leg too. The arrival
-    /// side's (deboarding, GPU) stay.</summary>
-    private void ClearDepartureTracking()
+    /// side's (deboarding, GPU) stay. Through the one writer (issue #230): with MSFS down the
+    /// clear waits in its queue for the SimConnect connected edge instead of being lost — the
+    /// direct writes this replaced cleared nothing, and the next restart resynced to the OLD
+    /// leg's progress. Returns what the cycle-reset event says about it.</summary>
+    private string ClearDepartureTracking()
     {
-        if (_simVars is null)
-        {
-            return;
-        }
-
-        _ = Task.Run(async () =>
-        {
-            try
-            {
-                foreach (var serviceId in NewPlanCycleReset.DepartureServices)
-                {
-                    await _simVars.WriteAsync(CompanionLvarNames.ServiceDone(serviceId).Name, 0).ConfigureAwait(false);
-                }
-
-                await _simVars.WriteAsync(CompanionLvarNames.LoadsheetPrelimEdition.Name, 0).ConfigureAwait(false);
-                await _simVars.WriteAsync(CompanionLvarNames.LoadsheetFinalSent.Name, 0).ConfigureAwait(false);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogDebug(ex, "Clearing the departure tracking LVARs failed");
-            }
-        });
+        _ = _tracking.ClearDepartureSideAsync();
+        return _tracking.IsSimConnected ? "cleared" : "queued until MSFS connects";
     }
 
     /// <summary>The startup resync finished: adopt the recovered turnaround flag (the

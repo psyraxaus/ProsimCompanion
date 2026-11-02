@@ -371,4 +371,96 @@ public sealed class GsxTriggerSlotTests : IDisposable
 
         Assert.True(changes >= 1);
     }
+
+    private static async Task WaitForFreeSlotAsync(GsxTriggerSlot slot)
+    {
+        var deadline = DateTimeOffset.UtcNow + TimeSpan.FromSeconds(10);
+        while (slot.InFlightServiceId is not null && DateTimeOffset.UtcNow < deadline)
+        {
+            await Task.Delay(100);
+        }
+        Assert.Null(slot.InFlightServiceId);
+    }
+
+    /// <summary>Issue #225: the jetway/stairs retraction is a NoConfirm toggle with four senders
+    /// (beacon sequence, on-final hook, stairs-after-departure, the crew). A second toggle for
+    /// the same service while the first is still inside its spacing would re-connect what the
+    /// first just retracted — it is refused at once, like the watched duplicate of #157.</summary>
+    [Fact]
+    public async Task SameToggleInsideSpacing_IsBusyAtOnce_AndNeverSentTwice()
+    {
+        using var slot = CreateSlot();
+        await slot.TryDispatchAsync(
+            new GsxTriggerRequest("OperateJetways", "jetway/stairs removal") { NoConfirm = true });
+
+        var started = DateTimeOffset.UtcNow;
+        var second = await slot.TryDispatchAsync(
+            new GsxTriggerRequest("operatejetways", "jetway/stairs removal")
+            {
+                NoConfirm = true,
+                SlotWait = TimeSpan.FromSeconds(8),
+            });
+
+        Assert.Equal(GsxTriggerDispatchStatus.Busy, second.Status);
+        Assert.Equal("OperateJetways", second.BusyServiceId);
+        Assert.True(DateTimeOffset.UtcNow - started < TimeSpan.FromSeconds(1.5), "the duplicate toggle must not wait for the slot");
+        Assert.Equal(["OperateJetways"], _sentServices);
+    }
+
+    /// <summary>Once the spacing has run, the same toggle is a genuine second call again (the
+    /// latch that stops a same-cycle repeat lives in the jetway service, not here).</summary>
+    [Fact]
+    public async Task SameToggleAfterSpacing_IsSentAgain()
+    {
+        using var slot = CreateSlot();
+        await slot.TryDispatchAsync(
+            new GsxTriggerRequest("OperateJetways", "jetway/stairs removal") { NoConfirm = true });
+        await WaitForFreeSlotAsync(slot);
+
+        var second = await slot.TryDispatchAsync(
+            new GsxTriggerRequest("OperateJetways", "jetway/stairs removal") { NoConfirm = true, SlotWait = TimeSpan.Zero });
+
+        Assert.Equal(GsxTriggerDispatchStatus.Dispatched, second.Status);
+        Assert.Equal(["OperateJetways", "OperateJetways"], _sentServices);
+    }
+
+    /// <summary>A different toggle behind a toggle is the jetway+stairs pair: it waits out the
+    /// spacing and goes.</summary>
+    [Fact]
+    public async Task DifferentToggleInsideSpacing_WaitsForTheSlot_ThenSends()
+    {
+        using var slot = CreateSlot();
+        await slot.TryDispatchAsync(
+            new GsxTriggerRequest("OperateJetways", "jetway/stairs removal") { NoConfirm = true });
+
+        var second = await slot.TryDispatchAsync(
+            new GsxTriggerRequest("OperateStairs", "jetway/stairs removal")
+            {
+                NoConfirm = true,
+                SlotWait = TimeSpan.FromSeconds(8),
+            });
+
+        Assert.Equal(GsxTriggerDispatchStatus.Dispatched, second.Status);
+        Assert.Equal(["OperateJetways", "OperateStairs"], _sentServices);
+    }
+
+    /// <summary>The mixed pair the other way round: a watched connect behind the same service's
+    /// toggle is a real second call and keeps the wait (the #157 guard is watched-behind-watched
+    /// only; the #225 guard is toggle-behind-toggle only).</summary>
+    [Fact]
+    public async Task WatchedSend_BehindTheSameToggle_StillWaitsForTheSlot()
+    {
+        using var slot = CreateSlot();
+        await slot.TryDispatchAsync(
+            new GsxTriggerRequest("OperateJetways", "jetway/stairs removal") { NoConfirm = true });
+
+        var connect = await slot.TryDispatchAsync(new GsxTriggerRequest("OperateJetways", "jetway/stairs connect")
+        {
+            ConfirmWindow = TimeSpan.FromSeconds(5),
+            SlotWait = TimeSpan.FromSeconds(8),
+        });
+
+        Assert.Equal(GsxTriggerDispatchStatus.Dispatched, connect.Status);
+        Assert.Equal(["OperateJetways", "OperateJetways"], _sentServices);
+    }
 }

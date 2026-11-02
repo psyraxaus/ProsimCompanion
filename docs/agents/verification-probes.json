@@ -4897,6 +4897,61 @@
         "requires-human: the FO's small-talk line about the view at an overnight cruise did not sound like a morning remark."
       ],
       "notes": "Fixed 2026-11-03 (issue #229, audit-speech finding 9 / B10). Core TimeOfDayGreeting: IsMorning(TimeSpan) (Word == Morning), Phrase(word) ('Good ' + word), constants Morning/Afternoon/Evening; CruiseSmallTalkService.IsLocalMorning (pure, internal) replaces the 'TotalHours < 12' test; BriefingComposer.Opening, SystemPrompt and FixGreeting compose through Phrase; FoRosterVoiceFeature already took its word from TimeOfDayGreeting.Word (its casual 'Morning captain' form is unchanged). Tests: SimLocalTimeTests (band edges minute-exact, Phrase), SmallTalkCoreTests (IsLocalMorning at every edge, null clock). Companion to briefing-greeting-sim-clock (2026-10-29), which covers the briefing alone. Unverified live."
+    },
+    {
+      "id": "gsx-toggle-retraction-once",
+      "issue": 225,
+      "state": "open",
+      "kind": "assert-absent",
+      "machine": {
+        "kind": "duplicate-within",
+        "type": "gsx-decision",
+        "key": "action",
+        "windowSeconds": 80,
+        "where": {
+          "reason": "requested by jetway/stairs removal"
+        }
+      },
+      "sources": [
+        "session",
+        "log",
+        "wire"
+      ],
+      "checks": [
+        "assert-absent: two 'gsx-decision' events with the same action ('trigger OperateJetways' / 'trigger OperateStairs') and the reason 'requested by jetway/stairs removal' within 80 s — one retraction toggle per service per departure cycle, whichever of the four senders asked (beacon pushback sequence, on-final hook, stairs-after-departure step, the crew's 'retract jetway/stairs'). A second toggle re-connects what the first just retracted. A repeat 90 s or more after the first with the service STILL reading connected is the documented re-arm (GSX never acted on the first) — report it with the mirror state, not as a fail.",
+        "When two senders did collide, the loser is visible: a 'GSX jetway/stairs: <service> retraction already sent N s ago — not toggling again for <source> (a second toggle would re-connect it; issue #225)' log line (the jetway service's per-cycle latch), or a 'trigger <service> — duplicate toggle refused — the same toggle went out N s ago and is still inside its spacing' gsx-decision (the slot's spacing guard). Either is the fix working; quote which sender lost and how many seconds apart they were.",
+        "Voice/command: 'retract jetway' / 'retract stairs' behind a retraction already sent answers AlreadySatisfied 'The <jetway|stairs> retraction is already under way — give GSX a moment.' (gsx.retractJetway / gsx.retractStairs outcome in the log) — never a second service.trigger. With the wire trace on: exactly one service.trigger {\"service\":\"OperateJetways\"} (and one for OperateStairs) per retraction.",
+        "assert-absent (the double-fire signature itself): after a 'departure — retracting OperateJetways' decision, the mirror's OperateJetways returning to Active/Completed without any 'connecting OperateJetways' / 'jetway/stairs connect' decision in between — the jetway came back ON during the sequence.",
+        "assert-absent: a 'departure — retracting <service>' or 'departure services complete — removing stairs' decision followed by the LATCH refusal for the same service in the SAME call chain with no earlier send that cycle (a latch that never released: look for the 'retraction latch released' / 'latch cleared' debug lines after the previous leg's arrival).",
+        "requires-human: the jetway visibly retracts once and stays retracted through the pushback; the FO/crew answer to a redundant 'retract jetway' is the 'already under way' line, not silence."
+      ],
+      "notes": "Shipped 2026-11-03 (#225, from the 2026-11-03 GSX audit A1 item 5). Two layers: GsxTriggerSlot refuses a NoConfirm (toggle) send for the service whose toggle still holds the slot inside its 2 s spacing (Busy at once, like the #157 watched duplicate; mixed watched/toggle pairs still wait), and GsxJetwayStairsService holds one per-cycle 'retraction sent' latch per service in front of the slot (IGsxJetwayRetraction — GsxServiceControl's retract commands now go through it instead of a WATCHED slot call). The latch is reserved before the slot wait, released when the slot refused/rejected, when the mirror shows the service no longer Active/Completed, on a connect of that service, a new gate context, a GSX restart (sid change) or the flight-cycle reset, and re-arms after 90 s as a safety valve. The slot's send decision keeps the literal reason 'requested by jetway/stairs removal' for every retraction sender — this probe matches it exactly. Unverified live."
+    },
+    {
+      "id": "gsx-new-plan-tracking-clear",
+      "issue": 230,
+      "state": "open",
+      "kind": "assert-present",
+      "machine": {
+        "kind": "required-fields",
+        "type": "gsx-cycle-reset",
+        "fields": [
+          "reason",
+          "trackingLvars"
+        ]
+      },
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "Trigger = a 'gsx-cycle-reset' event (reason 'new flight plan' or 'end of duty'). Behaviour = the event carries trackingLvars = 'cleared' (SimConnect was connected when the clear was issued) or 'queued until MSFS connects'. A gsx-cycle-reset without the field is a build before this fix.",
+        "When trackingLvars reads 'queued until MSFS connects' (the #230 case — the plan landed while MSFS was down or restarting): the CMTrace log shows 'Tracking LVARs new-leg clear: 9 of 9 write(s) queued until MSFS connects' and, once SimConnect reports connected, 'SimConnect is back — flushing N queued tracking LVAR write(s)' — the clear is applied then, not lost. assert-absent: a session with the queued value and no later flush line while SimConnect did connect (the SimConnect Connected status change in the log).",
+        "assert-absent: after a new-plan / end-of-duty reset, the first startup-resync assessment of a later app restart seeding a departure one-shot of the OLD leg — a '<Refueling|Catering|Boarding|Water|Lavatory|Cleaning|DeIce> treated as completed' decision backed by the done-LVAR for the plan that was reset. (The 'treated as completed' reason names the evidence; quote it.)",
+        "The arrival side stays: a 'new flight plan' cycle reset is followed by a 'new-leg clear' tracking line, never an 'arrival reset' one (TURNAROUND and PREP_DONE untouched), and an app restart after it still reads 'turnaround leg detected from tracking LVARs' and 'ground preparation fast-forwarded'.",
+        "When trackingLvars reads 'cleared': the 'Tracking LVARs new-leg clear: 9 write(s) done' debug line follows within a second (Debug level needed to see it)."
+      ],
+      "notes": "Shipped 2026-11-03 (#230, audit B10): CompanionTrackingLvars is the one writer of the companion tracking LVARs — it owns the MSFS-down queue (latest value per LVAR), the SimConnect connected-edge flush and the three bulk resets (ResetForArrivalAsync, ClearAllAsync, ClearDepartureSideAsync); GsxStartupResyncService and GsxAutomationService both call it. Before, GsxAutomationService.ClearDepartureTracking wrote the LVARs directly, so a different plan while SimConnect was down cleared nothing. The trackingLvars field on gsx-cycle-reset is NEW in this change (both the new-plan and the end-of-duty event carry it). LoadsheetService (Prosim project) still writes the two loadsheet LVARs directly for its own edition counters — out of this change's scope. Unverified live."
     }
   ]
 }

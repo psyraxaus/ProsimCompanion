@@ -44,6 +44,9 @@ public sealed class GsxServiceControlTests
     // answers "started" unless a test says otherwise; the ProSim GPU seam records its calls.
     private readonly Mock<IGsxDepartureStarter> _departure = new();
     private readonly Mock<IGroundPowerEquipment> _groundPower = new();
+
+    // Issue #225: retractions go through the jetway service's latch, never the slot directly.
+    private readonly Mock<IGsxJetwayRetraction> _retraction = new();
     private double _fob;
     private double _plannedFuelKg;
     private Dictionary<string, double> _overrides = new(StringComparer.OrdinalIgnoreCase);
@@ -99,6 +102,9 @@ public sealed class GsxServiceControlTests
         _groundPower
             .Setup(g => g.DisconnectGpuAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync((GroundPowerResult.Written, "Ground power disconnected."));
+        _retraction
+            .Setup(r => r.RetractAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new GsxTriggerDispatch(GsxTriggerDispatchStatus.Dispatched));
 
         return new GsxServiceControl(
             _api.Object,
@@ -118,6 +124,7 @@ public sealed class GsxServiceControlTests
             options.Object,
             _departure.Object,
             _groundPower.Object,
+            _retraction.Object,
             NullLogger<GsxServiceControl>.Instance);
     }
 
@@ -350,6 +357,8 @@ public sealed class GsxServiceControlTests
         _dispatcher.VerifyNoOtherCalls();
     }
 
+    /// <summary>Issue #225: the crew's retraction goes through the jetway service's latch (the
+    /// one retraction path), never straight to the slot as a watched call.</summary>
     [Fact]
     public async Task RetractJetway_Connected_TriggersTheToggle()
     {
@@ -359,9 +368,26 @@ public sealed class GsxServiceControlTests
         var outcome = await control.TryCallAsync(GsxServiceAction.RetractJetway);
 
         Assert.Equal(GsxServiceCallStatus.Called, outcome.Status);
-        _dispatcher.Verify(
-            d => d.TryDispatchAsync(It.Is<GsxTriggerRequest>(r => r.ServiceId == "OperateJetways"), It.IsAny<CancellationToken>()),
-            Times.Once);
+        _retraction.Verify(r => r.RetractAsync("OperateJetways", It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
+        _dispatcher.VerifyNoOtherCalls();
+    }
+
+    /// <summary>Issue #225: "retract jetway" the moment the departure sequence already sent the
+    /// retraction is answered as already under way — the toggle is not sent a second time.</summary>
+    [Fact]
+    public async Task RetractJetway_AlreadySentThisCycle_IsAlreadySatisfied()
+    {
+        var control = CreateControl();
+        SeedService("OperateJetways", "completed");
+        _retraction
+            .Setup(r => r.RetractAsync("OperateJetways", It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new GsxTriggerDispatch(GsxTriggerDispatchStatus.Busy, "OperateJetways"));
+
+        var outcome = await control.TryCallAsync(GsxServiceAction.RetractJetway);
+
+        Assert.Equal(GsxServiceCallStatus.AlreadySatisfied, outcome.Status);
+        Assert.Contains("already under way", outcome.Detail);
+        _dispatcher.VerifyNoOtherCalls();
     }
 
     [Theory]

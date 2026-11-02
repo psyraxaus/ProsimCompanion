@@ -15,20 +15,36 @@ namespace ProsimCompanion.Gsx.Sync;
 /// session, during ground preparation. State is checked first so an already-connected jetway is
 /// never toggled (the trigger is a toggle!): a mirror state of Completed/Active counts as
 /// connected, and the raw GSX LVARs are decision-logged alongside every decision so their live
-/// semantics accumulate for refinement.
+/// semantics accumulate for refinement. It is also the one retraction path
+/// (<see cref="IGsxJetwayRetraction"/>, issue #225): every sender's retraction passes the
+/// per-cycle "retraction sent" latch here before it reaches the trigger slot.
 /// </summary>
-public sealed class GsxJetwayStairsService : IDisposable
+public sealed class GsxJetwayStairsService : IGsxJetwayRetraction, IDisposable
 {
     private const string JetwayServiceId = GsxServiceIds.OperateJetways;
     private const string StairsServiceId = GsxServiceIds.OperateStairs;
+
+    /// <summary>The slot request source of every retraction, whoever asked for it. Kept
+    /// literal: the verification probe for issue #225 matches the slot's "requested by
+    /// jetway/stairs removal" decision exactly.</summary>
+    private const string RemovalSource = "jetway/stairs removal";
 
     /// <summary>Connect confirm window — deliberately longer than the shared default: GSX has
     /// been observed taking 15 s+ to surface a jetway edge at busy airports, and the fallback
     /// (try the other service) must not fire while the first is still plausibly coming.</summary>
     private static readonly TimeSpan ConnectConfirmWindow = TimeSpan.FromSeconds(20);
 
+    /// <summary>How long a sent retraction keeps refusing another for the same service while
+    /// the mirror still reads it connected. The latch is per cycle — it clears when the mirror
+    /// shows the equipment gone, on a connect, a new gate, a GSX restart or the flight-cycle
+    /// reset — and this is only its safety valve: a retraction GSX evidently never performed
+    /// (service still connected this long after the send) may be asked for again, so a
+    /// dropped toggle cannot leave the jetway attached until the next leg.</summary>
+    private static readonly TimeSpan RetractionRepeatGuard = TimeSpan.FromSeconds(90);
+
     private readonly IGsxRemoteApi _api;
     private readonly IGsxTriggerSlot _slot;
+    private readonly GroundOpsSignals _signals;
     private readonly IOptionsMonitor<GsxOptions> _options;
     private readonly GsxDiagnosticsStore _diagnostics;
     private readonly ILogger<GsxJetwayStairsService> _logger;
@@ -42,6 +58,12 @@ public sealed class GsxJetwayStairsService : IDisposable
     private bool _fallbackTried;
     private int _checking;
 
+    /// <summary>When a retraction toggle was last reserved per service this cycle (issue #225).
+    /// Reserved BEFORE the slot wait so two senders arriving together are serialised here, and
+    /// released when the slot refused or rejected the send.</summary>
+    private readonly Dictionary<string, DateTimeOffset> _retractionSentAt = new(StringComparer.OrdinalIgnoreCase);
+    private readonly object _retractionGate = new();
+
     /// <summary>L:FSDT_GSX_JETWAY value meaning "no jetway exists at this position" — live GSX 4
     /// session 2026-08-02: a remote stand read jetway=2 while the mirror still offered a
     /// (non-functional) OperateJetways service.</summary>
@@ -51,6 +73,7 @@ public sealed class GsxJetwayStairsService : IDisposable
         IGsxRemoteApi api,
         IGsxTriggerSlot slot,
         ISimVars simVars,
+        GroundOpsSignals signals,
         IOptionsMonitor<GsxOptions> options,
         GsxDiagnosticsStore diagnostics,
         ILogger<GsxJetwayStairsService> logger)
@@ -58,12 +81,14 @@ public sealed class GsxJetwayStairsService : IDisposable
         ArgumentNullException.ThrowIfNull(api);
         ArgumentNullException.ThrowIfNull(slot);
         ArgumentNullException.ThrowIfNull(simVars);
+        ArgumentNullException.ThrowIfNull(signals);
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(diagnostics);
         ArgumentNullException.ThrowIfNull(logger);
 
         _api = api;
         _slot = slot;
+        _signals = signals;
         _options = options;
         _diagnostics = diagnostics;
         _logger = logger;
@@ -74,18 +99,62 @@ public sealed class GsxJetwayStairsService : IDisposable
         _operateStairsState = simVars.Subscribe(GsxLvarNames.OperateStairsState);
 
         _api.Mirror.SidChanged += OnSidChanged;
+        _api.Mirror.Updated += OnMirrorUpdated;
+        _signals.FlightCycleReset += OnFlightCycleReset;
     }
 
     public void Dispose()
     {
         _api.Mirror.SidChanged -= OnSidChanged;
+        _api.Mirror.Updated -= OnMirrorUpdated;
+        _signals.FlightCycleReset -= OnFlightCycleReset;
         _jetwayLvar.Dispose();
         _stairsLvar.Dispose();
         _operateJetwaysState.Dispose();
         _operateStairsState.Dispose();
     }
 
-    private void OnSidChanged(string? oldSid, string? newSid) => _handledGateKey = null;
+    private void OnSidChanged(string? oldSid, string? newSid)
+    {
+        _handledGateKey = null;
+        ClearRetractionLatch("GSX restarted");
+    }
+
+    /// <summary>The arrival boundary or a new plan at the stand: the next cycle's retraction
+    /// is a new one.</summary>
+    private void OnFlightCycleReset() => ClearRetractionLatch("flight cycle reset");
+
+    /// <summary>The evidence-based release of the latch: once the mirror no longer reads a
+    /// latched service as connected, the retraction took effect (or the service went away) and
+    /// a later retraction — after a re-connect — is legitimate again.</summary>
+    private void OnMirrorUpdated(string mirrorEntry)
+    {
+        if (!string.Equals(mirrorEntry, "services", StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        List<string>? released = null;
+        var services = _api.Mirror.Services;
+        lock (_retractionGate)
+        {
+            foreach (var serviceId in _retractionSentAt.Keys.ToList())
+            {
+                if (services.GetValueOrDefault(serviceId)?.State is not (GsxServiceState.Active or GsxServiceState.Completed))
+                {
+                    _retractionSentAt.Remove(serviceId);
+                    (released ??= []).Add(serviceId);
+                }
+            }
+        }
+
+        if (released is not null)
+        {
+            _logger.LogDebug(
+                "Jetway/stairs retraction latch released for {Services} — the mirror no longer reads them connected",
+                string.Join(", ", released));
+        }
+    }
 
     /// <summary>One coordinator-driven attempt — step 4 of ground prep (after GPU/chocks).
     /// Done when connected, disabled, given up, or nothing to connect; Pending while a trigger
@@ -130,6 +199,7 @@ public sealed class GsxJetwayStairsService : IDisposable
                 _handledGateKey = null;
                 _pendingServiceId = null;
                 _fallbackTried = false;
+                ClearRetractionLatch("new gate context");
             }
 
             // A dispatched connect resolves via the trigger slot's watcher (OnConnectResolved)
@@ -267,7 +337,7 @@ public sealed class GsxJetwayStairsService : IDisposable
         RecordDecision(
             "jetway/stairs",
             $"departure services complete — removing stairs ({mode}{(jetwayConnected ? ", jetway stays" : "")})");
-        await DispatchRemovalAsync(StairsServiceId).ConfigureAwait(false);
+        await DispatchRemovalAsync(StairsServiceId, "departure services complete").ConfigureAwait(false);
     }
 
     /// <summary>Retracts whatever is connected (the departure-sequence jetway step). The
@@ -283,7 +353,7 @@ public sealed class GsxJetwayStairsService : IDisposable
             {
                 removedAny = true;
                 RecordDecision("jetway/stairs", $"departure — retracting {serviceId}");
-                await DispatchRemovalAsync(serviceId).ConfigureAwait(false);
+                await DispatchRemovalAsync(serviceId, "departure sequence").ConfigureAwait(false);
             }
         }
         if (!removedAny)
@@ -292,27 +362,106 @@ public sealed class GsxJetwayStairsService : IDisposable
         }
     }
 
-    /// <summary>Toggle retraction through the slot: NoConfirm (the confirming edge for a
-    /// retraction is the service LEAVING Active/Completed — the connect predicate would lie),
-    /// with the slot's spacing interval separating a jetway+stairs pair that used to go out
-    /// back-to-back with zero gap. The long slot wait matters: this can be step 2 of the
-    /// beacon pushback sequence, and skipping it risks pushing with the jetway attached.</summary>
-    private async Task DispatchRemovalAsync(string serviceId)
+    /// <inheritdoc />
+    public Task<GsxTriggerDispatch> RetractAsync(string serviceId, string source, CancellationToken cancellationToken = default)
     {
-        var dispatch = await _slot
-            .TryDispatchAsync(new GsxTriggerRequest(serviceId, "jetway/stairs removal")
-            {
-                NoConfirm = true,
-                SlotWait = TimeSpan.FromSeconds(10),
-            })
-            .ConfigureAwait(false);
+        ArgumentException.ThrowIfNullOrWhiteSpace(serviceId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(source);
+        RecordDecision("jetway/stairs", $"{source} — retracting {serviceId}");
+        return DispatchRemovalAsync(serviceId, source, cancellationToken);
+    }
+
+    /// <summary>Toggle retraction through the latch and the slot: NoConfirm (the confirming
+    /// edge for a retraction is the service LEAVING Active/Completed — the connect predicate
+    /// would lie), with the slot's spacing interval separating a jetway+stairs pair that used
+    /// to go out back-to-back with zero gap. The long slot wait matters: this can be step 2 of
+    /// the beacon pushback sequence, and skipping it risks pushing with the jetway attached.
+    /// The latch (issue #225) makes the four senders one: the first to ask sends, the others
+    /// are told the retraction is already on its way (Busy naming the same service).</summary>
+    private async Task<GsxTriggerDispatch> DispatchRemovalAsync(
+        string serviceId,
+        string source,
+        CancellationToken cancellationToken = default)
+    {
+        if (!TryReserveRetraction(serviceId, out var sentAgo))
+        {
+            RecordDecision(
+                "jetway/stairs",
+                $"{serviceId} retraction already sent {sentAgo.TotalSeconds:F0} s ago — not toggling again for {source} "
+                + "(a second toggle would re-connect it; issue #225)");
+            return new(GsxTriggerDispatchStatus.Busy, serviceId);
+        }
+
+        GsxTriggerDispatch dispatch;
+        try
+        {
+            dispatch = await _slot
+                .TryDispatchAsync(
+                    new GsxTriggerRequest(serviceId, RemovalSource)
+                    {
+                        NoConfirm = true,
+                        SlotWait = TimeSpan.FromSeconds(10),
+                    },
+                    cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch
+        {
+            ReleaseRetraction(serviceId);
+            throw;
+        }
+
         if (dispatch.Status != GsxTriggerDispatchStatus.Dispatched)
         {
+            // Nothing went out — the latch must not stand in the way of the next attempt.
+            ReleaseRetraction(serviceId);
             RecordDecision(
                 "jetway/stairs",
                 dispatch.Status == GsxTriggerDispatchStatus.Busy
                     ? $"{serviceId} retraction NOT sent — trigger slot stayed busy with {dispatch.BusyServiceId ?? "another service"}"
                     : $"{serviceId} retraction rejected ({dispatch.RejectCode})");
+        }
+
+        return dispatch;
+    }
+
+    private bool TryReserveRetraction(string serviceId, out TimeSpan sentAgo)
+    {
+        var now = DateTimeOffset.UtcNow;
+        lock (_retractionGate)
+        {
+            if (_retractionSentAt.TryGetValue(serviceId, out var sentAt) && now - sentAt < RetractionRepeatGuard)
+            {
+                sentAgo = now - sentAt;
+                return false;
+            }
+
+            _retractionSentAt[serviceId] = now;
+            sentAgo = TimeSpan.Zero;
+            return true;
+        }
+    }
+
+    private void ReleaseRetraction(string serviceId)
+    {
+        lock (_retractionGate)
+        {
+            _retractionSentAt.Remove(serviceId);
+        }
+    }
+
+    private void ClearRetractionLatch(string reason)
+    {
+        int cleared;
+        lock (_retractionGate)
+        {
+            cleared = _retractionSentAt.Count;
+            _retractionSentAt.Clear();
+        }
+
+        if (cleared > 0)
+        {
+            _logger.LogDebug("Jetway/stairs retraction latch cleared ({Count}) — {Reason}", cleared, reason);
         }
     }
 
@@ -320,6 +469,9 @@ public sealed class GsxJetwayStairsService : IDisposable
     {
         var gateKey = _currentGateKey ?? string.Empty;
         _pendingServiceId = serviceId;
+        // A connect re-arms the retraction for this service: whatever was sent before is the
+        // previous connection's.
+        ReleaseRetraction(serviceId);
         _ = DispatchConnectAsync(serviceId, gateKey);
     }
 

@@ -51,6 +51,7 @@ public sealed class GsxServiceControl : IGsxServiceControl, IDisposable
     private readonly GroundOpsSignals _groundOpsSignals;
     private readonly IGsxDepartureStarter _departure;
     private readonly IGroundPowerEquipment _groundPower;
+    private readonly IGsxJetwayRetraction _jetwayRetraction;
     private readonly ILogger<GsxServiceControl> _logger;
     private readonly IDataRefSubscription<double> _jetwayLvar;
     private readonly IDataRefSubscription<double> _fuelTotal;
@@ -74,12 +75,15 @@ public sealed class GsxServiceControl : IGsxServiceControl, IDisposable
         IOptionsMonitor<GsxOptions> options,
         IGsxDepartureStarter departure,
         IGroundPowerEquipment groundPower,
+        IGsxJetwayRetraction jetwayRetraction,
         ILogger<GsxServiceControl> logger)
     {
         ArgumentNullException.ThrowIfNull(departure);
         ArgumentNullException.ThrowIfNull(groundPower);
+        ArgumentNullException.ThrowIfNull(jetwayRetraction);
         _departure = departure;
         _groundPower = groundPower;
+        _jetwayRetraction = jetwayRetraction;
         ArgumentNullException.ThrowIfNull(api);
         ArgumentNullException.ThrowIfNull(lifecycle);
         ArgumentNullException.ThrowIfNull(slot);
@@ -556,7 +560,29 @@ public sealed class GsxServiceControl : IGsxServiceControl, IDisposable
                 $"GSX cannot retract the {display} right now — use the GSX gate menu.");
         }
 
-        return await DispatchAsync(serviceId, display, cancellationToken).ConfigureAwait(false);
+        // One retraction owner (issue #225): the jetway service holds the per-cycle
+        // "retraction sent" latch it shares with the beacon sequence, the on-final hook and
+        // the stairs-after-departure step, so the crew's "retract jetway" at the same moment
+        // never toggles a retraction already on its way back ON. (Before this the command
+        // went out as a WATCHED call — the connect predicate read the still-connected service
+        // as "confirmed" at once, and a retry-once could re-fire it.)
+        var dispatch = await _jetwayRetraction
+            .RetractAsync(serviceId, CallSource, cancellationToken)
+            .ConfigureAwait(false);
+        return dispatch.Status switch
+        {
+            GsxTriggerDispatchStatus.Dispatched => new(
+                GsxServiceCallStatus.Called,
+                $"{Capitalize(display)} retracting — GSX has the request."),
+            GsxTriggerDispatchStatus.Busy when string.Equals(
+                    dispatch.BusyServiceId, serviceId, StringComparison.OrdinalIgnoreCase)
+                => new(GsxServiceCallStatus.AlreadySatisfied, $"The {display} retraction is already under way — give GSX a moment."),
+            GsxTriggerDispatchStatus.Busy => new(
+                GsxServiceCallStatus.NotCallable,
+                $"Waiting for GSX to confirm {dispatch.BusyServiceId ?? "another service"} — "
+                + "one call goes out at a time; try again in a few seconds."),
+            _ => new(GsxServiceCallStatus.Rejected, $"GSX rejected the call ({dispatch.RejectCode ?? "unknown"})."),
+        };
     }
 
     private async Task<GsxServiceCallOutcome> DispatchAsync(

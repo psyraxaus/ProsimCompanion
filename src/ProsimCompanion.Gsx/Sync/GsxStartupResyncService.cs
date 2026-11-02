@@ -207,9 +207,10 @@ public static class GsxStartupResync
 }
 
 /// <summary>
-/// Owns the companion tracking LVARs and the one-shot startup resync (issue #30). Forward
-/// direction: lifecycle completions, the turnaround boundary and ground-prep completion are
-/// written into <see cref="CompanionLvarNames"/> LVARs as they happen. Startup direction: once
+/// The one-shot startup resync (issue #30) and the forward direction of the tracking LVARs.
+/// Forward direction: lifecycle completions, the turnaround boundary and ground-prep
+/// completion are written through <see cref="CompanionTrackingLvars"/> (the one writer, which
+/// owns the MSFS-down queue) as they happen. Startup direction: once
 /// GSX's world is known (Ready + populated mirror), the LVARs and the restart-surviving
 /// datarefs are assessed ONCE, proven/assumed services are seeded into the lifecycle tracker,
 /// ground prep is fast-forwarded, and <see cref="GsxResyncState"/> is published — the
@@ -224,34 +225,17 @@ public sealed class GsxStartupResyncService : IDisposable
     private static readonly TimeSpan TickInterval = TimeSpan.FromSeconds(5);
     private static readonly TimeSpan AssessmentTimeout = TimeSpan.FromSeconds(90);
 
-    /// <summary>The one-shot services whose done-LVARs are subscribed up front (config can
-    /// reorder/skip them, but the id vocabulary is fixed by GSX).</summary>
-    private static readonly string[] TrackedServices =
-    [
-        GsxServiceIds.Refueling, GsxServiceIds.Catering, GsxServiceIds.Boarding,
-        GsxServiceIds.Deboarding, GsxServiceIds.Water, GsxServiceIds.Lavatory,
-        GsxServiceIds.Cleaning, GsxServiceIds.Gpu, GsxServiceIds.DeIce,
-    ];
-
     private readonly IGsxRemoteApi _api;
     private readonly GsxServiceLifecycleTracker _lifecycle;
     private readonly GsxGroundPrepCoordinator _groundPrep;
-    private readonly ISimVars _simVars;
     private readonly SimSessionStore _simSession;
     private readonly GsxResyncState _resyncState;
     private readonly Core.Flight.ILegBoundaryRecovery? _legBoundary;
     private readonly GroundOpsSignals _signals;
-    private readonly ConnectionStatusStore _connectionStatus;
+    private readonly CompanionTrackingLvars _tracking;
     private readonly IOptionsMonitor<GsxOptions> _options;
     private readonly GsxDiagnosticsStore _diagnostics;
     private readonly ILogger<GsxStartupResyncService> _logger;
-
-    /// <summary>Tracking-LVAR writes that failed because MSFS was not connected, latest value
-    /// per LVAR (issue #76 item 2: a dropped write here silently corrupts the NEXT restart's
-    /// resync evidence). Flushed when SimConnect reports connected again.</summary>
-    private readonly Dictionary<string, double> _pendingLvarWrites = new(StringComparer.OrdinalIgnoreCase);
-    private readonly object _pendingGate = new();
-    private bool _simConnectWasConnected;
 
     private readonly Dictionary<string, IDataRefSubscription<double>> _serviceDoneLvars =
         new(StringComparer.OrdinalIgnoreCase);
@@ -283,7 +267,7 @@ public sealed class GsxStartupResyncService : IDisposable
         IProsimDataRefs prosim,
         GsxResyncState resyncState,
         GroundOpsSignals signals,
-        ConnectionStatusStore connectionStatus,
+        CompanionTrackingLvars tracking,
         IOptionsMonitor<GsxOptions> options,
         GsxDiagnosticsStore diagnostics,
         ILogger<GsxStartupResyncService> logger,
@@ -297,7 +281,7 @@ public sealed class GsxStartupResyncService : IDisposable
         ArgumentNullException.ThrowIfNull(prosim);
         ArgumentNullException.ThrowIfNull(resyncState);
         ArgumentNullException.ThrowIfNull(signals);
-        ArgumentNullException.ThrowIfNull(connectionStatus);
+        ArgumentNullException.ThrowIfNull(tracking);
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(diagnostics);
         ArgumentNullException.ThrowIfNull(logger);
@@ -305,17 +289,16 @@ public sealed class GsxStartupResyncService : IDisposable
         _api = api;
         _lifecycle = lifecycle;
         _groundPrep = groundPrep;
-        _simVars = simVars;
         _simSession = simSession;
         _resyncState = resyncState;
         _signals = signals;
-        _connectionStatus = connectionStatus;
+        _tracking = tracking;
         _options = options;
         _diagnostics = diagnostics;
         _logger = logger;
         _legBoundary = legBoundary;
 
-        foreach (var serviceId in TrackedServices)
+        foreach (var serviceId in CompanionTrackingLvars.TrackedServices)
         {
             _serviceDoneLvars[serviceId] = simVars.Subscribe(CompanionLvarNames.ServiceDone(serviceId));
         }
@@ -338,7 +321,6 @@ public sealed class GsxStartupResyncService : IDisposable
         _signals.FlightCycleReset += OnFlightCycleReset;
         _simSession.SessionEnded += OnSessionEnded;
         _assessWindow = simSession.OpenWindow(AssessmentTimeout);
-        _connectionStatus.Changed += OnConnectionStatusChanged;
         _timer = new Timer(_ => Tick(), null, TickInterval, TickInterval);
     }
 
@@ -349,7 +331,6 @@ public sealed class GsxStartupResyncService : IDisposable
         _signals.FlightCycleReset -= OnFlightCycleReset;
         _simSession.SessionEnded -= OnSessionEnded;
         _assessWindow.Dispose();
-        _connectionStatus.Changed -= OnConnectionStatusChanged;
         foreach (var subscription in _serviceDoneLvars.Values)
         {
             subscription.Dispose();
@@ -373,7 +354,7 @@ public sealed class GsxStartupResyncService : IDisposable
     {
         if (lifecycleEvent == GsxServiceLifecycleEvent.Completed && !GsxServiceIds.IsToggle(serviceId))
         {
-            _ = WriteLvarAsync(CompanionLvarNames.ServiceDone(serviceId).Name, 1);
+            _ = _tracking.MarkServiceDoneAsync(serviceId);
         }
     }
 
@@ -401,17 +382,7 @@ public sealed class GsxStartupResyncService : IDisposable
         // flight assessed "no turnaround" at cruise; the next leg's cold-and-dark check must
         // still see a turnaround, not a fresh start.
         _resyncState.MarkTurnaround();
-        _ = Task.Run(async () =>
-        {
-            await WriteLvarAsync(CompanionLvarNames.Turnaround.Name, 1).ConfigureAwait(false);
-            await WriteLvarAsync(CompanionLvarNames.PrepDone.Name, 0).ConfigureAwait(false);
-            await WriteLvarAsync(CompanionLvarNames.LoadsheetPrelimEdition.Name, 0).ConfigureAwait(false);
-            await WriteLvarAsync(CompanionLvarNames.LoadsheetFinalSent.Name, 0).ConfigureAwait(false);
-            foreach (var serviceId in TrackedServices)
-            {
-                await WriteLvarAsync(CompanionLvarNames.ServiceDone(serviceId).Name, 0).ConfigureAwait(false);
-            }
-        });
+        _ = _tracking.ResetForArrivalAsync();
     }
 
     private void Tick()
@@ -428,7 +399,7 @@ public sealed class GsxStartupResyncService : IDisposable
             if (!_prepLvarLatched && _groundPrep.PrepComplete)
             {
                 _prepLvarLatched = true;
-                _ = WriteLvarAsync(CompanionLvarNames.PrepDone.Name, 1);
+                _ = _tracking.MarkPrepDoneAsync();
             }
         }
         catch (Exception ex)
@@ -555,7 +526,7 @@ public sealed class GsxStartupResyncService : IDisposable
             // completion-edge writer never runs for it. Persisting the verdict makes the NEXT
             // restart resync from the LVARs alone, even after the dataref evidence has moved
             // on (new fuel target, cleared boarding figures).
-            _ = WriteLvarAsync(CompanionLvarNames.ServiceDone(serviceId).Name, 1);
+            _ = _tracking.MarkServiceDoneAsync(serviceId);
         }
 
         if (verdict.SeedPrepComplete)
@@ -595,17 +566,7 @@ public sealed class GsxStartupResyncService : IDisposable
     private void ClearTrackingLvars()
     {
         _prepLvarLatched = false;
-        _ = Task.Run(async () =>
-        {
-            await WriteLvarAsync(CompanionLvarNames.Turnaround.Name, 0).ConfigureAwait(false);
-            await WriteLvarAsync(CompanionLvarNames.PrepDone.Name, 0).ConfigureAwait(false);
-            await WriteLvarAsync(CompanionLvarNames.LoadsheetPrelimEdition.Name, 0).ConfigureAwait(false);
-            await WriteLvarAsync(CompanionLvarNames.LoadsheetFinalSent.Name, 0).ConfigureAwait(false);
-            foreach (var serviceId in TrackedServices)
-            {
-                await WriteLvarAsync(CompanionLvarNames.ServiceDone(serviceId).Name, 0).ConfigureAwait(false);
-            }
-        });
+        _ = _tracking.ClearAllAsync();
     }
 
     /// <summary>Same validity rule as the automation's plan gate: 4 chars, not the MCDU's
@@ -614,71 +575,6 @@ public sealed class GsxStartupResyncService : IDisposable
         => value is { Length: 4 }
             && value != "----"
             && !value.Equals("Null", StringComparison.OrdinalIgnoreCase);
-
-    private async Task WriteLvarAsync(string name, double value)
-    {
-        try
-        {
-            await _simVars.WriteAsync(name, value).ConfigureAwait(false);
-        }
-        catch (InvalidOperationException ex)
-        {
-            // MSFS not connected — queue instead of dropping (issue #76 item 2: the
-            // 2026-08-15 flight lost a service-done write to a SimConnect gap, so the next
-            // restart's resync was missing evidence). Latest value per LVAR wins; the queue
-            // flushes when SimConnect reports connected again.
-            lock (_pendingGate)
-            {
-                _pendingLvarWrites[name] = value;
-            }
-            _logger.LogDebug(
-                "Tracking LVAR write {Name}={Value} queued until MSFS connects: {Reason}",
-                name, value, ex.Message);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Tracking LVAR write {Name}={Value} failed", name, value);
-        }
-    }
-
-    /// <summary>Flushes queued tracking-LVAR writes on the SimConnect disconnected→connected
-    /// edge. A write failing again (connection flapped mid-flush) simply re-queues itself via
-    /// <see cref="WriteLvarAsync"/> for the next edge.</summary>
-    private void OnConnectionStatusChanged(object? sender, EventArgs e)
-    {
-        var connected = _connectionStatus.Snapshot()
-            .Any(pair => pair.Key == Subsystems.SimConnect && pair.Value == ConnectionState.Connected);
-        if (connected == _simConnectWasConnected)
-        {
-            return;
-        }
-        _simConnectWasConnected = connected;
-        if (!connected)
-        {
-            return;
-        }
-
-        KeyValuePair<string, double>[] pending;
-        lock (_pendingGate)
-        {
-            if (_pendingLvarWrites.Count == 0)
-            {
-                return;
-            }
-            pending = [.. _pendingLvarWrites];
-            _pendingLvarWrites.Clear();
-        }
-
-        _logger.LogInformation(
-            "SimConnect is back — flushing {Count} queued tracking LVAR write(s)", pending.Length);
-        _ = Task.Run(async () =>
-        {
-            foreach (var (name, value) in pending)
-            {
-                await WriteLvarAsync(name, value).ConfigureAwait(false);
-            }
-        });
-    }
 
     private void RecordDecision(string reason)
     {

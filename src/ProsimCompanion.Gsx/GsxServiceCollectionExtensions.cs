@@ -79,6 +79,10 @@ public static class GsxServiceCollectionExtensions
         // power" falls back to the ProSim GPU when GSX offers none at the stand.
         services.AddSingleton<Sync.IGroundPowerEquipment>(provider => provider.GetRequiredService<Sync.GsxGroundEquipmentService>());
         services.AddStartupModule<Sync.GsxJetwayStairsService>();
+        // The one retraction path for the jetway/stairs toggles (issue #225): the beacon
+        // sequence, the on-final hook, the stairs-after-departure step AND the crew's
+        // "retract jetway" share its per-cycle "retraction sent" latch.
+        services.AddSingleton<Sync.IGsxJetwayRetraction>(provider => provider.GetRequiredService<Sync.GsxJetwayStairsService>());
         services.AddStartupModule<Sync.GsxRepositionService>();
         services.AddSingleton<Sync.GsxGateAnchorService>();
         services.AddSingleton<Sync.GsxParkingWakeService>();
@@ -111,6 +115,10 @@ public static class GsxServiceCollectionExtensions
         services.AddStartupModule<Sync.GsxSimbriefReloadService>();
         services.AddSingleton<Core.State.IGsxSimbriefReloadControl>(
             provider => provider.GetRequiredService<Sync.GsxSimbriefReloadService>());
+        // The one writer of the companion tracking LVARs (issue #230): owns the MSFS-down
+        // queue and the three bulk resets, shared by the resync and the automation's
+        // new-plan / end-of-duty clears.
+        services.AddSingleton<Sync.CompanionTrackingLvars>();
         // Startup resync (issue #30): tracking LVARs + dataref evidence seed the lifecycle
         // latches after an app restart mid-turnaround; the sequencer holds until assessed.
         services.AddStartupModule<Sync.GsxStartupResyncService>();
