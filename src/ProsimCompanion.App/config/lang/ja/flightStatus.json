@@ -237,7 +237,7 @@
     },
     "aircraftState": {
       "label": "機体状態",
-      "pass": "cold and dark ✓",
+      "pass": "コールド＆ダーク ✓",
       "unchecked": "未確認（dataref が応答しませんでした）: {0}",
       "mismatchOne": "不一致 {0} 件",
       "mismatchMany": "不一致 {0} 件",

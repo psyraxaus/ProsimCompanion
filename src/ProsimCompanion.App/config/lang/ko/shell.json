@@ -12,7 +12,7 @@
   },
   "layout": {
     "brand": {
-      "tagline": "Electronic Flight Bag"
+      "tagline": "전자 비행 가방"
     },
     "header": {
       "aircraft": "항공기",
@@ -47,7 +47,7 @@
       "fuelLog": "연료 기록",
       "performance": "성능",
       "checklists": "체크리스트",
-      "techLog": "Tech Log",
+      "techLog": "테크로그",
       "logbook": "비행 일지",
       "dutyDay": "근무일",
       "settings": "설정",
@@ -74,13 +74,13 @@
     "showAdvanced": "고급 설정 표시",
     "showAdvanced.title": "모든 설정 페이지에서 세부 조정 항목(시간 제한, 간격, 임계값)을 표시합니다",
     "search": {
-      "placeholder": "Search settings…",
-      "hint": "Type a word: the cards and rail entries whose texts contain it. Enter opens the first hit.",
-      "noResults": "Nothing matches"
+      "placeholder": "설정 검색…",
+      "hint": "단어를 입력하세요: 그 단어가 포함된 카드와 레일 항목이 표시됩니다. Enter를 누르면 첫 번째 항목이 열립니다.",
+      "noResults": "일치하는 항목 없음"
     },
     "cards": {
-      "collapseAll": "Collapse all",
-      "expandAll": "Expand all"
+      "collapseAll": "모두 접기",
+      "expandAll": "모두 펼치기"
     },
     "pillarOff": {
       "gsx": "GSX 지상 서비스가 꺼져 있습니다.",
@@ -115,8 +115,8 @@
       "gsx.questions": "GSX 질문",
       "gsx.connection": "연결 및 시간 제한",
       "speech": "음성 부기장",
-      "flightDeck": "Flight Deck",
-      "crew": "Crew & Company",
+      "flightDeck": "조종석",
+      "crew": "승무원 및 회사",
       "speech.status": "상태",
       "speech.general": "일반",
       "speech.persona": "부기장 성격",

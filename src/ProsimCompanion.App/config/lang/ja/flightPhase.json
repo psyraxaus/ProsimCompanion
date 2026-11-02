@@ -83,8 +83,8 @@
         "hint": "セッションが（MSFS の一時停止フラグが立った状態で）実際のセッション終了とみなされるまでに離れていられる時間。0 なら即リセット"
       },
       "graceParked": {
-        "label": "Pause grace, parked",
-        "hint": "The grace while the aircraft is stopped on the ground with the engines off — long enough for your own exterior camera walkaround; the larger of the two graces applies"
+        "label": "一時停止の猶予（駐機中）",
+        "hint": "機体が地上で停止し、エンジンが停止している間の猶予 — 外部カメラで自分でウォークアラウンドするのに十分な長さ。2 つの猶予のうち長い方が適用されます"
       },
       "position": {
         "label": "同一位置とみなす範囲",

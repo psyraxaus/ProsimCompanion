@@ -45,8 +45,8 @@
       "addFolder": "Einen Ordner auf diesem PC hinzufügen"
     },
     "section": {
-      "collapse": "Collapse this card",
-      "expand": "Expand this card"
+      "collapse": "Diese Karte einklappen",
+      "expand": "Diese Karte ausklappen"
     },
     "advanced": {
       "hidden": "Erweiterte Einstellungen ausgeblendet",

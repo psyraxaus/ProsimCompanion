@@ -193,6 +193,7 @@
     @* The view rows as one compact grid (owner request 2026-10-24), the audio mapping editor's
        shape: Name | vJoy button | Press | ×. Press works on the SAVED settings, so it waits
        while the draft is dirty; the last press's answer shows once under the grid. *@
+    <RowsValidity Name="@T["setup.inputRelay.title"]" Blocking="@_inputRelay.Value.Views.Any(RowBlocks)" />
     @if (_inputRelay.Value.Views.Count == 0)
     {
         <div class="empty">@T["setup.inputRelay.noViews"]</div>
@@ -366,6 +367,11 @@
     };
 
     private static bool ButtonInRange(int button) => button is >= 1 and <= InputRelayOptions.MaxButton;
+
+    /// <summary>The cells the grid paints red, as one verdict for the Save tally (#234): a
+    /// view with no name or a vJoy button outside the device's range.</summary>
+    private static bool RowBlocks(InputViewButton view)
+        => string.IsNullOrWhiteSpace(view.Name) || !ButtonInRange(view.Button);
 
     private string InputRelayHint => T["setup.inputRelay.statusHint"].Value;
 

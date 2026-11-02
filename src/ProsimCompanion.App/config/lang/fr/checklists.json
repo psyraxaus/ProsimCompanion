@@ -18,7 +18,7 @@
       "lines": "{0} sur {1} lignes"
     },
     "state": {
-      "standby": "standby",
+      "standby": "en attente",
       "complete": "terminée",
       "inProgress": "en cours"
     },

@@ -135,6 +135,7 @@ else if (CurrentSection == "departure")
                 </span>
             </details>
         </div>
+        <RowsValidity Name="@T["gsxSettings.serviceOrder.title"]" Blocking="@_gsx.Value.DepartureServices.Any(RowBlocks)" />
         @if (_gsx.Value.DepartureServices.Count == 0)
         {
             <div class="empty">@T["gsxSettings.serviceOrder.empty"]</div>
@@ -167,7 +168,7 @@ else if (CurrentSection == "departure")
                             <option value="@value">@label</option>
                         }
                     </select>
-                    <input class="cell-input" type="number" min="0" step="5"
+                    <input class="cell-input @(RowBlocks(row) ? "invalid" : "")" type="number" min="0" step="5"
                            title="@T["gsxSettings.serviceOrder.minFlightTitle"]"
                            @bind="row.MinimumFlightMinutes" />
                     <span class="service-actions">
@@ -594,6 +595,11 @@ else if (CurrentSection == "connection")
         GsxServiceActivation.Manual));
 
     /// <summary>The list editors' pruning (C3): the per-property trims ran on the draft already.</summary>
+    /// <summary>The one cell of the service table that can hold a value that never works: a
+    /// negative minimum flight time (the browser's <c>min</c> only guards the spinner). Painted
+    /// red and reported to the Save tally (#234); a blank service is dropped on save instead.</summary>
+    private static bool RowBlocks(DepartureServiceStep row) => row.MinimumFlightMinutes < 0;
+
     protected override void OnBeforeSave() => GsxPageRules.BeforeSave(_gsx.Value);
 
     // Per-profile GSX settings (Prosim2GSX model): saving while a profile is active also

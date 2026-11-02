@@ -35,6 +35,7 @@
             <span title="@T["display.row.centreAboveEye.hint"]">@T["display.row.centreAboveEye.label"]</span>
             <span></span>
         </div>
+        <RowsValidity Name="@T["display.displays.title"]" Blocking="@_display.Value.Displays.Any(RowBlocks)" />
         @if (_display.Value.Displays.Count == 0)
         {
             <div class="empty">@T["display.displays.none"]</div>
@@ -384,6 +385,15 @@ else if (CurrentSection == "chaseplane")
     }
 
     private void Remove(DisplayEntry row) => _display.Value.Displays.Remove(row);
+
+    /// <summary>The cells the grid paints red, as one verdict for the Save tally (#234): a
+    /// screen with no name, or a size, aspect or distance of zero, can never be planned.</summary>
+    private static bool RowBlocks(DisplayEntry row)
+        => string.IsNullOrWhiteSpace(row.Name)
+           || row.DiagonalInches <= 0
+           || row.AspectWidth <= 0
+           || row.AspectHeight <= 0
+           || row.DistanceMetres <= 0;
 
     // ---- realism ----
 

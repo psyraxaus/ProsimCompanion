@@ -11,7 +11,7 @@
       "syncLoadsheet": "Loadsheet übernehmen"
     },
     "output": {
-      "title": "FMGC Take Off",
+      "title": "FMGC Start",
       "flaps": "Klappen",
       "component": "{0}-Komponente",
       "greenDot": "Green Dot",

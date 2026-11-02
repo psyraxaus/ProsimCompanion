@@ -24,7 +24,7 @@
       }
     },
     "status": {
-      "scenarioClearAll": "Clear every armed failure in ProSim (the IOS's included)"
+      "scenarioClearAll": "Borrar todas las fallas armadas en ProSim (incluidas las del IOS)"
     },
     "gsx": {
       "gpuConnect": "Haz clic para conectar la energía de tierra",

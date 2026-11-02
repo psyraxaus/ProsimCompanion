@@ -234,7 +234,7 @@
       "suppressCrew": { "label": "クルーの質問を完全に抑制", "hint": "クルーは搭乗しないと GSX に事前に伝え、尋ねられないようにします。" },
       "confirmPushback": { "label": "プッシュバック要求を確認", "hint": "\"Do you want to request pushback\" に yes で答えます。" },
       "tug": { "label": "搭乗中のトーイングカーの質問", "hint": "搭乗中の GSX の \"Attach pushback tug\" への回答。" },
-      "tugOptions": { "ignore": "答えない", "no": "No", "yes": "Yes" },
+      "tugOptions": { "ignore": "答えない", "no": "いいえ", "yes": "はい" },
       "tugPushback": { "label": "トーイングカー接続時にプッシュバックを呼ぶ", "hint": "トーイングカーがすでに接続されている場合、いつプッシュバックを呼ぶか。" },
       "tugPushbackOptions": { "afterDepartureServices": "出発サービスの後", "afterFinalLoadsheet": "最終ロードシートの後" }
     },

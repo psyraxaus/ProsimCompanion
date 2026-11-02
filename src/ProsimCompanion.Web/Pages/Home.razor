@@ -647,7 +647,6 @@
             var outcome = await ServiceControl.TryCallAsync(GsxServiceAction.ConfirmFuel);
             _confirmFuelNote = outcome.Detail;
             _confirmFuelNoteTimer?.Dispose();
-        _tuneNoteTimer?.Dispose();
             _confirmFuelNoteTimer = new Timer(_ => _ = InvokeAsync(() =>
             {
                 _confirmFuelNote = null;
@@ -878,6 +877,7 @@
         _tileOrderChange?.Dispose();
         _selfRef?.Dispose();
         _confirmFuelNoteTimer?.Dispose();
+        _tuneNoteTimer?.Dispose();
         _metricsTimer?.Dispose();
         _headingSub?.Dispose();
         _fuelSub?.Dispose();

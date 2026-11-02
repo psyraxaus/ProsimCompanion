@@ -24,7 +24,7 @@
       }
     },
     "status": {
-      "scenarioClearAll": "Clear every armed failure in ProSim (the IOS's included)"
+      "scenarioClearAll": "Alle in ProSim ingestelde storingen wissen (ook die van het IOS)"
     },
     "gsx": {
       "gpuConnect": "Klik om de grondstroom aan te sluiten",

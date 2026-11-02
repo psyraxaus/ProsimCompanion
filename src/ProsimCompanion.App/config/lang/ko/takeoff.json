@@ -11,7 +11,7 @@
       "syncLoadsheet": "로드시트 동기화"
     },
     "output": {
-      "title": "FMGC Take Off",
+      "title": "FMGC 이륙",
       "flaps": "플랩",
       "component": "{0} 성분",
       "greenDot": "그린 닷",

@@ -12,7 +12,7 @@
   },
   "layout": {
     "brand": {
-      "tagline": "Electronic Flight Bag"
+      "tagline": "電子フライトバッグ"
     },
     "header": {
       "aircraft": "機体",
@@ -47,7 +47,7 @@
       "fuelLog": "燃料ログ",
       "performance": "性能",
       "checklists": "チェックリスト",
-      "techLog": "Tech Log",
+      "techLog": "テックログ",
       "logbook": "ログブック",
       "dutyDay": "勤務日",
       "settings": "設定",
@@ -74,13 +74,13 @@
     "showAdvanced": "詳細設定を表示",
     "showAdvanced.title": "各設定ページの調整項目（タイムアウト、間隔、しきい値）を表示します",
     "search": {
-      "placeholder": "Search settings…",
-      "hint": "Type a word: the cards and rail entries whose texts contain it. Enter opens the first hit.",
-      "noResults": "Nothing matches"
+      "placeholder": "設定を検索…",
+      "hint": "単語を入力: その語を含むカードとレールの項目が表示されます。Enter で最初の候補を開きます。",
+      "noResults": "一致なし"
     },
     "cards": {
-      "collapseAll": "Collapse all",
-      "expandAll": "Expand all"
+      "collapseAll": "すべて折りたたむ",
+      "expandAll": "すべて展開"
     },
     "pillarOff": {
       "gsx": "GSX 地上サービスはオフです。",
@@ -115,8 +115,8 @@
       "gsx.questions": "GSX の質問",
       "gsx.connection": "接続とタイムアウト",
       "speech": "音声副操縦士",
-      "flightDeck": "Flight Deck",
-      "crew": "Crew & Company",
+      "flightDeck": "フライトデッキ",
+      "crew": "クルーと会社",
       "speech.status": "状態",
       "speech.general": "一般",
       "speech.persona": "FO の人格",

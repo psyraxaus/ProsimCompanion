@@ -24,7 +24,7 @@
       }
     },
     "status": {
-      "scenarioClearAll": "Clear every armed failure in ProSim (the IOS's included)"
+      "scenarioClearAll": "Effacer toutes les pannes armées dans ProSim (celles de l'IOS comprises)"
     },
     "gsx": {
       "gpuConnect": "Cliquer pour brancher le groupe de parc",

@@ -24,7 +24,7 @@
       "noMetar": "METAR no disponible",
       "calculated": "Valores calculados",
       "notCalculated": "Sin calcular",
-      "standby": "standby",
+      "standby": "en espera",
       "noMetarBanner": "CALCULADO SIN METAR — COMPRUEBA OAT / QNH / VIENTO MANUALMENTE",
       "reset": "Reiniciar",
       "confirmReset": "¿Confirmar reinicio?",

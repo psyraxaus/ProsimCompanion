@@ -180,14 +180,14 @@
         "end": "요약과 로그북 마감으로 끝냅니다."
       },
       "roster": {
-        "title": "First Officer roster",
-        "who": "Names the First Officer on duty, their experience and hours on the type.",
-        "new": "Draws a different First Officer now, after you confirm."
+        "title": "부기장 로스터",
+        "who": "근무 중인 부기장과 경험, 기종 비행시간을 말해 줍니다.",
+        "new": "확인하면 지금 바로 다른 부기장을 뽑습니다."
       },
       "scenario": {
-        "title": "Scenario mode",
-        "clearAll": "Clears every armed failure in ProSim, the IOS's included — always works.",
-        "planned": "Names the planned scenario, only with 'Show the planned scenario' on."
+        "title": "시나리오 모드",
+        "clearAll": "IOS의 고장을 포함해 ProSim에 설정된 모든 고장을 해제합니다 — 항상 작동합니다.",
+        "planned": "예정된 시나리오를 말해 줍니다. '예정된 시나리오 표시'가 켜져 있을 때만."
       },
       "fuelCheck": {
         "title": "연료 점검",
@@ -240,7 +240,7 @@
         "quiet": "세션이 끝날 때까지 잡담을 멈춥니다(체크리스트와 콜아웃은 계속 말합니다)."
       },
       "disregard": {
-        "title": "Disregard",
+        "title": "무시",
         "disregard": "FO가 말하고 있는 안내(항공기 상태, 주기, 누락된 호출)를 멈추고 응답합니다 — 재생 중인 것이 없으면 응답만 합니다."
       },
       "rto": {

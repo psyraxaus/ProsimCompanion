@@ -1,7 +1,7 @@
 {
   "monitor": {
     "pageTitle": "{0} — ProsimCompanion",
-    "heading": "Flight Monitor",
+    "heading": "비행 모니터",
     "mode": {
       "gate": "게이트 모니터",
       "flight": "비행 모니터",

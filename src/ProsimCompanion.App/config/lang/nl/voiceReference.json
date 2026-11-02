@@ -180,14 +180,14 @@
         "end": "Sluit hem af met een samenvatting en de logboekafsluiting."
       },
       "roster": {
-        "title": "First Officer roster",
-        "who": "Names the First Officer on duty, their experience and hours on the type.",
-        "new": "Draws a different First Officer now, after you confirm."
+        "title": "Rooster eerste officieren",
+        "who": "Noemt de dienstdoende eerste officier, zijn ervaring en uren op het type.",
+        "new": "Trekt na je bevestiging meteen een andere eerste officier."
       },
       "scenario": {
-        "title": "Scenario mode",
-        "clearAll": "Clears every armed failure in ProSim, the IOS's included — always works.",
-        "planned": "Names the planned scenario, only with 'Show the planned scenario' on."
+        "title": "Scenariomodus",
+        "clearAll": "Wist alle in ProSim ingestelde storingen, ook die van het IOS — werkt altijd.",
+        "planned": "Noemt het geplande scenario, alleen met 'Gepland scenario tonen' aan."
       },
       "fuelCheck": {
         "title": "Fuel check",
@@ -240,7 +240,7 @@
         "quiet": "Zet het gebabbel uit voor de rest van de sessie (checklists en callouts spreken nog)."
       },
       "disregard": {
-        "title": "Disregard",
+        "title": "Negeren",
         "disregard": "Onderbreekt de melding die de FO uitspreekt (vliegtuigstatus, parkeerplek, gemiste oproep) en bevestigt — speelt er niets, dan alleen de bevestiging."
       },
       "rto": {

@@ -180,14 +180,14 @@
         "end": "La termine par un résumé et la clôture du carnet de vol."
       },
       "roster": {
-        "title": "First Officer roster",
-        "who": "Names the First Officer on duty, their experience and hours on the type.",
-        "new": "Draws a different First Officer now, after you confirm."
+        "title": "Roster des copilotes",
+        "who": "Nomme le copilote en service, son expérience et ses heures sur type.",
+        "new": "Tire un autre copilote tout de suite, après ta confirmation."
       },
       "scenario": {
-        "title": "Scenario mode",
-        "clearAll": "Clears every armed failure in ProSim, the IOS's included — always works.",
-        "planned": "Names the planned scenario, only with 'Show the planned scenario' on."
+        "title": "Mode scénario",
+        "clearAll": "Efface toutes les pannes armées dans ProSim, celles de l'IOS comprises — marche toujours.",
+        "planned": "Nomme le scénario prévu, seulement avec 'Afficher le scénario prévu' activé."
       },
       "fuelCheck": {
         "title": "Fuel check",
@@ -240,7 +240,7 @@
         "quiet": "Coupe les bavardages pour le reste de la session (les checklists et les annonces parlent toujours)."
       },
       "disregard": {
-        "title": "Disregard",
+        "title": "Annuler",
         "disregard": "Coupe l'avis que l'OPL est en train de dire (état de l'avion, parking, appel perdu) et acquitte — si rien ne joue, juste l'acquittement."
       },
       "rto": {

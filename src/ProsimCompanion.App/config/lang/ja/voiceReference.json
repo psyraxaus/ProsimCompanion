@@ -180,14 +180,14 @@
         "end": "サマリーとログブックの締めで終了します。"
       },
       "roster": {
-        "title": "First Officer roster",
-        "who": "Names the First Officer on duty, their experience and hours on the type.",
-        "new": "Draws a different First Officer now, after you confirm."
+        "title": "副操縦士ロスター",
+        "who": "勤務中の副操縦士、その経験と型式時間を答えます。",
+        "new": "確認後、すぐに別の副操縦士を選びます。"
       },
       "scenario": {
-        "title": "Scenario mode",
-        "clearAll": "Clears every armed failure in ProSim, the IOS's included — always works.",
-        "planned": "Names the planned scenario, only with 'Show the planned scenario' on."
+        "title": "シナリオモード",
+        "clearAll": "IOS のものも含め、ProSim で設定済みの故障をすべて解除します — 常に機能します。",
+        "planned": "予定シナリオの名前を答えます。'予定シナリオを表示' がオンの場合のみ。"
       },
       "fuelCheck": {
         "title": "燃料チェック",
@@ -240,7 +240,7 @@
         "quiet": "セッションの残りの間、雑談を止めます（チェックリストとコールアウトは引き続き話します）。"
       },
       "disregard": {
-        "title": "Disregard",
+        "title": "取り消し",
         "disregard": "FO が話している注意喚起（機体状態、駐機、失われたコール）を止めて応答します — 何も再生中でなければ応答だけです。"
       },
       "rto": {

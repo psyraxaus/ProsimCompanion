@@ -24,7 +24,7 @@
       "noMetar": "METAR 없음",
       "calculated": "계산된 값",
       "notCalculated": "계산 안 됨",
-      "standby": "standby",
+      "standby": "대기",
       "noMetarBanner": "METAR 없이 계산됨 — OAT / QNH / 바람을 수동으로 확인",
       "reset": "초기화",
       "confirmReset": "초기화할까요?",

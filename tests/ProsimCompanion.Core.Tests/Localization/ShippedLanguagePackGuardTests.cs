@@ -197,6 +197,102 @@ public sealed partial class ShippedLanguagePackGuardTests
         }
     }
 
+    /// <summary>Copied-English guard (audit 2026-11-03, #236): the id/placeholder checks above
+    /// pass a pack whose values are the English text pasted six times, which is how ~90
+    /// texts shipped untranslated. A text that reads the same in every non-en pack is taken
+    /// as never translated, and so is any Latin-lowercase text left standing in the Japanese
+    /// or Korean pack (a CJK pack never keeps an English sentence as its translation). Texts
+    /// that are invariant by nature are skipped: those with no lowercase Latin letter once
+    /// the product and brand names are removed (ICAO/IATA codes, units, "OK", "COM1",
+    /// "{0} — {1}"), and the short list of ids below. A loanword that one language keeps
+    /// ("Pushback" in German, "Checklists" in Dutch) passes because some other language
+    /// changed it.</summary>
+    [Fact]
+    public void EveryText_IsTranslated_InSomeLanguage_AndNeverLeftEnglishInJapaneseOrKorean()
+    {
+        var english = English;
+        var packs = LanguageFolders().Select(LoadFolder).Where(p => p.Code != "en").ToList();
+        var problems = new List<string>();
+        foreach (var (id, text) in english.Strings)
+        {
+            if (!NeedsTranslation(id, text))
+            {
+                continue;
+            }
+
+            var unchanged = packs
+                .Where(p => p.Strings.TryGetValue(id, out var own) && string.Equals(own, text, StringComparison.Ordinal))
+                .Select(p => p.Code)
+                .ToList();
+            if (unchanged.Count == packs.Count)
+            {
+                problems.Add($"{id}: \"{text}\" is still English in every pack");
+                continue;
+            }
+
+            foreach (var code in unchanged.Where(c => c is "ja" or "ko"))
+            {
+                problems.Add($"{code}: {id} is still \"{text}\"");
+            }
+        }
+
+        Assert.True(problems.Count == 0, "Texts shipped as copied English (translate them, or add the id to InvariantIds with a reason):\n" + string.Join('\n', problems));
+    }
+
+    /// <summary>Ids whose English text is the right text in every language. Keep this short:
+    /// every entry needs the reason beside it.</summary>
+    private static readonly HashSet<string> InvariantIds = new(StringComparer.Ordinal)
+    {
+        // The ECAM control-panel legends the Checklists page copies (cockpit English).
+        "checklists.actions.menu",
+        "checklists.actions.msgList",
+        "checklists.actions.complete",
+        // Minima abbreviations with their units: DA/DH/MDA, baro/radio, ft MSL.
+        "speechStatus.minima.da",
+        "speechStatus.minima.dh",
+        "speechStatus.minima.mda",
+        // Flight-phase engine tokens — phase names and 'hold' exactly as the rule table, the
+        // hints that quote them and the CMTrace log print them.
+        "flightPhase.rules.hold",
+        "flightPhase.settle.descentToCruise.label",
+        "flightPhase.settle.cruiseToClimb.label",
+        "flightPhase.settle.descentToClimb.label",
+        // MSFS 2024's own menu name, which the note tells the pilot to open.
+        "display.multi.title",
+        "settings.nav.display.multiwindow",
+        // A quoted English trigger phrase: the voice First Officer hears English only.
+        "speechSettings.briefing.ask.flyingOver.label",
+        // Example Windows paths.
+        "setup.web.pfx.placeholder",
+        "setup.weather.snapshot.placeholder",
+    };
+
+    /// <summary>Product, brand and file names that stay as they are in every language; a
+    /// text that is nothing but these (plus codes, units and placeholders) needs no
+    /// translation.</summary>
+    private static readonly string[] InvariantTokens =
+    [
+        "ProsimCompanion", "ProSim", "SimBrief", "GSX", "Kokoro", "ElevenLabs", "VoiceMeeter", "Voicemeeter",
+        "ChasePlane", "SayIntentions", "CoreAudio", "Google Cloud TTS", "Chirp", "Wake-on-LAN", "Stream Deck",
+        "Navigraph", "Skalarki", "Profiler", "vJoyInterface.dll", "localhost", "InitialZoom", "WinRT", "SAPI5",
+    ];
+
+    private static bool NeedsTranslation(string id, string english)
+    {
+        if (InvariantIds.Contains(id))
+        {
+            return false;
+        }
+
+        var rest = english;
+        foreach (var token in InvariantTokens)
+        {
+            rest = rest.Replace(token, "", StringComparison.Ordinal);
+        }
+
+        return rest.Any(c => c is >= 'a' and <= 'z');
+    }
+
     private static HashSet<string> Placeholders(string text)
         => [.. PlaceholderPattern().Matches(text).Select(m => m.Value)];
 

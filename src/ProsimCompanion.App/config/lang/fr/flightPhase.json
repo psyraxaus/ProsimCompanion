@@ -83,8 +83,8 @@
         "hint": "Combien de temps la session peut être absente (avec l'indicateur de pause MSFS activé) avant de compter comme une vraie fin de session ; 0 réinitialise aussitôt"
       },
       "graceParked": {
-        "label": "Pause grace, parked",
-        "hint": "The grace while the aircraft is stopped on the ground with the engines off — long enough for your own exterior camera walkaround; the larger of the two graces applies"
+        "label": "Délai de pause, au parking",
+        "hint": "Le délai de grâce tant que l'avion est arrêté au sol moteurs coupés — assez long pour ta propre inspection extérieure à la caméra externe ; le plus grand des deux délais s'applique"
       },
       "position": {
         "label": "Même position à moins de",

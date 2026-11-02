@@ -87,39 +87,39 @@
       }
     },
     "smallTalk": {
-      "title": "Small Talk",
-      "hint": "Now and then in the cruise the FO says something that is not about the flight. Unprompted, spoken only",
+      "title": "Smalltalk",
+      "hint": "Ab und zu sagt der FO im Reiseflug etwas, das nichts mit dem Flug zu tun hat. Unaufgefordert, nur gesprochen",
       "enabled": {
-        "hint": "A coffee offer, a word about the view, a question about the layover, a line about themselves — a few times per flight, only in the cruise, only after a stretch of silence.",
-        "more": "Never below the sterile-cockpit ceiling, never with an ECAM abnormal or a captain's question open, never in moderate turbulence, never within three minutes of a region fact. The persona's chattiness is the real count (0 = none); \"quiet please\" ends it for the session. With the language model on, each line is composed in the FO's persona with every number checked against the facts; otherwise the built-in line speaks."
+        "hint": "Ein Kaffeeangebot, ein Wort zur Aussicht, eine Frage zum Layover, ein Satz über sich selbst — ein paar Mal pro Flug, nur im Reiseflug, nur nach einer Weile Stille.",
+        "more": "Nie unterhalb der Sterile-Cockpit-Grenze, nie bei offenem ECAM-Abnormal oder offener Kapitänsfrage, nie bei mäßiger Turbulenz, nie innerhalb von drei Minuten nach einem Regionsfakt. Die Gesprächigkeit der Persona ist die tatsächliche Anzahl (0 = keine); \"quiet please\" beendet es für die Sitzung. Mit eingeschaltetem Sprachmodell wird jeder Satz in der Persona des FO verfasst und jede Zahl gegen die Fakten geprüft; sonst spricht der eingebaute Satz."
       },
       "maxPerFlight": {
-        "label": "Lines per flight",
-        "hint": "The ceiling. The persona's chattiness (0–3) is the actual count."
+        "label": "Sätze pro Flug",
+        "hint": "Die Obergrenze. Die Gesprächigkeit der Persona (0–3) ist die tatsächliche Anzahl."
       },
       "minQuietMinutes": {
-        "label": "Quiet gap",
-        "hint": "Minutes of silence before a line may come, and the wait after the cruise begins."
+        "label": "Stille Pause",
+        "hint": "Minuten Stille, bevor ein Satz kommen darf, und die Wartezeit nach Beginn des Reiseflugs."
       },
       "kinds": {
         "offer": {
-          "label": "Coffee offer",
-          "hint": "\"Coffee, captain?\" — a yes has the purser send something up a few minutes later."
+          "label": "Kaffeeangebot",
+          "hint": "\"Coffee, captain?\" — bei einem Ja lässt der Purser ein paar Minuten später etwas nach vorn bringen."
         },
         "view": {
-          "label": "The view",
-          "hint": "A town below, the sun going down, the cloud deck."
+          "label": "Die Aussicht",
+          "hint": "Eine Stadt unter uns, die untergehende Sonne, die Wolkendecke."
         },
         "layover": {
-          "label": "The layover",
-          "hint": "\"Do you know {city}?\" — the FO listens once and answers in one sentence when the model is on."
+          "label": "Der Layover",
+          "hint": "\"Do you know {city}?\" — der FO hört einmal zu und antwortet in einem Satz, wenn das Modell an ist."
         },
         "crew": {
-          "label": "About themselves",
-          "hint": "Base and hours on type from the roster record, nothing else. Needs the roster."
+          "label": "Über sich selbst",
+          "hint": "Basis und Stunden auf Muster aus dem Roster-Eintrag, sonst nichts. Braucht den Roster."
         }
       },
-      "note": "Every line is low-priority chatter: any callout talks over it and the sterile cockpit drops it. The coffee offer appears on the open questions card like any captain's question."
+      "note": "Jeder Satz ist Geplauder mit niedriger Priorität: jeder Callout überlagert ihn, und das Sterile Cockpit lässt ihn weg. Das Kaffeeangebot erscheint wie jede Kapitänsfrage auf der Karte der offenen Fragen."
     },
     "persona": {
       "title": "FO-Persona",
@@ -147,41 +147,41 @@
         "more": "\"Quiet please\" stellt das Plaudern für die Sitzung ab, egal was hier steht."
       },
       "confidence": {
-        "label": "Confidence",
-        "hint": "Nervous double-checks and asks; assured states things. Steady adds nothing."
+        "label": "Selbstsicherheit",
+        "hint": "Nervös prüft doppelt und fragt nach; souverän stellt fest. Ruhig fügt nichts hinzu."
       },
-      "overriddenByRoster": "Overridden by the roster — the drawn First Officer's value applies.",
+      "overriddenByRoster": "Vom Roster überschrieben — der Wert des gezogenen Ersten Offiziers gilt.",
       "roster": {
-        "title": "Roster",
+        "title": "Dienstplan",
         "hint": "Ein anderer Erster Offizier an jedem Sim-Kalendertag, gezogen aus fo-roster.json",
         "mode": {
-          "label": "Roster",
+          "label": "Dienstplan",
           "hint": "Aus behält die Persona oben. Täglich zieht auf dem ersten Leg jedes Sim-Kalendertags einen neuen FO — ein offener Diensttag behält seinen FO. Angepinnt behält den unten angepinnten."
         },
         "gateIntro": {
-          "label": "Gate introduction",
+          "label": "Vorstellung am Gate",
           "hint": "Der FO stellt sich einmal pro Ziehung vor, am Gate, sobald der Plan des Legs geladen ist."
         },
-        "current": "On duty",
+        "current": "Im Dienst",
         "nobody": "Noch niemand gezogen — die Ziehung kommt, wenn der erste Plan des Tages geladen wird.",
-        "hours": "{0} h on type",
-        "empty": "The roster file holds no officers.",
+        "hours": "{0} h auf Muster",
+        "empty": "Die Roster-Datei enthält keine Offiziere.",
         "columns": {
           "name": "Name",
-          "experience": "Experience · formality",
-          "confidence": "Confidence",
-          "hours": "Hours on type",
-          "voice": "Voice"
+          "experience": "Erfahrung · Förmlichkeit",
+          "confidence": "Selbstsicherheit",
+          "hours": "Stunden auf Muster",
+          "voice": "Stimme"
         },
-        "pin": "Pin",
-        "release": "Release",
-        "drawAgain": "Draw again",
-        "pinnedMessage": "Pinned — this First Officer flies every day until released.",
-        "releasedMessage": "Pin released — the roster draws daily again.",
-        "unknownMessage": "That officer is not in the roster file.",
-        "drawnMessage": "{0} is on duty.",
-        "fileBefore": "Edit the crew in",
-        "fileAfter": "— id, name, experience, formality, chattiness, confidence, hours on type, base and an optional provider:id voice (Kokoro ids are listed on the Voices page; ElevenLabs ids work as elevenlabs:<voiceId>). Edits are picked up live."
+        "pin": "Fixieren",
+        "release": "Freigeben",
+        "drawAgain": "Neu ziehen",
+        "pinnedMessage": "Fixiert — dieser Erste Offizier fliegt jeden Tag, bis er freigegeben wird.",
+        "releasedMessage": "Fixierung aufgehoben — der Roster zieht wieder täglich.",
+        "unknownMessage": "Dieser Offizier steht nicht in der Roster-Datei.",
+        "drawnMessage": "{0} ist im Dienst.",
+        "fileBefore": "Bearbeite die Crew in",
+        "fileAfter": "— id, name, experience, formality, chattiness, confidence, hours on type, base und optional eine provider:id-Stimme (Kokoro-IDs stehen auf der Seite Stimmen; ElevenLabs-IDs funktionieren als elevenlabs:<voiceId>). Änderungen werden live übernommen."
       },
       "styles": {
         "title": "Was die Persona stilisiert",
@@ -404,33 +404,33 @@
       "hint": "Die Bodencrew anrufen und ihre Rufe hören",
       "walkaround": {
         "title": "Walkaround",
-        "hint": "Once per departure, at the stand with the ground prep done, the FO walks the aircraft and reports back on the interphone",
+        "hint": "Einmal pro Abflug, am Stand mit abgeschlossener Bodenvorbereitung, geht der FO ums Flugzeug und meldet sich über das Interphone zurück",
         "enabled": {
-          "hint": "\"I'll do the walkaround, captain\" — then a few minutes away; the refuel call waits, your questions get \"the First Officer is on the walkaround\", and the report comes on the interphone.",
-          "more": "Starts when the aircraft is parked with engines off and the ground prep (jetway or stairs) is complete; never replayed after a restart mid-turnaround; once per departure. Calling the refuel yourself meanwhile abandons the walk. Safety phrases, \"I have controls\" and \"quiet please\" always work."
+          "hint": "\"I'll do the walkaround, captain\" — dann ein paar Minuten weg; der Refuel-Call wartet, deine Fragen bekommen \"the First Officer is on the walkaround\", und der Bericht kommt über das Interphone.",
+          "more": "Beginnt, wenn das Flugzeug mit Triebwerken aus geparkt ist und die Bodenvorbereitung (Fluggastbrücke oder Treppe) abgeschlossen ist; nach einem Neustart mitten im Turnaround nie wiederholt; einmal pro Abflug. Rufst du währenddessen selbst den Refuel, wird der Gang abgebrochen. Sicherheitsphrasen, \"I have controls\" und \"quiet please\" funktionieren immer."
         },
         "minMinutes": {
-          "label": "Shortest walk",
-          "hint": "Minutes away, at least."
+          "label": "Kürzester Gang",
+          "hint": "Minuten weg, mindestens."
         },
         "maxMinutes": {
-          "label": "Longest walk",
-          "hint": "The walk is drawn at random between the two."
+          "label": "Längster Gang",
+          "hint": "Die Dauer wird zufällig zwischen beiden gezogen."
         },
         "findingChance": {
-          "label": "Finding chance",
-          "hint": "0 to 1. The chance a walkaround turns up something: a tyre near the limit, a hydraulic weep, a missing static wick — the FO asks before it goes in the tech log; ice on the wing leads to the de-icing question."
+          "label": "Befundwahrscheinlichkeit",
+          "hint": "0 bis 1. Die Wahrscheinlichkeit, dass der Walkaround etwas findet: ein Reifen nahe am Limit, eine schwitzende Hydraulik, ein fehlender Static Wick — der FO fragt, bevor es ins Tech Log geht; Eis auf der Fläche führt zur Enteisungsfrage."
         },
         "allowNoGo": {
-          "label": "Allow no-go findings",
-          "hint": "A cords-showing tyre or a steady hydraulic leak: raised in the tech log regardless. Nothing is blocked — you decide."
+          "label": "No-Go-Befunde zulassen",
+          "hint": "Ein Reifen mit sichtbarem Gewebe oder ein stetiges Hydraulikleck: wird in jedem Fall im Tech Log erfasst. Nichts wird blockiert — du entscheidest."
         },
         "onInterphone": {
-          "label": "Report on the interphone",
-          "hint": "MECH call, INT selected or the grace, intercom timbre. Off: the report is spoken in the cockpit unfiltered."
+          "label": "Bericht über das Interphone",
+          "hint": "MECH-Call, INT gewählt oder die Schonfrist, Interphone-Klang. Aus: der Bericht wird ungefiltert im Cockpit gesprochen."
         },
-        "fileBefore": "The findings and their tech-log titles are in",
-        "fileAfter": "— edit it to add your own (conditions: icing, precipitation, night, afterLanding; severity cosmetic, deferrable or noGo). Edits are picked up live."
+        "fileBefore": "Die Befunde und ihre Tech-Log-Titel stehen in",
+        "fileAfter": "— bearbeite sie, um eigene hinzuzufügen (Bedingungen: icing, precipitation, night, afterLanding; Schwere cosmetic, deferrable oder noGo). Änderungen werden live übernommen."
       },
       "requireInt": {
         "label": "INT gewählt verlangen",
@@ -1115,9 +1115,9 @@
         "more": "Eine fehlgeschlagene Prüfung fällt auf die schlichte Vorlage zurück."
       },
       "askForQuestions": {
-        "label": "Ask for questions after the briefing",
-        "hint": "The FO ends every briefing with \"Any questions, captain?\" — \"no questions\" gets \"Briefing complete\"; a question is answered, then \"Anything else, captain?\".",
-        "more": "Free text needs the transcription server. With the offline engine, or after a minute of silence, the FO says \"Briefing complete\". On a departure the question comes after \"any other threats?\"."
+        "label": "Nach dem Briefing nach Fragen fragen",
+        "hint": "Der FO beendet jedes Briefing mit \"Any questions, captain?\" — auf \"no questions\" folgt \"Briefing complete\"; eine Frage wird beantwortet, dann \"Anything else, captain?\".",
+        "more": "Freier Text braucht den Transkriptionsserver. Mit der Offline-Engine oder nach einer Minute Stille sagt der FO \"Briefing complete\". Beim Abflug kommt die Frage nach \"any other threats?\"."
       },
       "dfdBefore": "Der Pfad der Navigraph-DFD-Datenbank liegt unter",
       "dfdLink": "Setup → Navdaten",
@@ -1329,18 +1329,18 @@
         "more": "Gilt sofort. Die einzelnen Callout-Texte, Höhen-Callouts, die übrigen Flow-Monitor-Erinnerungen und die Wetterhinweise werden vorerst im Abschnitt sop der settings.json bearbeitet."
       },
       "transition": {
-        "title": "Transition Reminders",
-        "hint": "The FO reminds you to set standard above the transition altitude and QNH below the transition level.",
+        "title": "Transition-Erinnerungen",
+        "hint": "Der FO erinnert dich, oberhalb der Transition Altitude Standard und unterhalb des Transition Level QNH zu setzen.",
         "enabled": {
-          "label": "Transition reminders",
-          "hint": "Climbing through the transition altitude still on QNH: \"Transition altitude. Standard, please.\" Descending through the transition level still on standard: \"Transition level. QNH one zero one three, please.\"",
-          "more": "The altitude is your own PFD (the seat setting picks the side). The transition altitude comes from the Navigraph database for the departure airport, the transition level for the destination (or the diversion). No database, no reminder. The QNH is the destination METAR; without one the FO says \"QNH, please\". One reminder per crossing, spoken only."
+          "label": "Transition-Erinnerungen",
+          "hint": "Steigflug durch die Transition Altitude noch auf QNH: \"Transition altitude. Standard, please.\" Sinkflug durch das Transition Level noch auf Standard: \"Transition level. QNH one zero one three, please.\"",
+          "more": "Die Höhe ist dein eigenes PFD (die Sitzeinstellung wählt die Seite). Die Transition Altitude kommt aus der Navigraph-Datenbank für den Abflughafen, das Transition Level für das Ziel (oder den Ausweichflughafen). Keine Datenbank, keine Erinnerung. Das QNH ist das Ziel-METAR; ohne eines sagt der FO \"QNH, please\". Eine Erinnerung pro Durchgang, nur gesprochen."
         },
         "delay": {
-          "label": "Patience",
-          "hint": "Seconds past the crossing before the FO speaks. You normally set it yourself first."
+          "label": "Geduld",
+          "hint": "Sekunden nach dem Durchgang, bevor der FO spricht. Normalerweise setzt du es vorher selbst."
         },
-        "note": "The fixed 18,000 ft \"transition altitude\" altitude callout in settings.json is unrelated; this card uses the real figures per airport."
+        "note": "Der feste 18.000-ft-Höhen-Callout \"transition altitude\" in settings.json hat damit nichts zu tun; diese Karte nutzt die echten Werte je Flughafen."
       },
       "placards": {
         "title": "Klappen-Placards",
@@ -1503,34 +1503,34 @@
       }
     },
     "scenario": {
-      "title": "Scenarios",
-      "hint": "Rarely, opt-in, the app arms one minor failure in ProSim so the FO's ECAM actions and the decision get used",
+      "title": "Szenarien",
+      "hint": "Selten und nur auf Wunsch schaltet die App einen kleinen Fehler in ProSim scharf, damit die ECAM-Actions des FO und die Entscheidung zum Einsatz kommen",
       "enabled": {
-        "hint": "About one flight in ten gets a scenario: a pack fault, a generator, a fuel pump low pressure, a hydraulic reservoir, an IR fault, hot brakes after landing. The FO handles the ECAM, then asks: continue, return or divert?",
-        "more": "The failure is armed through ProSim's own failure list (the same list the IOS uses), never below the floor height in flight, never with an abnormal, a drill or a no-go tech-log item open. Each catalogue entry is refused until its ProSim name is marked verified in scenarios.json — the STATUS page and 'scenario.listFailures' show ProSim's names. Everything armed is cleared at the flight reset and when the app closes; 'clear all failures' by voice, the STATUS page or the Stream Deck always works and also clears failures set on the IOS."
+        "hint": "Etwa jeder zehnte Flug bekommt ein Szenario: ein Pack Fault, ein Generator, eine Fuel Pump Low Pressure, ein Hydraulikreservoir, ein IR Fault, heiße Bremsen nach der Landung. Der FO arbeitet das ECAM ab und fragt dann: weiter, zurück oder ausweichen?",
+        "more": "Der Fehler wird über ProSims eigene Fehlerliste scharfgeschaltet (dieselbe Liste wie beim IOS), nie unterhalb der Mindesthöhe im Flug, nie bei offenem Abnormal, Drill oder No-Go-Tech-Log-Eintrag. Jeder Katalogeintrag wird abgelehnt, bis sein ProSim-Name in scenarios.json als verified markiert ist — die STATUS-Seite und 'scenario.listFailures' zeigen ProSims Namen. Alles Scharfgeschaltete wird beim Flight Reset und beim Schließen der App gelöscht; 'clear all failures' per Sprache, STATUS-Seite oder Stream Deck funktioniert immer und löscht auch am IOS gesetzte Fehler."
       },
       "perFlightChance": {
-        "label": "Chance per flight",
-        "hint": "0 to 1. 0.10 is roughly one scenario every ten flights."
+        "label": "Wahrscheinlichkeit pro Flug",
+        "hint": "0 bis 1. 0.10 ist etwa ein Szenario alle zehn Flüge."
       },
       "allowMajor": {
-        "label": "Allow major scenarios",
-        "hint": "Engine fire, engine failure, APU fire. Off keeps the minor stuff that actually happens on the line."
+        "label": "Große Szenarien zulassen",
+        "hint": "Triebwerksbrand, Triebwerksausfall, APU-Brand. Aus belässt es bei den kleinen Dingen, die im Linienbetrieb wirklich passieren."
       },
       "takeoffScenarios": {
-        "label": "Takeoff scenarios",
-        "hint": "An engine fire on the roll (an RTO cause) and an engine failure after V1 — only with the RTO and EFATO features on above."
+        "label": "Start-Szenarien",
+        "hint": "Ein Triebwerksbrand im Startlauf (ein RTO-Grund) und ein Triebwerksausfall nach V1 — nur mit den oben eingeschalteten RTO- und EFATO-Funktionen."
       },
       "minAltitudeFt": {
-        "label": "Floor in flight",
-        "hint": "Nothing is armed in flight below this height above ground."
+        "label": "Mindesthöhe im Flug",
+        "hint": "Im Flug wird unterhalb dieser Höhe über Grund nichts scharfgeschaltet."
       },
       "showPlanned": {
-        "label": "Show the planned scenario",
-        "hint": "For testing: the STATUS page names it and 'any failures planned?' answers. Off keeps the surprise."
+        "label": "Geplantes Szenario anzeigen",
+        "hint": "Zum Testen: die STATUS-Seite nennt es und 'any failures planned?' antwortet. Aus bewahrt die Überraschung."
       },
-      "fileBefore": "The catalogue is",
-      "fileAfter": "— id, title, abnormalId (a file in config/abnormals), failureName (ProSim's own name), verified, phases, weight, severity, takeoff, clearAfterSeconds, techLogAfter, decision, wearTitle. Edits are picked up live."
+      "fileBefore": "Der Katalog ist",
+      "fileAfter": "— id, title, abnormalId (eine Datei in config/abnormals), failureName (ProSims eigener Name), verified, phases, weight, severity, takeoff, clearAfterSeconds, techLogAfter, decision, wearTitle. Änderungen werden live übernommen."
     },
     "abnormals": {
       "title": "ECAM-Abnormals",
@@ -1625,14 +1625,14 @@
         "senior": "Senior"
       },
       "confidence": {
-        "nervous": "Nervous",
-        "steady": "Steady",
-        "assured": "Assured"
+        "nervous": "Nervös",
+        "steady": "Ruhig",
+        "assured": "Souverän"
       },
       "rosterMode": {
-        "off": "Off (one persona)",
+        "off": "Aus (eine Persona)",
         "daily": "Täglich (ein neuer FO pro Sim-Tag)",
-        "pinned": "Pinned (the FO pinned below)"
+        "pinned": "Fixiert (der unten fixierte FO)"
       },
       "formality": {
         "casual": "Locker",

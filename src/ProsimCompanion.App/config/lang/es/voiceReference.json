@@ -180,14 +180,14 @@
         "end": "La termina con un resumen y el cierre del logbook."
       },
       "roster": {
-        "title": "First Officer roster",
-        "who": "Names the First Officer on duty, their experience and hours on the type.",
-        "new": "Draws a different First Officer now, after you confirm."
+        "title": "Roster de copilotos",
+        "who": "Nombra al copiloto de servicio, su experiencia y horas en el tipo.",
+        "new": "Sortea otro copiloto ahora, tras tu confirmación."
       },
       "scenario": {
-        "title": "Scenario mode",
-        "clearAll": "Clears every armed failure in ProSim, the IOS's included — always works.",
-        "planned": "Names the planned scenario, only with 'Show the planned scenario' on."
+        "title": "Modo escenario",
+        "clearAll": "Borra todas las fallas armadas en ProSim, incluidas las del IOS — funciona siempre.",
+        "planned": "Nombra el escenario planificado, solo con 'Mostrar el escenario planificado' activado."
       },
       "fuelCheck": {
         "title": "Fuel check",
@@ -240,7 +240,7 @@
         "quiet": "Silencia la charla durante el resto de la sesión (checklists y callouts siguen hablando)."
       },
       "disregard": {
-        "title": "Disregard",
+        "title": "Descartar",
         "disregard": "Silencia el aviso que el FO está diciendo (estado del avión, estacionamiento, llamada perdida) y lo confirma — si no suena nada, solo la confirmación."
       },
       "rto": {

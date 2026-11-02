@@ -30,7 +30,7 @@
     "ahead": "voraus",
     "onSchedule": "pünktlich",
     "figuresNote": "Block- und Dienstzeiten sind eine bequeme Nachverfolgung des Geflogenen — keine Berechnung nach Flugzeitbegrenzungen.",
-    "foOnLeg": "First Officer on this leg (roster)",
+    "foOnLeg": "Erster Offizier auf diesem Leg (Roster)",
     "foOnLegPill": "FO {0}",
     "legs": "Legs",
     "legName": "Leg {0} · {1} → {2}",

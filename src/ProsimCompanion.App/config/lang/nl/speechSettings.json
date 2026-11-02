@@ -87,39 +87,39 @@
       }
     },
     "smallTalk": {
-      "title": "Small Talk",
-      "hint": "Now and then in the cruise the FO says something that is not about the flight. Unprompted, spoken only",
+      "title": "Praatje",
+      "hint": "Af en toe zegt de FO in de kruisvlucht iets dat niet over de vlucht gaat. Ongevraagd, alleen gesproken",
       "enabled": {
-        "hint": "A coffee offer, a word about the view, a question about the layover, a line about themselves — a few times per flight, only in the cruise, only after a stretch of silence.",
-        "more": "Never below the sterile-cockpit ceiling, never with an ECAM abnormal or a captain's question open, never in moderate turbulence, never within three minutes of a region fact. The persona's chattiness is the real count (0 = none); \"quiet please\" ends it for the session. With the language model on, each line is composed in the FO's persona with every number checked against the facts; otherwise the built-in line speaks."
+        "hint": "Een kop koffie aangeboden, een woord over het uitzicht, een vraag over de layover, een zin over zichzelf — een paar keer per vlucht, alleen in de kruisvlucht, alleen na een poos stilte.",
+        "more": "Nooit onder het sterile-cockpitplafond, nooit met een ECAM-abnormal of een vraag van de gezagvoerder open, nooit bij matige turbulentie, nooit binnen drie minuten na een regiofeit. De spraakzaamheid van de persona is het echte aantal (0 = geen); \"quiet please\" beëindigt het voor de sessie. Met het taalmodel aan wordt elke zin in de persona van de FO opgesteld en elk getal tegen de feiten gecontroleerd; anders spreekt de ingebouwde zin."
       },
       "maxPerFlight": {
-        "label": "Lines per flight",
-        "hint": "The ceiling. The persona's chattiness (0–3) is the actual count."
+        "label": "Zinnen per vlucht",
+        "hint": "Het maximum. De spraakzaamheid van de persona (0–3) is het echte aantal."
       },
       "minQuietMinutes": {
-        "label": "Quiet gap",
-        "hint": "Minutes of silence before a line may come, and the wait after the cruise begins."
+        "label": "Stille pauze",
+        "hint": "Minuten stilte voordat een zin mag komen, en de wachttijd na het begin van de kruisvlucht."
       },
       "kinds": {
         "offer": {
-          "label": "Coffee offer",
-          "hint": "\"Coffee, captain?\" — a yes has the purser send something up a few minutes later."
+          "label": "Koffie aangeboden",
+          "hint": "\"Coffee, captain?\" — bij ja laat de purser een paar minuten later iets naar voren brengen."
         },
         "view": {
-          "label": "The view",
-          "hint": "A town below, the sun going down, the cloud deck."
+          "label": "Het uitzicht",
+          "hint": "Een stad beneden, de ondergaande zon, het wolkendek."
         },
         "layover": {
-          "label": "The layover",
-          "hint": "\"Do you know {city}?\" — the FO listens once and answers in one sentence when the model is on."
+          "label": "De layover",
+          "hint": "\"Do you know {city}?\" — de FO luistert één keer en antwoordt in één zin als het model aan is."
         },
         "crew": {
-          "label": "About themselves",
-          "hint": "Base and hours on type from the roster record, nothing else. Needs the roster."
+          "label": "Over zichzelf",
+          "hint": "Basis en uren op type uit het roosterrecord, meer niet. Vereist het rooster."
         }
       },
-      "note": "Every line is low-priority chatter: any callout talks over it and the sterile cockpit drops it. The coffee offer appears on the open questions card like any captain's question."
+      "note": "Elke zin is gebabbel met lage prioriteit: elke callout praat eroverheen en de sterile cockpit laat hem vallen. Het koffieaanbod verschijnt op de kaart met open vragen zoals elke vraag van de gezagvoerder."
     },
     "persona": {
       "title": "FO-persona",
@@ -147,41 +147,41 @@
         "more": "\"Quiet please\" legt het praten voor de sessie stil, wat hier ook staat."
       },
       "confidence": {
-        "label": "Confidence",
-        "hint": "Nervous double-checks and asks; assured states things. Steady adds nothing."
+        "label": "Zelfvertrouwen",
+        "hint": "Nerveus controleert dubbel en vraagt na; zelfverzekerd stelt vast. Rustig voegt niets toe."
       },
-      "overriddenByRoster": "Overridden by the roster — the drawn First Officer's value applies.",
+      "overriddenByRoster": "Overschreven door het rooster — de waarde van de getrokken eerste officier geldt.",
       "roster": {
-        "title": "Roster",
+        "title": "Rooster",
         "hint": "Een andere First Officer per sim-kalenderdag, getrokken uit fo-roster.json",
         "mode": {
-          "label": "Roster",
+          "label": "Rooster",
           "hint": "Uit houdt de persona hierboven. Dagelijks trekt op het eerste leg van elke sim-kalenderdag een nieuwe FO — een open dienstdag houdt zijn FO. Vastgepind houdt degene die je hieronder vastpint."
         },
         "gateIntro": {
-          "label": "Gate introduction",
+          "label": "Voorstellen aan de gate",
           "hint": "De FO stelt zich één keer per trekking voor, aan de gate zodra het plan van het leg geladen is."
         },
-        "current": "On duty",
+        "current": "In dienst",
         "nobody": "Nog niemand getrokken — de trekking komt wanneer het eerste plan van de dag geladen wordt.",
-        "hours": "{0} h on type",
-        "empty": "The roster file holds no officers.",
+        "hours": "{0} u op type",
+        "empty": "Het roosterbestand bevat geen officieren.",
         "columns": {
-          "name": "Name",
-          "experience": "Experience · formality",
-          "confidence": "Confidence",
-          "hours": "Hours on type",
-          "voice": "Voice"
+          "name": "Naam",
+          "experience": "Ervaring · formaliteit",
+          "confidence": "Zelfvertrouwen",
+          "hours": "Uren op type",
+          "voice": "Stem"
         },
-        "pin": "Pin",
-        "release": "Release",
-        "drawAgain": "Draw again",
-        "pinnedMessage": "Pinned — this First Officer flies every day until released.",
-        "releasedMessage": "Pin released — the roster draws daily again.",
-        "unknownMessage": "That officer is not in the roster file.",
-        "drawnMessage": "{0} is on duty.",
-        "fileBefore": "Edit the crew in",
-        "fileAfter": "— id, name, experience, formality, chattiness, confidence, hours on type, base and an optional provider:id voice (Kokoro ids are listed on the Voices page; ElevenLabs ids work as elevenlabs:<voiceId>). Edits are picked up live."
+        "pin": "Vastzetten",
+        "release": "Vrijgeven",
+        "drawAgain": "Opnieuw trekken",
+        "pinnedMessage": "Vastgezet — deze eerste officier vliegt elke dag tot hij wordt vrijgegeven.",
+        "releasedMessage": "Vastzetten opgeheven — het rooster trekt weer dagelijks.",
+        "unknownMessage": "Die officier staat niet in het roosterbestand.",
+        "drawnMessage": "{0} is in dienst.",
+        "fileBefore": "Bewerk de crew in",
+        "fileAfter": "— id, name, experience, formality, chattiness, confidence, hours on type, base en optioneel een provider:id-stem (Kokoro-id's staan op de pagina Stemmen; ElevenLabs-id's werken als elevenlabs:<voiceId>). Wijzigingen worden live overgenomen."
       },
       "styles": {
         "title": "Wat de persona stileert",
@@ -404,33 +404,33 @@
       "hint": "Roep de grondcrew op en hoor hun oproepen",
       "walkaround": {
         "title": "Walkaround",
-        "hint": "Once per departure, at the stand with the ground prep done, the FO walks the aircraft and reports back on the interphone",
+        "hint": "Eén keer per vertrek, aan de stand met de grondvoorbereiding klaar, loopt de FO om het vliegtuig en meldt zich terug via de interfoon",
         "enabled": {
-          "hint": "\"I'll do the walkaround, captain\" — then a few minutes away; the refuel call waits, your questions get \"the First Officer is on the walkaround\", and the report comes on the interphone.",
-          "more": "Starts when the aircraft is parked with engines off and the ground prep (jetway or stairs) is complete; never replayed after a restart mid-turnaround; once per departure. Calling the refuel yourself meanwhile abandons the walk. Safety phrases, \"I have controls\" and \"quiet please\" always work."
+          "hint": "\"I'll do the walkaround, captain\" — dan een paar minuten weg; de tankoproep wacht, je vragen krijgen \"the First Officer is on the walkaround\" en het verslag komt via de interfoon.",
+          "more": "Begint wanneer het vliegtuig geparkeerd staat met de motoren uit en de grondvoorbereiding (slurf of trap) klaar is; nooit herhaald na een herstart midden in de turnaround; één keer per vertrek. Zelf de tankoproep doen breekt de ronde af. Veiligheidszinnen, \"I have controls\" en \"quiet please\" werken altijd."
         },
         "minMinutes": {
-          "label": "Shortest walk",
-          "hint": "Minutes away, at least."
+          "label": "Kortste ronde",
+          "hint": "Minuten weg, minimaal."
         },
         "maxMinutes": {
-          "label": "Longest walk",
-          "hint": "The walk is drawn at random between the two."
+          "label": "Langste ronde",
+          "hint": "De duur wordt willekeurig tussen beide gekozen."
         },
         "findingChance": {
-          "label": "Finding chance",
-          "hint": "0 to 1. The chance a walkaround turns up something: a tyre near the limit, a hydraulic weep, a missing static wick — the FO asks before it goes in the tech log; ice on the wing leads to the de-icing question."
+          "label": "Kans op bevinding",
+          "hint": "0 tot 1. De kans dat de walkaround iets oplevert: een band bij de limiet, een zwetende hydrauliek, een ontbrekende static wick — de FO vraagt het voordat het in het tech log gaat; ijs op de vleugel leidt tot de de-icingvraag."
         },
         "allowNoGo": {
-          "label": "Allow no-go findings",
-          "hint": "A cords-showing tyre or a steady hydraulic leak: raised in the tech log regardless. Nothing is blocked — you decide."
+          "label": "No-go-bevindingen toestaan",
+          "hint": "Een band met zichtbaar koord of een gestage hydraulische lekkage: wordt hoe dan ook in het tech log gezet. Niets wordt geblokkeerd — jij beslist."
         },
         "onInterphone": {
-          "label": "Report on the interphone",
-          "hint": "MECH call, INT selected or the grace, intercom timbre. Off: the report is spoken in the cockpit unfiltered."
+          "label": "Verslag via de interfoon",
+          "hint": "MECH-oproep, INT geselecteerd of de respijttijd, interfoonklank. Uit: het verslag wordt ongefilterd in de cockpit gesproken."
         },
-        "fileBefore": "The findings and their tech-log titles are in",
-        "fileAfter": "— edit it to add your own (conditions: icing, precipitation, night, afterLanding; severity cosmetic, deferrable or noGo). Edits are picked up live."
+        "fileBefore": "De bevindingen en hun tech-log-titels staan in",
+        "fileAfter": "— bewerk het om je eigen toe te voegen (condities: icing, precipitation, night, afterLanding; ernst cosmetic, deferrable of noGo). Wijzigingen worden live overgenomen."
       },
       "requireInt": {
         "label": "INT geselecteerd vereisen",
@@ -1115,9 +1115,9 @@
         "more": "Een mislukte toets valt terug op het kale sjabloon."
       },
       "askForQuestions": {
-        "label": "Ask for questions after the briefing",
-        "hint": "The FO ends every briefing with \"Any questions, captain?\" — \"no questions\" gets \"Briefing complete\"; a question is answered, then \"Anything else, captain?\".",
-        "more": "Free text needs the transcription server. With the offline engine, or after a minute of silence, the FO says \"Briefing complete\". On a departure the question comes after \"any other threats?\"."
+        "label": "Na de briefing naar vragen vragen",
+        "hint": "De FO sluit elke briefing af met \"Any questions, captain?\" — op \"no questions\" volgt \"Briefing complete\"; een vraag wordt beantwoord, daarna \"Anything else, captain?\".",
+        "more": "Vrije tekst heeft de transcriptieserver nodig. Met de offline-engine, of na een minuut stilte, zegt de FO \"Briefing complete\". Bij een vertrek komt de vraag na \"any other threats?\"."
       },
       "dfdBefore": "Het pad van de Navigraph-DFD-database staat onder",
       "dfdLink": "Setup → Navdata",
@@ -1329,18 +1329,18 @@
         "more": "Geldt live. De afzonderlijke callout-teksten, hoogte-callouts, de andere flow-monitor-herinneringen en de weeradviezen worden voorlopig bewerkt in de sectie sop van settings.json."
       },
       "transition": {
-        "title": "Transition Reminders",
-        "hint": "The FO reminds you to set standard above the transition altitude and QNH below the transition level.",
+        "title": "Transitieherinneringen",
+        "hint": "De FO herinnert je eraan boven de transitiehoogte standaard te zetten en onder het transitieniveau QNH.",
         "enabled": {
-          "label": "Transition reminders",
-          "hint": "Climbing through the transition altitude still on QNH: \"Transition altitude. Standard, please.\" Descending through the transition level still on standard: \"Transition level. QNH one zero one three, please.\"",
-          "more": "The altitude is your own PFD (the seat setting picks the side). The transition altitude comes from the Navigraph database for the departure airport, the transition level for the destination (or the diversion). No database, no reminder. The QNH is the destination METAR; without one the FO says \"QNH, please\". One reminder per crossing, spoken only."
+          "label": "Transitieherinneringen",
+          "hint": "Klimmend door de transitiehoogte nog op QNH: \"Transition altitude. Standard, please.\" Dalend door het transitieniveau nog op standaard: \"Transition level. QNH one zero one three, please.\"",
+          "more": "De hoogte is je eigen PFD (de stoelinstelling kiest de kant). De transitiehoogte komt uit de Navigraph-database voor de vertrekluchthaven, het transitieniveau voor de bestemming (of de uitwijk). Geen database, geen herinnering. De QNH is de METAR van de bestemming; zonder zegt de FO \"QNH, please\". Eén herinnering per passage, alleen gesproken."
         },
         "delay": {
-          "label": "Patience",
-          "hint": "Seconds past the crossing before the FO speaks. You normally set it yourself first."
+          "label": "Geduld",
+          "hint": "Seconden na de passage voordat de FO spreekt. Normaal zet je het zelf eerst."
         },
-        "note": "The fixed 18,000 ft \"transition altitude\" altitude callout in settings.json is unrelated; this card uses the real figures per airport."
+        "note": "De vaste \"transition altitude\"-hoogtecallout op 18.000 ft in settings.json staat hier los van; deze kaart gebruikt de echte waarden per luchthaven."
       },
       "placards": {
         "title": "Flap-placards",
@@ -1503,34 +1503,34 @@
       }
     },
     "scenario": {
-      "title": "Scenarios",
-      "hint": "Rarely, opt-in, the app arms one minor failure in ProSim so the FO's ECAM actions and the decision get used",
+      "title": "Scenario's",
+      "hint": "Zelden, en alleen als je het aanzet, stelt de app één kleine storing in ProSim in zodat de ECAM-acties van de FO en de beslissing gebruikt worden",
       "enabled": {
-        "hint": "About one flight in ten gets a scenario: a pack fault, a generator, a fuel pump low pressure, a hydraulic reservoir, an IR fault, hot brakes after landing. The FO handles the ECAM, then asks: continue, return or divert?",
-        "more": "The failure is armed through ProSim's own failure list (the same list the IOS uses), never below the floor height in flight, never with an abnormal, a drill or a no-go tech-log item open. Each catalogue entry is refused until its ProSim name is marked verified in scenarios.json — the STATUS page and 'scenario.listFailures' show ProSim's names. Everything armed is cleared at the flight reset and when the app closes; 'clear all failures' by voice, the STATUS page or the Stream Deck always works and also clears failures set on the IOS."
+        "hint": "Ongeveer één op de tien vluchten krijgt een scenario: een pack fault, een generator, een fuel pump low pressure, een hydraulisch reservoir, een IR fault, hete remmen na de landing. De FO handelt de ECAM af en vraagt dan: doorgaan, terugkeren of uitwijken?",
+        "more": "De storing wordt ingesteld via ProSims eigen storingslijst (dezelfde lijst als het IOS), nooit onder de minimumhoogte in de vlucht, nooit met een abnormal, een drill of een no-go-tech-log-item open. Elke catalogusregel wordt geweigerd tot zijn ProSim-naam in scenarios.json als verified is gemarkeerd — de STATUS-pagina en 'scenario.listFailures' tonen ProSims namen. Alles wat is ingesteld wordt gewist bij de flight reset en bij het sluiten van de app; 'clear all failures' via spraak, de STATUS-pagina of de Stream Deck werkt altijd en wist ook storingen die op het IOS zijn gezet."
       },
       "perFlightChance": {
-        "label": "Chance per flight",
-        "hint": "0 to 1. 0.10 is roughly one scenario every ten flights."
+        "label": "Kans per vlucht",
+        "hint": "0 tot 1. 0.10 is ongeveer één scenario per tien vluchten."
       },
       "allowMajor": {
-        "label": "Allow major scenarios",
-        "hint": "Engine fire, engine failure, APU fire. Off keeps the minor stuff that actually happens on the line."
+        "label": "Grote scenario's toestaan",
+        "hint": "Motorbrand, motoruitval, APU-brand. Uit houdt het bij de kleine dingen die op de lijn echt gebeuren."
       },
       "takeoffScenarios": {
-        "label": "Takeoff scenarios",
-        "hint": "An engine fire on the roll (an RTO cause) and an engine failure after V1 — only with the RTO and EFATO features on above."
+        "label": "Startscenario's",
+        "hint": "Een motorbrand tijdens de aanloop (een RTO-reden) en een motoruitval na V1 — alleen met de RTO- en EFATO-functies hierboven aan."
       },
       "minAltitudeFt": {
-        "label": "Floor in flight",
-        "hint": "Nothing is armed in flight below this height above ground."
+        "label": "Minimumhoogte in de vlucht",
+        "hint": "In de vlucht wordt onder deze hoogte boven de grond niets ingesteld."
       },
       "showPlanned": {
-        "label": "Show the planned scenario",
-        "hint": "For testing: the STATUS page names it and 'any failures planned?' answers. Off keeps the surprise."
+        "label": "Gepland scenario tonen",
+        "hint": "Om te testen: de STATUS-pagina noemt het en 'any failures planned?' antwoordt. Uit houdt de verrassing."
       },
-      "fileBefore": "The catalogue is",
-      "fileAfter": "— id, title, abnormalId (a file in config/abnormals), failureName (ProSim's own name), verified, phases, weight, severity, takeoff, clearAfterSeconds, techLogAfter, decision, wearTitle. Edits are picked up live."
+      "fileBefore": "De catalogus is",
+      "fileAfter": "— id, title, abnormalId (een bestand in config/abnormals), failureName (ProSims eigen naam), verified, phases, weight, severity, takeoff, clearAfterSeconds, techLogAfter, decision, wearTitle. Wijzigingen worden live overgenomen."
     },
     "abnormals": {
       "title": "ECAM-abnormals",
@@ -1625,14 +1625,14 @@
         "senior": "Senior"
       },
       "confidence": {
-        "nervous": "Nervous",
-        "steady": "Steady",
-        "assured": "Assured"
+        "nervous": "Nerveus",
+        "steady": "Rustig",
+        "assured": "Zelfverzekerd"
       },
       "rosterMode": {
-        "off": "Off (one persona)",
+        "off": "Uit (één persona)",
         "daily": "Dagelijks (een nieuwe FO per sim-dag)",
-        "pinned": "Pinned (the FO pinned below)"
+        "pinned": "Vastgezet (de hieronder vastgezette FO)"
       },
       "formality": {
         "casual": "Informeel",

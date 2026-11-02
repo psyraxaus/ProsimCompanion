@@ -24,7 +24,7 @@
       }
     },
     "status": {
-      "scenarioClearAll": "Clear every armed failure in ProSim (the IOS's included)"
+      "scenarioClearAll": "ProSim에 설정된 모든 고장을 해제 (IOS의 고장 포함)"
     },
     "gsx": {
       "gpuConnect": "클릭하여 지상 전원을 연결합니다",

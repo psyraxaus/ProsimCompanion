@@ -18,7 +18,7 @@
       "lines": "{1} 行中 {0} 行"
     },
     "state": {
-      "standby": "standby",
+      "standby": "待機",
       "complete": "完了",
       "inProgress": "進行中"
     },

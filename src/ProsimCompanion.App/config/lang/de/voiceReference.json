@@ -180,14 +180,14 @@
         "end": "Beendet ihn mit einer Zusammenfassung und dem Logbuch-Abschluss."
       },
       "roster": {
-        "title": "First Officer roster",
-        "who": "Names the First Officer on duty, their experience and hours on the type.",
-        "new": "Draws a different First Officer now, after you confirm."
+        "title": "Roster der Ersten Offiziere",
+        "who": "Nennt den diensthabenden Ersten Offizier, seine Erfahrung und Stunden auf dem Muster.",
+        "new": "Zieht nach deiner Bestätigung sofort einen anderen Ersten Offizier."
       },
       "scenario": {
-        "title": "Scenario mode",
-        "clearAll": "Clears every armed failure in ProSim, the IOS's included — always works.",
-        "planned": "Names the planned scenario, only with 'Show the planned scenario' on."
+        "title": "Szenario-Modus",
+        "clearAll": "Löscht alle in ProSim scharfgeschalteten Fehler, auch die vom IOS — funktioniert immer.",
+        "planned": "Nennt das geplante Szenario, nur mit eingeschaltetem 'Geplantes Szenario anzeigen'."
       },
       "fuelCheck": {
         "title": "Fuel Check",
@@ -240,7 +240,7 @@
         "quiet": "Stellt das Plaudern für den Rest der Sitzung ab (Checklisten und Callouts sprechen weiter)."
       },
       "disregard": {
-        "title": "Disregard",
+        "title": "Zurücknehmen",
         "disregard": "Bricht die Durchsage ab, die der FO gerade spricht (Flugzeugzustand, Parkposition, verlorener Call), und bestätigt — läuft nichts, nur die Bestätigung."
       },
       "rto": {

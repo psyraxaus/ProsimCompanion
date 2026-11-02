@@ -329,7 +329,7 @@
       "channel": "Kanaal",
       "label": "Label",
       "gain": "Gain",
-      "mute": "Mute",
+      "mute": "Dempen",
       "muted": "Gedempt",
       "open": "Open",
       "unmuteButton": "Dempen opheffen",

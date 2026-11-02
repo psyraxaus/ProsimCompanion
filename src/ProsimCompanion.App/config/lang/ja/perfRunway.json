@@ -24,7 +24,7 @@
       "noMetar": "METAR がありません",
       "calculated": "計算済みの値",
       "notCalculated": "未計算",
-      "standby": "standby",
+      "standby": "待機",
       "noMetarBanner": "METAR なしで計算 — OAT / QNH / 風を手動で確認",
       "reset": "リセット",
       "confirmReset": "リセットしますか？",

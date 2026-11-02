@@ -18,7 +18,7 @@
       "lines": "{0} van {1} regels"
     },
     "state": {
-      "standby": "standby",
+      "standby": "stand-by",
       "complete": "voltooid",
       "inProgress": "bezig"
     },

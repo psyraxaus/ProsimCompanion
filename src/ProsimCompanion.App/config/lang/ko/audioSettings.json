@@ -329,7 +329,7 @@
       "channel": "채널",
       "label": "레이블",
       "gain": "게인",
-      "mute": "Mute",
+      "mute": "음소거",
       "muted": "음소거",
       "open": "열림",
       "unmuteButton": "음소거 해제",

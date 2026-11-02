@@ -45,8 +45,8 @@
       "addFolder": "이 PC의 폴더 추가"
     },
     "section": {
-      "collapse": "Collapse this card",
-      "expand": "Expand this card"
+      "collapse": "이 카드 접기",
+      "expand": "이 카드 펼치기"
     },
     "advanced": {
       "hidden": "고급 설정 숨김",

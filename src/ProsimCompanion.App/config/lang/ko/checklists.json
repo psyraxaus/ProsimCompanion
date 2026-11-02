@@ -18,7 +18,7 @@
       "lines": "{1}줄 중 {0}줄"
     },
     "state": {
-      "standby": "standby",
+      "standby": "대기",
       "complete": "완료",
       "inProgress": "진행 중"
     },

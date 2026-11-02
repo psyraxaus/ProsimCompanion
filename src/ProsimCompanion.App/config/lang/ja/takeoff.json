@@ -11,7 +11,7 @@
       "syncLoadsheet": "ロードシートを同期"
     },
     "output": {
-      "title": "FMGC Take Off",
+      "title": "FMGC 離陸",
       "flaps": "フラップ",
       "component": "{0} 成分",
       "greenDot": "グリーンドット",

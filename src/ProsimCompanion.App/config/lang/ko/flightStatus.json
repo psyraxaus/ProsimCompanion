@@ -237,7 +237,7 @@
     },
     "aircraftState": {
       "label": "항공기 상태",
-      "pass": "cold and dark ✓",
+      "pass": "콜드 앤 다크 ✓",
       "unchecked": "미확인 (dataref가 응답하지 않음): {0}",
       "mismatchOne": "불일치 {0}건",
       "mismatchMany": "불일치 {0}건",

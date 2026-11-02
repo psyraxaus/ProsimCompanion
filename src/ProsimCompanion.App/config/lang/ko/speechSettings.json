@@ -87,39 +87,39 @@
       }
     },
     "smallTalk": {
-      "title": "Small Talk",
-      "hint": "Now and then in the cruise the FO says something that is not about the flight. Unprompted, spoken only",
+      "title": "스몰토크",
+      "hint": "순항 중 이따금 FO가 비행과 무관한 이야기를 합니다. 자발적이며 음성으로만",
       "enabled": {
-        "hint": "A coffee offer, a word about the view, a question about the layover, a line about themselves — a few times per flight, only in the cruise, only after a stretch of silence.",
-        "more": "Never below the sterile-cockpit ceiling, never with an ECAM abnormal or a captain's question open, never in moderate turbulence, never within three minutes of a region fact. The persona's chattiness is the real count (0 = none); \"quiet please\" ends it for the session. With the language model on, each line is composed in the FO's persona with every number checked against the facts; otherwise the built-in line speaks."
+        "hint": "커피 권유, 바깥 풍경에 대한 한마디, 레이오버에 대한 질문, 자기 이야기 한 줄 — 비행당 몇 번, 순항 중에만, 한동안 침묵이 이어진 뒤에만.",
+        "more": "스테라일 콕핏 고도 아래, ECAM 비정상 절차나 기장 질문이 열려 있을 때, 중간 난기류 중, 지역 정보 후 3분 이내에는 절대 말하지 않습니다. 페르소나의 수다스러움이 실제 횟수입니다 (0 = 없음). \"quiet please\"로 해당 세션 동안 끝냅니다. 언어 모델이 켜져 있으면 각 대사는 FO의 페르소나로 작성되고 모든 숫자가 사실과 대조됩니다. 아니면 내장 대사가 나옵니다."
       },
       "maxPerFlight": {
-        "label": "Lines per flight",
-        "hint": "The ceiling. The persona's chattiness (0–3) is the actual count."
+        "label": "비행당 대사 수",
+        "hint": "상한입니다. 실제 횟수는 페르소나의 수다스러움 (0–3)으로 정해집니다."
       },
       "minQuietMinutes": {
-        "label": "Quiet gap",
-        "hint": "Minutes of silence before a line may come, and the wait after the cruise begins."
+        "label": "침묵 간격",
+        "hint": "대사가 나오기 전 필요한 침묵 시간 (분)과 순항 시작 후 대기 시간."
       },
       "kinds": {
         "offer": {
-          "label": "Coffee offer",
-          "hint": "\"Coffee, captain?\" — a yes has the purser send something up a few minutes later."
+          "label": "커피 권유",
+          "hint": "\"Coffee, captain?\" — 예라고 하면 몇 분 뒤 사무장이 무언가를 올려 보냅니다."
         },
         "view": {
-          "label": "The view",
-          "hint": "A town below, the sun going down, the cloud deck."
+          "label": "바깥 풍경",
+          "hint": "아래의 도시, 지는 해, 구름층."
         },
         "layover": {
-          "label": "The layover",
-          "hint": "\"Do you know {city}?\" — the FO listens once and answers in one sentence when the model is on."
+          "label": "레이오버",
+          "hint": "\"Do you know {city}?\" — 모델이 켜져 있으면 FO가 한 번 듣고 한 문장으로 답합니다."
         },
         "crew": {
-          "label": "About themselves",
-          "hint": "Base and hours on type from the roster record, nothing else. Needs the roster."
+          "label": "자기 이야기",
+          "hint": "로스터 기록의 베이스와 기종 비행시간만. 로스터가 필요합니다."
         }
       },
-      "note": "Every line is low-priority chatter: any callout talks over it and the sterile cockpit drops it. The coffee offer appears on the open questions card like any captain's question."
+      "note": "모든 대사는 우선순위가 낮은 잡담입니다. 콜아웃은 그 위에 말하고 스테라일 콕핏에서는 생략됩니다. 커피 권유는 기장 질문처럼 열린 질문 카드에 표시됩니다."
     },
     "persona": {
       "title": "FO 페르소나",
@@ -147,41 +147,41 @@
         "more": "\"Quiet please\"라고 하면 이 값과 무관하게 세션 동안 잡담이 멈춥니다."
       },
       "confidence": {
-        "label": "Confidence",
-        "hint": "Nervous double-checks and asks; assured states things. Steady adds nothing."
+        "label": "자신감",
+        "hint": "긴장함은 재확인하고 묻고, 확신에 참은 단언합니다. 차분함은 아무것도 덧붙이지 않습니다."
       },
-      "overriddenByRoster": "Overridden by the roster — the drawn First Officer's value applies.",
+      "overriddenByRoster": "로스터가 우선합니다 — 선발된 부기장의 값이 적용됩니다.",
       "roster": {
-        "title": "Roster",
+        "title": "로스터",
         "hint": "시뮬레이터 달력 날짜마다 다른 부기장을 fo-roster.json에서 추첨",
         "mode": {
-          "label": "Roster",
+          "label": "로스터",
           "hint": "끄기는 위의 페르소나를 유지합니다. 매일은 시뮬레이터 달력 날짜의 첫 레그에서 새 FO를 추첨하며, 열려 있는 근무일은 FO를 유지합니다. 고정은 아래에서 고정한 FO를 유지합니다."
         },
         "gateIntro": {
-          "label": "Gate introduction",
+          "label": "게이트 자기소개",
           "hint": "FO는 추첨마다 한 번, 레그의 플랜이 로드된 뒤 게이트에서 자기소개를 합니다."
         },
-        "current": "On duty",
+        "current": "근무 중",
         "nobody": "아직 추첨되지 않음 — 그날의 첫 플랜이 로드될 때 추첨합니다.",
-        "hours": "{0} h on type",
-        "empty": "The roster file holds no officers.",
+        "hours": "기종 {0}시간",
+        "empty": "로스터 파일에 부기장이 없습니다.",
         "columns": {
-          "name": "Name",
-          "experience": "Experience · formality",
-          "confidence": "Confidence",
-          "hours": "Hours on type",
-          "voice": "Voice"
+          "name": "이름",
+          "experience": "경험 · 격식",
+          "confidence": "자신감",
+          "hours": "기종 비행시간",
+          "voice": "음성"
         },
-        "pin": "Pin",
-        "release": "Release",
-        "drawAgain": "Draw again",
-        "pinnedMessage": "Pinned — this First Officer flies every day until released.",
-        "releasedMessage": "Pin released — the roster draws daily again.",
-        "unknownMessage": "That officer is not in the roster file.",
-        "drawnMessage": "{0} is on duty.",
-        "fileBefore": "Edit the crew in",
-        "fileAfter": "— id, name, experience, formality, chattiness, confidence, hours on type, base and an optional provider:id voice (Kokoro ids are listed on the Voices page; ElevenLabs ids work as elevenlabs:<voiceId>). Edits are picked up live."
+        "pin": "고정",
+        "release": "해제",
+        "drawAgain": "다시 뽑기",
+        "pinnedMessage": "고정됨 — 해제할 때까지 이 부기장이 매일 비행합니다.",
+        "releasedMessage": "고정 해제 — 로스터가 다시 매일 뽑습니다.",
+        "unknownMessage": "해당 부기장은 로스터 파일에 없습니다.",
+        "drawnMessage": "{0}이(가) 근무 중입니다.",
+        "fileBefore": "승무원은 다음 파일에서 편집합니다:",
+        "fileAfter": "— id, name, experience, formality, chattiness, confidence, hours on type, base 및 선택적 provider:id 음성 (Kokoro ID는 음성 페이지에 나열되며, ElevenLabs ID는 elevenlabs:<voiceId> 형식으로 사용). 편집 내용은 즉시 반영됩니다."
       },
       "styles": {
         "title": "페르소나가 다듬는 것",
@@ -403,34 +403,34 @@
       "title": "지상 승무원",
       "hint": "지상 승무원을 호출하고 그들의 호출을 듣습니다",
       "walkaround": {
-        "title": "Walkaround",
-        "hint": "Once per departure, at the stand with the ground prep done, the FO walks the aircraft and reports back on the interphone",
+        "title": "워크어라운드",
+        "hint": "출발마다 한 번, 지상 준비가 끝난 주기장에서 FO가 항공기를 돌아보고 인터폰으로 보고합니다",
         "enabled": {
-          "hint": "\"I'll do the walkaround, captain\" — then a few minutes away; the refuel call waits, your questions get \"the First Officer is on the walkaround\", and the report comes on the interphone.",
-          "more": "Starts when the aircraft is parked with engines off and the ground prep (jetway or stairs) is complete; never replayed after a restart mid-turnaround; once per departure. Calling the refuel yourself meanwhile abandons the walk. Safety phrases, \"I have controls\" and \"quiet please\" always work."
+          "hint": "\"I'll do the walkaround, captain\" — 그 뒤 몇 분간 자리를 비웁니다. 급유 호출은 대기하고, 질문에는 \"the First Officer is on the walkaround\"라고 답하며, 보고는 인터폰으로 옵니다.",
+          "more": "엔진이 꺼진 채 주기되고 지상 준비 (탑승교 또는 계단)가 끝나면 시작됩니다. 턴어라운드 도중 재시작 후에는 반복되지 않으며, 출발마다 한 번입니다. 그 사이에 직접 급유를 호출하면 점검이 중단됩니다. 안전 문구, \"I have controls\", \"quiet please\"는 항상 작동합니다."
         },
         "minMinutes": {
-          "label": "Shortest walk",
-          "hint": "Minutes away, at least."
+          "label": "최단 시간",
+          "hint": "자리를 비우는 최소 분."
         },
         "maxMinutes": {
-          "label": "Longest walk",
-          "hint": "The walk is drawn at random between the two."
+          "label": "최장 시간",
+          "hint": "소요 시간은 두 값 사이에서 무작위로 정해집니다."
         },
         "findingChance": {
-          "label": "Finding chance",
-          "hint": "0 to 1. The chance a walkaround turns up something: a tyre near the limit, a hydraulic weep, a missing static wick — the FO asks before it goes in the tech log; ice on the wing leads to the de-icing question."
+          "label": "결함 발견 확률",
+          "hint": "0에서 1. 워크어라운드에서 무언가 발견될 확률: 한계에 가까운 타이어, 유압 누유, 빠진 정전기 방전기 — 테크로그에 기록하기 전에 FO가 물어봅니다. 날개의 결빙은 제빙 질문으로 이어집니다."
         },
         "allowNoGo": {
-          "label": "Allow no-go findings",
-          "hint": "A cords-showing tyre or a steady hydraulic leak: raised in the tech log regardless. Nothing is blocked — you decide."
+          "label": "No-Go 결함 허용",
+          "hint": "코드가 드러난 타이어나 지속적인 유압 누출: 어쨌든 테크로그에 기록됩니다. 아무것도 차단되지 않습니다 — 결정은 당신 몫입니다."
         },
         "onInterphone": {
-          "label": "Report on the interphone",
-          "hint": "MECH call, INT selected or the grace, intercom timbre. Off: the report is spoken in the cockpit unfiltered."
+          "label": "인터폰으로 보고",
+          "hint": "MECH 호출, INT 선택 또는 유예 시간, 인터폰 음색. 끄면 보고가 필터 없이 조종석에서 그대로 말해집니다."
         },
-        "fileBefore": "The findings and their tech-log titles are in",
-        "fileAfter": "— edit it to add your own (conditions: icing, precipitation, night, afterLanding; severity cosmetic, deferrable or noGo). Edits are picked up live."
+        "fileBefore": "결함 항목과 테크로그 제목은 다음 파일에 있습니다:",
+        "fileAfter": "— 편집해 직접 추가할 수 있습니다 (조건: icing, precipitation, night, afterLanding; 심각도 cosmetic, deferrable 또는 noGo). 편집 내용은 즉시 반영됩니다."
       },
       "requireInt": {
         "label": "INT 선택 요구",
@@ -1115,9 +1115,9 @@
         "more": "검증 실패 시 일반 템플릿으로 대체됩니다."
       },
       "askForQuestions": {
-        "label": "Ask for questions after the briefing",
-        "hint": "The FO ends every briefing with \"Any questions, captain?\" — \"no questions\" gets \"Briefing complete\"; a question is answered, then \"Anything else, captain?\".",
-        "more": "Free text needs the transcription server. With the offline engine, or after a minute of silence, the FO says \"Briefing complete\". On a departure the question comes after \"any other threats?\"."
+        "label": "브리핑 후 질문 요청",
+        "hint": "FO는 모든 브리핑을 \"Any questions, captain?\"으로 마칩니다 — \"no questions\"에는 \"Briefing complete\"로 답하고, 질문에는 답한 뒤 \"Anything else, captain?\"이 이어집니다.",
+        "more": "자유 발화에는 전사 서버가 필요합니다. 오프라인 엔진을 쓰거나 1분간 침묵이 이어지면 FO가 \"Briefing complete\"라고 말합니다. 출발 시에는 \"any other threats?\" 뒤에 질문이 옵니다."
       },
       "dfdBefore": "Navigraph DFD 데이터베이스 경로는",
       "dfdLink": "셋업 → 항법 데이터",
@@ -1329,18 +1329,18 @@
         "more": "즉시 적용됩니다. 개별 콜아웃 텍스트, 고도 콜아웃, 그 외 플로우 모니터 알림, 기상 권고는 당분간 settings.json의 sop 섹션에서 편집합니다."
       },
       "transition": {
-        "title": "Transition Reminders",
-        "hint": "The FO reminds you to set standard above the transition altitude and QNH below the transition level.",
+        "title": "전이고도 알림",
+        "hint": "FO가 전이고도 위에서는 표준기압으로, 전이고도층 아래에서는 QNH로 맞추도록 알려 줍니다.",
         "enabled": {
-          "label": "Transition reminders",
-          "hint": "Climbing through the transition altitude still on QNH: \"Transition altitude. Standard, please.\" Descending through the transition level still on standard: \"Transition level. QNH one zero one three, please.\"",
-          "more": "The altitude is your own PFD (the seat setting picks the side). The transition altitude comes from the Navigraph database for the departure airport, the transition level for the destination (or the diversion). No database, no reminder. The QNH is the destination METAR; without one the FO says \"QNH, please\". One reminder per crossing, spoken only."
+          "label": "전이고도 알림",
+          "hint": "QNH인 채로 전이고도를 상승 통과: \"Transition altitude. Standard, please.\" 표준기압인 채로 전이고도층을 강하 통과: \"Transition level. QNH one zero one three, please.\"",
+          "more": "고도는 본인 PFD 기준입니다 (좌석 설정이 쪽을 정합니다). 전이고도는 출발 공항의 Navigraph 데이터베이스에서, 전이고도층은 목적지 (또는 회항지)에서 가져옵니다. 데이터베이스가 없으면 알림도 없습니다. QNH는 목적지 METAR이며, 없으면 FO가 \"QNH, please\"라고 말합니다. 통과마다 한 번, 음성으로만 알립니다."
         },
         "delay": {
-          "label": "Patience",
-          "hint": "Seconds past the crossing before the FO speaks. You normally set it yourself first."
+          "label": "대기 시간",
+          "hint": "통과 후 FO가 말하기까지의 초. 보통은 먼저 직접 맞춥니다."
         },
-        "note": "The fixed 18,000 ft \"transition altitude\" altitude callout in settings.json is unrelated; this card uses the real figures per airport."
+        "note": "settings.json의 고정 18,000 ft \"transition altitude\" 고도 콜아웃과는 무관합니다. 이 카드는 공항별 실제 값을 사용합니다."
       },
       "placards": {
         "title": "플랩 플래카드",
@@ -1503,34 +1503,34 @@
       }
     },
     "scenario": {
-      "title": "Scenarios",
-      "hint": "Rarely, opt-in, the app arms one minor failure in ProSim so the FO's ECAM actions and the decision get used",
+      "title": "시나리오",
+      "hint": "드물게, 옵트인으로, 앱이 ProSim에 경미한 고장 하나를 설정해 FO의 ECAM 조치와 판단이 실제로 쓰이게 합니다",
       "enabled": {
-        "hint": "About one flight in ten gets a scenario: a pack fault, a generator, a fuel pump low pressure, a hydraulic reservoir, an IR fault, hot brakes after landing. The FO handles the ECAM, then asks: continue, return or divert?",
-        "more": "The failure is armed through ProSim's own failure list (the same list the IOS uses), never below the floor height in flight, never with an abnormal, a drill or a no-go tech-log item open. Each catalogue entry is refused until its ProSim name is marked verified in scenarios.json — the STATUS page and 'scenario.listFailures' show ProSim's names. Everything armed is cleared at the flight reset and when the app closes; 'clear all failures' by voice, the STATUS page or the Stream Deck always works and also clears failures set on the IOS."
+        "hint": "열 번의 비행 중 한 번꼴로 시나리오가 발생합니다: 팩 고장, 발전기, 연료 펌프 저압, 유압 리저버, IR 고장, 착륙 후 브레이크 과열. FO가 ECAM을 처리한 뒤 묻습니다: 계속, 회항, 아니면 다이버트?",
+        "more": "고장은 ProSim 자체 고장 목록 (IOS가 쓰는 것과 같은 목록)을 통해 설정되며, 비행 중 최저 고도 아래, 또는 비정상 절차, 드릴, No-Go 테크로그 항목이 열려 있는 동안에는 설정되지 않습니다. 카탈로그 항목은 그 ProSim 이름이 scenarios.json에서 verified로 표시될 때까지 거부됩니다 — STATUS 페이지와 'scenario.listFailures'에 ProSim의 이름이 표시됩니다. 설정된 고장은 비행 리셋 시와 앱 종료 시 모두 해제됩니다. 음성, STATUS 페이지 또는 Stream Deck의 'clear all failures'는 항상 작동하며 IOS에서 설정한 고장도 해제합니다."
       },
       "perFlightChance": {
-        "label": "Chance per flight",
-        "hint": "0 to 1. 0.10 is roughly one scenario every ten flights."
+        "label": "비행당 확률",
+        "hint": "0에서 1. 0.10이면 대략 열 번의 비행에 한 번꼴입니다."
       },
       "allowMajor": {
-        "label": "Allow major scenarios",
-        "hint": "Engine fire, engine failure, APU fire. Off keeps the minor stuff that actually happens on the line."
+        "label": "중대 시나리오 허용",
+        "hint": "엔진 화재, 엔진 고장, APU 화재. 끄면 실제 노선에서 흔히 일어나는 경미한 것만 남습니다."
       },
       "takeoffScenarios": {
-        "label": "Takeoff scenarios",
-        "hint": "An engine fire on the roll (an RTO cause) and an engine failure after V1 — only with the RTO and EFATO features on above."
+        "label": "이륙 시나리오",
+        "hint": "활주 중 엔진 화재 (RTO 사유)와 V1 이후 엔진 고장 — 위의 RTO 및 EFATO 기능이 켜져 있을 때만."
       },
       "minAltitudeFt": {
-        "label": "Floor in flight",
-        "hint": "Nothing is armed in flight below this height above ground."
+        "label": "비행 중 최저 고도",
+        "hint": "비행 중 이 대지 고도 아래에서는 아무것도 설정되지 않습니다."
       },
       "showPlanned": {
-        "label": "Show the planned scenario",
-        "hint": "For testing: the STATUS page names it and 'any failures planned?' answers. Off keeps the surprise."
+        "label": "예정된 시나리오 표시",
+        "hint": "테스트용: STATUS 페이지에 이름이 표시되고 'any failures planned?'에 답합니다. 끄면 서프라이즈가 유지됩니다."
       },
-      "fileBefore": "The catalogue is",
-      "fileAfter": "— id, title, abnormalId (a file in config/abnormals), failureName (ProSim's own name), verified, phases, weight, severity, takeoff, clearAfterSeconds, techLogAfter, decision, wearTitle. Edits are picked up live."
+      "fileBefore": "카탈로그 파일:",
+      "fileAfter": "— id, title, abnormalId (config/abnormals의 파일), failureName (ProSim 자체 이름), verified, phases, weight, severity, takeoff, clearAfterSeconds, techLogAfter, decision, wearTitle. 편집 내용은 즉시 반영됩니다."
     },
     "abnormals": {
       "title": "ECAM 비정상 상황",
@@ -1625,14 +1625,14 @@
         "senior": "시니어"
       },
       "confidence": {
-        "nervous": "Nervous",
-        "steady": "Steady",
-        "assured": "Assured"
+        "nervous": "긴장함",
+        "steady": "차분함",
+        "assured": "확신에 참"
       },
       "rosterMode": {
-        "off": "Off (one persona)",
+        "off": "끔 (페르소나 하나)",
         "daily": "매일 (시뮬레이터 하루마다 새 FO)",
-        "pinned": "Pinned (the FO pinned below)"
+        "pinned": "고정 (아래에 고정한 FO)"
       },
       "formality": {
         "casual": "편안함",

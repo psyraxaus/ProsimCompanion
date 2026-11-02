@@ -24,7 +24,7 @@
       "noMetar": "Geen METAR beschikbaar",
       "calculated": "Berekende waarden",
       "notCalculated": "Niet berekend",
-      "standby": "standby",
+      "standby": "stand-by",
       "noMetarBanner": "BEREKEND ZONDER METAR — CONTROLEER OAT / QNH / WIND HANDMATIG",
       "reset": "Resetten",
       "confirmReset": "Reset bevestigen?",

@@ -45,8 +45,8 @@
       "addFolder": "Ajouter un dossier de ce PC"
     },
     "section": {
-      "collapse": "Collapse this card",
-      "expand": "Expand this card"
+      "collapse": "Replier cette carte",
+      "expand": "Déplier cette carte"
     },
     "advanced": {
       "hidden": "Réglages avancés masqués",

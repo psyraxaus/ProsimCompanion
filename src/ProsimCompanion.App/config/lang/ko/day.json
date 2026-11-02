@@ -30,7 +30,7 @@
     "ahead": "앞섬",
     "onSchedule": "정시",
     "figuresNote": "블록 및 근무 시간은 비행 실적의 간편 기록입니다 — 비행 시간 제한 계산이 아닙니다.",
-    "foOnLeg": "First Officer on this leg (roster)",
+    "foOnLeg": "이 구간의 부기장 (로스터)",
     "foOnLegPill": "FO {0}",
     "legs": "구간",
     "legName": "구간 {0} · {1} → {2}",

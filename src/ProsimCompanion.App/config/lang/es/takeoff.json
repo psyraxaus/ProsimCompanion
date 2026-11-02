@@ -11,7 +11,7 @@
       "syncLoadsheet": "Sincronizar loadsheet"
     },
     "output": {
-      "title": "FMGC Take Off",
+      "title": "FMGC Despegue",
       "flaps": "Flaps",
       "component": "Componente {0}",
       "greenDot": "Green dot",

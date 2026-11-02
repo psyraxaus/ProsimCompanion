@@ -87,39 +87,39 @@
       }
     },
     "smallTalk": {
-      "title": "Small Talk",
-      "hint": "Now and then in the cruise the FO says something that is not about the flight. Unprompted, spoken only",
+      "title": "スモールトーク",
+      "hint": "巡航中にときどき、FO がフライトとは関係のないことを話します。自発的で、音声のみ",
       "enabled": {
-        "hint": "A coffee offer, a word about the view, a question about the layover, a line about themselves — a few times per flight, only in the cruise, only after a stretch of silence.",
-        "more": "Never below the sterile-cockpit ceiling, never with an ECAM abnormal or a captain's question open, never in moderate turbulence, never within three minutes of a region fact. The persona's chattiness is the real count (0 = none); \"quiet please\" ends it for the session. With the language model on, each line is composed in the FO's persona with every number checked against the facts; otherwise the built-in line speaks."
+        "hint": "コーヒーの申し出、景色についての一言、レイオーバーについての質問、自分自身についての一言 — フライトごとに数回、巡航中のみ、しばらく沈黙が続いた後のみ。",
+        "more": "ステライルコックピットの上限より下、ECAM アブノーマルや機長の質問が開いている間、中程度の乱気流中、地域情報から 3 分以内には決して話しません。ペルソナのおしゃべり度が実際の回数です（0 = なし）。\"quiet please\" でそのセッション中は終了します。言語モデルがオンなら各セリフは FO のペルソナで作られ、すべての数値が事実と照合されます。オフなら組み込みのセリフが話されます。"
       },
       "maxPerFlight": {
-        "label": "Lines per flight",
-        "hint": "The ceiling. The persona's chattiness (0–3) is the actual count."
+        "label": "フライトごとのセリフ数",
+        "hint": "上限です。実際の回数はペルソナのおしゃべり度（0–3）で決まります。"
       },
       "minQuietMinutes": {
-        "label": "Quiet gap",
-        "hint": "Minutes of silence before a line may come, and the wait after the cruise begins."
+        "label": "沈黙の間隔",
+        "hint": "セリフが出るまでに必要な沈黙の分数と、巡航開始後の待ち時間。"
       },
       "kinds": {
         "offer": {
-          "label": "Coffee offer",
-          "hint": "\"Coffee, captain?\" — a yes has the purser send something up a few minutes later."
+          "label": "コーヒーの申し出",
+          "hint": "\"Coffee, captain?\" — はいと答えると、数分後にパーサーが何かを持ってきます。"
         },
         "view": {
-          "label": "The view",
-          "hint": "A town below, the sun going down, the cloud deck."
+          "label": "景色",
+          "hint": "眼下の町、沈む太陽、雲の層。"
         },
         "layover": {
-          "label": "The layover",
-          "hint": "\"Do you know {city}?\" — the FO listens once and answers in one sentence when the model is on."
+          "label": "レイオーバー",
+          "hint": "\"Do you know {city}?\" — モデルがオンなら、FO は一度だけ聞き取り、一文で答えます。"
         },
         "crew": {
-          "label": "About themselves",
-          "hint": "Base and hours on type from the roster record, nothing else. Needs the roster."
+          "label": "自分自身について",
+          "hint": "ロスターの記録にある基地と型式時間のみ。ロスターが必要です。"
         }
       },
-      "note": "Every line is low-priority chatter: any callout talks over it and the sterile cockpit drops it. The coffee offer appears on the open questions card like any captain's question."
+      "note": "どのセリフも優先度の低い雑談です。コールアウトはそれに割り込み、ステライルコックピットでは省かれます。コーヒーの申し出は機長の質問と同じく未回答の質問カードに表示されます。"
     },
     "persona": {
       "title": "FO ペルソナ",
@@ -147,41 +147,41 @@
         "more": "\"Quiet please\" でこの設定に関係なくセッション中の雑談を止めます。"
       },
       "confidence": {
-        "label": "Confidence",
-        "hint": "Nervous double-checks and asks; assured states things. Steady adds nothing."
+        "label": "自信",
+        "hint": "神経質は再確認して尋ね、自信ありは断言します。落ち着きは何も加えません。"
       },
-      "overriddenByRoster": "Overridden by the roster — the drawn First Officer's value applies.",
+      "overriddenByRoster": "ロスターにより上書き — 選ばれた副操縦士の値が適用されます。",
       "roster": {
-        "title": "Roster",
+        "title": "ロスター",
         "hint": "シミュレーターの暦日ごとに別のファーストオフィサーを fo-roster.json から抽選",
         "mode": {
-          "label": "Roster",
+          "label": "ロスター",
           "hint": "オフは上のペルソナを維持。デイリーはシミュレーター暦日の最初のレグで新しい FO を抽選し、開いている勤務日はその FO を維持。ピン留めは下でピン留めした FO を維持。"
         },
         "gateIntro": {
-          "label": "Gate introduction",
+          "label": "ゲートでの自己紹介",
           "hint": "FO は抽選ごとに一度、レグのプランが読み込まれた後にゲートで自己紹介します。"
         },
-        "current": "On duty",
+        "current": "勤務中",
         "nobody": "まだ抽選されていません — その日の最初のプランが読み込まれたときに抽選します。",
-        "hours": "{0} h on type",
-        "empty": "The roster file holds no officers.",
+        "hours": "型式 {0} 時間",
+        "empty": "ロスターファイルに副操縦士がいません。",
         "columns": {
-          "name": "Name",
-          "experience": "Experience · formality",
-          "confidence": "Confidence",
-          "hours": "Hours on type",
-          "voice": "Voice"
+          "name": "名前",
+          "experience": "経験 · 丁寧さ",
+          "confidence": "自信",
+          "hours": "型式時間",
+          "voice": "音声"
         },
-        "pin": "Pin",
-        "release": "Release",
-        "drawAgain": "Draw again",
-        "pinnedMessage": "Pinned — this First Officer flies every day until released.",
-        "releasedMessage": "Pin released — the roster draws daily again.",
-        "unknownMessage": "That officer is not in the roster file.",
-        "drawnMessage": "{0} is on duty.",
-        "fileBefore": "Edit the crew in",
-        "fileAfter": "— id, name, experience, formality, chattiness, confidence, hours on type, base and an optional provider:id voice (Kokoro ids are listed on the Voices page; ElevenLabs ids work as elevenlabs:<voiceId>). Edits are picked up live."
+        "pin": "固定",
+        "release": "解除",
+        "drawAgain": "引き直す",
+        "pinnedMessage": "固定中 — 解除するまでこの副操縦士が毎日乗務します。",
+        "releasedMessage": "固定を解除 — ロスターが再び毎日選びます。",
+        "unknownMessage": "その副操縦士はロスターファイルにいません。",
+        "drawnMessage": "{0} が勤務中です。",
+        "fileBefore": "クルーは次のファイルで編集します:",
+        "fileAfter": "— id、name、experience、formality、chattiness、confidence、hours on type、base と任意の provider:id 音声（Kokoro の ID は音声ページに一覧があり、ElevenLabs の ID は elevenlabs:<voiceId> の形で使えます）。編集は即時反映されます。"
       },
       "styles": {
         "title": "ペルソナが整えるもの",
@@ -403,34 +403,34 @@
       "title": "地上クルー",
       "hint": "地上クルーを呼び出し、その呼び出しを聞く",
       "walkaround": {
-        "title": "Walkaround",
-        "hint": "Once per departure, at the stand with the ground prep done, the FO walks the aircraft and reports back on the interphone",
+        "title": "ウォークアラウンド",
+        "hint": "出発ごとに 1 回、地上準備が終わったスタンドで FO が機体を一周点検し、インターホンで報告します",
         "enabled": {
-          "hint": "\"I'll do the walkaround, captain\" — then a few minutes away; the refuel call waits, your questions get \"the First Officer is on the walkaround\", and the report comes on the interphone.",
-          "more": "Starts when the aircraft is parked with engines off and the ground prep (jetway or stairs) is complete; never replayed after a restart mid-turnaround; once per departure. Calling the refuel yourself meanwhile abandons the walk. Safety phrases, \"I have controls\" and \"quiet please\" always work."
+          "hint": "\"I'll do the walkaround, captain\" — その後数分間席を外します。給油コールは待機し、質問には \"the First Officer is on the walkaround\" と返り、報告はインターホンで届きます。",
+          "more": "エンジン停止で駐機し、地上準備（ボーディングブリッジまたはステップ）が完了すると開始します。ターンアラウンド途中の再起動後には再実行されず、出発ごとに 1 回です。その間に自分で給油を呼ぶと点検は中止されます。安全フレーズ、\"I have controls\"、\"quiet please\" は常に機能します。"
         },
         "minMinutes": {
-          "label": "Shortest walk",
-          "hint": "Minutes away, at least."
+          "label": "最短時間",
+          "hint": "席を外す最短の分数。"
         },
         "maxMinutes": {
-          "label": "Longest walk",
-          "hint": "The walk is drawn at random between the two."
+          "label": "最長時間",
+          "hint": "所要時間は両者の間でランダムに決まります。"
         },
         "findingChance": {
-          "label": "Finding chance",
-          "hint": "0 to 1. The chance a walkaround turns up something: a tyre near the limit, a hydraulic weep, a missing static wick — the FO asks before it goes in the tech log; ice on the wing leads to the de-icing question."
+          "label": "指摘の確率",
+          "hint": "0 から 1。ウォークアラウンドで何かが見つかる確率: 限界に近いタイヤ、油圧のにじみ、欠けたスタティックディスチャージャーなど — テックログに記入する前に FO が確認します。翼の着氷は防除氷の質問につながります。"
         },
         "allowNoGo": {
-          "label": "Allow no-go findings",
-          "hint": "A cords-showing tyre or a steady hydraulic leak: raised in the tech log regardless. Nothing is blocked — you decide."
+          "label": "No-Go の指摘を許可",
+          "hint": "コードが見えるタイヤや継続的な油圧漏れ: いずれにせよテックログに記録されます。何もブロックされません — 判断はあなたが行います。"
         },
         "onInterphone": {
-          "label": "Report on the interphone",
-          "hint": "MECH call, INT selected or the grace, intercom timbre. Off: the report is spoken in the cockpit unfiltered."
+          "label": "インターホンで報告",
+          "hint": "MECH コール、INT 選択または猶予時間、インターホンの音質。オフ: 報告はフィルターなしでコックピット内で話されます。"
         },
-        "fileBefore": "The findings and their tech-log titles are in",
-        "fileAfter": "— edit it to add your own (conditions: icing, precipitation, night, afterLanding; severity cosmetic, deferrable or noGo). Edits are picked up live."
+        "fileBefore": "指摘とそのテックログ件名は次のファイルにあります:",
+        "fileAfter": "— 編集して独自の項目を追加できます（条件: icing、precipitation、night、afterLanding。重大度: cosmetic、deferrable、noGo）。編集は即時反映されます。"
       },
       "requireInt": {
         "label": "INT の選択を要求",
@@ -1115,9 +1115,9 @@
         "more": "検証に失敗するとプレーンなテンプレートにフォールバックします。"
       },
       "askForQuestions": {
-        "label": "Ask for questions after the briefing",
-        "hint": "The FO ends every briefing with \"Any questions, captain?\" — \"no questions\" gets \"Briefing complete\"; a question is answered, then \"Anything else, captain?\".",
-        "more": "Free text needs the transcription server. With the offline engine, or after a minute of silence, the FO says \"Briefing complete\". On a departure the question comes after \"any other threats?\"."
+        "label": "ブリーフィング後に質問を求める",
+        "hint": "FO はすべてのブリーフィングを \"Any questions, captain?\" で締めくくります — \"no questions\" には \"Briefing complete\"、質問には答えたうえで \"Anything else, captain?\" と続きます。",
+        "more": "自由な発話には文字起こしサーバーが必要です。オフラインエンジンの場合、または 1 分間無音が続いた場合、FO は \"Briefing complete\" と言います。出発時は \"any other threats?\" の後に質問が来ます。"
       },
       "dfdBefore": "Navigraph DFD データベースのパスは",
       "dfdLink": "セットアップ → ナビデータ",
@@ -1329,18 +1329,18 @@
         "more": "即時に適用されます。個々のコールアウト文、高度コールアウト、その他のフローモニター注意喚起、気象アドバイザリは当面 settings.json の sop セクションで編集します。"
       },
       "transition": {
-        "title": "Transition Reminders",
-        "hint": "The FO reminds you to set standard above the transition altitude and QNH below the transition level.",
+        "title": "トランジションのリマインダー",
+        "hint": "トランジション高度より上で標準気圧に、トランジションレベルより下で QNH にセットするよう FO が注意を促します。",
         "enabled": {
-          "label": "Transition reminders",
-          "hint": "Climbing through the transition altitude still on QNH: \"Transition altitude. Standard, please.\" Descending through the transition level still on standard: \"Transition level. QNH one zero one three, please.\"",
-          "more": "The altitude is your own PFD (the seat setting picks the side). The transition altitude comes from the Navigraph database for the departure airport, the transition level for the destination (or the diversion). No database, no reminder. The QNH is the destination METAR; without one the FO says \"QNH, please\". One reminder per crossing, spoken only."
+          "label": "トランジションのリマインダー",
+          "hint": "QNH のままトランジション高度を上昇通過: \"Transition altitude. Standard, please.\" 標準気圧のままトランジションレベルを降下通過: \"Transition level. QNH one zero one three, please.\"",
+          "more": "高度は自分の PFD の値です（座席設定で側が決まります）。トランジション高度は出発空港の Navigraph データベースから、トランジションレベルは目的地（またはダイバート先）から取得します。データベースがなければリマインダーもありません。QNH は目的地の METAR で、なければ FO は \"QNH, please\" と言います。通過ごとに 1 回、音声のみです。"
         },
         "delay": {
-          "label": "Patience",
-          "hint": "Seconds past the crossing before the FO speaks. You normally set it yourself first."
+          "label": "待ち時間",
+          "hint": "通過後、FO が話すまでの秒数。通常は先に自分でセットします。"
         },
-        "note": "The fixed 18,000 ft \"transition altitude\" altitude callout in settings.json is unrelated; this card uses the real figures per airport."
+        "note": "settings.json にある固定 18,000 ft の \"transition altitude\" 高度コールアウトとは無関係です。このカードは空港ごとの実際の値を使います。"
       },
       "placards": {
         "title": "フラッププラカード",
@@ -1503,34 +1503,34 @@
       }
     },
     "scenario": {
-      "title": "Scenarios",
-      "hint": "Rarely, opt-in, the app arms one minor failure in ProSim so the FO's ECAM actions and the decision get used",
+      "title": "シナリオ",
+      "hint": "まれに、オプトインで、アプリが ProSim に軽微な故障を 1 つ設定し、FO の ECAM アクションと判断が実際に使われるようにします",
       "enabled": {
-        "hint": "About one flight in ten gets a scenario: a pack fault, a generator, a fuel pump low pressure, a hydraulic reservoir, an IR fault, hot brakes after landing. The FO handles the ECAM, then asks: continue, return or divert?",
-        "more": "The failure is armed through ProSim's own failure list (the same list the IOS uses), never below the floor height in flight, never with an abnormal, a drill or a no-go tech-log item open. Each catalogue entry is refused until its ProSim name is marked verified in scenarios.json — the STATUS page and 'scenario.listFailures' show ProSim's names. Everything armed is cleared at the flight reset and when the app closes; 'clear all failures' by voice, the STATUS page or the Stream Deck always works and also clears failures set on the IOS."
+        "hint": "およそ 10 フライトに 1 回シナリオが発生します: パック故障、ジェネレーター、燃料ポンプ低圧、油圧リザーバー、IR 故障、着陸後のブレーキ過熱。FO が ECAM を処理し、その後に尋ねます: 続行、引き返し、ダイバートのどれにしますか?",
+        "more": "故障は ProSim 自身の故障リスト（IOS が使うものと同じ）を通じて設定され、飛行中の下限高度未満、またはアブノーマル、ドリル、No-Go のテックログ項目が開いている間は設定されません。カタログの各項目は、その ProSim 名が scenarios.json で verified とマークされるまで拒否されます — STATUS ページと 'scenario.listFailures' に ProSim の名前が表示されます。設定済みの故障はフライトリセット時とアプリ終了時にすべて解除されます。音声、STATUS ページ、Stream Deck からの 'clear all failures' は常に機能し、IOS で設定した故障も解除します。"
       },
       "perFlightChance": {
-        "label": "Chance per flight",
-        "hint": "0 to 1. 0.10 is roughly one scenario every ten flights."
+        "label": "フライトごとの確率",
+        "hint": "0 から 1。0.10 でおよそ 10 フライトに 1 回のシナリオです。"
       },
       "allowMajor": {
-        "label": "Allow major scenarios",
-        "hint": "Engine fire, engine failure, APU fire. Off keeps the minor stuff that actually happens on the line."
+        "label": "重大シナリオを許可",
+        "hint": "エンジン火災、エンジン故障、APU 火災。オフの場合は、実際の路線で起こる軽微なものだけになります。"
       },
       "takeoffScenarios": {
-        "label": "Takeoff scenarios",
-        "hint": "An engine fire on the roll (an RTO cause) and an engine failure after V1 — only with the RTO and EFATO features on above."
+        "label": "離陸シナリオ",
+        "hint": "滑走中のエンジン火災（RTO の原因）と V1 後のエンジン故障 — 上の RTO と EFATO 機能がオンの場合のみ。"
       },
       "minAltitudeFt": {
-        "label": "Floor in flight",
-        "hint": "Nothing is armed in flight below this height above ground."
+        "label": "飛行中の下限高度",
+        "hint": "飛行中、この対地高度未満では何も設定されません。"
       },
       "showPlanned": {
-        "label": "Show the planned scenario",
-        "hint": "For testing: the STATUS page names it and 'any failures planned?' answers. Off keeps the surprise."
+        "label": "予定シナリオを表示",
+        "hint": "テスト用: STATUS ページに名前が出て、'any failures planned?' に答えます。オフならサプライズのままです。"
       },
-      "fileBefore": "The catalogue is",
-      "fileAfter": "— id, title, abnormalId (a file in config/abnormals), failureName (ProSim's own name), verified, phases, weight, severity, takeoff, clearAfterSeconds, techLogAfter, decision, wearTitle. Edits are picked up live."
+      "fileBefore": "カタログは次のファイルです:",
+      "fileAfter": "— id、title、abnormalId（config/abnormals 内のファイル）、failureName（ProSim 側の名前）、verified、phases、weight、severity、takeoff、clearAfterSeconds、techLogAfter、decision、wearTitle。編集は即時反映されます。"
     },
     "abnormals": {
       "title": "ECAM 異常事態",
@@ -1625,14 +1625,14 @@
         "senior": "シニア"
       },
       "confidence": {
-        "nervous": "Nervous",
-        "steady": "Steady",
-        "assured": "Assured"
+        "nervous": "神経質",
+        "steady": "落ち着き",
+        "assured": "自信あり"
       },
       "rosterMode": {
-        "off": "Off (one persona)",
+        "off": "オフ（1 つのペルソナ）",
         "daily": "デイリー（シミュレーターの 1 日ごとに新しい FO）",
-        "pinned": "Pinned (the FO pinned below)"
+        "pinned": "固定（下で固定した FO）"
       },
       "formality": {
         "casual": "カジュアル",

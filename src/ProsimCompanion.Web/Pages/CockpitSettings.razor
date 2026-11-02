@@ -28,6 +28,7 @@
 </Section>
 
 <Section Title="@T["cockpit.list.title"]" Hint="@T["cockpit.list.hint"]">
+    <RowsValidity Name="@T["cockpit.list.title"]" Blocking="@_cockpit.Value.Rows.Any(RowBlocks)" />
     @if (_cockpit.Value.Rows.Count == 0)
     {
         <div class="empty">@T["cockpit.list.none"]</div>
@@ -321,6 +322,18 @@
 
         _cockpit.MarkEdited();
     }
+
+    /// <summary>The cells the grid paints red, as one verdict for the Save tally (#234): a
+    /// blank title, id or dataref, or a lamp/bezel colour that is not a hex colour. A dataref
+    /// the catalogue does not know is painted too but does not block — the shipped CSV lags
+    /// ProSim's live list, and the fold-out already says so under "Positions".</summary>
+    private static bool RowBlocks(CockpitSwitchRow row)
+        => string.IsNullOrWhiteSpace(row.Name)
+           || string.IsNullOrWhiteSpace(row.Id)
+           || string.IsNullOrWhiteSpace(row.DataRef)
+           || !CockpitSwitchLogic.IsHexColor(row.UpperColor)
+           || !CockpitSwitchLogic.IsHexColor(row.LowerColor)
+           || (!string.IsNullOrWhiteSpace(row.BezelColor) && !CockpitSwitchLogic.IsHexColor(row.BezelColor));
 
     private IEnumerable<string> DuplicateIds()
         => _cockpit.Value.Rows

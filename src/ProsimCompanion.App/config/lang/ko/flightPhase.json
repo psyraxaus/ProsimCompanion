@@ -83,8 +83,8 @@
         "hint": "세션이 (MSFS 일시 정지 플래그가 설정된 채) 실제 세션 종료로 간주되기 전까지 벗어나 있을 수 있는 시간; 0이면 즉시 리셋"
       },
       "graceParked": {
-        "label": "Pause grace, parked",
-        "hint": "The grace while the aircraft is stopped on the ground with the engines off — long enough for your own exterior camera walkaround; the larger of the two graces applies"
+        "label": "일시정지 유예 (주기 중)",
+        "hint": "항공기가 지상에 정지해 있고 엔진이 꺼진 동안의 유예 시간 — 외부 카메라로 직접 워크어라운드를 할 만큼 긴 시간. 두 유예 시간 중 긴 쪽이 적용됩니다"
       },
       "position": {
         "label": "동일 위치 허용 범위",

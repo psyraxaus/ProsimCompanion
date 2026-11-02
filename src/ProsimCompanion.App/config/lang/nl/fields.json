@@ -45,8 +45,8 @@
       "addFolder": "Voeg een map op deze pc toe"
     },
     "section": {
-      "collapse": "Collapse this card",
-      "expand": "Expand this card"
+      "collapse": "Deze kaart inklappen",
+      "expand": "Deze kaart uitklappen"
     },
     "advanced": {
       "hidden": "Geavanceerde instellingen verborgen",

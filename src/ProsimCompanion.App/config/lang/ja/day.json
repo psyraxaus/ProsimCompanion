@@ -30,7 +30,7 @@
     "ahead": "早め",
     "onSchedule": "定刻",
     "figuresNote": "ブロック時間と勤務時間は飛行実績の簡易記録です — 飛行時間制限の計算ではありません。",
-    "foOnLeg": "First Officer on this leg (roster)",
+    "foOnLeg": "このレグの副操縦士（ロスター）",
     "foOnLegPill": "FO {0}",
     "legs": "レグ",
     "legName": "レグ {0} · {1} → {2}",

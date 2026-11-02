@@ -24,7 +24,7 @@
       "noMetar": "Kein METAR verfügbar",
       "calculated": "Berechnete Werte",
       "notCalculated": "Nicht berechnet",
-      "standby": "standby",
+      "standby": "wartet",
       "noMetarBanner": "OHNE METAR BERECHNET — OAT / QNH / WIND MANUELL PRÜFEN",
       "reset": "Zurücksetzen",
       "confirmReset": "Zurücksetzen bestätigen?",

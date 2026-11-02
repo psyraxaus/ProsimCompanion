@@ -329,7 +329,7 @@
       "channel": "Kanal",
       "label": "Bezeichnung",
       "gain": "Gain",
-      "mute": "Mute",
+      "mute": "Stumm",
       "muted": "Stumm",
       "open": "Offen",
       "unmuteButton": "Laut",
