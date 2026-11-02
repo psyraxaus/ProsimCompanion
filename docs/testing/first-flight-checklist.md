@@ -1,3 +1,5 @@
+> **Superseded (2026-11-03):** the live flight check is now the probe catalog `docs/agents/verification-probes.json` evaluated per `docs/agents/flight-verification.md`; this list is kept as the 2026-10-06 smoke script only.
+
 # First flight checklist — GSX pillar smoke test
 
 Goal: validate the GSX Remote API integration and sync modules against live GSX for the first

@@ -29,7 +29,7 @@ aircraft state in the browser, and survives any of them being absent or restarti
         connection drops; registrations replayed on reconnect; stale-flagging on disconnect
   - [x] Write path with code-level allow-list (`ProsimWriteGate`); serialized momentary-press channel
   - [x] Dataref catalog — `ProsimDataRefNames` (717 wire identifiers ported verbatim from
-        `ProsimConstants`, set-diff verified; `ProsimDataref.csv` at repo root as full reference)
+        `ProsimConstants`, set-diff verified; `Prosim_A322_Dataref.csv` at repo root as full reference (renamed 2026-08-14; the B738/B38M catalogs beside it are the Boeing gap-analysis inputs, unused at runtime))
 - [x] **ProSim EFB gateway client** (GraphQL dataref read/write with exact predecessor wire
       format, cancelBoarding, vspeeds/ldr calc, runways, METAR with 204-no-retry, failures)
 - [x] **SimConnect layer** (`ProsimCompanion.Sim`) — clean-room: headless event-handle pump,
@@ -170,7 +170,7 @@ extracted 2026-08-01, incl. the locked decisions carried verbatim).
       see Open items
 - [x] De-icing auto-request policy (2026-10-09, rc.23): pure `DeiceRequestPolicy` over the
       ProSim OAT + the origin METAR (precipitation / freezing fog / dew-point spread),
-      `gsx.deice.autoRequest` off / ask / auto, the FO's question via `DeiceQuestionDialogue`,
+      `gsx.deice.autoRequest` off / ask / auto, the FO's question via `CaptainsQuestionDialogue` + `DeiceQuestionPhrases`,
       the de-ice step lifted to the end of the departure list; `L:FSDT_GSX_DEICING_STATE`
       read (`GsxDeiceStateMonitor`) and shown on /gsx — values unproven, holdover still arms
       from the completed edge. Walkaround skip, GSX restart on taxi-in and headless mode
@@ -452,7 +452,7 @@ from Phase 1 — this phase adds the speech stack and features on top.
 > raise/rectify voice dialogues + post-abnormal shutdown offer over a new mic-ownership seam
 > (routing stands down while a guided dialogue owns the mic), company day mode (multi-leg
 > duty tracking with per-leg session rotation, planned rotations, turnaround + end-of-day
-> summaries, /day page; off by default), GSX per-service commands through the single-writer
+> summaries, /day page; off by default then, on by default since #216 in 1.0.0-rc.2), GSX per-service commands through the single-writer
 > trigger path + voice control ("cockpit to ground", "request boarding", …) + GET /api/status,
 > and the ProsimCompanion Elgato Stream Deck plugin (streamdeck/, five actions, REST poll,
 > built with Node 22). Web polish: two-tier nav (FLIGHT/EFB/GSX/FO/AUDIO/SYSTEM), GSX
@@ -742,14 +742,14 @@ until a flight confirms it; the manual test steps are on each issue.
       gateway → DFD), Gsx `PushbackDirectionDecider` (pilot choice → fixed legacy mode →
       confident suggestion → ask / leave), Speech `PushbackDirectionVoiceFeature` ("push back
       facing north", "tail left/right", "straight back", "which way is the pushback") and
-      `PushbackQuestionDialogue` ("Pushback — tail left or tail right?"), OFP Korry buttons per
+      `CaptainsQuestionDialogue` + `PushbackQuestionPhrases` ("Pushback — tail left or tail right?"), OFP Korry buttons per
       flight + Auto, `gsx.pushbackPreference` default `auto` (+ `pushbackAskWhenUnsure`),
       `gsx.resolveGatesFromProfiles` / `gsxProfileFolder` / `sceneryPackageFolders`.
       `docs/integrations/gsx-profiles.md`. **Unverified live** — the facility field list, the
       BIAS_X/BIAS_Z axis convention (catalogue logs the ini-vs-facility median offset) and
       whether the suggested direction matches ATC's clearance.
 
-## Phase 9 — October 2026 follow-ups (0.6.0-rc.2 → rc.21)
+## Phase 9 — October 2026 follow-ups (0.6.0-rc.2 → rc.23)
 
 Owner requests and flight-test fixes after the batch. One line each; the full text is in
 `CHANGELOG.md`. Everything is **Unverified live** unless the changelog says otherwise.
@@ -973,7 +973,7 @@ live** until a flight confirms it.
 
 ## Phase 12 — November 2026 immersion batch
 
-Four packages, one GitHub issue each, built sequentially on `release/0.8.0-rc.24` (the branch
+Six packages (#194–#199), one GitHub issue each, built sequentially on `release/0.8.0-rc.24` (the branch
 checked out on the dev machine, per the branching rule). The theme: the First Officer as a
 person — who they are today, what they say in the cruise, the walkaround, and the rare
 non-normal that gives the ECAM dialogue a cause. New features default **off** and are
@@ -1090,22 +1090,129 @@ non-normal that gives the ECAM dialogue a cause. New features default **off** an
       breadcrumb links. Tests: `SettingsHubTests` (the group split, the index, the source
       scan of every sectioned page against the block table, the fold store). **Unverified
       live** — the rail's own scrolling on the sim PC's browser and the tablet in particular.
-## Open items (after the rc.5 batch, 2026-10-11)
+## Phase 11.5 — October 2026: radios, diagnostics, hardware, screen (0.8.0-rc.9 → rc.26)
+
+Built between the public rc.8 and the November immersion batch, each on its own feature
+branch, merged to `main` as 0.8.0-rc.23 (2026-10-31) and flown LKPR→EGLL on rc.24
+(`CHANGELOG.md` holds the per-rc detail).
+
+- [x] **Radios tile and the FO on the radios** (rc.9): the Radios tile on Flight Status
+      (COM/NAV actives and standbys from ProSim, drag-ordered like the other tiles); **FO works
+      the radios** (Voice First Officer → SayIntentions, off by default): the FO transmits
+      requests, reads ATC back with the callsign, says stands and SID/STAR names as a crew
+      would; courtesy words ("please", "thank you") no longer cost a "did you mean"; anti-ice
+      calls answered; "runway in sight" acknowledged; one reminder on a silent checklist line.
+- [x] **ECAM-style diagnostics pages** (ADR-0016, rc.10 → rc.14, owner design
+      `docs/design/diagnostics/`): VOICE, SIM, GSX, REMOTE and STATUS pages drawn from one
+      immutable `DiagnosticsSnapshot` (Core `DiagnosticsSnapshotService`, one
+      `IDiagnosticsCollector` per pillar, `LatencyRegistry` / `RateRegistry`); the GSX page's
+      aircraft is the owner's own A320 three-view with service lines that land on the doors
+      and boxes that show the live GSX state; the GPU box is ProSim's external-power truth and
+      a switch; the same snapshot is `GET /api/diagnostics/snapshot` and rides the support
+      bundle. Manual chapter 13.
+- [x] **Skalarki PANELS page** (ADR-0017, rc.15 → rc.17): the SkalarkiIO Profiler's SDK server
+      (port 53000) read through `ProsimCompanion.Skalarki.Sdk`, the one assembly that
+      references the user's SDK files, loaded in its own context; Settings → Hardware →
+      Skalarki Panels (switch, SDK folder with the found-version line, Profiler address),
+      board presence per zone, the hardware check that walks one control per board, LAMP TEST
+      and HW RESET; the link is rebuilt only when a value it depends on changes.
+- [x] **Catering door learned from GSX** (rc.18): `gsx.cateringDoor` = `auto` learns which
+      door the caterer serves from the `SERVICE_n` toggles of the first catering, one value,
+      not per airline.
+- [x] **Screen & FOV** (rc.19 → rc.21, owner design 2026-10-28,
+      `docs/plans/2026-10-28-fov-tool-design.md`): Settings → Screen & FOV takes the physical
+      screens' size and distance, shows the life-size field of view they imply
+      (`FovCalculator`), writes it into MSFS 2024's own saved pilot view with one button
+      (`CamerasCfgEditor`, backup first; the Ctrl+Alt+1 custom camera, not VFRPilot), Multi
+      Window rotations for side and overhead screens, a Developer Mode check and the ChasePlane
+      caveat (ChasePlane overrides the camera). Manual chapter 14.
+- [x] **Probe coverage** (rc.22): every open issue carries a probe in
+      `docs/agents/verification-probes.json` (eight matched by text, not issue number).
+- [x] **Main merge and the screenshot refresh** (rc.23): `main` fast-forwarded, every picture
+      retaken by the rewritten CDP screenshot scripts (real waits, no virtual time).
+- [x] **LKPR→EGLL flight fixes** (rc.25 / rc.26, #190–#193, #177, #139, #138, #172): V-speeds
+      spoken as letters, taxi read-backs spelling every taxiway, the facility-prefixed arrival
+      gate never selected at EGLL, "for FL70" on final, the minima confirm answer dropped as
+      self-echo, the empty `daystate.json` at every start, the LLM briefing falling back to the
+      template on its own numbers, the gate-monitor STD on the wrong sim date, taxi-out
+      flipping during a tug push, "minimum safe altitude 40 feet" (MSA units).
+
+## Phase 13 — The duty day and the leg boundary (1.0.0-rc.2, ADR-0019)
+
+The owner's duty-day interview of 2026-11-02 wrote the expected process down
+(`docs/decisions/ADR-0019-duty-day-and-leg-boundary.md`: one duty day = many legs; between two
+legs the app shows TURNAROUND → AWAITING PLAN → PREFLIGHT; a leg begins when its OFP is loaded;
+the day ends only by the pilot); `docs/testing/2026-11-02-duty-day-flow-audit.md` measured the
+code and the EHAM turnaround recordings against it and filed #210–#223. All fourteen shipped in
+1.0.0-rc.2, **none flown yet**:
+
+- [x] The leg boundary beside the phase (#210): `LegBoundaryService` / `LegBoundaryStore`,
+      `ILegBoundaryEvents.LegBegan`, the chip under the phase, the arrival monitor's big word,
+      `leg.boundary` events; the FMS-cleared watcher (#211, `fms.cleared`).
+- [x] A leg begins on its OFP (#212); Duty Day **on by default** (#216); one First Officer per
+      sim calendar day (#219); the FO offers to end the day after ten minutes cold and dark
+      (#217); the idle backstop counts from deboarding complete, default 300 min (#217);
+      `DutyDaySignals.DayEnded` clears the snapshot, the departure cycle and the roster pin
+      (#218); the debrief names the fuel and the tech-log entries and is exempt from the
+      dialogue hold (#222).
+- [x] A different plan at the stand resets everything the arrival resets
+      (`FlightCycleReset` kind `NewPlan`, #213 / #221 / #223); the gate monitor's restart
+      reset; the FMGC cross-check disarmed after deboarding; a leg's block time survives an
+      in-flight restart; the GSX SimBrief reload never re-runs for the plan just flown.
+- [x] A restart in a turnaround is visible (#220): the boundary state is the one snapshot part
+      that persists across legs; the walkaround survives a restart; "Cabin's empty, captain."
+      (#214); "the FMS still holds the previous flight plan" (#215).
+
+## Phase 14 — Code review fix batch (1.0.0-rc.3)
+
+A full read of the codebase on 2026-11-03 (`docs/reviews/2026-11-03/README.md`: eight area
+reports, pathway maps per pillar, the state-store table, twenty redundancy families, the
+improvement plan) found no dead subsystem, no layering violation and no write-safety gap, but
+twelve defects. Tracking issue #224; one sub-issue each, fixed on `fix/code-review-2026-11-03`:
+
+- [x] #225 trigger-slot NoConfirm duplicate race (a second jetway retract re-connected it);
+      #230 the new-plan tracking-LVAR clear lost while MSFS is down; #226 the Home page's
+      tune-note timer leak; #228 `FailureMonitor`'s silent bare catch; #229 "Good morning" from
+      midnight in the cruise small talk; #231 `PushbackSuggestionService`'s loop dying silently;
+      #232 the unread `speech.listeningTone` knob (deleted, migrated); #234 settings row editors
+      that painted invalid cells but never blocked Save; #236 ninety-four UI texts shipped as
+      English in the six other packs (translated; the pack guard now checks content);
+      #227 / #233 / #235 the probe catalog (a probe on an event name no code emits, forty-three
+      probes open on closed issues, `watch` probes never machine-evaluated, a catalog guard
+      test).
+- [x] Docs: this roadmap's missing phases, `ARCHITECTURE.md` (eleven projects, all nineteen
+      ADRs, the HTTPS / Skalarki / mixer ports), `CONTEXT.md` glossary terms for every pillar
+      added since October, the feature inventory, `parity-backlog.md` retired, the two design
+      notes that lived in an untracked folder moved under `docs/`, every screenshot retaken.
+
+## Open items (after the code review, 2026-11-03)
 
 Nothing on this roadmap is open as code. What remains:
+
+**Verification** — one full sim-verified pass of every "Unverified live" marker: the whole of
+Phase 13 (duty day, leg boundary), the Phase 12 features, the Phase 14 fixes (#225 and #230 in
+particular), evaluated against the probe catalog per `docs/agents/flight-verification.md`.
+Then the release per `docs/VERSIONING.md`.
+
+**Review follow-ups** (the plan in `docs/reviews/2026-11-03/README.md` §9, in payoff order):
+consolidate the test fakes (one dataref fake, one GSX API fake, the existing
+`FixedOptionsMonitor<T>`, a manual clock); Core `JsonStateFile<T>` for the seven copied
+state-file savers and a Speech `GuardedTimer` for the twenty-one copied tick shells; the GSX
+and Web small sets (one parked-at-stand predicate, one decision-log helper, one transient-note
+timer, one weather-card tile); one sterile-cockpit predicate and one spoken-number parser;
+pure cores for `LoadsheetService`, `FailureMonitor`, `GsxGateSelectionService`,
+`SayIntentionsService`; moving the Speech-only engines (Day, Scenarios, Crew, Persona, Debrief,
+Geo) out of Core; the five competing sources of truth (OFP diversion flag, cycle reset,
+"boarding started", block times, sim session) each reduced to one.
 
 **Settings coverage** — every section has a card (guard test
 `EveryOptionSectionClass_IsBoundOnSomeRazorPage`). Property-level residue, each named in a
 visible hint on its page: `speech.vadMinSpeechMs` / `vadPreRollMs` / `vadMaxUtteranceMs`;
 the individual `sop` callout texts and thresholds, the other flow-monitor reminders and the
 weather advisories; `commandApi.requireTokenOnLoopback`; `accents.overrides` (dictionary).
+Twenty-two properties are still exempted in `OptionFieldCompletenessTests` as "no control yet"
+and fifteen legacy fields have no `SettingsMigrator` step (listed in #232).
 
 **Dropped 2026-10-08 (owner decision; listed in feature-inventory "Deliberately not carried
 forward")**: WinRT speech recognition, per-checklist key/joystick prompts, walkaround skip
 keystroke, GSX/Couatl restart on taxi-in, headless remote-control mode, the tablet EFB branch.
-
-**Before 1.0.0**: one full sim-verified pass of every "Unverified live" marker (the rc.22,
-rc.23 and rc.5 batches above in particular — see `scratchpad/rc22-flight-test-proc.md` for the
-flight procedure), then the screenshot refresh and the release per `docs/VERSIONING.md`.
-The `FSDT_GSX_DEICING_STATE` value table in `docs/integrations/gsx.md` is to be corrected
-from the first flight that de-ices.

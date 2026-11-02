@@ -1,6 +1,6 @@
 # ADR-0006: Voice-gated ground services ride the existing command path; crew speech rides the arbiter roles
 
-**Status:** Accepted (2026-08-14, project owner decision) · Design: `docs/voice-ground-ops-design.md`
+**Status:** Accepted (2026-08-14, project owner decision) · Design: `docs/plans/2026-08-14-voice-ground-ops-design.md`
 
 ## Context
 

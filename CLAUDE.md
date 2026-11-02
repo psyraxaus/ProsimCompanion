@@ -26,9 +26,14 @@ before re-deriving any protocol, dataref, or LVAR detail.
 
 ## Solution layout
 
-Dependencies point inward: App → everything; Web → Core; Prosim/Sim/Gsx → Core; Core → nothing.
-Feature projects never reference each other — cross-feature communication goes through Core
-abstractions/state stores.
+Eleven projects under `src/` plus `tools/ProsimCompanion.Reduce` and one test project
+(`tests/ProsimCompanion.Core.Tests` covers every project). Dependencies point inward:
+App → everything; Web → Core; Prosim / Sim / Gsx / Speech / Audio / Skalarki → Core;
+Core → nothing. Feature projects never reference each other — cross-feature communication
+goes through Core abstractions/state stores. Two documented one-way exceptions:
+`Skalarki.Sdk → Skalarki` (the isolated SDK bridge, ADR-0017) and `Gsx → Analyzers`
+(build-time analyzer reference only). Project table and pathway maps: `docs/ARCHITECTURE.md`
+and `docs/reviews/2026-11-03/README.md`.
 
 ## Build & test
 

@@ -5,23 +5,47 @@
 One process, one DI container, three surfaces:
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│ ProsimCompanion.App (WPF WinExe)                            │
-│                                                             │
-│  [STAThread] Main                                           │
-│    ├─ builds WebApplication (Kestrel + Blazor Server)       │
-│    │    └─ single IServiceProvider for the whole app        │
-│    ├─ starts web host (background)                          │
-│    └─ runs WPF shell (status window; later: tray icon)      │
-│                                                             │
-│  Browser (any LAN device) ── Blazor circuits ──┐            │
-│  WPF shell ────────────────────────────────────┤            │
-│                                                ▼            │
-│                 Core state stores (observable, UI-agnostic) │
-│                                                ▲            │
-│   Prosim (SDK+gateway)   Sim (SimConnect)   Gsx (RemoteAPI) │
-└─────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────────┐
+│ ProsimCompanion.App (WPF WinExe — the composition root)                  │
+│                                                                          │
+│  [STAThread] Main                                                        │
+│    ├─ builds WebApplication (Kestrel HTTP 5320 + optional HTTPS 5321,    │
+│    │    Blazor Server) — single IServiceProvider for the whole app       │
+│    ├─ starts the web host + 26 hosted services (background)              │
+│    └─ runs the WPF shell (status window, tray icon, web-server settings) │
+│                                                                          │
+│  Browser (any LAN device) ── Blazor circuits ──┐                         │
+│  Stream Deck / scripts ── /api/* ──────────────┤                         │
+│  WPF shell ────────────────────────────────────┤                         │
+│                                                ▼                         │
+│              Core state stores (observable, UI-agnostic) + options       │
+│                                                ▲                         │
+│  Prosim (SDK+gateway) · Sim (SimConnect, vJoy) · Gsx (Remote API)        │
+│  Speech (voice FO) · Audio (CoreAudio, VoiceMeeter, mixer agents)        │
+│  Skalarki (+ Skalarki.Sdk bridge) · Analyzers (build-time only)          │
+└──────────────────────────────────────────────────────────────────────────┘
 ```
+
+### Projects
+
+| Project | Role | Size (2026-11-03) |
+|---|---|---|
+| `ProsimCompanion.Core` | stores, options, flight-state engine, event log, pure cores; depends on nothing | 411 files, 54 k lines |
+| `ProsimCompanion.Speech` | the voice First Officer: recognition, routing, checklists, callouts, briefings, abnormals, scenarios, cabin crew, persona, SayIntentions radios, duty day, arbiter + TTS | 256 files, 55 k lines |
+| `ProsimCompanion.Web` | Blazor interactive-server UI, language packs, static assets | 124 files, 25 k lines |
+| `ProsimCompanion.Gsx` | GSX Pro ground automation over the Couatl Remote API and LVARs | 89 files, 20 k lines |
+| `ProsimCompanion.Prosim` | ProSim SDK (runtime-loaded) + EFB gateway, dataref subscriptions, loadsheet/ACARS, failure injection | 28 files, 6 k lines |
+| `ProsimCompanion.Audio` | CoreAudio session control, local VoiceMeeter, remote mixer agents (VoicemeeterBridge) | 25 files, 4.5 k lines |
+| `ProsimCompanion.App` | WPF shell, composition root, minimal-API endpoints, Serilog sink, tray | 29 files, 3.6 k lines |
+| `ProsimCompanion.Sim` | SimConnect wrapper, LVAR read/write gate, vJoy relay, FOV nudge | 13 files, 2 k lines |
+| `ProsimCompanion.Skalarki` | Skalarki PANELS page backend (ADR-0017), SDK server client on port 53000 | 7 files, 1.3 k lines |
+| `ProsimCompanion.Skalarki.Sdk` | the one project that references the Skalarki SDK assembly, loaded in its own context (ADR-0017) | 1 file |
+| `ProsimCompanion.Analyzers` | Roslyn analyzer PCGSX001: `service.trigger` may only be built by the trigger slot | 1 file |
+| `tools/ProsimCompanion.Reduce` | reduces a diagnostics bundle / session recording against the probe catalog | 9 files, 1.9 k lines |
+| `tests/ProsimCompanion.Core.Tests` | xunit + Moq tests for every project above | 433 files, 75 k lines |
+
+A full read of the codebase — pathway maps per pillar, redundancy families, the state-store
+table and the improvement plan — is `docs/reviews/2026-11-03/README.md`.
 
 - The WPF window is deliberately dumb: connection indicators, the web UI URL + QR, open-browser
   button, and web-server settings (port/bind/token) so a bad web config can never lock the user out.
@@ -45,9 +69,11 @@ same snapshot is `GET /api/diagnostics/snapshot` and travels in the support bund
 ## Project dependency rules
 
 ```
-App ──► Web, Core, Prosim, Sim, Gsx     (composition root; the only project that sees everything)
+App ──► Web, Core, Prosim, Sim, Gsx, Speech, Audio, Skalarki, Skalarki.Sdk
+                                        (composition root; the only project that sees everything)
 Web ──► Core                            (UI binds to stores/options; no direct hardware access)
-Prosim, Sim, Gsx ──► Core               (publish into stores; expose narrow interfaces)
+Prosim, Sim, Gsx, Speech, Audio, Skalarki ──► Core
+                                        (publish into stores; expose narrow interfaces)
 Core ──► (nothing)
 ```
 
@@ -55,6 +81,17 @@ Feature projects never reference each other. When GSX automation needs a ProSim 
 fuel dataref during refuel), it calls a Core-defined interface (`IAircraftGroundOps` style) that
 `ProsimCompanion.Prosim` implements. This is what dissolves the old Prosim2GSX↔ProsimInterface
 circular dependency.
+
+Two deliberate exceptions, both one-directional and both documented where they live:
+
+- `Skalarki.Sdk ──► Skalarki` (ADR-0017): the SDK-facing assembly is loaded into its own
+  `AssemblyLoadContext` by the Skalarki project and implements that project's bridge interface;
+  nothing references `Skalarki.Sdk` at compile time except App (copy-only).
+- `Gsx ──► Analyzers` as an analyzer reference (build-time only, `PCGSX001`): the trigger-slot
+  rule is enforced where `service.trigger` could be built. Nothing from Analyzers ships.
+
+A test (`ServiceCompositionTests`) builds the real container with `ValidateOnBuild` so a missing
+registration fails in CI, not at the user's first click.
 
 ## Threading model
 
@@ -120,10 +157,34 @@ circular dependency.
 | 5000 | ProSim EFB gateway (theirs — why we don't use it) |
 | 5001 | legacy Prosim2GSX web EFB (avoid clashes while both run) |
 | 8730 | legacy Prosim2FO dashboard |
-| **5320** | ProsimCompanion web UI (default; configurable) |
+| **5320** | ProsimCompanion web UI, HTTP (default; configurable) |
+| **5321** | ProsimCompanion web UI, optional HTTPS listener (ADR-0013; off by default) |
 | 8744 | GSX Couatl Remote API (from `CouatlAddons.ini`, not configurable in-app by design) |
+| 53000 | SkalarkiIO Profiler SDK server (theirs; the PANELS page connects to it, ADR-0017) |
+| 5088 | VoicemeeterBridge mixer agent on a remote PC (theirs; `mixer.agents[].port`) |
 
 ## Decisions
 
-See `docs/decisions/` (ADRs). Summary: web-first UI (0001), Blazor (0002), Generic Host without CFIT
-(0003), GSX pillar first (0004).
+See `docs/decisions/` (ADRs, this repo's convention — not `docs/adr/`):
+
+| ADR | Decision |
+|---|---|
+| 0001 | Web-first UI with a minimal WPF shell |
+| 0002 | Blazor (interactive server) for the web UI |
+| 0003 | .NET Generic Host + Microsoft.Extensions DI; no CFIT packages |
+| 0004 | GSX ground automation is the first feature pillar |
+| 0005 | Drop the FS2Crew bridge — superseded by the built-in voice FO |
+| 0006 | Voice-gated ground services ride the command path; crew speech rides the arbiter roles |
+| 0007 | User-editable config lives in `%LOCALAPPDATA%\ProsimCompanion\config` |
+| 0008 | Flight phase is an ordered rule table, tuned by replaying recorded flights |
+| 0009 | Silero VAD replaces the RMS energy gate |
+| 0010 | One settings hub with progressive disclosure |
+| 0011 | Superdesign "KLM navy instrument panel" restyle |
+| 0012 | Departure is a real flight phase, entered on boarding evidence |
+| 0013 | Optional HTTPS listener beside HTTP |
+| 0014 | UI localisation through JSON language packs (en, de, es, fr, ja, ko, nl) |
+| 0015 | Cockpit switches from the Stream Deck through a configured-row write gate |
+| 0016 | ECAM-style diagnostics pages |
+| 0017 | Skalarki SDK isolation (PANELS diagnostics page) |
+| 0018 | Scheduled non-normals through the ProSim SDK failure API behind its own gate |
+| 0019 | The duty day is a sequence of legs; a leg boundary is three pilot-visible steps |

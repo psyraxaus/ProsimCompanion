@@ -197,9 +197,9 @@ flight pages, live figures on glass instrument cards, and a Solari split-flap cl
 - EFB-style web UI (ADR-0011): icon sidebar, glass instrument cards, split-flap clock,
   bundled fonts and icons (works offline), 13 airline/basic themes on the Appearance settings page
   plus user JSON themes and your own theme and airline logos (never shipped — you upload them
-  on the Appearance page), kg/lb
-  display units, system tray, single-instance, update banner from
-  GitHub releases
+  on the Appearance page), **seven UI languages** (English, Deutsch, Español, Français, 日本語,
+  한국어, Nederlands — picked on the Appearance page, the First Officer's voice stays English),
+  kg/lb display units, system tray, single-instance, update banner from GitHub releases
 - **ProSim Setup Check** (Setup page): on every ProSim connection the app reads the ProSim
   System options it depends on (door logic, automatic ground power, datalink loading, refuel
   rate) and shows what to change, with **Apply recommended** and step-by-step instructions
@@ -239,11 +239,17 @@ payload. Release process: [docs/VERSIONING.md](docs/VERSIONING.md); installer:
 
 ## Documentation
 
-- [User manual](docs/manual/README.md)
-- [Architecture](docs/ARCHITECTURE.md) · [decision records](docs/decisions/)
-- [Roadmap](docs/ROADMAP.md) · [feature inventory](docs/feature-inventory.md)
-- [Integration references](docs/integrations/) — ProSim, GSX Remote API, SimBrief,
-  SayIntentions, audio, speech/AI, Stream Deck, command API
+- [User manual](docs/manual/README.md) — 14 chapters, from installation to Screen & FOV
+- [Architecture](docs/ARCHITECTURE.md) · [decision records](docs/decisions/) (19 ADRs) ·
+  [glossary](CONTEXT.md)
+- [Roadmap](docs/ROADMAP.md) · [feature inventory](docs/feature-inventory.md) ·
+  [code review 2026-11-03](docs/reviews/2026-11-03/README.md)
+- [Integration references](docs/integrations/) — ProSim, GSX (Remote API, profiles), SimBrief,
+  SayIntentions, ACARS, audio and the VoiceMeeter bridge, speech/AI and ElevenLabs, Stream
+  Deck, command API, cockpit switches, Skalarki, MSFS session and display/FOV, notifications,
+  abnormals
+- [Agent workflow](docs/agents/) — issue tracker, flight verification probes, support bundles,
+  localisation
 
 ## Licence
 

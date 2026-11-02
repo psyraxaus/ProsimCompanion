@@ -2,7 +2,7 @@
 
 Hard-won knowledge from ProsimInterface and Prosim2FO. Verify against the live system before relying
 on it, but treat every "quirk" entry as empirically discovered — do not "simplify" them away.
-The full ~4,470-row dataref catalog is `ProsimDataref.csv` at this repo's root (also in the
+The full ~4,470-row dataref catalog is `Prosim_A322_Dataref.csv` at this repo's root (embedded into Core as the smart-button picker's source; renamed from `ProsimDataref.csv` 2026-08-14; also in the
 ProsimInterface and Prosim2FO repos); ProsimInterface's `ProsimConstants.cs` (~400 curated names
 with polling tiers) is the canonical curated list to port verbatim.
 

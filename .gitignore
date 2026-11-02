@@ -46,3 +46,7 @@ src/ProsimCompanion.App/config/themes/logos/
 
 # Skalarki lib files
 libs/skalarki/
+
+# Local build/publish output and design-tool scratch (never commit)
+out/
+.superdesign/
