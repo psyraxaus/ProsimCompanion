@@ -119,7 +119,7 @@ public static class BriefingComposer
     /// <summary>"Good afternoon, Captain. Departure briefing." when the sim's local time of day
     /// is known, the bare header otherwise — never a guessed greeting (owner report 2026-10-25).</summary>
     internal static string Opening(BriefingFacts f, string header)
-        => f.TimeOfDay is { Length: > 0 } word ? $"Good {word}, Captain. {header}" : header;
+        => f.TimeOfDay is { Length: > 0 } word ? $"{Core.Aircraft.TimeOfDayGreeting.Phrase(word)}, Captain. {header}" : header;
 
     public static IReadOnlyList<Core.Speech.NarrationSection> Sections(BriefingFacts f)
     {
@@ -566,7 +566,7 @@ public static class BriefingComposer
             + "speeds normally. Speak single letters as their NATO phonetic words: 'information "
             + "Mike' (never 'information M'), 'VOLA three Victor' (never 'VOLA3V')."
             + (timeOfDay is { Length: > 0 } word
-                ? $" It is {word} at the aircraft. Your first words must be exactly 'Good {word}, Captain.'"
+                ? $" It is {word} at the aircraft. Your first words must be exactly '{Core.Aircraft.TimeOfDayGreeting.Phrase(word)}, Captain.'"
                   + " — no other time-of-day word."
                 : " The time of day at the aircraft is unknown. Open with 'Captain,' and use no "
                   + "time-of-day greeting at all — never guess morning, afternoon or evening.");
@@ -600,7 +600,7 @@ public static class BriefingComposer
             // Keep the model's own punctuation after the word (", Captain." / ". ") — only
             // the time-of-day word changes.
             var afterWord = sentence[(match.Groups[1].Index + match.Groups[1].Length)..];
-            return "Good " + word + afterWord;
+            return Core.Aircraft.TimeOfDayGreeting.Phrase(word) + afterWord;
         }
 
         var rest = sentence[(match.Index + match.Length)..];

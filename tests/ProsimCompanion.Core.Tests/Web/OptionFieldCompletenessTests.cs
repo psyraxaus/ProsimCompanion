@@ -56,7 +56,6 @@ public sealed class OptionFieldCompletenessTests
         ["SpeechOptions.VadMaxUtteranceMs"] = "no control yet",
         ["SpeechOptions.NoSpeechCeiling"] = "no control yet",
         ["SpeechOptions.ConfidenceFloor"] = "no control yet",
-        ["SpeechOptions.ListeningTone"] = "no control yet",
         ["HumanizeOptions.GapJitter"] = "no control yet",
         ["HumanizeOptions.HoldJitter"] = "no control yet",
         ["HumanizeOptions.ThinkPauseChance"] = "no control yet",

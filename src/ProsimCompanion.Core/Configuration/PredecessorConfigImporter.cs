@@ -268,7 +268,7 @@ public static class PredecessorConfigImporter
                 {
                     CopyBool(tts, "localOnly", speech, "localOnly");
                     CopyBool(tts, "intercomFilter", speech, "intercomFilter");
-                    CopyBool(tts, "listeningTone", speech, "listeningTone");
+                    // Prosim2FO's listeningTone is not carried over: nothing here plays a tone (#232).
                     CopyNumber(tts, "volume", speech, "volume");
                     if (tts["local"] is JsonObject local)
                     {

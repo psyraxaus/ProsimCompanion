@@ -14,7 +14,7 @@ namespace ProsimCompanion.Core.Configuration;
 public static class SettingsMigrator
 {
     /// <summary>Version written by this build. Bump only alongside a new migration step.</summary>
-    public const int CurrentVersion = 3;
+    public const int CurrentVersion = 4;
 
     private const string VersionKey = "configVersion";
 
@@ -61,6 +61,12 @@ public static class SettingsMigrator
                 version = 3;
             }
 
+            if (version < 4)
+            {
+                RemoveRetiredListeningTone(root);
+                version = 4;
+            }
+
             _ = version;
             root[VersionKey] = CurrentVersion;
         });
@@ -86,6 +92,18 @@ public static class SettingsMigrator
             && string.Equals(folder.Trim().Trim('"'), LegacyRotationsFolderName, StringComparison.OrdinalIgnoreCase))
         {
             day["rotationsFolder"] = "";
+        }
+    }
+
+    /// <summary>v3 → v4 (2026-11-03, issue #232): <c>speech.listeningTone</c> is dropped. The
+    /// property was imported from Prosim2FO and written by every save, but nothing ever
+    /// played a tone or read it, and it had no settings control; removing it from the file
+    /// keeps the unknown-property report quiet for a file the app wrote itself.</summary>
+    private static void RemoveRetiredListeningTone(JsonObject root)
+    {
+        if (root[SpeechOptions.SectionName] is JsonObject speech)
+        {
+            speech.Remove("listeningTone");
         }
     }
 

@@ -110,19 +110,61 @@ public sealed class PushbackSuggestionService : IStartupModule, IDisposable
         _ = EvaluateAsync();
     }
 
+    /// <summary>Pause after an iteration that threw before the loop waits for its next tick
+    /// (issue #231) — long enough that a dead gateway is not hammered, short beside the tick.</summary>
+    internal static readonly TimeSpan FailureBackoff = TimeSpan.FromSeconds(5);
+
     private async Task LoopAsync()
     {
         using var timer = new PeriodicTimer(TickInterval);
-        try
+        await RunLoopAsync(timer.WaitForNextTickAsync, EvaluateAsync, FailureBackoff, _logger, _stopping.Token).ConfigureAwait(false);
+    }
+
+    /// <summary>The tick loop with its timer and its work injected (issue #231: the stored
+    /// task caught only cancellation, so the first other exception — a disposed semaphore
+    /// from a shutdown race, anything a future evaluation throws past its own catch —
+    /// faulted it unobserved and the suggestion stopped for the rest of the session). An
+    /// iteration that throws is logged at Warning and the loop goes on after
+    /// <paramref name="backoff"/>; only cancellation (or the timer closing) ends it.
+    /// Public so a test can drive it without a 15 s timer.</summary>
+    public static async Task RunLoopAsync(
+        Func<CancellationToken, ValueTask<bool>> waitForTick,
+        Func<Task> iteration,
+        TimeSpan backoff,
+        ILogger logger,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(waitForTick);
+        ArgumentNullException.ThrowIfNull(iteration);
+        ArgumentNullException.ThrowIfNull(logger);
+
+        while (!cancellationToken.IsCancellationRequested)
         {
-            while (await timer.WaitForNextTickAsync(_stopping.Token).ConfigureAwait(false))
+            try
             {
-                await EvaluateAsync().ConfigureAwait(false);
+                if (!await waitForTick(cancellationToken).ConfigureAwait(false))
+                {
+                    return; // the timer was disposed under the loop
+                }
+
+                await iteration().ConfigureAwait(false);
             }
-        }
-        catch (OperationCanceledException)
-        {
-            // shutting down
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                return; // shutting down
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Pushback suggestion loop iteration failed — next try in {BackoffSeconds} s", backoff.TotalSeconds);
+                try
+                {
+                    await Task.Delay(backoff, cancellationToken).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException)
+                {
+                    return;
+                }
+            }
         }
     }
 

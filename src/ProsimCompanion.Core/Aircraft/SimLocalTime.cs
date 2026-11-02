@@ -134,18 +134,38 @@ public sealed class SimLocalTime : ISimLocalTime, IDisposable
 /// and a crew reporting for a dawn departure says "good morning". Pure.</summary>
 public static class TimeOfDayGreeting
 {
+    public const string Morning = "morning";
+    public const string Afternoon = "afternoon";
+    public const string Evening = "evening";
+
     public static string Word(TimeSpan localTimeOfDay)
     {
         var hour = ((int)localTimeOfDay.TotalHours % 24 + 24) % 24;
         return hour switch
         {
-            >= 4 and < 12 => "morning",
-            >= 12 and < 18 => "afternoon",
-            _ => "evening",
+            >= 4 and < 12 => Morning,
+            >= 12 and < 18 => Afternoon,
+            _ => Evening,
         };
     }
 
+    /// <summary>True in the morning band only (04:00–11:59) — the one yes/no a caller may
+    /// need (the small-talk bank splits "local morning" from "local afternoon or evening").
+    /// Issue #229: small talk tested "before noon" on its own and called 00:00–03:59 morning
+    /// while the briefing of the same hour said evening; every band test lives here now.</summary>
+    public static bool IsMorning(TimeSpan localTimeOfDay)
+        => string.Equals(Word(localTimeOfDay), Morning, StringComparison.Ordinal);
+
     /// <summary>"Good afternoon" for a known clock, null otherwise.</summary>
     public static string? Greeting(TimeSpan? localTimeOfDay)
-        => localTimeOfDay is { } t ? "Good " + Word(t) : null;
+        => localTimeOfDay is { } t ? Phrase(Word(t)) : null;
+
+    /// <summary>"Good morning" from a word this class produced earlier — the briefing and the
+    /// greeting guard compose from facts that carry the word, not the clock, so the spoken
+    /// form has one home too.</summary>
+    public static string Phrase(string word)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(word);
+        return "Good " + word;
+    }
 }

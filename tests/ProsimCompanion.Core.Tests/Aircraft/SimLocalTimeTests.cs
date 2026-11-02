@@ -30,6 +30,32 @@ public sealed class SimLocalTimeTests
         Assert.Equal("Good afternoon", TimeOfDayGreeting.Greeting(new TimeSpan(16, 35, 0)));
     }
 
+    /// <summary>Issue #229: the morning band's edges, minute-exact — 03:59 is still the
+    /// overnight crew's evening, 04:00 the dawn departure's morning, noon the afternoon.</summary>
+    [Theory]
+    [InlineData(0, 0, false)]
+    [InlineData(3, 59, false)]
+    [InlineData(4, 0, true)]
+    [InlineData(11, 59, true)]
+    [InlineData(12, 0, false)]
+    [InlineData(17, 59, false)]
+    [InlineData(18, 0, false)]
+    [InlineData(23, 59, false)]
+    public void IsMorning_FollowsTheMorningBandExactly(int hour, int minute, bool expected)
+    {
+        var clock = new TimeSpan(hour, minute, 0);
+        Assert.Equal(expected, TimeOfDayGreeting.IsMorning(clock));
+        Assert.Equal(expected, TimeOfDayGreeting.Word(clock) == TimeOfDayGreeting.Morning);
+    }
+
+    [Fact]
+    public void Phrase_IsTheOneSpokenForm()
+    {
+        Assert.Equal("Good evening", TimeOfDayGreeting.Phrase(TimeOfDayGreeting.Evening));
+        Assert.Equal(TimeOfDayGreeting.Phrase(TimeOfDayGreeting.Word(new TimeSpan(2, 30, 0))), TimeOfDayGreeting.Greeting(new TimeSpan(2, 30, 0)));
+        Assert.Throws<ArgumentException>(() => TimeOfDayGreeting.Phrase(" "));
+    }
+
     [Fact]
     public void NoSimVars_NoClock()
     {

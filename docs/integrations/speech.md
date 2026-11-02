@@ -29,7 +29,7 @@ chains — "local only" hard mode must exist.
 - **Google Cloud TTS Chirp 3 HD**: service-account JSON key, LINEAR16; disk cache keyed by
   text+voice+format; prewarm checklist phrases; monthly usage counter (`cache/tts/usage.json`)
   against the 1M-char free tier.
-- Playback: NAudio, device selection, intercom band-pass filter + listening tone.
+- Playback: NAudio, device selection, intercom band-pass filter.
 
 ## Recognition (chain: LAN → WinRT → offline System.Speech)
 

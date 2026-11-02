@@ -260,4 +260,22 @@ public sealed class SmallTalkCoreTests
     [InlineData(0, 270, "right")]
     public void SolarPosition_SideOf(double bearing, double track, string side)
         => Assert.Equal(side, SolarPosition.SideOf(bearing, track));
+
+    /// <summary>Issue #229: the bank's "local morning" is the crew's morning band (04:00–11:59,
+    /// the briefing's and the gate intro's), not "before noon" — 02:00 local was "morning" to
+    /// small talk while the briefing of the same hour said "Good evening".</summary>
+    [Theory]
+    [InlineData(0, 0, false)]
+    [InlineData(2, 0, false)]
+    [InlineData(3, 59, false)]
+    [InlineData(4, 0, true)]
+    [InlineData(11, 59, true)]
+    [InlineData(12, 0, false)]
+    [InlineData(18, 0, false)]
+    public void SmallTalk_LocalMorning_IsTheSharedMorningBand(int hour, int minute, bool expected)
+        => Assert.Equal(expected, CruiseSmallTalkService.IsLocalMorning(new TimeSpan(hour, minute, 0)));
+
+    [Fact]
+    public void SmallTalk_LocalMorning_NoClockIsNotMorning()
+        => Assert.False(CruiseSmallTalkService.IsLocalMorning(null));
 }

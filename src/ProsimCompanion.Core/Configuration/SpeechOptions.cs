@@ -475,9 +475,6 @@ public sealed class SpeechOptions : IOptionSection
     [OptionField(FieldKind.Number, "speechSettings.listening.noConfirmBelow", Suffix = "ft", Min = "0", Max = "5000", Step = "100", Advanced = true)]
     public int ClarifierMinAglFt { get; set; } = 1000;
 
-    /// <summary>Play the short listening cue tone when a window opens for a reply.</summary>
-    public bool ListeningTone { get; set; } = true;
-
     /// <summary>Keep every utterance the FO heard but nothing acted on (issue #112): a
     /// <c>voice.unmatched</c> session event plus the "Heard but not understood" list on the
     /// Voice page, grouped so a phrase the pilot keeps saying stands out as a command to add.

@@ -42,6 +42,7 @@ public sealed class FailureMonitor : IEcamDialogueIo, Core.State.IAbnormalDialog
     private readonly object _lock = new();
     private readonly Dictionary<string, IDataRefSubscription> _reads = new(StringComparer.Ordinal);
     private readonly Dictionary<string, TriggerState> _states = [];
+    private readonly HashSet<string> _conditionFaultLogged = new(StringComparer.Ordinal);
     private bool _burstLogged;
 
     private IDataRefSubscription<string>? _ewdText;
@@ -189,6 +190,7 @@ public sealed class FailureMonitor : IEcamDialogueIo, Core.State.IAbnormalDialog
         {
             _definitions = definitions;
             _states.Clear();
+            _conditionFaultLogged.Clear(); // a reloaded definition earns one fresh warning
             foreach (var definition in _definitions)
             {
                 _states[definition.Id] = new TriggerState();
@@ -744,9 +746,16 @@ public sealed class FailureMonitor : IEcamDialogueIo, Core.State.IAbnormalDialog
             {
                 condHit = ConditionEvaluator.Evaluate(trigger.Condition, Read);
             }
-            catch
+            catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or ObjectDisposedException)
             {
+                // What the evaluation can throw: a null child in a compound condition
+                // (ArgumentNullException from the evaluator), a dataref name the subscription
+                // table refuses (ArgumentException), the backend gone or a disposed
+                // subscription. The condition stays false — fail-closed, like a malformed leaf —
+                // but says so once per definition (issue #228: the bare catch made a broken
+                // condition "never fires" for the whole session without a line in the log).
                 condHit = false;
+                NoteConditionFault(definition, ex);
             }
         }
 
@@ -917,6 +926,45 @@ public sealed class FailureMonitor : IEcamDialogueIo, Core.State.IAbnormalDialog
     }
 
     private double Read(string dataref) => Subscription(dataref).GetValue(0.0);
+
+    /// <summary>One Warning per definition for a trigger condition that throws when read
+    /// (issue #228) — the 2 Hz tick would otherwise write the same line 7 200 times an hour.
+    /// The set clears on <see cref="Load"/>, so a corrected abnormal file that still fails
+    /// is reported again.</summary>
+    private void NoteConditionFault(AbnormalDefinition definition, Exception ex)
+    {
+        lock (_lock)
+        {
+            if (!_conditionFaultLogged.Add(definition.Id))
+            {
+                return;
+            }
+        }
+
+        _logger.LogWarning(ex,
+            "Abnormal {Id} condition cannot be evaluated — treated as not met until the abnormals reload: {Condition}",
+            definition.Id, DescribeCondition(definition.Trigger!.Condition!));
+    }
+
+    /// <summary>The condition as the author would recognise it in the JSON: a leaf as
+    /// "dataref op value", a compound as its logic over its children (a null child, the
+    /// evaluator's own fault, shows as "null").</summary>
+    private static string DescribeCondition(VerifyCondition condition)
+    {
+        if (condition.IsCompound)
+        {
+            var logic = (condition.Logic ?? ConditionLogic.And).ToString().ToUpperInvariant();
+            return "(" + string.Join($" {logic} ", condition.Conditions!.Select(c => c is null ? "null" : DescribeCondition(c))) + ")";
+        }
+
+        var value = condition.Op switch
+        {
+            ComparisonOp.Between => $"{condition.Low?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "-inf"}..{condition.High?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "+inf"}",
+            ComparisonOp.OneOf => "[" + string.Join(", ", condition.Values?.Select(v => v.ToString(System.Globalization.CultureInfo.InvariantCulture)) ?? []) + "]",
+            _ => (condition.Value ?? 0).ToString(System.Globalization.CultureInfo.InvariantCulture),
+        };
+        return $"{condition.Dataref ?? "?"} {condition.Op?.ToString() ?? "?"} {value}";
+    }
 
     private IDataRefSubscription Subscription(string dataref)
     {

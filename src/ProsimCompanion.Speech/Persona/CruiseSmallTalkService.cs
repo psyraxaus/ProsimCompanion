@@ -585,6 +585,13 @@ public sealed class CruiseSmallTalkService : Core.Hosting.IStartupModule, IDispo
         });
     }
 
+    /// <summary>The bank's "local morning" is the crew's morning band (04:00–11:59), the same
+    /// one the briefing and the gate intro greet by — not "before noon" (issue #229: a 02:00
+    /// local clock made the FO talk about the morning while the briefing had said "Good
+    /// evening"). Null clock = not morning. Pure, for tests.</summary>
+    internal static bool IsLocalMorning(TimeSpan? localTimeOfDay)
+        => localTimeOfDay is { } local && TimeOfDayGreeting.IsMorning(local);
+
     private SmallTalkContext BuildContext()
     {
         var fo = _roster?.Current;
@@ -621,7 +628,7 @@ public sealed class CruiseSmallTalkService : Core.Hosting.IStartupModule, IDispo
                 }
             }
 
-            morning = _clock?.LocalTimeOfDay is { } local && local.TotalHours < 12;
+            morning = IsLocalMorning(_clock?.LocalTimeOfDay);
         }
         catch (Exception ex)
         {

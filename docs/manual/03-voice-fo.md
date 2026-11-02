@@ -3,8 +3,8 @@
 ## Talking to the FO
 
 - **Push-to-talk** (default): bind a key or joystick button on the First Officer settings
-  page; hold, speak, release. A listening tone confirms the mic opened. Continuous mode is
-  available for boom-mic setups.
+  page; hold, speak, release. The header's mic pill shows LISTENING while the mic is open.
+  Continuous mode is available for boom-mic setups.
 - **Recognition** tries your LAN faster-whisper box first (if configured) and falls back to
   Windows offline recognition. Misheard phrases snap to the nearest expected phrase; a
   genuinely unclear response gets a "say again?". A near miss earns *"did you mean …?"* —

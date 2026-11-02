@@ -118,4 +118,42 @@ public sealed class SettingsMigratorTests : IDisposable
         Assert.Null(gsx["departureServices"]); // the defaults writer fills this in afterwards
         Assert.Equal(true, (bool?)gsx["enabled"]);
     }
+
+    /// <summary>v3 → v4 (issue #232): the retired <c>speech.listeningTone</c> leaves the file;
+    /// its neighbours stay.</summary>
+    [Fact]
+    public void MigrateV3_DropsListeningTone_KeepsTheRestOfSpeech()
+    {
+        File.WriteAllText(_path, """
+            {
+              "configVersion": 3,
+              "speech": { "listeningTone": true, "outputDevice": "Headset", "intercomFilter": false }
+            }
+            """);
+        var file = new JsonSettingsFile(_path);
+
+        var previous = SettingsMigrator.Migrate(file);
+
+        Assert.Equal(3, previous);
+        var root = file.Read();
+        Assert.Equal(SettingsMigrator.CurrentVersion, (int?)root["configVersion"]);
+        var speech = root["speech"]!.AsObject();
+        Assert.False(speech.ContainsKey("listeningTone"));
+        Assert.Equal("Headset", (string?)speech["outputDevice"]);
+        Assert.Equal(false, (bool?)speech["intercomFilter"]);
+    }
+
+    [Fact]
+    public void MigrateV3_WithoutASpeechSection_OnlyStamps()
+    {
+        File.WriteAllText(_path, """{ "configVersion": 3, "prosim": { "host": "simpc" } }""");
+        var file = new JsonSettingsFile(_path);
+
+        SettingsMigrator.Migrate(file);
+
+        var root = file.Read();
+        Assert.Equal(SettingsMigrator.CurrentVersion, (int?)root["configVersion"]);
+        Assert.Null(root["speech"]);
+        Assert.Equal("simpc", (string?)root["prosim"]?["host"]);
+    }
 }
