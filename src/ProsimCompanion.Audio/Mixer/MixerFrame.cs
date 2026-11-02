@@ -5,7 +5,7 @@ using ProsimCompanion.Core.State;
 
 namespace ProsimCompanion.Audio.Mixer;
 
-/// <summary>Frames the agent sends (VoicemeeterBridge protocol v1, <c>claude/mixer-protocol.md</c>).
+/// <summary>Frames the agent sends (VoicemeeterBridge protocol v1, <c>docs/integrations/voicemeeter-bridge-protocol.md</c>).
 /// Unknown ops parse to null and are ignored; the protocol is additive.</summary>
 public abstract record MixerInboundFrame;
 

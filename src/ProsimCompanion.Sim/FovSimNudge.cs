@@ -7,7 +7,7 @@ namespace ProsimCompanion.Sim;
 
 /// <summary>
 /// <see cref="IFovSimNudge"/> over SimConnect (Display &amp; FOV page, 2026-10-28;
-/// design: <c>claude/fov-tool-design.md</c>). The two names are on
+/// design: <c>docs/plans/2026-10-28-fov-tool-design.md</c>). The two names are on
 /// <see cref="SimWriteGate"/>'s exact list. Each is subscribed through its typed descriptor
 /// before the first write, which is what fixes its SimConnect unit (<c>percent</c> and
 /// <c>Bool</c>) — a bare write would register the name as a plain number.

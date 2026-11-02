@@ -3,7 +3,7 @@
 ProsimCompanion can drive a Voicemeeter that runs on **another PC** — typically the one
 running vPilot or your ATC client, or (since #178, 2026-10-22) one PC per pilot — through the
 VoicemeeterBridge agent. The agent sits in that PC's tray and exposes Voicemeeter over a
-small WebSocket protocol (`claude/mixer-protocol.md`, protocol v1). The agent lives in its
+small WebSocket protocol (`docs/integrations/voicemeeter-bridge-protocol.md`, protocol v1). The agent lives in its
 own repository, <https://github.com/psyraxaus/VoicemeeterBridge> (installer on its Releases
 page; first published build 0.1.0, 2026-10-10). This is separate from the local VoiceMeeter
 backend of the audio pillar, which drives the Voicemeeter on the sim PC through its DLL.

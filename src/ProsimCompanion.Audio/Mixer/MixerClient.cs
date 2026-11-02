@@ -12,7 +12,7 @@ namespace ProsimCompanion.Audio.Mixer;
 
 /// <summary>
 /// The VoicemeeterBridge WebSocket client for ONE agent (protocol v1,
-/// <c>claude/mixer-protocol.md</c>): connect → hello → welcome, receive loop, watch-list
+/// <c>docs/integrations/voicemeeter-bridge-protocol.md</c>): connect → hello → welcome, receive loop, watch-list
 /// replay on every new session, set/result correlation with a timeout, and a doubling
 /// reconnect backoff. Shaped like the GSX Remote API client. Since #178 the client is a
 /// plain session object owned by <see cref="MixerClientHost"/>: it is built for one agent

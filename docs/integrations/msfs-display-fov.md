@@ -1,6 +1,6 @@
 # MSFS 2024 field of view from the pilot's screens (Settings → Screen & FOV)
 
-One owner story (2026-10-28, design `claude/fov-tool-design.md`): a hardware A320 flight deck
+One owner story (2026-10-28, design `docs/plans/2026-10-28-fov-tool-design.md`): a hardware A320 flight deck
 with a 52" 16:9 TV as the forward window, eye to screen centre 1.5 m. A true 1:1 view through
 that "window" is a vertical FOV of 24.4° — far tighter than the sim's ~49° default, and the
 in-sim zoom slider cannot be set to it reliably (it is relative to the saved view's own zoom and

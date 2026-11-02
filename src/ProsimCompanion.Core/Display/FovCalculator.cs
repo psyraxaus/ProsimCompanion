@@ -54,7 +54,7 @@ public sealed record FovPlan(
     IReadOnlyList<FovPlanRow> Rows);
 
 /// <summary>
-/// The pure maths behind the Display &amp; FOV page (design: <c>claude/fov-tool-design.md</c>).
+/// The pure maths behind the Display &amp; FOV page (design: <c>docs/plans/2026-10-28-fov-tool-design.md</c>).
 /// MSFS computes a camera's vertical field of view from its zoom as
 /// <c>FOV = arctan(InitialZoom × 3.3125)</c> (MSFS 2024 SDK, cameras.cfg reference), so the
 /// zoom for a wanted FOV is <c>tan(vFOV) / 3.3125</c>. The common default

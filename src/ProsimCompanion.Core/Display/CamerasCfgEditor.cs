@@ -40,7 +40,7 @@ public sealed record CamerasCfgEdit(string Content, int BlocksChanged, IReadOnly
 /// that are cockpit cameras change; every other byte, the line endings and a BOM survive. The
 /// write helper refuses any path that is not under a LocalCache <c>SimObjects\Airplanes</c>
 /// folder, so a package's own file under <c>Official\</c> or <c>Community\</c>, and ChasePlane's
-/// work folder, can never be touched. Design: <c>claude/fov-tool-design.md</c>.
+/// work folder, can never be touched. Design: <c>docs/plans/2026-10-28-fov-tool-design.md</c>.
 /// <para>
 /// Archaeology (owner's sim PC, 2026-10-29): what MSFS 2024 actually writes to the LocalCache
 /// file is the custom camera — <c>Category="Cockpit"</c>, <c>SubCategory="Custom"</c>,

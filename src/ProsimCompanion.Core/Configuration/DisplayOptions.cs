@@ -22,7 +22,7 @@ public enum DisplayRole
 
 /// <summary>
 /// The pilot's physical displays and how true-to-life the sim's field of view should be
-/// (<c>display</c>, 2026-10-28; design: <c>claude/fov-tool-design.md</c>). From the size,
+/// (<c>display</c>, 2026-10-28; design: <c>docs/plans/2026-10-28-fov-tool-design.md</c>). From the size,
 /// aspect and eye distance of the Main display the app computes the vertical FOV a 1:1 view
 /// needs and writes it as <c>InitialZoom</c> into the aircraft's saved custom camera
 /// (<c>cameras.cfg</c> under the MSFS 2024 LocalCache — never a package folder, see

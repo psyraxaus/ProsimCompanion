@@ -3,7 +3,7 @@ namespace ProsimCompanion.Core.Configuration;
 /// <summary>
 /// Settings for the remote mixer client (<c>mixer</c>, 2026-10-10): a VoicemeeterBridge agent
 /// on another PC exposes that PC's Voicemeeter over a WebSocket (protocol v1,
-/// <c>claude/mixer-protocol.md</c>). Off by default; while off the client opens no socket and
+/// <c>docs/integrations/voicemeeter-bridge-protocol.md</c>). Off by default; while off the client opens no socket and
 /// the mapping layer subscribes nothing, so the feature costs nothing at startup. The local
 /// VoiceMeeter backend of the audio pillar is a different thing: it drives the DLL on THIS PC.
 /// Since #178 (2026-10-22) the section holds a list of agents — a two-pilot rig runs one
