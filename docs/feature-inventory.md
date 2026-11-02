@@ -1,5 +1,7 @@
 # Feature inventory (migration parity checklist)
 
+Last reviewed: 2026-11-03 (against 1.0.0-rc.2).
+
 Every user-facing feature of the three predecessors. Tick when ported to ProsimCompanion; strike
 through with a note if deliberately dropped. Sources: Prosim2GSX 0.9.0, ProsimInterface, Prosim2FO.
 
@@ -7,7 +9,8 @@ through with a note if deliberately dropped. Sources: Prosim2GSX 0.9.0, ProsimIn
 
 - [x] Auto reposition on startup (ground-prep coordinator: reposition → settle → equipment)
 - [x] Departure service sequencing (ordered steps, per-service activation policies, leg
-      constraints; company-hub constraints + per-service minimum duration still deferred)
+      constraints incl. `CompanyHub` / `NonCompanyHub` against `gsx.companyHubs` and the
+      per-step minimum flight time `minimumFlightMinutes` — `DepartureServiceStep`)
 - [x] Refuel sync — fixed-rate hose-driven with pause/resume, FOB save/restore per aircraft
       title, round-up-100 (time-target / refuel-panel methods deliberately not ported)
 - [x] Boarding/deboarding pax sync (seat-map model; zone-amount writes dropped — datarefs are
@@ -26,14 +29,16 @@ through with a note if deliberately dropped. Sources: Prosim2GSX 0.9.0, ProsimIn
       wait (#134)
 - [x] Voice Reference drawer (#136): every live voice phrase from any page, five crew tabs,
       composed from the recognition grammar (IVoiceReference / VoiceReferenceBuilder)
-- [x] Auto engine-start confirmation (#106 — `GsxPushbackSequenceService.TryConfirmEngineStart`
-      answers "Confirm good engine start" at vehicle state 12; no on/off switch yet)
+- [x] Auto engine-start confirmation (#106 — `PushbackTickEffectApplier.TryConfirmEngineStart`
+      answers "Confirm good engine start" at vehicle state 12; switch `gsx.confirmEngineStart`
+      on the GSX settings page since the 2026-10-08 settings audit)
 - [x] De-icing auto-answer + fluid/concentration selection (GSX's "Select fluid type" /
       "Select concentration" menus answered since rc.5); auto-request by weather/OAT
       (`gsx.deice.autoRequest` off / ask / auto, asked when the step is next, silence keeps the
       question open, GSX's own offer obeys the answer) with the `FSDT_GSX_DEICING_STATE` LVAR
       read and shown; opt-in packs/ditching procedure (rc.5)
-- [x] Operator auto-selection with preference list ([GSX choice] fallback; company hubs deferred)
+- [x] Operator auto-selection with preference list ([GSX choice] fallback; company hubs via
+      `gsx.companyHubs`, JSON-edited ICAO prefixes)
 - [x] Skip GSX questions (crew, follow-me, pushback confirm; tug questions are caught by the
       generic "Do you want to request…" prefix handler, not a tug-specific entry); walkaround
       skip deferred (MSFS2024 keystroke)
@@ -61,8 +66,8 @@ through with a note if deliberately dropped. Sources: Prosim2GSX 0.9.0, ProsimIn
       (ZFW/ZFWCG/block, tonnes conversion, final→prelim→live source resolution)
 - [x] Preliminary + final loadsheets (in-house bit-exact W&B, EDNO/REVISIONS, ACARS uplink to
       slots 01/02; STD/T-30 timing notifications not ported — the status board covers it)
-- [x] Live W&B (SVG CG envelope, MACTOW, per-tank fuel bars; seat/door silhouette not ported —
-      candidate for a later polish pass)
+- [x] Live W&B (SVG CG envelope, MACTOW, per-tank fuel bars; seat/door silhouette
+      `A320Silhouette` on the W&B page with seat occupation and the pax/cargo door states)
 - [x] Takeoff perf (V1/VR/V2/FLEX/THS/shift, FMS uplink) and landing perf (LDR, LDR+15%, LDA
       margin with displaced threshold)
 - [x] Deice holdover-time countdown (representative HOT matrix, GSX deice-complete armed)
@@ -205,11 +210,14 @@ through with a note if deliberately dropped. Sources: Prosim2GSX 0.9.0, ProsimIn
 - [x] Post-flight debrief (event log → facts → LLM behind the number verifier → verified →
       spoken, deterministic template floor)
 - [x] Company day mode (multi-sector duties, per-leg session rotation, planned rotations,
-      turnaround + end-of-day summaries, /day page; off by default)
+      turnaround + end-of-day summaries, /day page; **on by default** since 1.0.0-rc.2 — #216,
+      ADR-0019 §7; the leg-boundary machine runs always, `day.enabled` only names the legs)
 
 ## Bridges & extras
 
-- [x] SayIntentions extras (ATIS/METAR/TAF/wind batch, CPDLC station, /weather page)
+- [x] SayIntentions extras (ATIS/METAR/TAF/wind batch, CPDLC station —
+      `SayIntentionsWeatherService` into `WeatherStore`; the separate Weather tab was dropped
+      2026-08-08, the OFP page carries the cards with the TAF and Flight Status the hero cards)
 - [x] Flight Status hero weather cards (local / destination, sky graphic from the METAR) and the
       gate monitor strip (five forward-only states from GSX boarding + door 1L + STD) — new,
       no predecessor equivalent (2026-09-22)
@@ -223,8 +231,9 @@ through with a note if deliberately dropped. Sources: Prosim2GSX 0.9.0, ProsimIn
       METAR and SayIntentions fallback; briefings consume it)
 - [x] Command registry + HTTP command API (29 commands incl. per-service GSX requests through
       the single-writer trigger path, opt-in, token even on loopback) + GET /api/status
-- [x] StreamDeck plugin (streamdeck/ — five actions, REST poll, pair-via-URL; build with
-      npm run build / pack per streamdeck/README.md)
+- [x] StreamDeck plugin (streamdeck/ — eight actions: GSX Service, Next Service, Checklist,
+      Cockpit Switch, Camera View, Voice Pause, Flight Phase, Connection Health; REST poll,
+      pair-via-URL; build with npm run build / pack per streamdeck/README.md)
 - [x] ECAM-style diagnostics pages (ADR-0016, 2026-10-27): VOICE / SIM / REMOTE / GSX /
       STATUS at `/diagnostics`, one collector per feature project into a 1 Hz snapshot,
       latency and rate registries, LLM host probe, circuit and API-client presence, nav badge,

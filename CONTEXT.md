@@ -134,6 +134,28 @@ drill lines are exempt. Paired with the listen window that does not count the FO
 time. Deferred, never dropped: the items play when the borrow ends, their TTLs still counting.
 _Avoid_: mute, speech lock, dialogue priority
 
+**Smart button**:
+The cockpit "next service" control: a ProSim switch reaching its trigger value while the
+departure sequence runs on the ground force-calls the next service (`SmartButtonRule`, pure,
+fed every push by `GsxAutomationService`; `gsx.smartButton*`). The default is the INT/RAD
+rocker on both ACPs at INT — the force-next source string is `INT/RAD`. The **smart-button
+picker** on the GSX settings page offers any `system.switches.S_*` dataref from the switch
+catalogue (`SwitchCatalogStore`: the shipped CSV until ProSim's live list replaces it on
+connect).
+_Avoid_: service trigger (that is the trigger slot), force-next button (the web button is one
+caller of the same command), cockpit switch (the ADR-0015 relay, unrelated)
+
+**Aircraft profile**:
+One per-aircraft settings block (`AircraftProfile`, `Core/Profiles`) matched against the
+simulator aircraft title or the OFP callsign's airline prefix — exact title, title fragment,
+airline, then the Default fallback (`AircraftProfileMatcher`, pure) — re-evaluated by
+`AircraftProfileService` whenever the title, the OFP or the list changes; the Profiles page's
+"Set Active" override wins until cleared. Today it carries the GSX section only:
+`ProfileGsxApplier` writes the stored block into the live `gsx` settings on a profile change,
+and a profile without one captures the next GSX save. `fuelFobSaved` survives every switch.
+_Avoid_: livery profile, aircraft type (the A322 is the only type), GSX profile (that is the
+GSX addon's own airport `.ini`/`.py` files, see Parking catalogue)
+
 ### Sim session
 
 **Session window**:
@@ -424,11 +446,14 @@ report, the back-to-normal report) each happen once per episode, never once per 
 level itself changes at most once a minute and leaves a band only under 70 % of its threshold.
 _Avoid_: turbulence event, bump, chop (the level names are None / Light / Moderate / Severe)
 
-**Acceleration baseline**:
-The at-rest reading of `aircraft.acceleration.Y` learned while parked and not moving; its size
-names the raw unit (about 1 = G, 9.8 = m/s², 32 = ft/s², 0 = G without gravity) and every
-deviation is measured from it in G. In flight without one, a slow average stands in.
-_Avoid_: calibration constant, zero offset
+**At-rest baseline**:
+The reading of `aircraft.acceleration.Y` that `TurbulenceDetector` learns while parked and not
+moving (fifty live samples = calibrated); its size names the raw unit (`AccelerationUnit`:
+about 1 = G, 9.8 = m/s², 32 = ft/s², 0 = G without gravity — or forced by
+`cabin.turbulenceUnit`) and every deviation is measured from it in G. In flight without one, a
+slow average stands in.
+_Avoid_: calibration constant, zero offset, acceleration baseline (the glossary's old name — the
+code says at-rest baseline)
 
 **PA prompt**:
 The FO's "captain, your PA" at one of three moments (after take-off, top of descent, seat-belt
@@ -519,6 +544,60 @@ on-blocks, against the EASA basic maximum for the report hour (UTC) and the sect
 including the next leg. Advisory — no acclimatisation, extension, split-duty or rest rule.
 _Avoid_: duty time (that is the Day page's duty figure, a different formula), legal FDP
 
+### Radios
+
+**SayIntentions link**:
+Everything the app shares with the SayIntentions.AI ATC client (`Speech/SayIntentions`,
+`docs/integrations/sayintentions.md`): `flight.json` under `%LOCALAPPDATA%\SayIntentionsAI`
+polled at 1 Hz by `SayIntentionsService` for the API key and the flight context (read
+share-everything through `FlightJsonFile`, so the client is never locked out of its own file),
+the SAPI endpoints (`sayAs` for the FO's transmissions, `getWX`, `getCurrentFrequencies`,
+`getCommsHistory`, `assignGate`), the `SIAI_*` L:vars read through `ISimVars`, and ATC's
+assigned gate handed to GSX as the arrival gate (`SayIntentionsArrivalGateSource`, opt-in).
+Batch weather and the CPDLC station (`SayIntentionsWeatherService`) need the key only, never a
+flight.
+_Avoid_: SI copilot (that is the client's own copilot, whom `SIAI_COPILOT` switches on and off),
+ATC integration (ambiguous with MSFS's AI ATC), vPilot
+
+**Comms hand-over**:
+Who works the radios this moment — the captain or the SayIntentions copilot (`CommsOwner`) —
+decided by the pure `CommsHandoverCore` from the app's own facts: committed phase edges, the
+distance to the departure runway threshold from the runway geometry, ATC's hand-offs, the
+pilot's voice — never flight.json's `distance_to_runway`. At most one automatic hand-over per
+phase edge, never to whoever already has them; the shell writes `SIAI_COPILOT`, speaks one FO
+line and records `sayintentions.comms`. Off by default; inert while the FO works the radios.
+_Avoid_: departure gating (the legacy flight.json gate, dead on the rig), radio handover (the
+PF/PM duty swap is a different thing)
+
+**FO works the radios**:
+The opt-in mode (`sayIntentions.foRadios.enabled`, `FoRadiosService`) in which our First
+Officer, not the SI copilot, answers every ATC line the frequency monitor raises: the read-back
+(`ReadbackComposer`, callsign last), the COM1 retune on a hand-off through the Core
+`IRadioTuner` after a three-second grace so the old station hears the read-back, then the
+check-in on the new frequency (`CheckInComposer`). Each transmission waits for the
+**radio-clear gate** (`RadioClearGate`: `SIAI_COM1_RECEIVING` and `SIAI_RADIO_PTT` both 0 for
+400 ms, 20 s cap), is spoken locally in the FO voice and goes to ATC through `sayAs`. "I have
+the radios" parks the FO.
+_Avoid_: auto read-back, copilot mode (that is SI's own), radio management (the
+standby-then-swap tune, which this uses)
+
+**Radios tile**:
+The Flight Status tile (`FlightStatusPresentation.Radios` over `RadioStore`): COM1 active and
+standby mirrored from ProSim by `Com1PanelService`, the frequency ATC expects
+(`RadioAssignmentSource`: the last "Contact … on …" hand-off, else SI's `correct_frequency`
+before the flight's first hand-off), a verdict that never says "wrong" unless both sides are
+known, and the local airport's tap-to-tune stations. A tap tunes standby → verify → swap
+(`IRadioTuner`); the active frequency is never written directly (`RadioControls`, COM only).
+_Avoid_: radio panel, COM card, frequency monitor (that is the FO's spoken wrong-frequency
+report, `SayIntentionsFrequencyMonitor`)
+
+**PTT relay**:
+`SayIntentionsPttRelay`: one typed subscription to a ProSim push-to-talk switch (the sidestick
+PTT reaches ProSim as a dataref from the second PC); each edge writes SI's control L:var
+through SimConnect (1 pushed, 0 released) and the `SIAI_RADIO_PTT` echo is watched so the
+session log says whether SI really keyed (`PttEdgeTracker`, pure). No joystick polling
+anywhere on this path (#165).
+_Avoid_: PTT passthrough, joystick PTT (the FO's own push-to-talk for the ASR is `speech.ptt*`)
 
 ### Web host
 
@@ -529,8 +608,12 @@ address at all.
 _Avoid_: SSL mode, secure mode
 
 **HTTPS listener**:
-The optional second Kestrel endpoint (ADR-0013) with the user's own certificate, beside the
-HTTP one that always runs. Fails to a banner, never to a locked-out app.
+The optional second Kestrel endpoint (ADR-0013, port 5321 by default) with the user's own
+PKCS#12 certificate (`webUi.https`, `HttpsOptions`), beside the HTTP one that always runs.
+Whether it came up is published in `WebListenerStatus` for the WPF window, the Setup page and
+the QR code (which offers the HTTPS address when it is up); a missing or unreadable file
+degrades to HTTP-only with a config-problem banner, an expired one starts with a warning. The
+app never generates or installs a certificate. Fails to a banner, never to a locked-out app.
 _Avoid_: SSL port, secure server
 
 **Keep-awake**:
@@ -547,6 +630,49 @@ plumbing (watches, timers, buttons). A **status row** is the shared record of th
 label text id, shape (indicator / value / pill), value text, tone, hover title. A
 **display text** is a pack id plus arguments, or a literal the pack does not own.
 _Avoid_: view model, helper class, code-behind
+
+**Theme**:
+One airline look for the web UI: a JSON file in the Prosim2GSX theme format — the built-ins
+embedded in the Web assembly plus the user's own under `config/themes` (`ThemeCatalog`,
+re-scanned on every lookup; default "KLM Royal Dutch", "Default" kept as its alias) — picked
+on Settings → Appearance and applied live to every circuit. The header logo is the pilot's own
+upload (`ThemeLogoStore`; never shipped — airline marks are trademarks), and the Flight Monitor
+board's airline logos are a second store keyed by ICAO code (`AirlineLogoStore`). The
+diagnostics pages are the one family outside the theme (ADR-0016).
+_Avoid_: skin, dark mode (light/dark is a property of a theme, not a theme), livery
+
+**Language pack**:
+The web UI's texts for one language (ADR-0014): a folder `config\lang\{code}\` of per-page JSON
+files flattened to dotted text ids (`layout.nav.flightStatus`), `en` the source of truth every
+other pack mirrors id for id (`ShippedLanguagePackGuardTests`), seeded into `%LOCALAPPDATA%`
+with keep-user-edits. `LanguagePackCatalog` loads and re-scans them; `UiText` is the
+per-circuit `IStringLocalizer` components inject as `T`, resolving the language on every
+lookup from `webUi.language` (`UiLanguageStore`) or the browser's `Accept-Language`; a missing
+text falls back to English, then to the id. `CultureInfo` is never touched — numbers stay ICAO.
+Seven packs ship (en/de/es/fr/ja/ko/nl); the voice FO, the logs and the ECAM tokens stay
+English.
+_Avoid_: resource file (.resx was rejected), translation table, locale (nothing is
+culture-formatted)
+
+**Screen & FOV page**:
+Settings → Screen & FOV (`DisplaySettings.razor`, `Core/Display`): the pilot's physical
+screens — size, aspect, distance, yaw, height, exactly one the Main display — turned by the
+pure `FovCalculator` into the 1:1 vertical FOV, blended toward the sim's 49.2° default by the
+realism slider, and written as `InitialZoom` (optionally the pitch) into the cockpit camera
+blocks of the aircraft's saved `cameras.cfg` under the MSFS 2024 LocalCache by
+`CamerasCfgEditor` — a backed-up, atomic edit of the pilot's own custom cameras, never a
+package file. `IFovSimNudge` is the best-effort SimConnect zoom/reset poke afterwards;
+ChasePlane, when detected, overrides the camera and the page says so.
+_Avoid_: zoom slider (the in-sim one is relative and reads 50 after a save), FOV tool, display
+settings (ambiguous with the Appearance page)
+
+**Update check**:
+`UpdateCheckService`: the periodic GitHub Releases query (`psyraxaus/ProsimCompanion`, latest
+release) whose result sits in `UpdateStore` and shows as the layout's update banner.
+`ReleaseVersion` compares semver with its pre-release part (rc.18 is newer than rc.16; a
+release is newer than its own rc, #159); no network, a rate limit or an unparseable tag log at
+Debug and change nothing. It never downloads or installs anything.
+_Avoid_: auto-update, upgrade prompt, version nag
 
 ### Settings pages
 
@@ -575,6 +701,17 @@ Logic that is genuinely the settings page's own and not one property's: a rule b
 properties, a one-way migration, a list editor's pruning. Lives in a plain `…PageRules` class
 under the web project so it is tested without a renderer.
 _Avoid_: OnBeforeSave logic, page helper
+
+**Setup check**:
+The ProSim IOS options this app wants set a certain way, and why (`ProsimSetupRecommendations`,
+pure — the owner's working configuration read live 2026-10-06): once per ProSim connection
+`ProsimSetupCheckService` reads them through the port-5000 gateway and publishes the
+comparison to `ProsimSetupStore`; the Setup page card (`SetupSettings.razor`, `/settings`)
+shows the amber rows and the pilot decides. "Apply recommended" is the only write, read back
+for up to five seconds before a verdict (ProSim acknowledges a `system.config.*` write before
+it applies it). Nothing is ever changed from the connection event.
+_Avoid_: config guard (the predecessor's native guard, which wrote behind the pilot's back),
+ProSim validation, settings check (the field validation of the settings pages)
 
 ### Notifications
 
@@ -629,14 +766,17 @@ _Avoid_: pre-flight inspection (that is the checklist), exterior check, MSFS wal
 sim's own avatar mode, which the session gate excludes)
 
 **Scenario**:
-One scheduled non-normal per flight at most: a catalogue entry (an abnormal the FO can
-respond to, ProSim's own failure name, the phases, a weight, a severity) **planned** at the
-first live Preflight when the per-flight chance hits, **armed** in ProSim at its moment
-through the failure gate (announce, a cancel window, the write, the verify), **fired** when
-the failure monitor detects the matching abnormal exactly as an IOS failure, **cleared** by
-the flight-cycle reset, the app's exit, a transient's timer or the pilot. The **failure
-gate** passes a failure name only when the catalogue marks it verified AND ProSim lists it;
-it has no dataref path. **Clear all** resets every armed failure ProSim reports, the IOS's
+One scheduled non-normal per flight at most (ADR-0018; `ScenarioService` behind
+`IScenarioControl`, the pure `ScenarioScheduler`, the `scenarios.json` catalogue): a catalogue
+entry (an abnormal the FO can respond to, ProSim's own failure name, the phases, a weight, a
+severity) **planned** at the first live Preflight when the per-flight chance hits, **armed**
+in ProSim at its moment through the failure gate (announce, a cancel window, the write, the
+verify), **fired** when the failure monitor detects the matching abnormal exactly as an IOS
+failure, **cleared** by the flight-cycle reset, the app's exit, a transient's timer or the
+pilot. The **failure gate** (`ProsimFailureGate`, installed once by `SdkFailureInjector` — the
+one `IFailureInjector`, over the SDK's `ArmedFailure` API) passes a failure name only when the
+catalogue marks it verified AND ProSim lists it; it has no dataref path and shares nothing with
+`ProsimWriteGate`. **Clear all** resets every armed failure ProSim reports, the IOS's
 included, unconditionally.
 _Avoid_: failure injection (the ProSim IOS word for its own list), fault (that is the ECAM's
 word), random failures (ProSim's generator, which stays off)
@@ -646,3 +786,157 @@ The FO's one self-introduction per duty day, at the first Preflight after the dr
 any briefing: the sim clock's greeting word, their name, "I'll be your First Officer today",
 the hours on type to the nearest hundred. Low priority — anything operational outranks it.
 _Avoid_: FO greeting (ambiguous with the briefing's opening), welcome line
+
+**Tech log**:
+The aircraft's procedural defect paperwork (`Core/TechLog`, `techlog.json`): one
+`TechLogDefect` per item with its locked title, a visibly simulated MEL reference
+("MEL (SIM) …"), the repair-interval category A–D with its due date, and a status — open,
+deferred, rectified. `TechLogService` is the one store that the web page (`/techlog`), the
+FO's once-per-flight brief and random-wear announcement (`TechLogVoiceService`), the guided
+raise/rectify dialogues and the post-abnormal shutdown offer (`TechLogDialogueService`), the
+walkaround's findings and the briefing / checklist clauses (`TechLogConsultation`, words only)
+share. It never writes a dataref or injects a failure; a category-A item is a no-go that also
+closes the scenario floor.
+_Avoid_: MEL (that is one field of an entry, and not a legal one), defect list, maintenance
+log, snag sheet ("log a snag" is a spoken alias)
+
+### Cockpit & hardware
+
+**Cockpit switch relay**:
+`CockpitSwitchService` (ADR-0015): one configured row per `system.switches.S_*` dataref
+picked from the switch catalogue on Settings → Cockpit Switches — look, press mode (toggle /
+momentary / cycle), legends, lamp indicators — with one push subscription per switch and lamp
+feeding `CockpitSwitchStateStore`, and a press from a remote key (`cockpit.press {id}`,
+`cockpit.set {id,value}`) written straight to the dataref. A command names a row id, never a
+dataref; the write gate's one hook (`ProsimWriteGate.ConfiguredSwitchAllowed`) passes only a
+configured, catalogued `S_` name while the feature is on — circuit breakers can never pass.
+Audit trail: the `cockpit.press` session event.
+_Avoid_: switch bridge (the erased PilotsDeck bridge), FSUIPC offsets (the chain it replaced),
+smart button (the GSX next-service trigger)
+
+**vJoy relay**:
+`VJoyInputRelay` (`Sim/Input`): presses a button on a vJoy virtual joystick on the sim PC when
+a remote key asks — `input.pressView {name}` names a configured view row of Settings → Setup →
+vJoy relay, so a ChasePlane view bound to that button changes from a second PC.
+`vJoyInterface.dll` is loaded lazily from the driver's folder, never shipped; presses are
+serialised press → hold → release in a `finally`; a missing driver is a state on the Setup
+page, never an exception. The one input command — a raw button number never crosses the
+network.
+_Avoid_: joystick emulation, camera command, key injection (the rejected MSFS keystroke path)
+
+**Skalarki link**:
+The connection to the SkalarkiIO Profiler's SDK server (TCP 53000, ADR-0017) behind the sixth
+ECAM page, PANELS: `SkalarkiConnectionService` keeps it up with backoff while the feature is
+on and is silent while off; `ISkalarkiClient` is our seam, implemented by the **SDK bridge** —
+the conditionally built `ProsimCompanion.Skalarki.Sdk` assembly that `SdkLoader` loads from
+the user's Profiler `Tools` folder into its own `AssemblyLoadContext`, so the app never
+references or ships Skalarki's assemblies. The pure `SkalarkiStateCore` holds the link, the
+**board presence** (the Profiler's `ConnectedDevicesChanged` snapshot — CONN, LOST nn S or XX
+per board, `SkalarkiDeviceView`), the event rate and the backoff. Outputs are driven only by
+LAMP TEST and the two-click HW RESET; the licence call is never made (it kills the client).
+_Avoid_: Skalarki driver, profiler plugin, hardware page (the page is PANELS; this is the link)
+
+**Hardware check**:
+The PANELS page's walk through the watched boards (`HardwareCheckSession`, pure Core): one
+line per board with its prompt from `skalarki-layout.json` ("PRESS CLR", else "ANY KEY"),
+ticked by the first input event from that board; a board not connected at the start is
+Skipped, one that drops is Lost and goes back to Pending when it returns. Inputs are
+registered with `scanState=false`, so a replay burst never passes a check nobody walked.
+_Avoid_: self test, lamp test (that is the output side), board scan
+
+### Remote surfaces
+
+**Command API**:
+The single command seam for anything outside the Blazor circuit — web buttons, the Stream
+Deck, scripts: named, typed handlers in `CommandRegistry` (`Core/Commands`, dotted area +
+camelCase verb, `gsx.forceNextService`) exposed as `GET /api/commands` and
+`POST /api/command/{name}` by `CommandApiEndpoints`. Every reply is `{outcome, reason}` —
+success / alreadySatisfied / phaseMismatch / preconditionFailed / failed / unavailable — never
+a bare ack; off by default and token-gated even on loopback because it is a write surface;
+`CommandRegistry.CurrentSource` says who called (`voice`, `hail`, `api`, `streamdeck`, …). Its
+read-side siblings are `GET /api/status` and `GET /api/controls`.
+_Avoid_: REST API (too wide — the telemetry and diagnostics routes are read-only siblings),
+remote control, webhook (that is a notification target)
+
+**Stream Deck key**:
+One action of the plugin in `streamdeck/` (`com.prosimcompanion.streamdeck`, TypeScript over
+the Elgato SDK): GSX Service, Next Service, Checklist, Cockpit Switch, Camera View, Voice
+Pause, Flight Phase and Connection Health — eight actions, REST-only against the command API
+with `/api/status` polled at 1 Hz, paired by pasting the `?token=` onboarding URL, identified
+by its `ProsimCompanion-StreamDeck/<version>` user agent on the REMOTE diagnostics page. Runs
+on any PC on the LAN; everything a remote deck needs goes through this one plugin.
+_Avoid_: deck button, macro, PilotsDeck (the erased bridge — never reintroduce it)
+
+**Mixer agent**:
+One VoicemeeterBridge on a PC that runs a Voicemeeter — a pilot's PC, the ATC-client PC —
+reached over its WebSocket protocol v1 (port 5088, a DPAPI-protected token): a `mixer.agents[]`
+row, one `MixerClient` session per agent owned by `MixerClientHost` with its own doubling
+reconnect, its state in `MixerStatusStore` (`MixerAgentStatus`) and one aggregated Mixer
+footer dot. `IMixerClient` is the Core seam. Separate from the local VoiceMeeter backend of the
+audio pillar, which drives the sim PC's Voicemeeter through its DLL.
+_Avoid_: remote Voicemeeter (that is the feature; the agent is the process), mixer PC, bridge
+(ambiguous with the Skalarki SDK bridge and the erased PilotsDeck one)
+
+**Mixer mapping**:
+One row binding an audio-panel channel to a strip or bus on a named agent
+(`MixerMappingService`, `MixerMappingMath` pure): the ACP knob analog drives the target's Gain,
+the REC latch its Mute (the loudspeaker dial mutes fully down instead); a 50 ms coalescer per
+agent caps writes at about 20 per second per parameter, latest value wins, and one agent down
+never holds up another. No ACP power gate. The shared-target warning (#179) flags two rows on
+one strip.
+_Avoid_: channel map, audio route, strip assignment
+
+### Diagnostics & verification
+
+**Diagnostics page**:
+One of the ECAM-style system pages at `/diagnostics` (ADR-0016): VOICE, SIM, REMOTE, GSX,
+PANELS (while the Skalarki link is on) and STATUS — fixed 720 × 640 stages drawn with ECAM
+grammar in ECAM colours whatever the theme, where a box whose source is missing shows amber
+`XX` and a box not in use white `- - -` (`EcamTokens`, never localised). The pages only draw:
+they look nodes up by id in the one immutable `DiagnosticsSnapshot` that
+`DiagnosticsSnapshotService` publishes to `DiagnosticsStore` once per tick — the same snapshot
+`GET /api/diagnostics/snapshot` and the support bundle carry.
+_Avoid_: dashboard, health page, status cards (the older per-feature cards), ECAM alone (that
+is the aircraft's — say "ECAM-style" or the page name)
+
+**Collector**:
+One feature project's contribution to one diagnostics page (`IDiagnosticsCollector`): it reads
+its own stores, never another feature's, and is the only code that knows what degraded means
+for its hop; it writes nodes, links, gauges, readouts and cautions through the page builder
+once per tick, cheaply, from cached snapshots. A throwing collector costs its own nodes (amber
+XX), never the page. `LatencyRegistry` and `RateRegistry` are the Core metric sinks the hops
+write into by name.
+_Avoid_: health check, probe (that is the verification catalogue's word), monitor
+
+**Telemetry API**:
+`GET /api/telemetry/*` (`TelemetryApiEndpoints`, #94): the session event logs and the rolling
+app and wire logs served read-only over the LAN, so the flight-verification agent pulls
+evidence from the sim PC — mid-flight included — instead of copying files. Confined to the
+sessions/logs folders by exact enumerated name; `telemetryApi.enabled` answers 404 while off;
+loopback passes without the token by default because it is read-only. Its `summary` carries
+the probe catalogue's version canary.
+_Avoid_: log API, metrics endpoint (the diagnostics snapshot is the metrics), export (that is
+the bundle)
+
+**Probe**:
+One entry of `docs/agents/verification-probes.json`, tied to a GitHub issue, saying what
+evidence in the session event log or the CMTrace log shows a fix working or regressing: a
+`kind` — assert-present (pass only when its trigger occurred; otherwise untested, never
+passed), assert-absent, watch (counts, no verdict), feature-pending — a `state` (open,
+closed-regression-watch), prose checks for the agent and an optional `machine` block the
+reducer evaluates deterministically (`ProbeEvaluator`: signature, required-fields,
+duplicate-within, consecutive-duplicates). A behavioural fix ships with its probe in the same
+change; a passing probe means "observed working this flight", never auto-close.
+_Avoid_: test (a probe reads telemetry, it runs nothing), assertion (one kind of probe), health
+check (that is a collector)
+
+**Support bundle**:
+The zip the Logs page's "Export diagnostics" (`GET /api/diagnostics/bundle`,
+`DiagnosticsBundleBuilder`) hands the user: the newest sessions and daily logs, a redacted
+`settings.json` (`SettingsRedactor`), the version banner, the diagnostics snapshot and the
+RECENT ring, under a hash manifest. The **reducer** (`tools/ProsimCompanion.Reduce`,
+`reduce --bundle`) turns it into the support report — the same `DebriefFactExtractor` the
+in-app debrief uses, the machine-checkable probes pre-evaluated, a `health` section from the
+snapshot — for the LLM step or the agent.
+_Avoid_: log export, crash dump (a minidump is a different artefact), diagnostics alone (that is
+the pages)
