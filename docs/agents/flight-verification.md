@@ -30,12 +30,13 @@ at them.
    probe as the canary. If the `phase-changed` payloads lack the full field set, the sim PC
    is running an old build and most other probes are meaningless — say so instead of
    reporting false failures.
-3. Evaluate every probe whose `state` is `open` or `closed-regression-watch`, honouring the
+3. Evaluate every probe whose `state` is `open`, `fixed-unverified` or `closed-regression-watch`, honouring the
    `kind` semantics defined at the top of the probe file. Three verdicts per probe:
    **pass** (behaviour observed / signature absent while the trigger occurred),
    **fail** (quote the exact events/log lines), and
    **untested** (the trigger never occurred this flight — never report as a pass).
-4. `watch` probes produce counts and context, not verdicts.
+4. `watch` probes produce counts and context, not verdicts (the reducer reports them as
+   verdict `watch` with `matches` and `violations` when they carry a `machine` block).
 5. List the **voice command candidates** (below) — the phrases the pilot keeps saying that
    the FO has no action for.
 6. End the report with the `requires-human-checklist` entry so the pilot knows what still
@@ -97,7 +98,19 @@ turnaround of 2026-11-01 (`egll-eham-2026-11-01-1.0.0-rc1.jsonl`) is the checked
 - Every behavioural fix ships with a probe (or an update to one) in the same change, the
   way options ship with a web-UI control. Purely visual/installer changes go on the
   `requires-human-checklist` instead.
+- `state` is one of three words: `open` (the issue is open and the probe decides it),
+  `fixed-unverified` (the fix is committed but no flight has exercised it — evaluated like
+  `open`) and `closed-regression-watch`. `issue` is the GitHub number, `0` when a feature
+  shipped without one (never null); `sources` names where the evidence comes from, `human`
+  for the eyes-and-ears probes.
 - When an issue closes, flip its probe to `closed-regression-watch` (keep it — regressions
   are what the watch list is for). Retire a probe only when the code path it guards is gone.
+  The 2026-11-03 hygiene pass (#233) found 43 probes still `open` on closed issues; check the
+  issue states against the catalog at the start of every verification.
+- `ProbeCatalogGuardTests` (tests/ProsimCompanion.Core.Tests/Verification) lints the file on
+  every test run: unique ids, integer `issue`, known `kind`/`state`/`sources`, the documented
+  machine shapes (a `signature` block nests its fields under `signature`), and every machine
+  `type` an event name derived from the source tree — a probe on a name nothing emits (#227)
+  fails the build instead of passing forever.
 - Probes reference event `type`s and payload fields — if an event shape changes, update the
   probes in the same commit (the `phase-commit-evidence` canary is the model).

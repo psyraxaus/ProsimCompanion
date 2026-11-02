@@ -122,7 +122,16 @@ public sealed record ProbeResult(
     int Issue,
     string State,
     string Verdict,
-    IReadOnlyList<string> Evidence);
+    IReadOnlyList<string> Evidence)
+{
+    /// <summary>Watch probes only (issue #235): how many session events or log hits the machine
+    /// block selected. Null — omitted from the JSON — on pass/fail probes.</summary>
+    public int? Matches { get; init; }
+
+    /// <summary>Watch probes only: the selected events that missed a required field or repeated
+    /// within the window — what the evidence quotes. Null on pass/fail probes.</summary>
+    public int? Violations { get; init; }
+}
 
 /// <summary>A probe the reducer could not evaluate; its text is passed through untouched.</summary>
 public sealed record ProbeForLlm(

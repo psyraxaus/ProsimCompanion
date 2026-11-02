@@ -16,7 +16,7 @@ namespace ProsimCompanion.Core.Tests.Reduce;
 public sealed class ReduceTests : IDisposable
 {
     private static readonly string Recordings = Path.Combine(AppContext.BaseDirectory, "Flight", "Recordings");
-    private static readonly string[] Verdicts = ["pass", "fail", "untested"];
+    private static readonly string[] Verdicts = ["pass", "fail", "untested", "watch"];
 
     private readonly string _dir = Directory.CreateTempSubdirectory("pc-reduce-").FullName;
 
@@ -318,6 +318,83 @@ public sealed class ReduceTests : IDisposable
 
         Assert.Equal("fail", withCm["p"].Verdict);      // two CMTrace hits reach the threshold
         Assert.Equal("pass", mirrorOnly["p"].Verdict);  // one mirrored hit does not
+    }
+
+    /// <summary>Issue #235: a watch probe's machine block was skipped (handed to the LLM step as
+    /// if it had none). It is now counted, never judged: verdict <c>watch</c>, <c>matches</c> and
+    /// <c>violations</c> on the result, the violations quoted after a summary line, and zero
+    /// events is a count of 0, not <c>untested</c>. The synthetic recording (one file, fast)
+    /// shows the count past the evidence cap; the inline session shows a partial violation and a
+    /// log signature. Pass/fail probes carry neither counter.</summary>
+    [Fact]
+    public void Probes_WatchMachineBlocks_CountAndNeverJudge()
+    {
+        var catalog = ProbeEvaluator.LoadCatalog("""
+            { "probes": [
+              { "id": "edges", "issue": 0, "state": "open", "kind": "watch", "sources": ["session"], "checks": ["x"],
+                "machine": { "kind": "required-fields", "type": "phase-changed", "fields": ["previous", "current", "reason"] } },
+              { "id": "edges-no-rule", "issue": 0, "state": "open", "kind": "watch", "sources": ["session"], "checks": ["x"],
+                "machine": { "kind": "required-fields", "type": "phase-changed", "fields": ["rule"] } },
+              { "id": "press", "issue": 0, "state": "open", "kind": "watch", "sources": ["session"], "checks": ["x"],
+                "machine": { "kind": "required-fields", "type": "cockpit.press", "fields": ["id", "mode"] } },
+              { "id": "empty-file", "issue": 191, "state": "open", "kind": "watch", "sources": ["log"], "checks": ["x"],
+                "machine": { "kind": "signature", "signature": { "source": "log", "component": "DayStateFile", "contains": "is empty" } } },
+              { "id": "never", "issue": 0, "state": "open", "kind": "watch", "sources": ["session"], "checks": ["x"],
+                "machine": { "kind": "required-fields", "type": "input.vjoy", "fields": ["device"] } },
+              { "id": "judged", "issue": 0, "state": "open", "kind": "assert-present", "sources": ["session"], "checks": ["x"],
+                "machine": { "kind": "required-fields", "type": "phase-changed", "fields": ["current"] } },
+              { "id": "no-machine", "issue": 0, "state": "open", "kind": "watch", "sources": ["session"], "checks": ["count them"] }
+            ] }
+            """);
+        var synthetic = LoadedSession.Load(Path.Combine(Recordings, "synthetic-full-flight.jsonl"));
+        var session = Session("session-w.jsonl",
+            Line("2026-11-03T10:00:00Z", "session-started"),
+            Line("2026-11-03T10:00:01Z", "cockpit.press", "{\"id\":\"beacon\",\"mode\":\"toggle\"}"),
+            Line("2026-11-03T10:00:02Z", "cockpit.press", "{\"id\":\"strobe\"}"),
+            Line("2026-11-03T10:00:03Z", "cockpit.press", "{\"id\":\"apu\",\"mode\":\"momentary\"}"),
+            Line("2026-11-03T10:00:04Z", "log.warning", "{\"component\":\"DayStateFile\",\"message\":\"Day state file x is empty — starting without a day\"}"),
+            Line("2026-11-03T10:00:05Z", "session-ended"));
+
+        var (results, forLlm) = ProbeEvaluator.Evaluate(catalog, [synthetic, session], []);
+
+        var edges = results["edges"];
+        Assert.Equal("watch", edges.Verdict);
+        Assert.Equal(12, edges.Matches);
+        Assert.Equal(0, edges.Violations);
+        Assert.Equal(["watch: 12 'phase-changed' event(s), 0 violation(s)"], edges.Evidence);
+
+        var noRule = results["edges-no-rule"];
+        Assert.Equal(12, noRule.Violations);                       // counted past the evidence cap
+        Assert.Equal(1 + ProbeEvaluator.MaxEvidence, noRule.Evidence.Count);
+        Assert.All(noRule.Evidence.Skip(1), e => Assert.Contains("missing rule", e, StringComparison.Ordinal));
+
+        var press = results["press"];
+        Assert.Equal("watch", press.Verdict);
+        Assert.Equal(3, press.Matches);
+        Assert.Equal(1, press.Violations);
+        Assert.Equal("watch: 3 'cockpit.press' event(s), 1 violation(s)", press.Evidence[0]);
+        Assert.Contains("missing mode", Assert.Single(press.Evidence.Skip(1)), StringComparison.Ordinal);
+
+        var empty = results["empty-file"];
+        Assert.Equal("watch", empty.Verdict);
+        Assert.Equal(1, empty.Matches);
+        Assert.Equal(0, empty.Violations);
+        Assert.Contains("is empty", empty.Evidence[1], StringComparison.Ordinal);
+
+        var never = results["never"];
+        Assert.Equal("watch", never.Verdict);
+        Assert.Equal(0, never.Matches);
+        Assert.Contains("no 'input.vjoy' event", never.Evidence[1], StringComparison.Ordinal);
+
+        Assert.Equal("pass", results["judged"].Verdict);
+        Assert.Null(results["judged"].Matches);
+        Assert.Null(results["judged"].Violations);
+        Assert.DoesNotContain(results.Values.Where(r => r.Kind == "watch"), r => r.Verdict is "pass" or "fail" or "untested");
+        Assert.Equal("no-machine", Assert.Single(forLlm).Id);
+
+        var json = JsonSerializer.Serialize(results, ReduceReport.Json);
+        Assert.Contains("\"matches\":3,\"violations\":1", json, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"matches\":null", json, StringComparison.Ordinal);
     }
 
     [Fact]

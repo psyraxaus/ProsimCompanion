@@ -43,7 +43,9 @@ public sealed record ProbeDefinition(
 /// probe that carries a <c>machine</c> block deterministically; the rest are passed through
 /// for the LLM step with their text untouched. Verdicts follow the catalog's own semantics:
 /// assert-absent passes when the signature is absent; assert-present is <c>untested</c> until
-/// its trigger occurred, then pass/fail on the behaviour. Evidence quotes the matching lines.
+/// its trigger occurred, then pass/fail on the behaviour. A <c>watch</c> probe's block is counted,
+/// never judged (issue #235): verdict <c>watch</c> with the matches and the violations. Evidence
+/// quotes the matching lines.
 /// </summary>
 public static class ProbeEvaluator
 {
@@ -117,42 +119,81 @@ public static class ProbeEvaluator
         var forLlm = new List<ProbeForLlm>();
         foreach (var probe in catalog)
         {
-            if (probe.Machine is null || probe.Kind is not ("assert-absent" or "assert-present"))
+            if (probe.Machine is null || probe.Kind is not ("assert-absent" or "assert-present" or "watch"))
             {
                 forLlm.Add(new ProbeForLlm(probe.Id, probe.Issue, probe.State, probe.Kind, probe.Sources, probe.Checks, probe.Notes));
                 continue;
             }
 
-            var (verdict, evidence) = probe.Machine.Kind switch
+            var outcome = probe.Machine.Kind switch
             {
                 "signature" => EvaluateSignature(probe, sessions, cmTrace),
                 "required-fields" => EvaluateRequiredFields(probe.Machine, sessions),
                 "duplicate-within" => EvaluateDuplicateWithin(probe.Machine, sessions),
                 "consecutive-duplicates" => EvaluateConsecutiveDuplicates(probe.Machine, sessions),
-                _ => ("untested", (IReadOnlyList<string>)[$"unknown machine kind '{probe.Machine.Kind}'"]),
+                _ => new Outcome("untested", [$"unknown machine kind '{probe.Machine.Kind}'"], 0, 0),
             };
-            results[probe.Id] = new ProbeResult(probe.Kind, probe.Issue, probe.State, verdict, evidence);
+            var watch = probe.Kind == "watch";
+            if (watch)
+            {
+                outcome = AsWatch(outcome, probe.Machine);
+            }
+
+            results[probe.Id] = new ProbeResult(probe.Kind, probe.Issue, probe.State, outcome.Verdict, outcome.Evidence)
+            {
+                Matches = watch ? outcome.Matches : null,
+                Violations = watch ? outcome.Violations : null,
+            };
         }
 
         return (results, forLlm);
     }
 
-    private static (string, IReadOnlyList<string>) EvaluateSignature(
+    /// <summary>One evaluation: the verdict, its evidence, how many events or hits the block
+    /// selected and how many of them broke the rule (missing field, repeat).</summary>
+    private readonly record struct Outcome(string Verdict, IReadOnlyList<string> Evidence, int Matches, int Violations);
+
+    /// <summary>A watch probe produces counts and context, never a verdict (issue #235; the
+    /// workflow doc's rule 4). The first evidence line is the summary; the violations (or, for
+    /// a signature, the hits) follow, so the reader sees what was counted.</summary>
+    private static Outcome AsWatch(Outcome inner, ProbeMachine machine)
+    {
+        var subject = machine.Kind == "signature"
+            ? $"hit(s) of '{machine.Signature?.Type ?? machine.Signature?.Contains}'"
+            : $"'{machine.Type}' event(s)";
+        var summary = machine.Kind == "signature"
+            ? $"watch: {inner.Matches} {subject}"
+            : $"watch: {inner.Matches} {subject}, {inner.Violations} violation(s)";
+
+        // Quotes stay when they ARE the finding (violations, signature hits) or explain why
+        // nothing was counted; a pass sentence would only repeat the summary.
+        IReadOnlyList<string> detail = inner.Verdict == "fail" || inner.Matches == 0 || machine.Kind == "signature"
+            ? inner.Evidence
+            : [];
+        return new("watch", [summary, .. detail], inner.Matches, inner.Violations);
+    }
+
+    private static Outcome EvaluateSignature(
         ProbeDefinition probe, IReadOnlyList<LoadedSession> sessions, IReadOnlyList<CmTraceEntry> cmTrace)
     {
         var machine = probe.Machine!;
         if (machine.Signature is null)
         {
-            return ("untested", ["machine block has no signature"]);
+            return new("untested", ["machine block has no signature"], 0, 0);
         }
 
         var hits = Find(machine.Signature, sessions, cmTrace);
+        if (probe.Kind == "watch")
+        {
+            return new("watch", Quote(hits), hits.Count, 0);
+        }
+
         var present = hits.Count >= Math.Max(1, machine.Signature.MinCount);
         if (probe.Kind == "assert-absent")
         {
             return present
-                ? ("fail", Quote(hits))
-                : ("pass", [$"signature '{machine.Signature.Contains}' absent ({hits.Count} hit(s), threshold {machine.Signature.MinCount})"]);
+                ? new("fail", Quote(hits), hits.Count, hits.Count)
+                : new("pass", [$"signature '{machine.Signature.Contains}' absent ({hits.Count} hit(s), threshold {machine.Signature.MinCount})"], hits.Count, 0);
         }
 
         // assert-present
@@ -161,13 +202,13 @@ public static class ProbeEvaluator
             var triggers = Find(machine.Trigger, sessions, cmTrace);
             if (triggers.Count < Math.Max(1, machine.Trigger.MinCount))
             {
-                return ("untested", [$"trigger '{machine.Trigger.Contains}' never occurred"]);
+                return new("untested", [$"trigger '{machine.Trigger.Contains}' never occurred"], hits.Count, 0);
             }
         }
 
         return present
-            ? ("pass", Quote(hits))
-            : ("fail", [$"trigger occurred but behaviour '{machine.Signature.Contains}' was not observed"]);
+            ? new("pass", Quote(hits), hits.Count, 0)
+            : new("fail", [$"trigger occurred but behaviour '{machine.Signature.Contains}' was not observed"], hits.Count, 0);
     }
 
     /// <summary><c>fields</c> must be on every event of the type. <c>where</c> (path → text)
@@ -176,19 +217,20 @@ public static class ProbeEvaluator
     /// (path → fields) asks for fields only on the events that carry the path — an event that
     /// fills in edge by edge (flight-times: takeoffFobKg only once takeoffUtc is stamped).
     /// Ticket t-20261004-2147: both probes failed on events they were never about.</summary>
-    private static (string, IReadOnlyList<string>) EvaluateRequiredFields(ProbeMachine machine, IReadOnlyList<LoadedSession> sessions)
+    private static Outcome EvaluateRequiredFields(ProbeMachine machine, IReadOnlyList<LoadedSession> sessions)
     {
         var always = machine.Fields ?? [];
         var conditional = machine.FieldsWhenPresent ?? new Dictionary<string, IReadOnlyList<string>>();
         if (machine.Type is null || (always.Count == 0 && conditional.Count == 0))
         {
-            return ("untested", ["machine block needs type and fields (or fieldsWhenPresent)"]);
+            return new("untested", ["machine block needs type and fields (or fieldsWhenPresent)"], 0, 0);
         }
 
         var filter = machine.Where is { Count: > 0 } conditions
             ? $" where {string.Join(", ", conditions.Select(pair => $"{pair.Key}={pair.Value}"))}"
             : "";
         var seen = 0;
+        var violations = 0;
         var evidence = new List<string>();
         foreach (var session in sessions)
         {
@@ -200,7 +242,13 @@ public static class ProbeEvaluator
                     .Where(path => !HasPath(line.Payload, path))
                     .Distinct(StringComparer.Ordinal)
                     .ToList();
-                if (missing.Count > 0 && evidence.Count < MaxEvidence)
+                if (missing.Count == 0)
+                {
+                    continue;
+                }
+
+                violations++;
+                if (evidence.Count < MaxEvidence)
                 {
                     evidence.Add($"{session.File} {Stamp(line.At)} {machine.Type} missing {string.Join(", ", missing)}");
                 }
@@ -209,21 +257,24 @@ public static class ProbeEvaluator
 
         if (seen == 0)
         {
-            return ("untested", [$"no '{machine.Type}' event{filter} in the bundle"]);
+            return new("untested", [$"no '{machine.Type}' event{filter} in the bundle"], 0, 0);
         }
 
-        return evidence.Count > 0 ? ("fail", evidence) : ("pass", [$"{seen} '{machine.Type}' event(s){filter} carry every required field"]);
+        return violations > 0
+            ? new("fail", evidence, seen, violations)
+            : new("pass", [$"{seen} '{machine.Type}' event(s){filter} carry every required field"], seen, 0);
     }
 
-    private static (string, IReadOnlyList<string>) EvaluateDuplicateWithin(ProbeMachine machine, IReadOnlyList<LoadedSession> sessions)
+    private static Outcome EvaluateDuplicateWithin(ProbeMachine machine, IReadOnlyList<LoadedSession> sessions)
     {
         if (machine.Type is null || machine.Key is null || machine.WindowSeconds is null)
         {
-            return ("untested", ["machine block needs type, key and windowSeconds"]);
+            return new("untested", ["machine block needs type, key and windowSeconds"], 0, 0);
         }
 
         var evidence = new List<string>();
         var seen = 0;
+        var violations = 0;
         foreach (var session in sessions)
         {
             var lastByKey = new Dictionary<string, DateTimeOffset>(StringComparer.Ordinal);
@@ -237,10 +288,13 @@ public static class ProbeEvaluator
                 }
 
                 if (lastByKey.TryGetValue(key, out var previous)
-                    && (line.At!.Value - previous).TotalSeconds <= machine.WindowSeconds
-                    && evidence.Count < MaxEvidence)
+                    && (line.At!.Value - previous).TotalSeconds <= machine.WindowSeconds)
                 {
-                    evidence.Add($"{session.File} {Stamp(line.At)} {machine.Type} '{key}' repeated {(line.At.Value - previous).TotalSeconds:0.0} s after the previous one");
+                    violations++;
+                    if (evidence.Count < MaxEvidence)
+                    {
+                        evidence.Add($"{session.File} {Stamp(line.At)} {machine.Type} '{key}' repeated {(line.At.Value - previous).TotalSeconds:0.0} s after the previous one");
+                    }
                 }
 
                 lastByKey[key] = line.At!.Value;
@@ -249,21 +303,24 @@ public static class ProbeEvaluator
 
         if (seen == 0)
         {
-            return ("untested", [$"no '{machine.Type}' event in the bundle"]);
+            return new("untested", [$"no '{machine.Type}' event in the bundle"], 0, 0);
         }
 
-        return evidence.Count > 0 ? ("fail", evidence) : ("pass", [$"no '{machine.Type}' repeated within {machine.WindowSeconds} s"]);
+        return violations > 0
+            ? new("fail", evidence, seen, violations)
+            : new("pass", [$"no '{machine.Type}' repeated within {machine.WindowSeconds} s"], seen, 0);
     }
 
-    private static (string, IReadOnlyList<string>) EvaluateConsecutiveDuplicates(ProbeMachine machine, IReadOnlyList<LoadedSession> sessions)
+    private static Outcome EvaluateConsecutiveDuplicates(ProbeMachine machine, IReadOnlyList<LoadedSession> sessions)
     {
         if (machine.Type is null)
         {
-            return ("untested", ["machine block needs type"]);
+            return new("untested", ["machine block needs type"], 0, 0);
         }
 
         var evidence = new List<string>();
         var seen = 0;
+        var violations = 0;
         foreach (var session in sessions)
         {
             string? previous = null;
@@ -271,9 +328,13 @@ public static class ProbeEvaluator
             {
                 seen++;
                 var payload = line.Payload.ValueKind == JsonValueKind.Undefined ? "" : line.Payload.GetRawText();
-                if (previous is not null && string.Equals(previous, payload, StringComparison.Ordinal) && evidence.Count < MaxEvidence)
+                if (previous is not null && string.Equals(previous, payload, StringComparison.Ordinal))
                 {
-                    evidence.Add($"{session.File} {Stamp(line.At)} {machine.Type} repeated the previous payload {payload}");
+                    violations++;
+                    if (evidence.Count < MaxEvidence)
+                    {
+                        evidence.Add($"{session.File} {Stamp(line.At)} {machine.Type} repeated the previous payload {payload}");
+                    }
                 }
 
                 previous = payload;
@@ -282,10 +343,12 @@ public static class ProbeEvaluator
 
         if (seen == 0)
         {
-            return ("untested", [$"no '{machine.Type}' event in the bundle"]);
+            return new("untested", [$"no '{machine.Type}' event in the bundle"], 0, 0);
         }
 
-        return evidence.Count > 0 ? ("fail", evidence) : ("pass", [$"{seen} '{machine.Type}' event(s), none identical to its predecessor"]);
+        return violations > 0
+            ? new("fail", evidence, seen, violations)
+            : new("pass", [$"{seen} '{machine.Type}' event(s), none identical to its predecessor"], seen, 0);
     }
 
     /// <summary>All hits for a signature. Log signatures read the CMTrace entries when the

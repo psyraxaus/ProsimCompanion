@@ -4,13 +4,14 @@
   "sources": {
     "session": "JSONL session event log (sessions/session-*.jsonl): one JSON object per line with timestamp, type, payload.",
     "log": "CMTrace application log (logs/ProsimCompanion-*.log): component, level (type 1=info 2=warn 3=error), message.",
-    "wire": "GSX wire trace (logs/ProsimCompanion-wire-*.log): only consulted when a probe names it; often disabled or huge."
+    "wire": "GSX wire trace (logs/ProsimCompanion-wire-*.log): only consulted when a probe names it; often disabled or huge.",
+    "human": "Not in any telemetry stream: the pilot's eyes and ears, or the evaluating agent's own interaction with the app (requires-human probes and self-exercising checks)."
   },
-  "machine": "Optional per-probe block for the support reducer (tools/ProsimCompanion.Reduce, docs/agents/support-bundle.md). A probe WITH it is evaluated deterministically; one without is handed to the LLM step untouched. kind=signature: {source: session|log, type?: <event type>, contains: <literal>, component?: <log component>, minCount?: 1, where?: {path: text} (session only; contains may be '' when the where filter alone selects the events)} as signature (the failure/behaviour) and, for assert-present, trigger (omitted = always). where {path: text} is honoured by every session-event kind. kind=required-fields: every event of type carries each dotted path in fields; optional where {path: text} checks only the events that read that text at the path, optional fieldsWhenPresent {path: [fields]} requires the fields only on events that carry the path. kind=duplicate-within: no two events of type share key within windowSeconds. kind=consecutive-duplicates: no event of type repeats its predecessor payload.",
+  "machine": "Optional per-probe block for the support reducer (tools/ProsimCompanion.Reduce, docs/agents/support-bundle.md). A probe WITH it is evaluated deterministically; one without is handed to the LLM step untouched. kind=signature: {source: session|log, type?: <event type>, contains: <literal>, component?: <log component>, minCount?: 1, where?: {path: text} (session only; contains may be '' when the where filter alone selects the events)} as signature (the failure/behaviour) and, for assert-present, trigger (omitted = always). where {path: text} is honoured by every session-event kind. kind=required-fields: every event of type carries each dotted path in fields; optional where {path: text} checks only the events that read that text at the path, optional fieldsWhenPresent {path: [fields]} requires the fields only on events that carry the path. kind=duplicate-within: no two events of type share key within windowSeconds. kind=consecutive-duplicates: no event of type repeats its predecessor payload. A watch probe's machine block is counted, never judged: the reducer reports verdict watch with matches (events or log hits the block selected) and violations (missing fields / repeats), quoting the violations.",
   "kinds": {
     "assert-absent": "The failure signature must NOT appear. Pass = absent all session; fail = present (quote the evidence).",
     "assert-present": "The fixed/feature behaviour must appear WHEN its trigger occurred. Pass = trigger+behaviour seen; not-exercised = trigger never occurred (report as untested, not passed); fail = trigger seen without the behaviour.",
-    "watch": "Health signal with no fixed pass/fail: count and report occurrences with context.",
+    "watch": "Health signal with no fixed pass/fail: count and report occurrences with context. With a machine block the reducer counts it (verdict watch, matches, violations) and never says pass or fail.",
     "feature-pending": "Issue is an unimplemented feature; probe documents what to assert once it ships. Skip during evaluation, but report accidental sightings.",
     "requires-human": "Not observable from telemetry (web UI, audio quality, installer). Listed so the flight report can remind the pilot what to eyeball."
   },
@@ -364,7 +365,7 @@
     {
       "id": "gsx-parking-wake",
       "issue": 141,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "assert-present",
       "sources": [
         "session",
@@ -399,7 +400,7 @@
     {
       "id": "arrival-gate-in-flight-pick",
       "issue": 75,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "assert-present",
       "sources": [
         "session",
@@ -433,7 +434,7 @@
     {
       "id": "arrival-gate-persisted",
       "issue": 44,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "assert-present",
       "sources": [
         "session",
@@ -581,7 +582,7 @@
     {
       "id": "checklist-swallowed-by-atc-parser",
       "issue": 47,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "assert-absent",
       "sources": [
         "session"
@@ -594,7 +595,7 @@
     {
       "id": "voicemeeter-session-leak",
       "issue": 34,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "assert-absent",
       "sources": [
         "log"
@@ -716,14 +717,16 @@
       "id": "airport-common-names",
       "issue": 70,
       "state": "closed-regression-watch",
-      "kind": "feature-pending",
+      "kind": "assert-present",
       "sources": [
         "session"
       ],
       "checks": [
-        "Once shipped: briefing/logbook 'speech.spoken' texts contain airport names ('Heathrow') where today they contain bare ICAOs; count bare 4-letter ICAO codes in spoken text as the before/after metric."
+        "Shipped (#70): briefing, debrief and FO narrative 'speech.spoken' texts name airports by their common name ('Heathrow', 'Schiphol') wherever the DFD airports table knows one. assert-absent: a bare 4-letter ICAO token in a spoken briefing text while nav data was present (quote the text and the ICAO).",
+        "Fallback: without nav data the ICAO goes through the phraseology pass (spelled, never a 4-letter token glued into a word).",
+        "requires-human: the name sounded right in the voice (title case, not an all-caps spelling)."
       ],
-      "notes": "DFD airports table already carries airport_name."
+      "notes": "Shipped (issue #70 closed): Core SpokenText over the IAirportNames seam (DFD-backed resolver, SpokenName(icao)); BriefingComposer falls back to the ICAO when the resolver is absent. Was feature-pending until 2026-11-03 (#233)."
     },
     {
       "id": "set-standard-command",
@@ -791,7 +794,9 @@
       "issue": 96,
       "state": "closed-regression-watch",
       "kind": "assert-present",
-      "sources": [],
+      "sources": [
+        "human"
+      ],
       "checks": [
         "From another machine: a telemetry request with ONLY 'Authorization: Bearer <token>' succeeds (no cookie dance), and '?token=...&tailKb=N' onboarding preserves tailKb through the redirect (response size tracks N)."
       ],
@@ -802,7 +807,9 @@
       "issue": 97,
       "state": "closed-regression-watch",
       "kind": "requires-human",
-      "sources": [],
+      "sources": [
+        "human"
+      ],
       "checks": [
         "With the EFB open in a browser, restart the app: the page must reload itself within ~10 s (boot-id watchdog polling /api/app/boot) instead of sitting dead. GET /api/app/boot returns a stable id per process."
       ],
@@ -811,7 +818,7 @@
     {
       "id": "voice-ground-ops-wp1-gating",
       "issue": 50,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "assert-present",
       "sources": [
         "session",
@@ -828,7 +835,7 @@
     {
       "id": "voice-ground-ops-wp2-upcalls",
       "issue": 51,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "assert-present",
       "sources": [
         "session"
@@ -845,7 +852,7 @@
     {
       "id": "accent-localization",
       "issue": 53,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "assert-present",
       "sources": [
         "log"
@@ -1361,7 +1368,7 @@
         "log"
       ],
       "checks": [
-        "After a 'phase-changed' into Shutdown, Shutdown -> Preflight (rule 'turnaround-arrival-complete') happens ONLY after 'gsx-service' {Deboarding, Completed} (log: 'Arrival complete (deboarded) — the turnaround to Preflight is now armed') plus the hold (default 30 s) parked with the beacon off — never before deboarding completes (2026-08-29 ESSA: the old time-only 'turnaround-parked' fired at +30 s mid-deboarding, prep repositioned the aircraft and services ran).",
+        "After a 'phase-changed' into Shutdown, Shutdown -> Preflight (rule 'turnaround-arrival-complete') happens ONLY after 'gsx-service' {Deboarding, Completed} (log: 'Arrival complete (deboarded) — the turnaround to Preflight is now armed') plus the hold (default 30 s) parked with the beacon off — never before deboarding completes (2026-08-29 ESSA: the old time-only rule (id turnaround-parked, since removed — a rule id, not an event) fired at +30 s mid-deboarding, prep repositioned the aircraft and services ran).",
         "On that turnaround Preflight: the prep chain goes Idle -> GroundEquipment ('turnaround — on stand already, skipping reposition'), never Reposition; and with gsx.groundPrepActivation = voice there is NO 'departure sequence — auto-started (Preparation phase)' decision — the sequence waits for 'commence ground services'.",
         "If the beacon goes on and an engine starts (or the brake is released with the APU running) while still in Shutdown, 'phase-changed' Shutdown -> PushbackAndStart with rule 'turnaround-start' — never Shutdown -> TaxiIn.",
         "assert-absent: any 'phase-changed' Shutdown -> TaxiIn."
@@ -1460,7 +1467,7 @@
     {
       "id": "kokoro-two-phase-timeout",
       "issue": 113,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "assert-absent",
       "machine": {
         "kind": "signature",
@@ -1564,7 +1571,7 @@
     {
       "id": "joystick-poll-heap-crash",
       "issue": 165,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "assert-absent",
       "machine": {
         "kind": "signature",
@@ -1676,7 +1683,7 @@
     {
       "id": "abnormal-transient-debounce",
       "issue": 123,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "assert-absent",
       "sources": [
         "session"
@@ -1695,7 +1702,7 @@
     {
       "id": "fob-startup-restore",
       "issue": 124,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "assert-present",
       "sources": [
         "session",
@@ -1712,7 +1719,7 @@
     {
       "id": "flap-config-readback",
       "issue": 125,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "assert-present",
       "sources": [
         "session",
@@ -1744,7 +1751,7 @@
     {
       "id": "pilot-announcement-ack",
       "issue": 127,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "assert-present",
       "sources": [
         "session",
@@ -1764,7 +1771,7 @@
     {
       "id": "clarifier-ttl",
       "issue": 128,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "assert-absent",
       "sources": [
         "session"
@@ -1778,7 +1785,7 @@
     {
       "id": "fuel-quantity-token",
       "issue": 129,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "assert-present",
       "sources": [
         "session",
@@ -1827,7 +1834,7 @@
     {
       "id": "prosim-sdk-shape",
       "issue": 158,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "assert-absent",
       "machine": {
         "kind": "signature",
@@ -1852,7 +1859,7 @@
     {
       "id": "update-check-prerelease",
       "issue": 159,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "assert-present",
       "sources": [
         "log"
@@ -1871,7 +1878,9 @@
       "issue": 0,
       "state": "open",
       "kind": "requires-human",
-      "sources": [],
+      "sources": [
+        "human"
+      ],
       "checks": [
         "#71 EFB header clock shows sim time when connected (web UI).",
         "#65 landing performance runway select enables after OFP import (web UI).",
@@ -1898,7 +1907,7 @@
         "#112 Heard but not understood: say something the FO has no command for, three times — the Voice status page (/speech) lists it under 'Heard but not understood' with count 3 (amber pill), the Where column reads idle, and the session log holds three voice.unmatched events with the same normalized text; a phrase the FO acted on, and a question the LLM answered, never appear; Clear empties the list; Settings → Voice First Officer → Recognition & Push-to-Talk → 'Track phrases the FO did not understand' OFF leaves the list empty while the ASR trail still logs (web UI).",
         "2026-10-09 Tech-log hooks by ear: with an open tech-log item, 'brief the departure' ends with 'Open tech log items: <title>.' (three titles at most, then 'and N more'); 'brief the arrival' names it only when it is category A/B or about brakes/gear/spoilers/reversers/autobrake/anti-skid; a spoken checklist line whose system tag matches (e.g. the APU line with 'APU inoperative' open) is challenged as '<line> — note, open tech log item: <title>.' once per run, and a say-again repeats the plain line; Settings → Crew & Company → Tech Log & Logbook shows 'Open items in the briefings' and 'Flag checklist lines'; the Tech Log page's raise form has the System field and shows the tag as a pill (web UI + ears).",
         "#122 Region facts by ear (2026-10-09): with Settings → Flight Deck → Briefings & LLM → Region Facts on, an unprompted two-sentence fact about the country or sea below arrives in the cruise after the first gap, in the FO voice (persona voice for a curated fact), never twice for the same region, never while the mic pill reads PAUSED, never after 'quiet please'; the card shows Enabled, Shortest gap, Longest gap, Facts per flight, Facts from the language model (web UI + ears).",
-        "Purser cruise query by ear (2026-10-09): with Settings → Crew & Company → Cabin Crew → Purser cruise query on, once in the cruise: chime, CAB wait, 'Flight deck, cabin. Any update on arrival time or turbulence for the service?' in the purser voice, the listening tone, then the acknowledgement that fits the answer (time / ride / generic / 'we'll check back later'); a running checklist resumes afterwards; the Cabin Crew card shows the switch, 'Cruise query after' and 'Cruise query reply window', Cabin Wording the five lines; the VOICE drawer's Cabin tab lists the 'Purser cruise query' group (web UI + ears).",
+        "Purser cruise query by ear (2026-10-09): with Settings → Crew & Company → Cabin Crew → Purser cruise query on, once in the cruise: chime, CAB wait, 'Flight deck, cabin. Any update on arrival time or turbulence for the service?' in the purser voice, the header mic pill reading LISTENING (no tone is played), then the acknowledgement that fits the answer (time / ride / generic / 'we'll check back later'); a running checklist resumes afterwards; the Cabin Crew card shows the switch, 'Cruise query after' and 'Cruise query reply window', Cabin Wording the five lines; the VOICE drawer's Cabin tab lists the 'Purser cruise query' group (web UI + ears).",
         "2026-10-09 De-icing policy + SimBrief reload: Settings → Ground Services → Questions → De-Icing shows 'Request de-icing from the weather' (Off / Ask me / Auto), 'OAT threshold' (°C) and 'Require precipitation or frost' (the two greyed while Off; the fluid/concentration selects enabled whenever Auto-accept OR the policy is on); Settings → Ground Services → Departure has a 'SimBrief / VDGS' card with 'Reload SimBrief in GSX on a new OFP' (off); the Ground Services Status section has a 'De-Icing' card (verdict lamp + reason, 'OAT … · precip · ICAO' inputs row, the question prompt with 'Request de-icing' / 'No de-icing' buttons while a question stands, and the 'GSX de-ice LVARs' row reading 'state … , fluid type …' once SimConnect reports them) and a 'Reload SimBrief in GSX' button beside 'Call next service now' whose outcome line appears under the buttons (web UI). By ear: in Ask mode the FO says 'Captain, conditions call for de-icing — OAT −2, snow. Request it?' and reads back 'Copied — requesting de-icing.' / 'Copied — no de-icing.'; after the reload GSX's VDGS shows the new flight number / destination / ETD (sim screen).",
         "Settings → Ground Services → Departure Services → Departure Service Order lists each service ONCE (2026-11-01: the aircraft profile's stored gsxSettings block was bound with the six defaults in front of the profile's five entries and the applier wrote eleven into settings.json; the binder post-pass now strips appended defaults from nested options objects and GsxOptions.Normalize drops duplicate services, first occurrence wins). After the first start on this build the British Airways profile lists five services — Boarding was missing from the stored block — add it back once on the page (or pick the Classic preset)."
       ],
@@ -1930,14 +1939,14 @@
     {
       "id": "header-next-service",
       "issue": 133,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "requires-human",
       "sources": [
         "session"
       ],
       "checks": [
         "With Settings → Appearance → 'Show NEXT SERVICE button in the header' ON, every page's header shows a NEXT SERVICE block naming the next departure service and its stage; it is greyed before the departure sequence starts and after it completes. OFF (the default) leaves the header exactly as before.",
-        "A click while a service is holding produces the same session evidence as the INT/RAD switch: a 'gsx-force-next' / sequencer decision with source 'web' followed by the held service's trigger. If the click leaves no such evidence, the button is dead.",
+        "A click while a service is holding produces the same session evidence as the INT/RAD switch: a 'gsx-decision' with action 'force next service' and reason 'requested by web' followed by the held service's trigger. If the click leaves no such evidence, the button is dead.",
         "The hover title names the hold reason (the departure board's Detail) — the button doubles as a status pill."
       ],
       "notes": "Nico's home-cockpit request 2026-09-27: he used Settings → Ground Services → Call next service and wanted it on every page. Same IGsxDepartureControl.ForceNext() as the existing button, the Stream Deck key and the voice command 'next service'."
@@ -1945,7 +1954,7 @@
     {
       "id": "cabin-secure-delay",
       "issue": 134,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "assert-present",
       "machine": {
         "kind": "signature",
@@ -1977,7 +1986,7 @@
     {
       "id": "gsx-menu-card-pick",
       "issue": 135,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "assert-present",
       "machine": {
         "kind": "signature",
@@ -2008,7 +2017,7 @@
     {
       "id": "voice-reference-drawer",
       "issue": 136,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "requires-human",
       "sources": [
         "log"
@@ -2027,12 +2036,14 @@
     {
       "id": "exact-phrase-precedence",
       "issue": 137,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "assert-absent",
       "machine": {
         "kind": "signature",
-        "source": "log",
-        "contains": "Say again the frequency"
+        "signature": {
+          "source": "log",
+          "contains": "Say again the frequency"
+        }
       },
       "sources": [
         "log"
@@ -2047,7 +2058,7 @@
     {
       "id": "speech-settings-render-crash",
       "issue": 142,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "assert-absent",
       "machine": {
         "kind": "signature",
@@ -2068,7 +2079,7 @@
     {
       "id": "catering-1r-door-toggle",
       "issue": 144,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "watch",
       "sources": [
         "session",
@@ -2083,7 +2094,7 @@
     },
     {
       "id": "catering-door-learned",
-      "issue": null,
+      "issue": 0,
       "state": "open",
       "kind": "assert-present",
       "sources": [
@@ -2095,12 +2106,12 @@
         "assert-absent: 'Could not save the learned catering door' (the settings file could not be written — report the exception).",
         "requires-human: after that cycle the Diagnostics GSX page draws CATERING beside the door the truck really used (row 3 / bottom for 4R, row 0 / top for 1R) and the Ground Services › Doors hint reads 'Learned from GSX: Aft service door (4R)' (or forward). With a hand-picked door the line 'GSX caters through … but gsx.cateringDoor is …' is logged at Information and the page keeps the pick."
       ],
-      "notes": "Owner flight 2026-10-27 (EFHK): catering came to 4R while the page, reading the 'forward' setting, drew it at 1R. GsxDoorService.LearnCateringDoor writes through SettingsWriter; GsxOptions.EffectiveCateringDoor resolves pick → learned → forward for the collector. Unit-tested (GsxDoorServiceCateringDoorTests); unverified live."
+      "notes": "No issue number (owner flight 2026-10-27; #144 is the earlier 1R-toggle bug, not this). Owner flight 2026-10-27 (EFHK): catering came to 4R while the page, reading the 'forward' setting, drew it at 1R. GsxDoorService.LearnCateringDoor writes through SettingsWriter; GsxOptions.EffectiveCateringDoor resolves pick → learned → forward for the collector. Unit-tested (GsxDoorServiceCateringDoorTests); unverified live."
     },
     {
       "id": "flight-progress-position",
       "issue": 145,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "assert-present",
       "machine": {
         "kind": "signature",
@@ -2133,7 +2144,7 @@
     {
       "id": "tod-approaching-once",
       "issue": 145,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "assert-absent",
       "machine": {
         "kind": "duplicate-within",
@@ -2156,7 +2167,7 @@
     {
       "id": "touchdown-recorded",
       "issue": 146,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "assert-present",
       "machine": {
         "kind": "signature",
@@ -2189,7 +2200,7 @@
     {
       "id": "touchdown-once-per-landing",
       "issue": 146,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "assert-absent",
       "machine": {
         "kind": "duplicate-within",
@@ -2211,7 +2222,7 @@
     {
       "id": "llm-stream-takeover",
       "issue": 147,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "assert-present",
       "machine": {
         "kind": "signature",
@@ -2247,7 +2258,7 @@
     {
       "id": "llm-stream-never-restarted",
       "issue": 147,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "assert-absent",
       "machine": {
         "kind": "signature",
@@ -2290,7 +2301,7 @@
         "Only when sop.monitoring.fuelCheck.enabled was true (the settings snapshot in the bundle, or the describer's disabled reason absent from the Voice Reference drawer): in a cruise longer than intervalMinutes, 'fuel.check' events with trigger 'periodic' and spoken true, spaced intervalMinutes apart (± one tick), the first one intervalMinutes AFTER the Cruise commit — never at cruise entry.",
         "Each spoken event carries method 'navlog' when the OFP had a navlog and a position was known, else 'fallback'. With 'navlog': fix is a waypoint of the flight plan the aircraft has actually passed (compare the lat/lon of the nearest 'flight-sample' with the plan), fobKg within 50 kg of the FOB on that sample, plannedFobKg between the two neighbouring fixes' planned figures, differenceKg = fobKg − plannedFobKg, estimatedLandingKg = plannedLandingKg + differenceKg.",
         "priority is 'high' only when shortfall is true (differenceKg <= −shortfallMarginKg); otherwise 'normal'. text matches the figures: tonnes to one decimal, difference rounded to 100 kilos or spoken as tonnes above 999.",
-        "A 'fuel.check' with trigger 'voice' follows every 'fuel check' / 'check the fuel' utterance ('speech.heard' or the intent event) — spoken false with reason 'no plan or no fuel figure' is legitimate only when no OFP was loaded.",
+        "A 'fuel.check' with trigger 'voice' follows every 'fuel check' / 'check the fuel' utterance (the CMTrace trail line 'ASR heard \"…\" -> …' — no session event carries the transcript — or the intent event) — spoken false with reason 'no plan or no fuel figure' is legitimate only when no OFP was loaded.",
         "assert-absent: 'fuel.check' with trigger 'periodic' outside the Cruise phase, or while flight-live was false, or with sop.monitoring.fuelCheck.enabled false.",
         "DEBRIEF: the debrief after the flight now has fuel figures to quote (fobKg is what DebriefFactExtractor reads) — report whether the spoken debrief mentions fuel."
       ],
@@ -2299,7 +2310,7 @@
     {
       "id": "fuel-log-rows",
       "issue": 154,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "assert-present",
       "machine": {
         "kind": "required-fields",
@@ -2406,7 +2417,7 @@
         "outcome 'checked' only when the aircraft agreed: compare said with the EFIS baro dataref (altimeter, ± altimeterToleranceHpa), the FMS PERF TO V-speeds (± vSpeedToleranceKt each), the departure runway the briefing resolved (phases before TakeoffRoll) or the arrival runway (after), and the briefed minima (± minimumsToleranceFt). A 'mismatch' text must quote the aircraft's actual value.",
         "'minimums check' and 'altimeter check' (bare lead-ins, no figure) must NOT produce an 'fo.readback' event — those phrases belong to the checklist / callout features and must still work.",
         "No 'fo.readback' while flight-live was false — the FO answers 'No flight data to check that against.' instead ('speech.spoken' with that text).",
-        "GRAMMAR: with the closed recognizer, the lead-ins must appear in the grammar snapshot ('speech.grammar' / the Voice Reference drawer under Read-backs with the value badge) — report if a read-back was transcribed but not routed (an 'intent' miss event right after a read-back-shaped 'speech.heard').",
+        "GRAMMAR: with the closed recognizer, the lead-ins must appear in the Voice Reference drawer under Read-backs with the value badge (there is no session event for the grammar) — report if a read-back was transcribed but not routed (a 'voice.unmatched' event, or a CMTrace 'ASR heard \"…\" -> Reject' line, right after a read-back-shaped transcript).",
         "assert-absent (#148, 2026-10-10 signatures 20:35:48 / 20:36:03): a 'fo.query' whose question starts with 'read back' / 'readback' / 'read-back' — such an utterance is a read-back (or, with read-backs off, a did-not-catch), never a question to the model.",
         "assert-present (#148): 'read back altimeter <figure>', 'check altimeter <figure>' and 'confirm runway <designator>' produce the same 'fo.readback' event as the bare forms; 'altimeter standard' / 'read back altimeter standard' / 'altimeter STD' produce kind altimeter with said 'standard', outcome checked when the EFIS baro reads 1013 ± altimeterToleranceHpa (text 'Standard, checked.'), mismatch otherwise (text quotes the QNH read).",
         "assert-present (#148): a 'fuel check' before the flight has ever been airborne (phase at the gate / pushback / taxi-out, HasBeenAirborne false) produces 'fuel.check' with trigger voice, method 'ground' and text 'Not airborne yet — fuel on board X tonnes, plan Y tonnes.' (plan = OFP block/ramp fuel; omitted when no OFP) — never a navlog fix or a 'below plan' figure from the stand (2026-10-10 19:43:11 signature: 'Passing HK911, FOB 6.8 t, 2.1 t below plan' while refuelling)."
@@ -2416,7 +2427,7 @@
     {
       "id": "fo-question-answer",
       "issue": 149,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "assert-present",
       "machine": {
         "kind": "required-fields",
@@ -2433,7 +2444,7 @@
         "log"
       ],
       "checks": [
-        "Only when speech.foQuestions.enabled was true and the LAN ASR was the active engine: every free-form question the pilot asked ('speech.heard' / the ASR decision trail line 'ASR heard \"…\" -> Reject') is followed by one 'fo.query' and one 'fo.answer' with the same question text; outcome ∈ answered | answered-on-retry | unverified | timed-out | sterile | llm-offline | busy | preempted.",
+        "Only when speech.foQuestions.enabled was true and the LAN ASR was the active engine: every free-form question the pilot asked (the CMTrace ASR decision trail line 'ASR heard \"…\" -> Reject' — no session event carries the transcript) is followed by one 'fo.query' and one 'fo.answer' with the same question text; outcome ∈ answered | answered-on-retry | unverified | timed-out | sterile | llm-offline | busy | preempted.",
         "For outcome 'answered' or 'answered-on-retry': every number in 'text' (digits or spelled) appears in the fact sheet the app had at the time — cross-check against the telemetry snapshot nearest the event (FOB, GS, altitude, ETA, distances). A wrong figure spoken as 'answered' is the one failure that matters: quote question, text and the live value.",
         "A question whose answer is NOT in the facts ('what is the captain's name') must come back as \"I don't have that.\" (outcome answered — the model said the fixed phrase) or 'unverified' — never an invented figure.",
         "TIMING (report): firstTokenMs / firstAudioMs / totalMs per answer. totalMs > 6000 with outcome 'timed-out' means the model is too slow for the default budget — report the model name. A 'Stand by.' 'speech.spoken' between the question and the answer is expected when firstAudioMs > 2000.",
@@ -2483,7 +2494,7 @@
     {
       "id": "web-https-listener",
       "issue": 150,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "assert-present",
       "sources": [
         "log"
@@ -2593,7 +2604,7 @@
     {
       "id": "arrival-gate-dispatched-before-touchdown",
       "issue": 102,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "assert-present",
       "machine": {
         "kind": "signature",
@@ -2681,7 +2692,7 @@
     {
       "id": "voice-unmatched-candidates",
       "issue": 112,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "watch",
       "machine": {
         "kind": "required-fields",
@@ -2794,7 +2805,7 @@
         "assert-absent: a second cabin.cruise-query in the same flight (the once-per-flight latch; a new flight = ColdAndDark or a Preflight after Shutdown/TaxiIn); a cabin.cruise-query outside Cruise; one while the mic pill read PAUSED; a 'speech.spoken' for the query text with IsStillValid dropped (outcome Dropped) — the question must not be asked after a descent began.",
         "assert-absent: any dataref write, GSX call, radio or MCDU action in the seconds after the reply — the reply is acknowledged only, never acted on.",
         "watch: 'Purser cruise query deferred — another dialogue owns the microphone' means the latch was handed back and the call retried a minute later; count the deferrals. freeForm = false means the offline engine was active and the window carried the closed reply grammar — note whether the pilot's reply was heard at all.",
-        "requires-human: the chime, then the purser's question in the purser voice after CAB was selected (or the grace); the listening tone; the acknowledgement that fits the answer; a running spoken checklist held and resumed untouched around the window."
+        "requires-human: the chime, then the purser's question in the purser voice after CAB was selected (or the grace); the mic pill reading LISTENING (no tone is played); the acknowledgement that fits the answer; a running spoken checklist held and resumed untouched around the window."
       ],
       "notes": "Feature 2026-10-09 (ROADMAP open item 'Purser cruise query + response window', feature/cruise-immersion; unverified live). CabinCrewCore arms the once-per-flight latch on the first cruise tick (delay = minutes x (0.7 + 0.6 x roll)), fires on the first cruise tick at/after it with the ear on; CabinCrewService runs the chime + CAB latch-or-grace flow, then CabinCruiseQueryDialogue borrows the mic (IMicOwnership) for cabin.cruiseQueryWindowSeconds (default 20) — empty grammar (free-form) when the LAN transcriber is active, CabinCruiseQueryCore.OfflineGrammar otherwise — and CabinCruiseQueryCore classifies the reply by whole-word keyword lists. Predecessor Prosim2FO asked about the weather ahead with an 8 s window and a probability roll; this design asks about the arrival time / turbulence after a delay, once per flight, no roll."
     },
@@ -2885,7 +2896,7 @@
         "wire"
       ],
       "checks": [
-        "Trigger = gsx.reloadSimbriefOnNewOfp = true (off by default) AND a new OFP request id (ofp-imported / OfpStore change) while GSX is Ready and the aircraft is parked at the gate with engines off — OR a manual 'Reload SimBrief in GSX' click / gsx.reloadSimbrief call at any time.",
+        "Trigger = gsx.reloadSimbriefOnNewOfp = true (off by default) AND a new OFP request id ('ofp.loaded' / OfpStore change) while GSX is Ready and the aircraft is parked at the gate with engines off — OR a manual 'Reload SimBrief in GSX' click / gsx.reloadSimbrief call at any time.",
         "assert-present: one 'gsx-simbrief-reload' event per trigger with trigger in 'new OFP' | web | command | voice, outcome in Reloaded | SentUnconfirmed | NotPerformed, detail, and ofpRequestId; the gsx-decision 'SimBrief reload' line matches. Reloaded means GSX patched handlerData (wire: a /handlerData patch within 10 s of the menu.pick) or the gate menu closed/moved; SentUnconfirmed means the pick was acknowledged with no signal — read the VDGS.",
         "assert-present (automatic mode): exactly ONE 'new OFP' reload per OFP request id per GSX session — a second OFP fetch with the same request id must not reload again; a Couatl restart (new startup.sid) may reload the same id once more. A reload with trigger 'new OFP' while airborne, taxiing, or with an engine running is a failure (the outcome must be NotPerformed with the gate/engine reason, or absent).",
         "Paging rule (issue #174, 2026-10-11): the walk reads the gate menu, picks 'Additional Services ▶' and turns 'Next Page ▶' up to gsx.simbriefReloadMenuPages times, picking the first row matching sim-?brief|flight plan|reload…plan. The event's pagesSeen lists every page read ('Activate Services at …' p0: [rows]; 'Additional Services' p1: [rows]; p2: …). assert-present: at least TWO pages in pagesSeen whenever the gate menu had an 'Additional Services' row (the 2026-10-11 signature was one page and ItemNotAvailable on 'Activate Services at EFHK/Vantaa' / '… EGCC/Manchester' at 19:35:19Z and 23:25:22Z). REPORT the rows of the last Additional Services page read — the 'Reload Simbrief' button's page is still unseen.",
@@ -2938,7 +2949,7 @@
     {
       "id": "pushback-phase-hold",
       "issue": 161,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "assert-absent",
       "machine": {
         "kind": "signature",
@@ -2968,7 +2979,7 @@
     {
       "id": "pushback-legacy-single-direction",
       "issue": 161,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "assert-absent",
       "machine": {
         "kind": "signature",
@@ -2994,7 +3005,7 @@
     {
       "id": "descent-level-off-climb-blip",
       "issue": 163,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "assert-absent",
       "machine": {
         "kind": "signature",
@@ -3022,7 +3033,7 @@
     {
       "id": "app-unhandled-exception",
       "issue": 162,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "assert-absent",
       "machine": {
         "kind": "signature",
@@ -3046,7 +3057,7 @@
     {
       "id": "day-leg-route-seeded",
       "issue": 164,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "assert-present",
       "machine": {
         "kind": "signature",
@@ -3117,9 +3128,11 @@
       ],
       "machine": {
         "kind": "signature",
-        "source": "session",
-        "type": "persona.rosterDraw",
-        "contains": "\"drawnFor\":\"day:\""
+        "signature": {
+          "source": "session",
+          "type": "persona.rosterDraw",
+          "contains": "\"drawnFor\":\"day:\""
+        }
       },
       "notes": "ADR-0019 §8 (owner 2026-11-02, audit row A11, owner question 4: one FO per sim calendar day, never per day id, never mid-day; narrows #194). FoRosterTriggerCore (pure): opportunity = LegBegan OR (InPreflight AND the leg boundary holds a planned leg), AND the sim-local date differs from the stamp, AND no open duty day past its first leg with an FO on duty. FoRosterVoiceFeature subscribes ILegBoundaryEvents.LegBegan and reads LegBoundaryStore; DayOptions is no longer an input."
     },
@@ -3149,7 +3162,7 @@
     {
       "id": "si-comms-handover",
       "issue": 171,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "assert-present",
       "machine": {
         "kind": "required-fields",
@@ -3354,7 +3367,7 @@
     },
     {
       "id": "checklist-read-through-satisfied",
-      "issue": null,
+      "issue": 0,
       "state": "open",
       "kind": "assert-present",
       "machine": {
@@ -3370,12 +3383,12 @@
       ],
       "checks": [
         "Only with speech.checklistReadThroughSatisfied = true (off by default). Every 'checklist.voice.item' carries readThrough true|false.",
-        "assert-present when exercised: for a verify line whose dataref condition was already true when the FO reached it, ONE log line 'Checklist line \"<say>\" already set — read through', ONE spoken line equal to the item's confirmCallout (tokens expanded; e.g. 'Flaps, retracted') and the item event {result done, readThrough true} — with NO listening window opened for that line and no 'speech.recognized' answer between the title and the next line.",
+        "assert-present when exercised: for a verify line whose dataref condition was already true when the FO reached it, ONE log line 'Checklist line \"<say>\" already set — read through', ONE spoken line equal to the item's confirmCallout (tokens expanded; e.g. 'Flaps, retracted') and the item event {result done, readThrough true} — with NO listening window opened for that line and no recognised answer between the title and the next line.",
         "assert-absent: readThrough true on an acknowledge/action/monitorControls/captureMinima line, on a verify line with expects number or flapConfig, or on a line whose dataref never arrived (ProSim off: every line runs challenge/response).",
         "assert-absent: a read-through line whose condition was FALSE at the time (compare the dataref value in the log around the spoken-at stamp) — the fail-closed liveness guard (RawValue null / IsStale) is the thing to suspect.",
         "requires-human: the run still sounds like a checklist — the pilot hears every line, the read-through ones as one callout, and 'complete' at the end."
       ],
-      "notes": "Owner request 2026-10-18 (UX pass): already-correct switches should not need a reply. SatisfiedLineReadThrough (pure, tested) decides; SpokenChecklistEngine pre-subscribes the checklist's verify datarefs before the title so the values are cached by the first line. The visual Checklists page ticks the line as Done like any voice completion. Unverified live."
+      "notes": "No issue number (owner request 2026-10-18). Owner request 2026-10-18 (UX pass): already-correct switches should not need a reply. SatisfiedLineReadThrough (pure, tested) decides; SpokenChecklistEngine pre-subscribes the checklist's verify datarefs before the title so the values are cached by the first line. The visual Checklists page ticks the line as Done like any voice completion. Unverified live."
     },
     {
       "id": "briefing-takeoff-emergency",
@@ -3384,9 +3397,11 @@
       "kind": "assert-present",
       "machine": {
         "kind": "signature",
-        "source": "session",
-        "type": "briefing.emergency",
-        "contains": "accelerationAltitudeFt",
+        "signature": {
+          "source": "session",
+          "type": "briefing.emergency",
+          "contains": "accelerationAltitudeFt"
+        },
         "trigger": {
           "source": "session",
           "type": "briefing.spoken",
@@ -3415,9 +3430,11 @@
       "kind": "assert-present",
       "machine": {
         "kind": "signature",
-        "source": "session",
-        "type": "loadsheet.lmc",
-        "contains": "\"verdict\"",
+        "signature": {
+          "source": "session",
+          "type": "loadsheet.lmc",
+          "contains": "\"verdict\""
+        },
         "trigger": {
           "source": "log",
           "component": "LoadsheetService",
@@ -3515,9 +3532,11 @@
       "kind": "assert-present",
       "machine": {
         "kind": "signature",
-        "source": "session",
-        "type": "airport-coordinates",
-        "contains": "",
+        "signature": {
+          "source": "session",
+          "type": "airport-coordinates",
+          "contains": ""
+        },
         "trigger": {
           "source": "session",
           "type": "flight.diverted",
@@ -3546,9 +3565,11 @@
       "kind": "assert-present",
       "machine": {
         "kind": "signature",
-        "source": "session",
-        "type": "acars.mvt",
-        "contains": "\"kind\":\"off\"",
+        "signature": {
+          "source": "session",
+          "type": "acars.mvt",
+          "contains": "\"kind\":\"off\""
+        },
         "trigger": {
           "source": "session",
           "type": "flight-times",
@@ -3576,9 +3597,11 @@
       "kind": "assert-present",
       "machine": {
         "kind": "signature",
-        "source": "session",
-        "type": "delay-code-question",
-        "contains": "\"attempt\":1",
+        "signature": {
+          "source": "session",
+          "type": "delay-code-question",
+          "contains": "\"attempt\":1"
+        },
         "trigger": {
           "source": "session",
           "type": "flight.punctuality",
@@ -3606,9 +3629,11 @@
       "kind": "assert-present",
       "machine": {
         "kind": "signature",
-        "source": "session",
-        "type": "cabin.turbulence",
-        "contains": "\"action\":\"SeatbeltAdvice\"",
+        "signature": {
+          "source": "session",
+          "type": "cabin.turbulence",
+          "contains": "\"action\":\"SeatbeltAdvice\""
+        },
         "trigger": {
           "source": "session",
           "type": "turbulence.level",
@@ -3636,9 +3661,11 @@
       "kind": "assert-present",
       "machine": {
         "kind": "signature",
-        "source": "session",
-        "type": "pa.prompt",
-        "contains": "\"kind\":\"AfterTakeoff\"",
+        "signature": {
+          "source": "session",
+          "type": "pa.prompt",
+          "contains": "\"kind\":\"AfterTakeoff\""
+        },
         "trigger": {
           "source": "session",
           "type": "flight-times",
@@ -3666,9 +3693,11 @@
       "kind": "assert-present",
       "machine": {
         "kind": "signature",
-        "source": "session",
-        "type": "takeoff.rto-callout",
-        "contains": "\"id\":\"stopped\"",
+        "signature": {
+          "source": "session",
+          "type": "takeoff.rto-callout",
+          "contains": "\"id\":\"stopped\""
+        },
         "trigger": {
           "source": "session",
           "type": "takeoff.rejected",
@@ -3697,9 +3726,11 @@
       "kind": "assert-present",
       "machine": {
         "kind": "signature",
-        "source": "session",
-        "type": "efato.handoff",
-        "contains": "\"procedure\":\"eng-",
+        "signature": {
+          "source": "session",
+          "type": "efato.handoff",
+          "contains": "\"procedure\":\"eng-"
+        },
         "trigger": {
           "source": "session",
           "type": "drill.started",
@@ -3727,9 +3758,11 @@
       "kind": "assert-present",
       "machine": {
         "kind": "signature",
-        "source": "session",
-        "type": "fo.baroSet",
-        "contains": "\"ok\":true",
+        "signature": {
+          "source": "session",
+          "type": "fo.baroSet",
+          "contains": "\"ok\":true"
+        },
         "trigger": {
           "source": "session",
           "type": "fo.baroAnnounce",
@@ -3757,13 +3790,18 @@
       "kind": "assert-present",
       "machine": {
         "kind": "signature",
-        "source": "session",
-        "type": "fo.efisSet",
-        "contains": "\"ok\":true",
+        "signature": {
+          "source": "session",
+          "type": "fo.efisSet",
+          "contains": "\"ok\":true"
+        },
         "trigger": {
           "source": "session",
-          "type": "speech.recognized",
-          "contains": "range"
+          "type": "speech.enqueued",
+          "where": {
+            "tag": "fo.efis"
+          },
+          "contains": ""
         }
       },
       "sources": [
@@ -3776,7 +3814,7 @@
         "assert-absent: a fo.efisSet while speech.foSide.efisCommands was false; any EFIS1 write with the default seat; any write to FD / LS / CSTR / ARPT / NAV1 / NAV2 / baro mode (not FO duties — the gate refuses them).",
         "requires-human: the FO's ND changes, the captain's does not."
       ],
-      "notes": "Package 9 of the November 2026 airline-ops batch. FoSidePhrases (pure parser, tested: bare file commands and marker-less range/mode words are not taken). Unverified live."
+      "notes": "Package 9 of the November 2026 airline-ops batch. FoSidePhrases (pure parser, tested: bare file commands and marker-less range/mode words are not taken). Unverified live. 2026-11-03 (#227): the trigger was 'speech.recognized' (no such event); it is now the FO's own fo.efis line being enqueued."
     },
     {
       "id": "fo-cross-check",
@@ -3785,9 +3823,11 @@
       "kind": "assert-present",
       "machine": {
         "kind": "signature",
-        "source": "session",
-        "type": "fo.crossCheck",
-        "contains": "\"source\":\"auto\"",
+        "signature": {
+          "source": "session",
+          "type": "fo.crossCheck",
+          "contains": "\"source\":\"auto\""
+        },
         "trigger": {
           "source": "session",
           "type": "flight-progress",
@@ -3846,9 +3886,11 @@
       "kind": "assert-present",
       "machine": {
         "kind": "signature",
-        "source": "session",
-        "type": "step-climb.advice",
-        "contains": "\"toFl\"",
+        "signature": {
+          "source": "session",
+          "type": "step-climb.advice",
+          "contains": "\"toFl\""
+        },
         "trigger": {
           "source": "session",
           "type": "flight-progress",
@@ -3875,9 +3917,11 @@
       "kind": "assert-present",
       "machine": {
         "kind": "signature",
-        "source": "session",
-        "type": "day.fdp",
-        "contains": "\"exceeds\"",
+        "signature": {
+          "source": "session",
+          "type": "day.fdp",
+          "contains": "\"exceeds\""
+        },
         "trigger": {
           "source": "session",
           "type": "day.leg.completed",
@@ -4055,7 +4099,7 @@
     {
       "id": "remote-mixer-agents",
       "issue": 178,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "requires-human",
       "sources": [
         "log"
@@ -4090,7 +4134,7 @@
         "log"
       ],
       "checks": [
-        "watch (the #139 signature): any 'gate-status-changed' whose minutesToStd is below −720 or above 720 while an OFP is loaded (an 'ofp-imported' / 'ofp.loaded' event precedes it in the session). The 2026-09-27 EKCH leg (session-20260926-230132): 23:12:50Z Open -> FinalCall detail 'Final call', paxBoarded 0/129, minutesToStd −1412 — the OFP sched_out sat on the real-world date while the sim clock flew a morning departure. Quote state, previous, minutesToStd, paxBoarded and the sim clock vs the OFP's STD.",
+        "watch (the #139 signature): any 'gate-status-changed' whose minutesToStd is below −720 or above 720 while an OFP is loaded (an 'ofp.loaded' event precedes it in the session). The 2026-09-27 EKCH leg (session-20260926-230132): 23:12:50Z Open -> FinalCall detail 'Final call', paxBoarded 0/129, minutesToStd −1412 — the OFP sched_out sat on the real-world date while the sim clock flew a morning departure. Quote state, previous, minutesToStd, paxBoarded and the sim clock vs the OFP's STD.",
         "watch: a 'Gate monitor: FinalCall (was Open)' log line with pax 0/N — the BOARDING state skipped because FinalCallDue was already true; this is the same evidence gate-monitor-states reports as a failed chain, so report it ONCE under this probe and cross-reference.",
         "watch: the loadsheet prelim 'STD minus N min' trigger firing the moment the OFP loads (see prelim-auto-trigger-waits-for-inputs) when the sim day differs from the OFP day — ScheduledDeparture is shared, so the same day mismatch moves the prelim trigger by whole days.",
         "watch: the hero gate card's 'STD in −N min' text (requires-human) — a negative four-digit figure on the card during a turnaround is this bug, not a late flight.",
@@ -4160,7 +4204,7 @@
       ],
       "checks": [
         "Owner request 2026-10-29 (EGLL BPK7F): the SID / STAR is spoken the crew's way — 'Brookmans Park seven Foxtrot', not 'Bravo Papa Kilo seven Foxtrot' or 'B P K'. Trigger = a briefing.spoken whose plan carries a SID / STAR, or a sayintentions.checkin after a hand-off in the climb / descent.",
-        "assert-present: the 'briefing.spoken' narrative names the SID (departure) / STAR (arrival) by its fix NAME followed by the number word and the NATO designator ('Brookmans Park seven Foxtrot', 'Logan two Hotel') whenever the OFP navlog (ofp-imported in the session) or the DFD knows the base fix; the 'sayintentions.checkin' transmit says 'on <that same name>'. A narrative that spells the base fix letter by letter while the navlog held that fix with a different name = fail.",
+        "assert-present: the 'briefing.spoken' narrative names the SID (departure) / STAR (arrival) by its fix NAME followed by the number word and the NATO designator ('Brookmans Park seven Foxtrot', 'Logan two Hotel') whenever the OFP navlog ('ofp.loaded' in the session) or the DFD knows the base fix; the 'sayintentions.checkin' transmit says 'on <that same name>'. A narrative that spells the base fix letter by letter while the navlog held that fix with a different name = fail.",
         "assert-present (fallback): with no OFP and no DFD the briefing still speaks the SID as a word (4+ letters: 'Fisha one') or NATO letters (shorter: 'Bravo Papa Kilo seven Foxtrot') — never the bare identifier.",
         "assert-absent: a WRONG name — the DFD tier must not name a same-ident navaid from another region ('Lamezia' for LAM at EGLL, 'Buckland Prk Weathr Radar' for BPK); quote the briefing text and the OFP navlog row.",
         "requires-human: the name sounded right in the voice (title-cased 'Brookmans Park', not an all-caps spelling); the LLM-streamed briefing kept the name (the sid section's AnyOf lead word is the name's first word)."
@@ -4189,10 +4233,12 @@
       "kind": "watch",
       "machine": {
         "kind": "signature",
-        "source": "log",
-        "component": "DayStateFile",
-        "contains": "is empty",
-        "minCount": 1
+        "signature": {
+          "source": "log",
+          "contains": "is empty",
+          "component": "DayStateFile",
+          "minCount": 1
+        }
       },
       "sources": [
         "log"
@@ -4276,9 +4322,11 @@
       "kind": "assert-present",
       "machine": {
         "kind": "signature",
-        "source": "session",
-        "type": "walkaround.reported",
-        "contains": "\"durationMinutes\"",
+        "signature": {
+          "source": "session",
+          "type": "walkaround.reported",
+          "contains": "\"durationMinutes\""
+        },
         "trigger": {
           "source": "session",
           "type": "walkaround.started",
@@ -4307,9 +4355,11 @@
       "kind": "assert-present",
       "machine": {
         "kind": "signature",
-        "source": "session",
-        "type": "failure.detected",
-        "contains": "\"id\"",
+        "signature": {
+          "source": "session",
+          "type": "failure.detected",
+          "contains": "\"id\""
+        },
         "trigger": {
           "source": "session",
           "type": "scenario.fired",
@@ -4336,9 +4386,11 @@
       "kind": "assert-present",
       "machine": {
         "kind": "signature",
-        "source": "session",
-        "type": "scenario.cleared",
-        "contains": "\"source\"",
+        "signature": {
+          "source": "session",
+          "type": "scenario.cleared",
+          "contains": "\"source\""
+        },
         "trigger": {
           "source": "session",
           "type": "scenario.armed",
@@ -4436,9 +4488,11 @@
       ],
       "machine": {
         "kind": "signature",
-        "source": "session",
-        "type": "leg.boundary",
-        "contains": "\"legBegan\":true",
+        "signature": {
+          "source": "session",
+          "type": "leg.boundary",
+          "contains": "\"legBegan\":true"
+        },
         "trigger": {
           "source": "session",
           "type": "ofp.loaded",
@@ -4575,9 +4629,11 @@
       ],
       "machine": {
         "kind": "signature",
-        "source": "session",
-        "type": "gsx-cycle-reset",
-        "contains": "\"flightCycleReset\":true",
+        "signature": {
+          "source": "session",
+          "type": "gsx-cycle-reset",
+          "contains": "\"flightCycleReset\":true"
+        },
         "trigger": {
           "source": "session",
           "type": "ofp.loaded",
@@ -4601,8 +4657,10 @@
       ],
       "machine": {
         "kind": "signature",
-        "source": "log",
-        "contains": "Gate monitor: Closed",
+        "signature": {
+          "source": "log",
+          "contains": "Gate monitor: Closed"
+        },
         "trigger": {
           "source": "session",
           "type": "session-started",
@@ -4626,9 +4684,11 @@
       ],
       "machine": {
         "kind": "signature",
-        "source": "session",
-        "type": "fo.crossCheck",
-        "contains": "\"source\":\"auto\"",
+        "signature": {
+          "source": "session",
+          "type": "fo.crossCheck",
+          "contains": "\"source\":\"auto\""
+        },
         "trigger": {
           "source": "session",
           "type": "leg.boundary",
@@ -4652,9 +4712,11 @@
       ],
       "machine": {
         "kind": "signature",
-        "source": "session",
-        "type": "day.leg.completed",
-        "contains": "",
+        "signature": {
+          "source": "session",
+          "type": "day.leg.completed",
+          "contains": ""
+        },
         "trigger": {
           "source": "session",
           "type": "session-started",
@@ -4673,21 +4735,10 @@
         "log"
       ],
       "checks": [
-        "assert-absent: with gsx.reloadSimbriefOnNewOfp on, a 'SimBrief reload (new OFP …)' decision / gsx.simbriefReload at the DESTINATION for the plan the aircraft arrived with, on the arrival's Preflight edge or a Couatl restart (EGLL 2026-11-01 05:24:24Z, request 191949682 reloaded at EGLL after flying EHAM→EGLL on it).",
+        "assert-absent: with gsx.reloadSimbriefOnNewOfp on, a 'gsx-simbrief-reload' event with trigger 'new OFP' (or its gsx-decision 'SimBrief reload' line reading 'new OFP: …') at the DESTINATION whose ofpRequestId is the plan the aircraft arrived with — the request id of the last 'ofp.loaded' before the landing's 'flight-times' stamp — on the arrival's Preflight edge or after a Couatl restart (EGLL 2026-11-01 05:24:24Z, request 191949682 reloaded at EGLL after flying EHAM→EGLL on it).",
         "assert-present: the reload still runs once for the FIRST plan of the session (no arrival yet) and once for every plan other than the arrival's that loads at the gate afterwards."
       ],
-      "machine": {
-        "kind": "signature",
-        "source": "session",
-        "type": "gsx.simbriefReload",
-        "contains": "new OFP",
-        "trigger": {
-          "source": "session",
-          "type": "ofp.loaded",
-          "contains": ""
-        }
-      },
-      "notes": "ADR-0019 §2 (audit row B7). GsxSimbriefReloadService.IsNextLegPlan: before any arrival every plan counts; after one, DeparturePumpGatherer.NextLegOfpLoaded against DepartureCycleLatches' arrival baseline (the turnaround auto-start's own test) — applied on the OFP edge and the Couatl SID change alike."
+      "notes": "ADR-0019 §2 (audit row B7). GsxSimbriefReloadService.IsNextLegPlan: before any arrival every plan counts; after one, DeparturePumpGatherer.NextLegOfpLoaded against DepartureCycleLatches' arrival baseline (the turnaround auto-start's own test) — applied on the OFP edge and the Couatl SID change alike. 2026-11-03 (#227): the probe named the event 'gsx.simbriefReload', which nothing emits (the event is 'gsx-simbrief-reload', GsxSimbriefReloadService), so the assert-absent passed vacuously. The event's payload (trigger, outcome, detail, ofpRequestId, pagesSeen, rowMissing) cannot say by itself whether the id is the ARRIVAL's plan — that needs the preceding 'ofp.loaded' and the landing stamp — so there is no machine block: the LLM step evaluates the text. The sibling probe gsx-simbrief-reload keeps the required-fields check on the event itself."
     },
     {
       "id": "turnaround-restart",
@@ -4706,9 +4757,11 @@
       ],
       "machine": {
         "kind": "signature",
-        "source": "session",
-        "type": "leg.boundary",
-        "contains": "restored from the flight-state snapshot",
+        "signature": {
+          "source": "session",
+          "type": "leg.boundary",
+          "contains": "restored from the flight-state snapshot"
+        },
         "trigger": {
           "source": "session",
           "type": "flight-state-restored",
@@ -4760,9 +4813,11 @@
       ],
       "machine": {
         "kind": "signature",
-        "source": "session",
-        "type": "cabin.report",
-        "contains": "cabin.empty",
+        "signature": {
+          "source": "session",
+          "type": "cabin.report",
+          "contains": "cabin.empty"
+        },
         "trigger": {
           "source": "session",
           "type": "cabin.empty",
@@ -4797,6 +4852,51 @@
         ]
       },
       "notes": "ADR-0019 §3 (audit row A7). Speech FoSide.FmsPlanReminderService: ILegBoundaryEvents.LegBegan with From == Turnaround, FmsPlanWatcher.Origin/Destination against the new OfpStore plan (pure ShouldRemind). One per leg by construction (the leg-began edge fires once per plan). Read-and-speak only."
+    },
+    {
+      "id": "abnormal-condition-fault-once",
+      "issue": 228,
+      "state": "open",
+      "kind": "assert-absent",
+      "machine": {
+        "kind": "duplicate-within",
+        "type": "log.warning",
+        "key": "message",
+        "windowSeconds": 86400,
+        "where": {
+          "message": "condition cannot be evaluated"
+        }
+      },
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "Issue #228 (code review 2026-11-03): FailureMonitor swallowed every exception from a trigger's condition evaluation and treated the condition as not met, so a 'conditions' list with a null child, a dataref name the subscription table refuses, or a subscription disposed under the monitor made that abnormal silently 'never fires' for the whole session. The session log mirrors ILogger Warning+ as 'log.warning' events {component, message, exceptionType}.",
+        "assert-absent: two 'log.warning' events from component FailureMonitor whose message reads 'Abnormal <id> condition cannot be evaluated — treated as not met until the abnormals reload: <condition>' for the SAME <id> (same message text) within one session without an abnormals reload between them ('Loaded N abnormal definitions' in the log) — the once-per-definition set failed and the 2 Hz tick is writing the line every 500 ms.",
+        "assert-present (only when such a warning exists): the warning names the abnormal id and spells the condition the way the JSON reads it ('system.gauge.X GreaterThan 0', '(a Equals 1 OR null)'), carries the exception type (System.ArgumentNullException for a null child, System.InvalidOperationException / System.ArgumentException for a refused dataref) and NO 'failure.detected' / 'abnormal.started' for that id follows while the condition stays unreadable — fail-closed, as a malformed leaf always was.",
+        "assert-present after an abnormals reload with the same broken file: exactly one more warning for the id (the set clears on Load — a corrected file that still fails is reported again, a silent file is not).",
+        "watch: any 'log.warning' from FailureMonitor reading 'condition cannot be evaluated' at all on a shipped (unedited) abnormal file — the shipped seeds must never trip this; quote the id and the exception type (a user-edited file under %LOCALAPPDATA%\\ProsimCompanion\\config\\abnormals is the expected origin)."
+      ],
+      "notes": "Fixed 2026-11-03 (issue #228, audit-speech finding 8): FailureMonitor.EvaluateTrigger catches exactly ArgumentException / InvalidOperationException / ObjectDisposedException (what ConditionEvaluator and the dataref subscription path can throw), keeps condHit = false and calls NoteConditionFault — a per-definition HashSet cleared in Load(); DescribeCondition renders the tree for the line. Tests FailureMonitorConditionFaultTests (once across 20 ticks, reload re-arms, null child names the tree). Unverified live; the machine block flags a repeated identical warning message within a day."
+    },
+    {
+      "id": "greeting-band-one-source",
+      "issue": 229,
+      "state": "open",
+      "kind": "assert-absent",
+      "sources": [
+        "session"
+      ],
+      "checks": [
+        "Issue #229 (code review 2026-11-03): CruiseSmallTalkService derived its 'local morning' as 'before noon' on its own, so 00:00–03:59 was morning to small talk while TimeOfDayGreeting (the briefing, the gate intro, the FO radios check-in) called the same hour evening. One source now: Core TimeOfDayGreeting.IsMorning / Word / Phrase. The bands: morning 04:00–11:59, afternoon 12:00–17:59, evening 18:00–03:59 — judged on the SIM local hour (the gate card / loadsheet zulu clock plus the airport's offset), never the PC clock.",
+        "assert-absent: any spoken text — 'briefing.spoken' narrative, 'persona.gateIntro' text, 'smalltalk.spoken' text, 'sayintentions.checkin' transmit, or a 'speech.spoken' tagged briefing.* / roster-intro* / smalltalk.* — that opens or greets with 'Good morning' / 'Morning captain' / talks about 'this morning' while the sim-local hour is in the night band (18:00–03:59), and the reverse: 'Good evening' / 'Evening captain' / 'Good afternoon' while the sim-local hour is 04:00–11:59. The 00:00–03:59 window is the one the old small-talk test got wrong.",
+        "assert-present: within one hour of sim time, the briefing.spoken timeOfDay, the persona.gateIntro timeOfDay and the greeting word inside the sayintentions.checkin transmit (when each exists) are the same word — three readers of ISimLocalTime through one helper cannot disagree.",
+        "assert-absent: a 'smalltalk.spoken' whose text mentions the morning ('this morning', 'morning light', 'morning sun') while the sim-local clock at the event is before 04:00 or after 11:59 — the bank's 'local morning' context is TimeOfDayGreeting.IsMorning now.",
+        "watch: a greeting word while the sim clock was unknown (LOCAL TIME SimVar stale > 30 s or unregistered, timeOfDay null on briefing.spoken / persona.gateIntro) — every reader must drop the greeting rather than guess; report with the subsystem-status around the event.",
+        "requires-human: the FO's small-talk line about the view at an overnight cruise did not sound like a morning remark."
+      ],
+      "notes": "Fixed 2026-11-03 (issue #229, audit-speech finding 9 / B10). Core TimeOfDayGreeting: IsMorning(TimeSpan) (Word == Morning), Phrase(word) ('Good ' + word), constants Morning/Afternoon/Evening; CruiseSmallTalkService.IsLocalMorning (pure, internal) replaces the 'TotalHours < 12' test; BriefingComposer.Opening, SystemPrompt and FixGreeting compose through Phrase; FoRosterVoiceFeature already took its word from TimeOfDayGreeting.Word (its casual 'Morning captain' form is unchanged). Tests: SimLocalTimeTests (band edges minute-exact, Phrase), SmallTalkCoreTests (IsLocalMorning at every edge, null clock). Companion to briefing-greeting-sim-clock (2026-10-29), which covers the briefing alone. Unverified live."
     }
   ]
 }
