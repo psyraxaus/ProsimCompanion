@@ -47,3 +47,10 @@ internal sealed record DecrementConfirmCooldownEffect : PushbackTickEffect;
 
 /// <summary>Attempt the "Confirm good engine start" menu pick (issue #106).</summary>
 internal sealed record ConfirmEngineStartEffect : PushbackTickEffect;
+
+/// <summary>Remember the <c>PUSHBACK_STATUS</c> value just read.</summary>
+internal sealed record SetLastPushbackStatusEffect(double Value) : PushbackTickEffect;
+
+/// <summary>One pushback milestone for the crew's voice (owner request 2026-11-07, plan V2):
+/// raised on <see cref="ProsimCompanion.Core.State.GroundOpsSignals.PushbackProgress"/>.</summary>
+internal sealed record PushbackStageEffect(ProsimCompanion.Core.State.PushbackStage Stage) : PushbackTickEffect;

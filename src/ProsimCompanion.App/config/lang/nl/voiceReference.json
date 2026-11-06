@@ -279,6 +279,11 @@
         "title": "Boarding",
         "boarding": "Boarding — de FO vraagt het aan, de purser bevestigt."
       },
+      "pushbackCrew": {
+        "title": "Pushbackploeg",
+        "ready": "Meldt de platformmedewerker dat u klaar bent; de trekker komt als GSX hem stuurt.",
+        "brakes": "Antwoordt op het 'release parking brake' van de ploeg - de pushbackvrijgave volgt, met de richting van deze vlucht."
+      },
       "hailGround": {
         "title": "De grondcrew oproepen",
         "how": "Roep op en zeg dan in het venster een willekeurige grondservicezin.",

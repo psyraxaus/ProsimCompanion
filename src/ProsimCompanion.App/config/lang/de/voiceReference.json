@@ -279,6 +279,11 @@
         "title": "Boarding",
         "boarding": "Boarding — der FO fordert es an, der Purser bestätigt."
       },
+      "pushbackCrew": {
+        "title": "Pushback-Crew",
+        "ready": "Sagt dem Rampenagenten, dass Sie bereit sind; der Schlepper kommt, wenn GSX ihn schickt.",
+        "brakes": "Antwortet auf das 'release parking brake' der Crew - die Pushback-Freigabe folgt, mit der Richtung dieses Flugs."
+      },
       "hailGround": {
         "title": "Die Bodencrew rufen",
         "how": "Rufen, dann im Fenster eine beliebige Bodendienst-Phrase sagen.",

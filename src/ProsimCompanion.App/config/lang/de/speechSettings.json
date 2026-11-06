@@ -407,6 +407,34 @@
     "groundCrew": {
       "title": "Bodencrew",
       "hint": "Die Bodencrew anrufen und ihre Rufe hören",
+      "pushbackCrew": {
+        "title": "Pushback-Crew",
+        "hint": "Der Rampenagent begleitet den Pushback über die Interphone",
+        "enabled": {
+          "hint": "Brücke weg und Türen geprüft, Schlepper verbunden mit der Bitte um die Bremsen, Pushback frei mit der Richtung dieses Flugs, Triebwerksstart frei, Pushback beendet, guter Start bestätigt, Pin raus und frei.",
+          "more": "Eine Zeile pro Schritt des GSX-Pushbacks, jede einmal. Gesprochen mit der Bodenstimme und dem Interphone-Klang; MECH-Ruf, INT gewählt oder die Wartezeit gelten wie bei den Anrufen. Schalten Sie die Rampencrew in SayIntentions und das Crew-Audio von GSX aus, damit nur eine Crew spricht."
+        },
+        "brakesCheck": {
+          "label": "Nach den Bremsen fragen",
+          "hint": "Wenn der Schlepper verbunden ist, bittet die Crew um das Lösen der Parkbremse und wartet auf Ihr 'brakes released', bevor sie den Pushback freigibt. Aus: die Freigabe kommt mit dem Beginn des Pushbacks."
+        },
+        "engineStartClearance": {
+          "label": "Triebwerksstart freigeben",
+          "hint": "'Clear to start engines' mit der Pushback-Freigabe - der A320 startet während des Pushbacks."
+        },
+        "wording": {
+          "bridgeRemoved": "Brücke entfernt",
+          "tugConnected": "Schlepper verbunden",
+          "brakesRequest": "Bitte um die Bremsen",
+          "clearedToPush": "Pushback frei ({direction})",
+          "pushing": "Pushback läuft ({direction})",
+          "engineStart": "Freigabe Triebwerksstart",
+          "pushComplete": "Pushback beendet",
+          "engineStartConfirmed": "Guter Start bestätigt",
+          "clear": "Frei, Handzeichen",
+          "readyAck": "Antwort auf 'ready for pushback'"
+        }
+      },
       "walkaround": {
         "title": "Walkaround",
         "hint": "Einmal pro Abflug, am Stand mit abgeschlossener Bodenvorbereitung, geht der FO ums Flugzeug und meldet sich über das Interphone zurück",

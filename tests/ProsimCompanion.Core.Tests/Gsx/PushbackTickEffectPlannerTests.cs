@@ -1,3 +1,4 @@
+using ProsimCompanion.Core.State;
 using ProsimCompanion.Gsx.Automation;
 using ProsimCompanion.Gsx.Sync;
 using Xunit;
@@ -61,6 +62,7 @@ public sealed class PushbackTickEffectPlannerTests
     private static PushbackLatchSnapshot Settled(
         GsxAutomationPhase lastResetPhase = GsxAutomationPhase.SessionStart,
         int lastVehicleState = 0,
+        double lastPushbackStatus = 0,
         PushbackTickCore.HookState? hookState = null,
         bool confirmed = false,
         int cooldown = 0)
@@ -68,6 +70,7 @@ public sealed class PushbackTickEffectPlannerTests
         {
             LastResetPhase = lastResetPhase,
             LastVehicleState = lastVehicleState,
+            LastPushbackStatus = lastPushbackStatus,
             HookState = hookState ?? PushbackTickCore.HookState.Initial,
             EngineStartConfirmed = confirmed,
             ConfirmCooldown = cooldown,
@@ -84,7 +87,7 @@ public sealed class PushbackTickEffectPlannerTests
     {
         var effects = Plan(Reading(vehicleState: 0), PushbackLatchSnapshot.Initial);
 
-        Assert.Equal([new SetLastVehicleStateEffect(0)], effects);
+        Assert.Equal([new SetLastVehicleStateEffect(0), new SetLastPushbackStatusEffect(0)], effects);
     }
 
     [Fact]
@@ -96,8 +99,56 @@ public sealed class PushbackTickEffectPlannerTests
             [
                 new PushbackDecisionEffect("pushback tug", "vehicle state 12 (awaiting good-engine-start confirmation); status=3"),
                 new SetLastVehicleStateEffect(12),
+                new SetLastPushbackStatusEffect(3),
+                new PushbackDecisionEffect("pushback tug", "pushback status 3"),
+                new PushbackStageEffect(PushbackStage.TugConnected),
             ],
             effects);
+    }
+
+    // ---- the crew's stages (owner request 2026-11-07, plan V2) ----
+
+    [Theory]
+    [InlineData(8, PushbackStage.Pushing)]
+    [InlineData(11, PushbackStage.PushComplete)]
+    [InlineData(13, PushbackStage.Disconnecting)]
+    [InlineData(14, PushbackStage.Clear)]
+    public void VehicleStateEdge_RaisesTheCrewStage_AfterTheLatch(int state, PushbackStage stage)
+    {
+        var effects = Plan(Reading(vehicleState: state), Settled(lastVehicleState: 1));
+
+        Assert.Equal(new SetLastVehicleStateEffect(state), effects[1]);
+        Assert.Equal(new PushbackStageEffect(stage), effects[2]);
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(12)]
+    public void VehicleStates_NobodySpeaksOn_RaiseNoStage(int state)
+        => Assert.DoesNotContain(Plan(Reading(vehicleState: state), Settled(lastVehicleState: 0)), e => e is PushbackStageEffect);
+
+    [Fact]
+    public void FirstReadOfAPushingTug_LatchesWithoutAStage_SoARestartNeverReplaysTheLines()
+    {
+        var effects = Plan(Reading(vehicleState: 8, pushbackStatus: 3), PushbackLatchSnapshot.Initial);
+
+        Assert.DoesNotContain(effects, e => e is PushbackStageEffect);
+        Assert.Contains(new SetLastPushbackStatusEffect(3), effects);
+    }
+
+    [Theory]
+    [InlineData(0, 3, true)]
+    [InlineData(0, 4, true)]
+    [InlineData(3, 4, false)]  // still connected — no second line
+    [InlineData(0, 1, false)]  // called, not yet connected
+    [InlineData(3, 0, false)]
+    public void PushbackStatusEdge_RaisesTugConnected_OnceOnTheWayIn(double last, double now, bool tugConnected)
+    {
+        var effects = Plan(Reading(pushbackStatus: now), Settled(lastPushbackStatus: last));
+
+        Assert.Contains(new SetLastPushbackStatusEffect(now), effects);
+        Assert.Contains(new PushbackDecisionEffect("pushback tug", $"pushback status {now:F0}"), effects);
+        Assert.Equal(tugConnected, effects.Contains(new PushbackStageEffect(PushbackStage.TugConnected)));
     }
 
     [Fact]
@@ -316,9 +367,27 @@ public sealed class PushbackTickEffectPlannerTests
 
         var effects = Plan(Reading(), tick: tick);
 
-        Assert.Equal(2, effects.Count);
         Assert.Equal(new PushbackDecisionEffect("pushback sequence", "closing doors; jetway/stairs retract in 3s"), effects[0]);
         Assert.IsType(effect, effects[1]);
+    }
+
+    /// <summary>The crew says "bridge is off, doors closed" (owner request 2026-11-07, plan V2): the
+    /// doors and jetway steps carry their stage after the action; the other steps do not.</summary>
+    [Theory]
+    [InlineData(PushbackAction.CloseDoors, PushbackStage.DoorsClosed)]
+    [InlineData(PushbackAction.RetractJetwayStairs, PushbackStage.BridgeRemoved)]
+    [InlineData(PushbackAction.RemoveGroundEquipment, null)]
+    [InlineData(PushbackAction.CallPushback, null)]
+    public void SequenceTick_DoorsAndJetwaySteps_CarryTheCrewStage(PushbackAction action, PushbackStage? stage)
+    {
+        var effects = Plan(Reading(), tick: new PushbackTickResult(action, null));
+
+        var stages = effects.OfType<PushbackStageEffect>().Select(e => e.Stage).ToArray();
+        Assert.Equal(stage is { } s ? [s] : [], stages);
+        if (stage is not null)
+        {
+            Assert.IsType<PushbackStageEffect>(effects[^1]);
+        }
     }
 
     [Fact]

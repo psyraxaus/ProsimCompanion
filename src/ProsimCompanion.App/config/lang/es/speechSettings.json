@@ -407,6 +407,34 @@
     "groundCrew": {
       "title": "Personal de tierra",
       "hint": "Llama al personal de tierra y escucha sus llamadas",
+      "pushbackCrew": {
+        "title": "Equipo de pushback",
+        "hint": "El agente de rampa acompaña el pushback por el interfono",
+        "enabled": {
+          "hint": "Pasarela retirada y puertas comprobadas, tractor conectado con la petición de frenos, pushback autorizado con la dirección de este vuelo, arranque de motores autorizado, pushback terminado, buen arranque confirmado, pin fuera y libre.",
+          "more": "Una frase por paso del pushback de GSX, cada una una vez. Hablada con la voz de tierra y el timbre del interfono; la llamada MECH, INT seleccionado o la espera se aplican como en las llamadas. Apague el equipo de rampa en SayIntentions y el audio del equipo de GSX para que hable un solo equipo."
+        },
+        "brakesCheck": {
+          "label": "Pedir los frenos",
+          "hint": "Cuando el tractor se conecta, el equipo pide soltar el freno de estacionamiento y espera su 'brakes released' antes de autorizar el pushback. Apagado: la autorización llega al empezar el pushback."
+        },
+        "engineStartClearance": {
+          "label": "Autorizar el arranque",
+          "hint": "'Clear to start engines' con la autorización de pushback - el A320 arranca durante el pushback."
+        },
+        "wording": {
+          "bridgeRemoved": "Pasarela retirada",
+          "tugConnected": "Tractor conectado",
+          "brakesRequest": "Petición de frenos",
+          "clearedToPush": "Pushback autorizado ({direction})",
+          "pushing": "Empujando ({direction})",
+          "engineStart": "Autorización de arranque",
+          "pushComplete": "Pushback terminado",
+          "engineStartConfirmed": "Buen arranque confirmado",
+          "clear": "Libre, señal de mano",
+          "readyAck": "Respuesta a 'ready for pushback'"
+        }
+      },
       "walkaround": {
         "title": "Inspección exterior",
         "hint": "Una vez por salida, en el puesto con la preparación en tierra hecha, el FO inspecciona el avión e informa por el interfono",

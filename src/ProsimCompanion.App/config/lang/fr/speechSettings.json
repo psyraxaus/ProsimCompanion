@@ -407,6 +407,34 @@
     "groundCrew": {
       "title": "Personnel au sol",
       "hint": "Appelle le personnel au sol et entends ses appels",
+      "pushbackCrew": {
+        "title": "Équipe de repoussage",
+        "hint": "L'agent de piste commente le repoussage à l'interphone",
+        "enabled": {
+          "hint": "Passerelle retirée et portes vérifiées, tracteur connecté avec la demande des freins, repoussage autorisé avec la direction de ce vol, démarrage autorisé, repoussage terminé, bon démarrage confirmé, pion retiré et libre.",
+          "more": "Une phrase par étape du repoussage GSX, chacune une fois. Dite avec la voix sol et le timbre de l'interphone ; l'appel MECH, INT sélectionné ou le délai s'appliquent comme pour les appels. Coupez l'équipe de piste dans SayIntentions et l'audio d'équipe de GSX pour qu'une seule équipe parle."
+        },
+        "brakesCheck": {
+          "label": "Demander les freins",
+          "hint": "Quand le tracteur est connecté, l'équipe demande de relâcher le frein de parc et attend votre 'brakes released' avant d'autoriser le repoussage. Désactivé : l'autorisation vient au début du repoussage."
+        },
+        "engineStartClearance": {
+          "label": "Autoriser le démarrage",
+          "hint": "'Clear to start engines' avec l'autorisation de repoussage - l'A320 démarre pendant le repoussage."
+        },
+        "wording": {
+          "bridgeRemoved": "Passerelle retirée",
+          "tugConnected": "Tracteur connecté",
+          "brakesRequest": "Demande des freins",
+          "clearedToPush": "Repoussage autorisé ({direction})",
+          "pushing": "Repoussage en cours ({direction})",
+          "engineStart": "Autorisation de démarrage",
+          "pushComplete": "Repoussage terminé",
+          "engineStartConfirmed": "Bon démarrage confirmé",
+          "clear": "Libre, signal manuel",
+          "readyAck": "Réponse à 'ready for pushback'"
+        }
+      },
       "walkaround": {
         "title": "Tour de l'avion",
         "hint": "Une fois par départ, au poste une fois la préparation sol terminée, le FO fait le tour de l'avion et rend compte à l'interphone",

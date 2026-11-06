@@ -64,6 +64,7 @@ public sealed partial class VoiceFeatureRosterTests
         (typeof(ProsimCompanion.Speech.Day.CompanyDayService), 190),
         (typeof(ProsimCompanion.Speech.SayIntentions.SayIntentionsService), 200),
         (typeof(GsxVoiceService), 210),
+        (typeof(ProsimCompanion.Speech.Crew.PushbackCrewService), 215), // "brakes released" / "ready for pushback" (owner request 2026-11-07)
         (typeof(PushbackDirectionVoiceFeature), 220),
         (typeof(ProsimCompanion.Speech.Crew.CrewHailService), 230),
         (typeof(ProsimCompanion.Speech.Crew.AircraftStateVoiceService), 240),

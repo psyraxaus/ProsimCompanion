@@ -407,6 +407,34 @@
     "groundCrew": {
       "title": "Ground Crew",
       "hint": "Hail the ground crew and hear their calls",
+      "pushbackCrew": {
+        "title": "Pushback Crew",
+        "hint": "The ramp agent talks the push through on the interphone",
+        "enabled": {
+          "hint": "Bridge off and doors checked, tug connected with the brakes request, cleared to push with this flight's direction, clear to start engines, push complete, good start confirmed, pin out and clear.",
+          "more": "One line per step of the GSX push, each once. Spoken in the ground voice with the intercom timbre; MECH call, INT selected or the grace apply as for the upcalls. Turn the ramp crew off in SayIntentions and GSX's own crew audio off so only one crew speaks."
+        },
+        "brakesCheck": {
+          "label": "Ask for the brakes",
+          "hint": "When the tug connects the crew asks you to release the parking brake and waits for your 'brakes released' before clearing the push. Off: the clearance comes as the push begins."
+        },
+        "engineStartClearance": {
+          "label": "Clear the engine start",
+          "hint": "'Clear to start engines' with the push clearance - the A320 starts during the push."
+        },
+        "wording": {
+          "bridgeRemoved": "Bridge removed",
+          "tugConnected": "Tug connected",
+          "brakesRequest": "Brakes request",
+          "clearedToPush": "Cleared to push ({direction})",
+          "pushing": "Pushing back ({direction})",
+          "engineStart": "Engine start clearance",
+          "pushComplete": "Pushback complete",
+          "engineStartConfirmed": "Good start confirmed",
+          "clear": "Clear, hand signal",
+          "readyAck": "Answer to 'ready for pushback'"
+        }
+      },
       "walkaround": {
         "title": "Walkaround",
         "hint": "Once per departure, at the stand with the ground prep done, the FO walks the aircraft and reports back on the interphone",

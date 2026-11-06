@@ -279,6 +279,11 @@
         "title": "Embarquement",
         "boarding": "Embarquement — l'OPL le demande, le chef de cabine confirme."
       },
+      "pushbackCrew": {
+        "title": "Équipe de repoussage",
+        "ready": "Indique à l'agent de piste que vous êtes prêt ; le tracteur arrive quand GSX l'envoie.",
+        "brakes": "Répond au 'release parking brake' de l'équipe - l'autorisation de repoussage suit, avec la direction de ce vol."
+      },
       "hailGround": {
         "title": "Appeler l'équipe au sol",
         "how": "Appelle, puis dis dans la fenêtre n'importe quelle phrase de services au sol.",

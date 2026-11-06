@@ -279,6 +279,11 @@
         "title": "Embarque",
         "boarding": "Embarque — el FO lo solicita, el sobrecargo confirma."
       },
+      "pushbackCrew": {
+        "title": "Equipo de pushback",
+        "ready": "Indica al agente de rampa que está listo; el tractor llega cuando GSX lo envía.",
+        "brakes": "Responde al 'release parking brake' del equipo - sigue la autorización de pushback, con la dirección de este vuelo."
+      },
       "hailGround": {
         "title": "Llamar al personal de tierra",
         "how": "Llama y di en la ventana cualquier frase de servicios de tierra.",

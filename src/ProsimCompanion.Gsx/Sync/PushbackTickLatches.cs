@@ -7,6 +7,7 @@ namespace ProsimCompanion.Gsx.Sync;
 /// <param name="LastResetPhase">The automation phase the sequence was last reset for.</param>
 /// <param name="LastVehicleState">Last <c>VEHICLE_PUSHBACK_STATE</c> logged; -1 = never read.</param>
 /// <param name="LastBypassPin">Last <c>BYPASS_PIN</c> logged.</param>
+/// <param name="LastPushbackStatus">Last <c>PUSHBACK_STATUS</c> read; -1 = never read (the tug-connected stage is an edge, never a first read).</param>
 /// <param name="HookState">The hook core's per-segment latches (tug attached, stairs removed, …).</param>
 /// <param name="EngineStartConfirmed">The good-engine-start confirmation is done (or given up) this push.</param>
 /// <param name="ConfirmAttempts">Failed confirmation picks so far.</param>
@@ -15,6 +16,7 @@ internal sealed record PushbackLatchSnapshot(
     GsxAutomationPhase LastResetPhase,
     int LastVehicleState,
     double LastBypassPin,
+    double LastPushbackStatus,
     PushbackTickCore.HookState HookState,
     bool EngineStartConfirmed,
     int ConfirmAttempts,
@@ -24,6 +26,7 @@ internal sealed record PushbackLatchSnapshot(
         LastResetPhase: GsxAutomationPhase.SessionStart,
         LastVehicleState: -1,
         LastBypassPin: 0,
+        LastPushbackStatus: -1,
         HookState: PushbackTickCore.HookState.Initial,
         EngineStartConfirmed: false,
         ConfirmAttempts: 0,
@@ -41,6 +44,7 @@ public sealed class PushbackTickLatches
     private GsxAutomationPhase _lastResetPhase = GsxAutomationPhase.SessionStart;
     private int _lastVehicleState = -1;
     private double _lastBypassPin;
+    private double _lastPushbackStatus = -1;
     private PushbackTickCore.HookState _hookState = PushbackTickCore.HookState.Initial;
     private bool _engineStartConfirmed;
     private int _confirmAttempts;
@@ -51,7 +55,7 @@ public sealed class PushbackTickLatches
         lock (_gate)
         {
             return new PushbackLatchSnapshot(
-                _lastResetPhase, _lastVehicleState, _lastBypassPin, _hookState,
+                _lastResetPhase, _lastVehicleState, _lastBypassPin, _lastPushbackStatus, _hookState,
                 _engineStartConfirmed, _confirmAttempts, _confirmCooldown);
         }
     }
@@ -69,6 +73,14 @@ public sealed class PushbackTickLatches
         lock (_gate)
         {
             _lastBypassPin = value;
+        }
+    }
+
+    public void SetLastPushbackStatus(double value)
+    {
+        lock (_gate)
+        {
+            _lastPushbackStatus = value;
         }
     }
 

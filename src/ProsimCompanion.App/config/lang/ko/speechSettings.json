@@ -407,6 +407,34 @@
     "groundCrew": {
       "title": "지상 승무원",
       "hint": "지상 승무원을 호출하고 그들의 호출을 듣습니다",
+      "pushbackCrew": {
+        "title": "푸시백 지상요원",
+        "hint": "램프 요원이 인터폰으로 푸시백을 안내합니다",
+        "enabled": {
+          "hint": "브리지 분리와 도어 확인, 토잉카 연결과 브레이크 해제 요청, 이 비행의 방향이 담긴 푸시백 허가, 엔진 시동 허가, 푸시백 완료, 정상 시동 확인, 핀 제거와 해방.",
+          "more": "GSX 푸시백의 단계마다 한 줄씩, 각각 한 번. 지상 음성과 인터폰 음색으로 말합니다. MECH 콜, INT 선택 또는 대기 시간은 업콜과 같습니다. SayIntentions의 램프 요원과 GSX 자체 요원 음성을 꺼서 한 요원만 말하게 하세요."
+        },
+        "brakesCheck": {
+          "label": "브레이크 요청",
+          "hint": "토잉카가 연결되면 요원이 파킹 브레이크 해제를 요청하고 당신의 'brakes released'를 기다린 뒤 푸시백을 허가합니다. 꺼짐: 허가는 푸시백이 시작될 때 나옵니다."
+        },
+        "engineStartClearance": {
+          "label": "엔진 시동 허가",
+          "hint": "푸시백 허가와 함께 'Clear to start engines' - A320은 푸시백 중에 시동합니다."
+        },
+        "wording": {
+          "bridgeRemoved": "브리지 분리",
+          "tugConnected": "토잉카 연결",
+          "brakesRequest": "브레이크 요청",
+          "clearedToPush": "푸시백 허가({direction})",
+          "pushing": "푸시백 진행({direction})",
+          "engineStart": "엔진 시동 허가",
+          "pushComplete": "푸시백 완료",
+          "engineStartConfirmed": "정상 시동 확인",
+          "clear": "해방, 수신호",
+          "readyAck": "'ready for pushback'에 대한 답"
+        }
+      },
       "walkaround": {
         "title": "워크어라운드",
         "hint": "출발마다 한 번, 지상 준비가 끝난 주기장에서 FO가 항공기를 돌아보고 인터폰으로 보고합니다",

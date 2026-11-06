@@ -34,6 +34,8 @@ public sealed class PushbackTickShellTests : IDisposable
     private readonly FakeGroundFactsSource _groundFacts = new();
     private readonly LoadsheetStore _loadsheets = new();
     private readonly GsxDiagnosticsStore _diagnostics = new();
+    private readonly GroundOpsSignals _signals = new();
+    private readonly List<PushbackStage> _stages = [];
     private readonly PushbackTickLatches _latches = new();
     private readonly GsxOptions _options = new();
     private readonly Dictionary<string, Mock<IDataRefSubscription>> _refs = new(StringComparer.Ordinal);
@@ -56,7 +58,8 @@ public sealed class PushbackTickShellTests : IDisposable
         _gatherer = new PushbackTickGatherer(
             _api.Object, _lifecycle.Object, _automation.Object, _ground.Object, simVars.Object,
             options.Object, _loadsheets, _flight.Object, _groundFacts);
-        _applier = new PushbackTickEffectApplier(_ground.Object, _slot.Object, _latches, _diagnostics, NullLogger<GsxPushbackSequenceService>.Instance);
+        _signals.PushbackProgress += _stages.Add;
+        _applier = new PushbackTickEffectApplier(_ground.Object, _slot.Object, _latches, _diagnostics, _signals, NullLogger<GsxPushbackSequenceService>.Instance);
     }
 
     public void Dispose() => _gatherer.Dispose();
@@ -205,6 +208,7 @@ public sealed class PushbackTickShellTests : IDisposable
         var state = new PushbackTickCore.HookState(true, true, false, false, false);
         _applier.Apply(new SetLastVehicleStateEffect(8));
         _applier.Apply(new SetLastBypassPinEffect(1));
+        _applier.Apply(new SetLastPushbackStatusEffect(3));
         _applier.Apply(new SetHookStateEffect(state));
         _latches.SetConfirmCooldown(2);
         _applier.Apply(new DecrementConfirmCooldownEffect());
@@ -212,12 +216,13 @@ public sealed class PushbackTickShellTests : IDisposable
         var snapshot = _latches.Snapshot();
         Assert.Equal(8, snapshot.LastVehicleState);
         Assert.Equal(1, snapshot.LastBypassPin);
+        Assert.Equal(3, snapshot.LastPushbackStatus);
         Assert.Equal(state, snapshot.HookState);
         Assert.Equal(1, snapshot.ConfirmCooldown);
 
         _applier.Apply(new ResetSegmentLatchesEffect(GsxAutomationPhase.Arrival));
         Assert.Equal(
-            PushbackLatchSnapshot.Initial with { LastResetPhase = GsxAutomationPhase.Arrival, LastVehicleState = 8, LastBypassPin = 1 },
+            PushbackLatchSnapshot.Initial with { LastResetPhase = GsxAutomationPhase.Arrival, LastVehicleState = 8, LastBypassPin = 1, LastPushbackStatus = 3 },
             _latches.Snapshot());
     }
 
@@ -285,7 +290,25 @@ public sealed class PushbackTickShellTests : IDisposable
         _applier.Apply(new ConfirmEngineStartEffect());
         await WaitUntilAsync(() => _latches.Snapshot().EngineStartConfirmed);
 
-        Assert.Equal("confirmed good engine start — tug clear to disconnect", Assert.Single(_diagnostics.Snapshot().RecentDecisions).Reason);
+        Assert.Equal(
+            ["stage EngineStartConfirmed", "confirmed good engine start — tug clear to disconnect"], // newest first
+            _diagnostics.Snapshot().RecentDecisions.Select(d => d.Reason).ToArray());
+        Assert.Equal([PushbackStage.EngineStartConfirmed], _stages);
+    }
+
+    /// <summary>The crew's voice (owner request 2026-11-07, plan V2): a stage effect reaches the
+    /// Core signal, with a decision line beside it; a throwing listener never breaks the tick.</summary>
+    [Fact]
+    public void StageEffect_RaisesTheCoreSignal_AndSurvivesAThrowingListener()
+    {
+        _signals.PushbackProgress += _ => throw new InvalidOperationException("listener");
+
+        _applier.Apply(new PushbackStageEffect(PushbackStage.TugConnected));
+        _applier.Apply(new PushbackStageEffect(PushbackStage.Pushing));
+
+        Assert.Equal([PushbackStage.TugConnected, PushbackStage.Pushing], _stages);
+        Assert.Equal(["stage Pushing", "stage TugConnected"], // newest first
+            _diagnostics.Snapshot().RecentDecisions.Select(d => d.Reason).ToArray());
     }
 
     [Fact]

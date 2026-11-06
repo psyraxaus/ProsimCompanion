@@ -54,6 +54,10 @@ public sealed class GroundCrewOptions : IOptionSection
     /// <summary>The FO's exterior walkaround (issue #196): off by default.</summary>
     public WalkaroundOptions Walkaround { get; set; } = new();
 
+    /// <summary>The pushback crew's voice (owner request 2026-11-07, plan V2): on by default, the
+    /// ramp agent talks the push through on the interphone.</summary>
+    public PushbackCrewOptions PushbackCrew { get; set; } = new();
+
     // ---- Wording (spoken verbatim in the GroundCrew role; {fuel} = tonnes on board) ----
 
     [OptionField(FieldKind.Text, "speechSettings.common.hailReply")]
@@ -111,4 +115,66 @@ public sealed class WalkaroundOptions
     /// filter). Off: spoken in the cockpit unfiltered, for a headset setup where INT is awkward.</summary>
     [OptionField(FieldKind.Bool, "speechSettings.groundCrew.walkaround.onInterphone", DependsOn = "Enabled")]
     public bool OnInterphone { get; set; } = true;
+}
+
+/// <summary>
+/// The pushback crew (owner request 2026-11-07, plan V2, <c>groundCrew.pushbackCrew</c>): the
+/// ramp agent on the interphone from the bridge coming off to the hand signal — bridge removed
+/// and doors checked, tug connected with the brakes-release request, the push clearance with
+/// the direction of this flight, the engine-start clearance, push complete, good start
+/// confirmed, pin out and clear. One line per <see cref="Core.State.PushbackStage"/>, each once
+/// per push; the GroundCrew role (voice, accent, intercom filter) and the INT gating of the
+/// upcalls. Lines are spoken verbatim; <c>{direction}</c> becomes "tail left" / "tail right" /
+/// "straight back" / the stand's slot label, or is dropped with its comma when unknown.
+/// </summary>
+public sealed class PushbackCrewOptions
+{
+    [OptionField(FieldKind.Bool, "speechSettings.groundCrew.pushbackCrew.enabled", Label = "speechSettings.common.enabled")]
+    public bool Enabled { get; set; } = true;
+
+    /// <summary>Ask "release parking brake" when the tug connects and wait for the captain's
+    /// "brakes released" before the push clearance; off: the crew reports the tug and the
+    /// clearance comes with the push itself.</summary>
+    [OptionField(FieldKind.Bool, "speechSettings.groundCrew.pushbackCrew.brakesCheck", DependsOn = "Enabled")]
+    public bool BrakesCheck { get; set; } = true;
+
+    /// <summary>Clear the engine start as the push begins (the A320 starts during the push).</summary>
+    [OptionField(FieldKind.Bool, "speechSettings.groundCrew.pushbackCrew.engineStartClearance", DependsOn = "Enabled")]
+    public bool EngineStartClearance { get; set; } = true;
+
+    // ---- Wording (GroundCrew role, verbatim) ----
+
+    [OptionField(FieldKind.Text, "speechSettings.groundCrew.pushbackCrew.wording.bridgeRemoved", DependsOn = "Enabled")]
+    public string BridgeRemovedText { get; set; } = "Cockpit, ground — bridge is off, all doors closed and checked.";
+
+    [OptionField(FieldKind.Text, "speechSettings.groundCrew.pushbackCrew.wording.tugConnected", DependsOn = "Enabled")]
+    public string TugConnectedText { get; set; } = "Cockpit, ground — tug connected, bypass pin inserted.";
+
+    /// <summary>Appended to the tug line when <see cref="BrakesCheck"/> is on.</summary>
+    [OptionField(FieldKind.Text, "speechSettings.groundCrew.pushbackCrew.wording.brakesRequest", DependsOn = "Enabled; BrakesCheck")]
+    public string BrakesRequestText { get; set; } = "Release parking brake, please.";
+
+    /// <summary>The answer to the captain's "brakes released".</summary>
+    [OptionField(FieldKind.Text, "speechSettings.groundCrew.pushbackCrew.wording.clearedToPush", DependsOn = "Enabled; BrakesCheck")]
+    public string ClearedToPushText { get; set; } = "Brakes released, copied. Cleared to push, {direction}.";
+
+    /// <summary>Spoken as the push begins when no clearance was given by voice.</summary>
+    [OptionField(FieldKind.Text, "speechSettings.groundCrew.pushbackCrew.wording.pushing", DependsOn = "Enabled")]
+    public string PushingText { get; set; } = "Pushing back, {direction}.";
+
+    [OptionField(FieldKind.Text, "speechSettings.groundCrew.pushbackCrew.wording.engineStart", DependsOn = "Enabled; EngineStartClearance")]
+    public string EngineStartText { get; set; } = "Clear to start engines.";
+
+    [OptionField(FieldKind.Text, "speechSettings.groundCrew.pushbackCrew.wording.pushComplete", DependsOn = "Enabled")]
+    public string PushCompleteText { get; set; } = "Pushback complete — set parking brake.";
+
+    [OptionField(FieldKind.Text, "speechSettings.groundCrew.pushbackCrew.wording.engineStartConfirmed", DependsOn = "Enabled")]
+    public string EngineStartConfirmedText { get; set; } = "Good start confirmed — disconnecting, stand by for the hand signal.";
+
+    [OptionField(FieldKind.Text, "speechSettings.groundCrew.pushbackCrew.wording.clear", DependsOn = "Enabled")]
+    public string ClearText { get; set; } = "Cockpit, ground — bypass pin removed, you are clear. Hand signal on your left — have a good flight.";
+
+    /// <summary>The answer to the captain's "ready for pushback".</summary>
+    [OptionField(FieldKind.Text, "speechSettings.groundCrew.pushbackCrew.wording.readyAck", DependsOn = "Enabled")]
+    public string ReadyAckText { get; set; } = "Copied — stand by for the tug.";
 }

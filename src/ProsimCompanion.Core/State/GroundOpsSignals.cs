@@ -111,6 +111,12 @@ public sealed class GroundOpsSignals
     }
 
     public void RaiseDeiceCompleted(int fluidType) => DeiceCompleted?.Invoke(fluidType);
+
+    /// <summary>One pushback milestone (owner request 2026-11-07, plan V2): raised by the GSX
+    /// pushback tick on the LVAR edge or the sequence step, spoken by the pushback crew.</summary>
+    public event Action<PushbackStage>? PushbackProgress;
+
+    public void RaisePushbackProgress(PushbackStage stage) => PushbackProgress?.Invoke(stage);
 }
 
 /// <summary>Why a <see cref="GroundOpsSignals.FlightCycleReset"/> was raised.</summary>

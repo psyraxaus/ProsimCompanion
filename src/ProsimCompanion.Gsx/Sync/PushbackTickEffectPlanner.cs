@@ -1,3 +1,4 @@
+using ProsimCompanion.Core.State;
 using ProsimCompanion.Gsx.Automation;
 
 namespace ProsimCompanion.Gsx.Sync;
@@ -43,6 +44,27 @@ internal static class PushbackTickEffectPlanner
                     $"vehicle state {reading.VehicleState} ({DescribeVehicleState(reading.VehicleState)}); status={reading.PushbackStatus:F0}"));
             }
             effects.Add(new SetLastVehicleStateEffect(reading.VehicleState));
+        }
+
+        // The crew's voice (owner request 2026-11-07, plan V2): a stage on the edge INTO a state,
+        // never on the first read — a restart mid-push must not replay the lines.
+        if (reading.VehicleState != latches.LastVehicleState && latches.LastVehicleState != -1
+            && StageForVehicleState(reading.VehicleState) is { } stage)
+        {
+            effects.Add(new PushbackStageEffect(stage));
+        }
+
+        if (Math.Abs(reading.PushbackStatus - latches.LastPushbackStatus) > 0.5)
+        {
+            effects.Add(new SetLastPushbackStatusEffect(reading.PushbackStatus));
+            if (latches.LastPushbackStatus != -1)
+            {
+                effects.Add(new PushbackDecisionEffect("pushback tug", $"pushback status {reading.PushbackStatus:F0}"));
+                if (TugConnected(reading.PushbackStatus) && !TugConnected(latches.LastPushbackStatus))
+                {
+                    effects.Add(new PushbackStageEffect(PushbackStage.TugConnected));
+                }
+            }
         }
 
         if (Math.Abs(reading.BypassPin - latches.LastBypassPin) > 0.5)
@@ -99,9 +121,11 @@ internal static class PushbackTickEffectPlanner
             {
                 case PushbackAction.CloseDoors:
                     effects.Add(new CloseDoorsEffect());
+                    effects.Add(new PushbackStageEffect(PushbackStage.DoorsClosed));
                     break;
                 case PushbackAction.RetractJetwayStairs:
                     effects.Add(new RetractJetwayStairsEffect());
+                    effects.Add(new PushbackStageEffect(PushbackStage.BridgeRemoved));
                     break;
                 case PushbackAction.RemoveGroundEquipment:
                     effects.Add(new RemoveGroundEquipmentEffect());
@@ -190,6 +214,20 @@ internal static class PushbackTickEffectPlanner
 
         effects.Add(new ConfirmEngineStartEffect());
     }
+
+    /// <summary><c>PUSHBACK_STATUS</c> 3/4 = tug connected (docs/integrations/gsx.md).</summary>
+    internal static bool TugConnected(double status) => status is >= 2.5 and < 4.5;
+
+    /// <summary>The crew-voice stage a <c>VEHICLE_PUSHBACK_STATE</c> value means; null for the
+    /// values nobody speaks on (12 is spoken when the confirmation goes in, not on arrival).</summary>
+    internal static PushbackStage? StageForVehicleState(int state) => state switch
+    {
+        8 => PushbackStage.Pushing,
+        11 => PushbackStage.PushComplete,
+        13 => PushbackStage.Disconnecting,
+        14 => PushbackStage.Clear,
+        _ => null,
+    };
 
     internal static string DescribeVehicleState(int state) => state switch
     {

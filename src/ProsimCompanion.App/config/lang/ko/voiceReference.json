@@ -279,6 +279,11 @@
         "title": "탑승",
         "boarding": "탑승 — FO가 요청하고 사무장이 확인합니다."
       },
+      "pushbackCrew": {
+        "title": "푸시백 지상요원",
+        "ready": "램프 요원에게 준비되었음을 알립니다. 토잉카는 GSX가 보낼 때 옵니다.",
+        "brakes": "요원의 'release parking brake'에 답합니다. 이 비행의 방향이 담긴 푸시백 허가가 이어집니다."
+      },
       "hailGround": {
         "title": "지상 요원 호출",
         "how": "호출한 뒤 창 안에서 지상 서비스 문구를 말하세요.",

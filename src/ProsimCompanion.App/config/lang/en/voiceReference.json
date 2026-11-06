@@ -279,6 +279,11 @@
         "title": "Boarding",
         "boarding": "Boarding — the FO requests it, the purser confirms."
       },
+      "pushbackCrew": {
+        "title": "Pushback crew",
+        "ready": "Tells the ramp agent you are ready; the tug comes when GSX sends it.",
+        "brakes": "Answers the crew's 'release parking brake' - the clearance to push follows, with this flight's direction."
+      },
       "hailGround": {
         "title": "Hail the ground crew",
         "how": "Hail, then say any ground-services phrase in the window.",

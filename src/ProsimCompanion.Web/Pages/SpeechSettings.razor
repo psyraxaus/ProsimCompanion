@@ -342,6 +342,25 @@ else if (CurrentSection == "groundCrew")
         <OptionField Draft="_groundCrew" For="o => o.CallOnCateringComplete" />
     </Section>
 
+    @* The pushback crew (owner request 2026-11-07, plan V2). *@
+    <Section Title="" Hint="">
+        <OptionField Draft="_groundCrew" For="o => o.PushbackCrew.Enabled" />
+        <OptionField Draft="_groundCrew" For="o => o.PushbackCrew.BrakesCheck" />
+        <OptionField Draft="_groundCrew" For="o => o.PushbackCrew.EngineStartClearance" />
+        <AdvancedFields>
+            <OptionField Draft="_groundCrew" For="o => o.PushbackCrew.BridgeRemovedText" />
+            <OptionField Draft="_groundCrew" For="o => o.PushbackCrew.TugConnectedText" />
+            <OptionField Draft="_groundCrew" For="o => o.PushbackCrew.BrakesRequestText" />
+            <OptionField Draft="_groundCrew" For="o => o.PushbackCrew.ClearedToPushText" />
+            <OptionField Draft="_groundCrew" For="o => o.PushbackCrew.PushingText" />
+            <OptionField Draft="_groundCrew" For="o => o.PushbackCrew.EngineStartText" />
+            <OptionField Draft="_groundCrew" For="o => o.PushbackCrew.PushCompleteText" />
+            <OptionField Draft="_groundCrew" For="o => o.PushbackCrew.EngineStartConfirmedText" />
+            <OptionField Draft="_groundCrew" For="o => o.PushbackCrew.ClearText" />
+            <OptionField Draft="_groundCrew" For="o => o.PushbackCrew.ReadyAckText" />
+        </AdvancedFields>
+    </Section>
+
     @* The FO's exterior walkaround (issue #196). *@
     <Section Title="@T["speechSettings.groundCrew.walkaround.title"]" Hint="@T["speechSettings.groundCrew.walkaround.hint"]">
         <OptionField Draft="_groundCrew" For="o => o.Walkaround.Enabled" />

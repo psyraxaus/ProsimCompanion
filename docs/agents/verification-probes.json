@@ -4411,6 +4411,35 @@
       "notes": "See scenario-fires-and-detects. The exit clear runs in ScenarioService.StopAsync (IHostedService) AFTER the module host disposed the service (review 2026-11-05: the write lock is no longer disposed, so the clear can run); the startup clear-all waits for the ProSim connected edge (it used to run before any session existed and never retried); the ARRIVAL flight-cycle reset clears on GroundOpsSignals.FlightCycleReset (a new-plan reset keeps a Planned plan); all verify by re-reading getArmedFailures(). See scenario-turnaround-leg-planned. Unverified live."
     },
     {
+      "id": "pushback-crew-dialogue",
+      "issue": 0,
+      "state": "fixed-unverified",
+      "kind": "watch",
+      "machine": {
+        "kind": "required-fields",
+        "type": "ground.pushback.crew",
+        "fields": [
+          "line",
+          "text"
+        ]
+      },
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "Owner request 2026-11-07 (plan V2, 'one stop shop'): the ramp crew's voice is ours. The GSX pushback tick raises one PushbackStage per LVAR edge — PUSHBACK_STATUS into 3/4 → TugConnected; VEHICLE_PUSHBACK_STATE into 8 → Pushing, 11 → PushComplete, 13 → Disconnecting, 14 → Clear; the state-12 confirmation going in → EngineStartConfirmed; the beacon sequence's doors and jetway steps → DoorsClosed / BridgeRemoved. Each stage is a gsx-decision 'pushback crew: stage X' and the pushback crew service speaks one line per stage in the GroundCrew role on the interphone (MECH press only on the lines that open a call: bridge, tug, clear; INT latch or grace as for the upcalls).",
+        "assert-present (beacon sequence on): ground.pushback.crew {line: bridge} after the sequence's jetway step ('jetway/stairs' transition in the gsx-decision log); {line: tug} after 'pushback status 3' or '4'; then EITHER {line: cleared, heard: 'brakes released' or a sibling} before 'vehicle state 8' OR {line: pushing} right after it — never both; {line: complete} after 'vehicle state 11'; {line: confirmed} after 'confirmed good engine start'; {line: clear} after 'vehicle state 14'.",
+        "assert-absent: the same line twice in one push (every line is latched once; a second push on the same leg — a tug called back — starts the script over after Clear).",
+        "assert-absent: any ground.pushback.crew line whose stage was the FIRST tug read after an app start (the planner raises stages on edges only: LastVehicleState / LastPushbackStatus -1 → no stage). A restart mid-push stays silent until the next edge.",
+        "assert-absent: a ground.pushback.crew {line: cleared} with no preceding {line: tug} carrying the brakes request (the captain's 'brakes released' is answered only while the question stands; otherwise the router's did-not-catch line follows, and 'released' on its own is never swallowed).",
+        "watch: the tug line's timing against GSX's own 'release parking brake' audio and SayIntentions' ramp crew — the rig steps are the owner's (ramp crew off in SayIntentions, GSX crew audio off); if both still speak, note which one and when.",
+        "watch: the direction in the cleared/pushing text matches the PushbackChoiceStore's effective choice of the flight ('tail left' / 'tail right' / 'straight back' / the slot label) or is dropped cleanly when none was known ('Pushing back.').",
+        "requires-human: the sequence sounds like a real push — bridge off and doors checked, tug and brakes, cleared to push with the direction and the engine-start clearance, push complete / set parking brake, good start confirmed, pin out and the hand signal — in the ground voice with the intercom timbre, each line once, none talking over a callout."
+      ],
+      "notes": "Built 2026-11-07. Core PushbackStage + GroundOpsSignals.PushbackProgress; Gsx PushbackTickEffectPlanner (StageForVehicleState, TugConnected on PUSHBACK_STATUS 3/4, DoorsClosed/BridgeRemoved on the sequence actions, LastPushbackStatus latch) and PushbackTickEffectApplier.RaiseStage (decision line + signal, EngineStartConfirmed on the confirm success); Speech PushbackCrewCore (pure script) + PushbackCrewService (IStartupModule + IVoiceFeature at precedence 215: 'ready for pushback' ack, 'brakes released' while the question stands). Options groundCrew.pushbackCrew.* (enabled, brakesCheck, engineStartClearance, ten texts with {direction}) on the Ground Crew card, texts in all seven packs; drawer group pushbackCrew. Tests PushbackCrewCoreTests, PushbackTickEffectPlannerTests (stage theories), PushbackTickShellTests. Unverified live — the next flight is the check; VEHICLE_PUSHBACK_STATE 11's meaning ('wait-shutdown' in gsx.md) is read as 'push complete' and must be confirmed from the decision log."
+    },
+    {
       "id": "voice-intent-tier",
       "issue": 0,
       "state": "fixed-unverified",

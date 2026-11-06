@@ -407,6 +407,34 @@
     "groundCrew": {
       "title": "地上クルー",
       "hint": "地上クルーを呼び出し、その呼び出しを聞く",
+      "pushbackCrew": {
+        "title": "プッシュバック担当",
+        "hint": "ランプ係員がインターホンでプッシュバックを案内します",
+        "enabled": {
+          "hint": "ブリッジ離脱とドア確認、トーイングカー接続とブレーキ解除の依頼、この便の方向付きのプッシュバック許可、エンジン始動許可、プッシュバック完了、始動良好の確認、ピン抜去と解放。",
+          "more": "GSXのプッシュバックの各段階につき一行、各一回。地上の声とインターホンの音色で話します。MECHコール、INT選択または待ち時間はアップコールと同じです。SayIntentionsのランプ係員とGSX自身の係員音声を切り、話す係員を一つにしてください。"
+        },
+        "brakesCheck": {
+          "label": "ブレーキを求める",
+          "hint": "トーイングカー接続時に係員がパーキングブレーキの解除を求め、あなたの 'brakes released' を待ってからプッシュバックを許可します。オフ：許可はプッシュバック開始と同時に出ます。"
+        },
+        "engineStartClearance": {
+          "label": "エンジン始動を許可",
+          "hint": "プッシュバック許可と共に 'Clear to start engines' - A320はプッシュバック中に始動します。"
+        },
+        "wording": {
+          "bridgeRemoved": "ブリッジ離脱",
+          "tugConnected": "トーイングカー接続",
+          "brakesRequest": "ブレーキ依頼",
+          "clearedToPush": "プッシュバック許可（{direction}）",
+          "pushing": "プッシュバック中（{direction}）",
+          "engineStart": "エンジン始動許可",
+          "pushComplete": "プッシュバック完了",
+          "engineStartConfirmed": "始動良好確認",
+          "clear": "解放、手信号",
+          "readyAck": "'ready for pushback' への返答"
+        }
+      },
       "walkaround": {
         "title": "ウォークアラウンド",
         "hint": "出発ごとに 1 回、地上準備が終わったスタンドで FO が機体を一周点検し、インターホンで報告します",

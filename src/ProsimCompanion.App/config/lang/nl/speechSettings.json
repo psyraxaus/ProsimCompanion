@@ -407,6 +407,34 @@
     "groundCrew": {
       "title": "Grondcrew",
       "hint": "Roep de grondcrew op en hoor hun oproepen",
+      "pushbackCrew": {
+        "title": "Pushbackploeg",
+        "hint": "De platformmedewerker begeleidt de pushback over de interfoon",
+        "enabled": {
+          "hint": "Brug weg en deuren gecontroleerd, trekker aangekoppeld met het verzoek om de remmen, pushback vrij met de richting van deze vlucht, motorstart vrij, pushback voltooid, goede start bevestigd, pin eruit en vrij.",
+          "more": "Eén regel per stap van de GSX-pushback, elk eenmaal. Gesproken met de grondstem en de interfoonklank; MECH-oproep, INT geselecteerd of de wachttijd gelden zoals bij de oproepen. Zet de platformploeg in SayIntentions en de eigen ploegaudio van GSX uit zodat maar één ploeg spreekt."
+        },
+        "brakesCheck": {
+          "label": "Om de remmen vragen",
+          "hint": "Als de trekker is aangekoppeld vraagt de ploeg de parkeerrem los te zetten en wacht op uw 'brakes released' voordat de pushback wordt vrijgegeven. Uit: de vrijgave komt zodra de pushback begint."
+        },
+        "engineStartClearance": {
+          "label": "Motorstart vrijgeven",
+          "hint": "'Clear to start engines' met de pushbackvrijgave - de A320 start tijdens de pushback."
+        },
+        "wording": {
+          "bridgeRemoved": "Brug verwijderd",
+          "tugConnected": "Trekker aangekoppeld",
+          "brakesRequest": "Verzoek om de remmen",
+          "clearedToPush": "Pushback vrij ({direction})",
+          "pushing": "Pushback bezig ({direction})",
+          "engineStart": "Vrijgave motorstart",
+          "pushComplete": "Pushback voltooid",
+          "engineStartConfirmed": "Goede start bevestigd",
+          "clear": "Vrij, handsignaal",
+          "readyAck": "Antwoord op 'ready for pushback'"
+        }
+      },
       "walkaround": {
         "title": "Walkaround",
         "hint": "Eén keer per vertrek, aan de stand met de grondvoorbereiding klaar, loopt de FO om het vliegtuig en meldt zich terug via de interfoon",

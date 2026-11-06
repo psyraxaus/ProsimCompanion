@@ -23,6 +23,7 @@ public sealed class PushbackTickEffectApplier : IPushbackTickEffectApplier
     private readonly IGsxTriggerSlot _slot;
     private readonly PushbackTickLatches _latches;
     private readonly GsxDiagnosticsStore _diagnostics;
+    private readonly GroundOpsSignals _signals;
     private readonly ILogger<GsxPushbackSequenceService> _logger;
     private int _confirming;
 
@@ -31,17 +32,20 @@ public sealed class PushbackTickEffectApplier : IPushbackTickEffectApplier
         IGsxTriggerSlot slot,
         PushbackTickLatches latches,
         GsxDiagnosticsStore diagnostics,
+        GroundOpsSignals signals,
         ILogger<GsxPushbackSequenceService> logger)
     {
         ArgumentNullException.ThrowIfNull(ground);
         ArgumentNullException.ThrowIfNull(slot);
         ArgumentNullException.ThrowIfNull(latches);
         ArgumentNullException.ThrowIfNull(diagnostics);
+        ArgumentNullException.ThrowIfNull(signals);
         ArgumentNullException.ThrowIfNull(logger);
         _ground = ground;
         _slot = slot;
         _latches = latches;
         _diagnostics = diagnostics;
+        _signals = signals;
         _logger = logger;
     }
 
@@ -61,6 +65,12 @@ public sealed class PushbackTickEffectApplier : IPushbackTickEffectApplier
                 break;
             case SetLastBypassPinEffect pin:
                 _latches.SetLastBypassPin(pin.Value);
+                break;
+            case SetLastPushbackStatusEffect status:
+                _latches.SetLastPushbackStatus(status.Value);
+                break;
+            case PushbackStageEffect stage:
+                RaiseStage(stage.Stage);
                 break;
             case ResetSegmentLatchesEffect reset:
                 _latches.ResetForSegment(reset.Phase);
@@ -160,6 +170,7 @@ public sealed class PushbackTickEffectApplier : IPushbackTickEffectApplier
                 {
                     _latches.MarkEngineStartConfirmed();
                     RecordDecision("pushback tug", "confirmed good engine start — tug clear to disconnect");
+                    RaiseStage(PushbackStage.EngineStartConfirmed);
                     return;
                 }
 
@@ -188,6 +199,22 @@ public sealed class PushbackTickEffectApplier : IPushbackTickEffectApplier
                 Interlocked.Exchange(ref _confirming, 0);
             }
         });
+    }
+
+    /// <summary>One pushback milestone for the crew's voice (owner request 2026-11-07, plan V2):
+    /// a decision line for the diagnostics, then the Core signal — a listener that throws must
+    /// never break the tick.</summary>
+    private void RaiseStage(PushbackStage stage)
+    {
+        RecordDecision("pushback crew", $"stage {stage}");
+        try
+        {
+            _signals.RaisePushbackProgress(stage);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Pushback stage {Stage} listener failed", stage);
+        }
     }
 
     private void RecordDecision(string action, string reason)

@@ -257,6 +257,10 @@ public static class SpeechServiceCollectionExtensions
         services.AddSingleton<Crew.IAcpChannel>(p => p.GetRequiredService<Crew.AcpChannel>());
         services.AddVoiceFeature<Crew.CrewHailService>();
         services.AddStartupModule<Crew.GroundCrewUpcallService>();
+        // The pushback crew (owner request 2026-11-07, plan V2): one line per pushback stage on
+        // the interphone, and the captain's "brakes released" / "ready for pushback" answered.
+        services.AddStartupModule<Crew.PushbackCrewService>();
+        services.AddVoiceFeature<Crew.PushbackCrewService>();
         // Cold-and-dark mismatch advisory (issue #63): speaks the aircraft state check's
         // verdict, consumed from the Core diagnostics store — no GSX project reference.
         services.AddStartupModule<Crew.AircraftStateAdvisoryService>();
