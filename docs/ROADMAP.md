@@ -1185,6 +1185,33 @@ twelve defects. Tracking issue #224; one sub-issue each, fixed on `fix/code-revi
       added since October, the feature inventory, `parity-backlog.md` retired, the two design
       notes that lived in an untracked folder moved under `docs/`, every screenshot retaken.
 
+## Phase 15 — Branch review fix batch (1.0.0-rc.4)
+
+A two-axis review of the whole November branch on 2026-11-05 (`docs/reviews/2026-11-05/README.md`:
+four standards reports, three spec reports, a services-and-loops model and a twelve-pathway
+model) proposed seven fix packages; all seven are in rc.4, on `fix/branch-review-2026-11-05`:
+
+- [x] P1 scenario mode runs on every leg and only where the catalogue allows (one roll per leg,
+      the new-plan reset keeps a Planned plan, a refused arm spends the plan, the exit clear
+      survives the module host's dispose, the startup clear-all waits for ProSim, the roll hold
+      and the floor in every phase, `afterEvent` in `scenarios.json`).
+- [x] P2 duty-day edges (ADR-0019 amendments): no day re-opens after the end of duty, the end
+      keeps the plan id, boarding is the bar for the new-plan reset, the cross-check starts
+      disarmed in a turnaround, End duty day on the Flight Status hero, the roster pins the FO
+      from the moment they are the day's FO.
+- [x] P3 one definition each: the reset kind travels with the event, GSX takes "new leg" from
+      the leg boundary, the snapshot compares the plan identity, boarding evidence is one Core
+      store, "flight live" is one helper.
+- [x] P4 speech hygiene (first sentence, walkaround abandon reasons and outcome enum, named
+      dialogue-hold exemptions, the radios' transmit gate, tokens and observed faults).
+- [x] P5 standards sweep, P6 shared shapes (`JsonStateFile<T>`, `UserConfigFileBank<T>`, the
+      interphone ring, the GSX departure reset, `ScenarioDecisionService`,
+      `SmallTalkContextSource`), P7 verification debt (probes, the per-language pack guard, the
+      mic clock seam, the transition reminder shell test, fifteen backfilled changelog sections).
+- [ ] Still owed: shell tests for `CruiseSmallTalkService` and `GsxAutomationService`; a live
+      recording of a restart after boarding; the owner's decision on the `fixed-unverified`
+      probe state; the whole batch is **unflown**.
+
 ## Open items (after the code review, 2026-11-03)
 
 Nothing on this roadmap is open as code. What remains:
