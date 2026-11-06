@@ -372,6 +372,9 @@ public static class SpeechServiceCollectionExtensions
         services.AddVoiceFeature<Scenarios.ScenarioService>();
         services.AddSingleton<Core.Commands.Handlers.IScenarioControl>(p => p.GetRequiredService<Scenarios.ScenarioService>());
         services.AddSingleton(Scenarios.ScenarioDecisionPhrases.Table);
+        // The intent tier (owner request 2026-11-07): the language model picks one phrase of the
+        // live vocabulary when nothing matched; speech.intentTier says off | confirm | auto.
+        services.AddSingleton<Recognition.ICommandIntentResolver, Recognition.LlmCommandIntentResolver>();
         services.AddSingleton<UtteranceRouter>();
         services.AddStartupModule<SpokenChecklistEngine>();
         // WoL used to hide in the retired bootstrap (campaign #87).

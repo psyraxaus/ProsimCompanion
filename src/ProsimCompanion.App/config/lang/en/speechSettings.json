@@ -252,6 +252,11 @@
         "hint": "How close a heard phrase must be to a known one before the FO acts on it.",
         "more": "0.5 Levenshtein + 0.5 DoubleMetaphone. Lower hears more, mis-hears more."
       },
+      "intentTier": {
+        "label": "Free wording (language model)",
+        "hint": "When no known phrase matches, the model picks the phrase you meant. Confirm asks “did you mean …?” before anything moves; Act at once does it straight away.",
+        "more": "Runs only with the LAN speech engine and a configured, healthy model. Read-only lines (readouts, the cross-check) never ask."
+      },
       "confirmBelow": {
         "label": "Ask 'did you mean' below",
         "hint": "A match between the score above and this one makes the FO ask 'Did you mean …?' instead of acting.",
@@ -1599,6 +1604,11 @@
         "allow": "Allow (speak normally)",
         "defer": "Defer (replay when sterile ends)",
         "suppress": "Suppress (drop)"
+      },
+      "intentTier": {
+        "off": "Off",
+        "confirm": "Confirm first (did you mean …?)",
+        "auto": "Act at once"
       },
       "apiKeySource": {
         "auto": "Auto (from flight.json)",

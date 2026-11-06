@@ -445,6 +445,15 @@ public sealed class SpeechOptions : IOptionSection
     [OptionField(FieldKind.Number, "speechSettings.listening.matchScore", Step = "0.05", Min = "0.3", Max = "1", Advanced = true)]
     public double SnappingThreshold { get; set; } = 0.7;
 
+    /// <summary>The intent tier (owner request 2026-11-07): when no phrase matched, the language
+    /// model picks ONE phrase of the live vocabulary the captain meant — or none. <c>off</c>;
+    /// <c>confirm</c> (default): the pick is read back as "did you mean …?" before anything
+    /// that writes to the aircraft or calls GSX fires (a read-only line fires at once);
+    /// <c>auto</c>: every pick fires. Runs only on the LAN engine with the model configured
+    /// and healthy, never while a dialogue holds the mic or in a sterile moment.</summary>
+    [OptionField(FieldKind.Select, "speechSettings.listening.intentTier", Choices = "intentTier", Normalize = FieldNormalization.TrimLower)]
+    public string IntentTier { get; set; } = "confirm";
+
     /// <summary>Interpreter acoustic gates (command windows only): reject when no_speech_prob
     /// is at/above the ceiling, or acoustic confidence below the floor (0 disables).</summary>
     public double NoSpeechCeiling { get; set; } = 0.6;

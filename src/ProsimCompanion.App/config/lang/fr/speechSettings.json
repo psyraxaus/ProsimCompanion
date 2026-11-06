@@ -252,6 +252,11 @@
         "hint": "À quel point une phrase entendue doit être proche d'une phrase connue avant que le copilote n'agisse.",
         "more": "0.5 Levenshtein + 0.5 DoubleMetaphone. Plus bas entend plus, se trompe plus."
       },
+      "intentTier": {
+        "label": "Formulation libre (modèle de langage)",
+        "hint": "Si aucune phrase connue ne correspond, le modèle choisit la phrase voulue. Confirmer demande d’abord « vous vouliez dire… ? » ; Agir aussitôt le fait directement.",
+        "more": "Uniquement avec le moteur vocal LAN et un modèle configuré et joignable. Les lignes en lecture seule (relevés, cross-check) ne demandent jamais."
+      },
       "confirmBelow": {
         "label": "Demander 'did you mean' en dessous de",
         "hint": "Une correspondance entre le score ci-dessus et celui-ci fait demander au copilote 'Did you mean …?' au lieu d'agir.",
@@ -1599,6 +1604,11 @@
         "allow": "Autoriser (parler normalement)",
         "defer": "Différer (rejouer à la fin du stérile)",
         "suppress": "Supprimer (abandonner)"
+      },
+      "intentTier": {
+        "off": "Désactivé",
+        "confirm": "Confirmer d’abord (vous vouliez dire… ?)",
+        "auto": "Agir aussitôt"
       },
       "apiKeySource": {
         "auto": "Auto (depuis flight.json)",

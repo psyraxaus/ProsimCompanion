@@ -26,6 +26,8 @@ public static class FieldChoiceCatalog
             ["procedureSource"] = T => [("auto", T["speechSettings.options.procedureSource.auto"].Value), ("manual", T["speechSettings.options.procedureSource.manual"].Value), ("flightJson", T["speechSettings.options.procedureSource.flightJson"].Value)],
             ["sterileNormalPolicy"] = T => [("allow", T["speechSettings.options.normalPolicy.allow"].Value), ("defer", T["speechSettings.options.normalPolicy.defer"].Value), ("suppress", T["speechSettings.options.normalPolicy.suppress"].Value)],
             ["apiKeySource"] = T => [("auto", T["speechSettings.options.apiKeySource.auto"].Value), ("manual", T["speechSettings.options.apiKeySource.manual"].Value)],
+            // The intent tier (owner request 2026-11-07): off | confirm first | act at once.
+            ["intentTier"] = T => [("off", T["speechSettings.options.intentTier.off"].Value), ("confirm", T["speechSettings.options.intentTier.confirm"].Value), ("auto", T["speechSettings.options.intentTier.auto"].Value)],
             // The raw unit of aircraft.acceleration.Y (issue #186). Values match TurbulenceMonitor.ParseUnit.
             ["turbulenceUnit"] = T =>
             [

@@ -4411,6 +4411,36 @@
       "notes": "See scenario-fires-and-detects. The exit clear runs in ScenarioService.StopAsync (IHostedService) AFTER the module host disposed the service (review 2026-11-05: the write lock is no longer disposed, so the clear can run); the startup clear-all waits for the ProSim connected edge (it used to run before any session existed and never retried); the ARRIVAL flight-cycle reset clears on GroundOpsSignals.FlightCycleReset (a new-plan reset keeps a Planned plan); all verify by re-reading getArmedFailures(). See scenario-turnaround-leg-planned. Unverified live."
     },
     {
+      "id": "voice-intent-tier",
+      "issue": 0,
+      "state": "fixed-unverified",
+      "kind": "watch",
+      "machine": {
+        "kind": "required-fields",
+        "type": "voice.intent",
+        "fields": [
+          "heard",
+          "outcome",
+          "tier",
+          "ms"
+        ]
+      },
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "Owner request 2026-11-07 (plan O2): when no phrase matched — not exactly, not by the phonetic snap — the language model is asked which ONE phrase of the live vocabulary the captain meant, or NONE. It can only pick a phrase the router could have fired anyway (the answer is checked against the list). speech.intentTier: off | confirm (default: the pick is read back as 'did you mean …?' before anything that writes to the aircraft or calls GSX; a read-only line fires at once) | auto. Runs only on the LAN engine, with the model configured and healthy, idle (no item awaiting, no dialogue borrow), never in a sterile moment, and after the value parsers, the FO-away line and the free-form question handler had their turn.",
+        "watch (machine): every voice.intent carries heard, outcome ∈ picked|none|no-reply|timeout|error, tier, ms (phrase when picked; reply, truncated, when not). Count picks per flight and the ms distribution — a median above ~2 s means the model is too slow for a cockpit and the budget (4 s) is being hit.",
+        "assert-absent: a voice.intent {outcome: picked} whose phrase is not in the route vocabulary of that moment (the CMTrace 'ASR heard … ->' trail shows the grammar in use) — the pick is checked against the list, anything else must read 'none'.",
+        "assert-absent (tier confirm): a GSX or aircraft-writing phrase fired straight from a pick — the ASR trail must show the clarifier 'did you mean <phrase>?' and the captain's affirm before the gsx-decision / cockpit.press / fcu write; only acknowledge-only features (the cross-check, readouts) fire at once.",
+        "assert-absent: a voice.intent while the model is unhealthy (log.* AuthFailed/Unreachable from the LLM health) or on the offline Windows engine (no 'LAN ASR' connected) — the tier stands down there.",
+        "assert-present: when a voice.intent {outcome: picked} is confirmed, no voice.unmatched for the same heard text (the utterance was understood); when the outcome is none/timeout/error the did-not-catch line follows as before.",
+        "requires-human: 'can we get the fuel truck over here please' (no grid verb) earns 'did you mean request refueling?' and a yes orders the truck; 'what is the wind doing' is still answered as a question, never confirmed as a command."
+      ],
+      "notes": "Built 2026-11-07. ICommandIntentResolver / LlmCommandIntentResolver (OpenAiChatClient.CompleteAsync, 4 s budget, IntentReply.System/User/Pick), UtteranceRouter.TryIntentTier on the idle Reject path after TryIdleMissFirstTiers (value parsers, FO-away, free-form question) and before SpeakDidNotCatch; the pick routes through RouteText (auto, or acknowledge-only phrases) or ConfirmAndRouteAsync (confirm). Setting speechSettings.listening.intentTier with the choice catalog entry intentTier; texts in all seven packs. Tests IntentReplyTests, UtteranceRouterTests (fake resolver). Unverified live."
+    },
+    {
       "id": "gsx-voice-phrase-grid",
       "issue": 0,
       "state": "fixed-unverified",

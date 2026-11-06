@@ -68,6 +68,7 @@ public interface IChecklistRoutingHost
 public sealed class UtteranceRouter : IDisposable
 {
     private readonly UtteranceInterpreter _interpreter;
+    private readonly ICommandIntentResolver? _intent;
     private readonly ChecklistService _checklists;
     private readonly Abnormals.FailureMonitor _failures;
     private readonly VoiceFeatureRoster _roster;
@@ -126,9 +127,11 @@ public sealed class UtteranceRouter : IDisposable
         ExpectedReplyStore? expectedReplies = null,
         TimeProvider? time = null,
         VoiceSignalStore? signals = null,
-        Core.State.FoAvailabilityStore? foAvailability = null)
+        Core.State.FoAvailabilityStore? foAvailability = null,
+        ICommandIntentResolver? intent = null)
     {
         _foAvailability = foAvailability;
+        _intent = intent;
         ArgumentNullException.ThrowIfNull(interpreter);
         ArgumentNullException.ThrowIfNull(checklists);
         ArgumentNullException.ThrowIfNull(failures);
@@ -372,9 +375,10 @@ public sealed class UtteranceRouter : IDisposable
                     _unmatched?.Record(e.Text, interpretation.Score, ContextOf(host), UnmatchedReason.Reject);
                     host.Complete(RoutedResponseKind.NotCaught, "");
                 }
-                else
+                else if (!TryIdleMissFirstTiers(e.Text, interpretation.Score, UnmatchedReason.Reject)
+                    && !TryIntentTier(host, e.Text, grammar, awaiting, interpretation.Score))
                 {
-                    HandleIdleMiss(e.Text, interpretation.Score, UnmatchedReason.Reject);
+                    SpeakDidNotCatch(e.Text, interpretation.Score, UnmatchedReason.Reject);
                 }
 
                 return;
@@ -409,6 +413,44 @@ public sealed class UtteranceRouter : IDisposable
         }
 
         RouteText(host, interpretation.Text, awaiting, e.Text, interpretation.Score);
+    }
+
+    /// <summary>The intent tier (owner request 2026-11-07): nothing matched and no earlier tier
+    /// took it — ask the model which ONE phrase of the live grammar the captain meant. Runs
+    /// only on the free-text engine, idle, outside a sterile moment. True when the tier is
+    /// running the utterance (the pick, or the did-not-catch line when there is none, follows
+    /// asynchronously); false when it does not apply and the caller speaks the miss now.</summary>
+    private bool TryIntentTier(IChecklistRoutingHost host, string heard, IReadOnlyList<string> grammar, ChecklistItemDefinition? awaiting, double score)
+    {
+        if (_intent is not { Enabled: true } intent || !_recognition.FreeFormCapable || awaiting is not null
+            || string.IsNullOrWhiteSpace(heard) || IsSterileForClarifier() || Monitoring.ReadbackCore.HasReadBackPrefix(heard))
+        {
+            return false;
+        }
+
+        var tier = intent.Tier;
+        var vocabulary = grammar.Where(g => g != NumberGrammar.Sentinel).ToList();
+        Task.Run(async () =>
+        {
+            var phrase = await intent.ResolveAsync(heard, vocabulary, CancellationToken.None).ConfigureAwait(false);
+            if (phrase is null)
+            {
+                SpeakDidNotCatch(heard, score, UnmatchedReason.Reject);
+                return;
+            }
+
+            _logger.LogInformation("Intent tier picked \"{Phrase}\" for \"{Heard}\" ({Tier})", phrase, heard, tier);
+            if (tier == "auto" || IsAcknowledgeOnlyPhrase(phrase))
+            {
+                // Auto, or a line that only reads and speaks: fire it as if heard exactly.
+                RouteText(host, phrase, awaiting, heard, 1.0);
+                return;
+            }
+
+            // Confirm: the pick is read back before anything that writes or calls GSX fires.
+            await ConfirmAndRouteAsync(host, phrase, heard, score).ConfigureAwait(false);
+        }).Observe(_logger, "Intent tier");
+        return true;
     }
 
     /// <summary>True when the raw text, normalized, equals a phrase owned outside the value
@@ -465,6 +507,17 @@ public sealed class UtteranceRouter : IDisposable
     /// advisory that explains WHY free-form phrasing is falling flat.</summary>
     private void HandleIdleMiss(string rawText, double score, UnmatchedReason reason)
     {
+        if (!TryIdleMissFirstTiers(rawText, score, reason))
+        {
+            SpeakDidNotCatch(rawText, score, reason);
+        }
+    }
+
+    /// <summary>The tiers that may still take an idle miss before anyone says "didn't catch
+    /// that": the value parsers on a read-back, the FO-away line, the free-form question
+    /// handler. True when one of them took it.</summary>
+    private bool TryIdleMissFirstTiers(string rawText, double score, UnmatchedReason reason)
+    {
         // "Read back …" is a read-back, whatever the figure parser made of it (issue #148,
         // 2026-10-10: "Read back altimeter 1013." went to the language model, which had
         // nothing to say). The value parsers get one more look at it here, and it never
@@ -481,7 +534,7 @@ public sealed class UtteranceRouter : IDisposable
 
                 if (feature.TryHandle(rawText))
                 {
-                    return;
+                    return true;
                 }
             }
         }
@@ -493,7 +546,7 @@ public sealed class UtteranceRouter : IDisposable
             _skippedWhileAway = false;
             _arbiter.EnqueueAsync(new SpeechRequest(Core.State.FoAvailabilityStore.AwayLine, SpeechPriority.Normal, Tag: "walkaround.busy")).Observe(_logger, "FO away line");
             _unmatched?.Record(rawText, score, "fo-away", reason);
-            return;
+            return true;
         }
 
         // A free-form question (issue #149) is the last thing tried before the did-not-catch
@@ -503,9 +556,17 @@ public sealed class UtteranceRouter : IDisposable
         // model answered is NOT an unmatched utterance (issue #112).
         if (!readBackPrefixed && _questions is { Enabled: true } questions && _recognition.FreeFormCapable && questions.TryAsk(rawText))
         {
-            return;
+            return true;
         }
 
+        return false;
+    }
+
+    /// <summary>The idle miss nobody took: absorbed silently in a sterile phase or on short
+    /// final, otherwise the did-not-catch line (or, once per session while the LLM is known
+    /// unhealthy, the advisory that explains WHY free-form phrasing is falling flat).</summary>
+    private void SpeakDidNotCatch(string rawText, double score, UnmatchedReason reason)
+    {
         // Sterile-phase suppression (issue #67, 2026-08-22 flight): during the takeoff roll
         // and rotation the pilot makes SOP callouts ("takeoff", the FMA readback) faster than
         // features can grow to answer them — a chirped "Didn't catch that" DURING ROTATION is

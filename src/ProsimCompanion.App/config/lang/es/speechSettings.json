@@ -252,6 +252,11 @@
         "hint": "Cuánto debe parecerse una frase oída a una conocida antes de que el FO actúe.",
         "more": "0.5 Levenshtein + 0.5 DoubleMetaphone. Más bajo oye más y se equivoca más."
       },
+      "intentTier": {
+        "label": "Formulación libre (modelo de lenguaje)",
+        "hint": "Si ninguna frase conocida coincide, el modelo elige la frase que quiso decir. Confirmar pregunta antes «¿quiso decir…?»; Actuar al momento lo hace directamente.",
+        "more": "Solo con el motor de voz LAN y un modelo configurado y disponible. Las líneas de solo lectura (lecturas, cross-check) nunca preguntan."
+      },
       "confirmBelow": {
         "label": "Preguntar 'did you mean' por debajo de",
         "hint": "Una coincidencia entre la puntuación de arriba y esta hace que el FO pregunte 'Did you mean …?' en vez de actuar.",
@@ -1599,6 +1604,11 @@
         "allow": "Permitir (hablar con normalidad)",
         "defer": "Aplazar (repetir cuando acabe el estéril)",
         "suppress": "Suprimir (descartar)"
+      },
+      "intentTier": {
+        "off": "Apagado",
+        "confirm": "Confirmar primero (¿quiso decir…?)",
+        "auto": "Actuar al momento"
       },
       "apiKeySource": {
         "auto": "Auto (desde flight.json)",

@@ -252,6 +252,11 @@
         "hint": "Hoe dicht een gehoorde zin bij een bekende moet liggen voordat de FO erop reageert.",
         "more": "0.5 Levenshtein + 0.5 DoubleMetaphone. Lager hoort meer, verstaat meer verkeerd."
       },
+      "intentTier": {
+        "label": "Vrije bewoording (taalmodel)",
+        "hint": "Past geen bekende zin, dan kiest het model de bedoelde zin. Eerst bevestigen vraagt ‘bedoelde u …?’; Direct handelen doet het meteen.",
+        "more": "Alleen met de LAN-spraakherkenning en een ingesteld, bereikbaar model. Alleen-lezen regels (uitlezingen, cross-check) vragen nooit."
+      },
       "confirmBelow": {
         "label": "'did you mean' vragen onder",
         "hint": "Een overeenkomst tussen de score hierboven en deze laat de FO 'Did you mean …?' vragen in plaats van te handelen.",
@@ -1599,6 +1604,11 @@
         "allow": "Toestaan (normaal spreken)",
         "defer": "Uitstellen (herhalen als steriel eindigt)",
         "suppress": "Onderdrukken (weggooien)"
+      },
+      "intentTier": {
+        "off": "Uit",
+        "confirm": "Eerst bevestigen (bedoelde u …?)",
+        "auto": "Direct handelen"
       },
       "apiKeySource": {
         "auto": "Auto (uit flight.json)",

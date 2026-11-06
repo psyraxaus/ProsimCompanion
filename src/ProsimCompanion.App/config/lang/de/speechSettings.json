@@ -252,6 +252,11 @@
         "hint": "Wie nah ein gehörter Satz an einem bekannten liegen muss, bevor der FO darauf reagiert.",
         "more": "0.5 Levenshtein + 0.5 DoubleMetaphone. Niedriger hört mehr, verhört sich mehr."
       },
+      "intentTier": {
+        "label": "Freie Formulierung (Sprachmodell)",
+        "hint": "Passt kein bekannter Satz, wählt das Modell den gemeinten Satz. Erst bestätigen fragt zuerst „meinten Sie …?“; Sofort handeln tut es direkt.",
+        "more": "Nur mit der LAN-Spracherkennung und einem konfigurierten, erreichbaren Modell. Reine Ansagen (Ablesungen, Cross-Check) fragen nie."
+      },
       "confirmBelow": {
         "label": "'did you mean' fragen unterhalb",
         "hint": "Ein Treffer zwischen dem Wert oben und diesem lässt den FO 'Did you mean …?' fragen statt zu handeln.",
@@ -1599,6 +1604,11 @@
         "allow": "Erlauben (normal sprechen)",
         "defer": "Aufschieben (nachholen, wenn steril endet)",
         "suppress": "Unterdrücken (verwerfen)"
+      },
+      "intentTier": {
+        "off": "Aus",
+        "confirm": "Erst bestätigen (meinten Sie …?)",
+        "auto": "Sofort handeln"
       },
       "apiKeySource": {
         "auto": "Auto (aus flight.json)",

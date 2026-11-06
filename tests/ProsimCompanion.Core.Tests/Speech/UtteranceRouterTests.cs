@@ -96,6 +96,25 @@ public sealed class UtteranceRouterTests
         }
     }
 
+    /// <summary>The intent tier's model, scripted (owner request 2026-11-07): heard text → the
+    /// phrase it "means", recorded so a test can see whether it was asked at all.</summary>
+    private sealed class FakeIntentResolver : ICommandIntentResolver
+    {
+        public Dictionary<string, string> Picks { get; } = new(StringComparer.OrdinalIgnoreCase);
+        public List<string> Asked { get; } = [];
+        public string Tier { get; set; } = "auto";
+        public bool Enabled { get; set; } = true;
+
+        public Task<string?> ResolveAsync(string rawUtterance, IReadOnlyList<string> vocabulary, CancellationToken cancellationToken)
+        {
+            Asked.Add(rawUtterance);
+            var picked = Picks.TryGetValue(rawUtterance, out var phrase) && vocabulary.Contains(phrase) ? phrase : null;
+            return Task.FromResult(picked);
+        }
+    }
+
+    private FakeIntentResolver? _intent;
+
     private readonly FakeRecognitionWindow _window = new();
     private readonly MicOwnership _mic;
     private readonly FakeArbiter _arbiter = new();
@@ -153,7 +172,8 @@ public sealed class UtteranceRouterTests
             unmatched: tracker,
             options: options,
             expectedReplies: _expectedReplies,
-            foAvailability: _foAvailability);
+            foAvailability: _foAvailability,
+            intent: _intent);
         router.Attach(_host);
         router.Start();
         return router;
@@ -757,5 +777,61 @@ public sealed class UtteranceRouterTests
         _window.Hear("Thank you.");
 
         Assert.False(CourtesyAnswered);
+    }
+
+    // ---- the intent tier (owner request 2026-11-07) ----
+
+    [Fact]
+    public async Task IntentTier_Auto_FiresTheModelsPick_AsIfHeardExactly()
+    {
+        _window.FreeFormCapable = true;
+        _intent = new FakeIntentResolver { Tier = "auto" };
+        _intent.Picks["can we get the people on"] = "start boarding";
+        var boarding = new ScriptedFeature("start boarding");
+        using var router = CreateRouter(null, new SpeechOptions { IntentTier = "auto" }, boarding);
+
+        _window.Hear("can we get the people on");
+        await WaitUntil(() => boarding.Handled.Count > 0);
+
+        Assert.Equal(["start boarding"], boarding.Handled);
+        Assert.Equal(["can we get the people on"], _intent.Asked);
+    }
+
+    [Fact]
+    public async Task IntentTier_NoPick_FallsToTheDidNotCatchLine()
+    {
+        _window.FreeFormCapable = true;
+        _intent = new FakeIntentResolver { Tier = "auto" };
+        var boarding = new ScriptedFeature("start boarding");
+        using var router = CreateRouter(null, new SpeechOptions { IntentTier = "auto" }, boarding);
+
+        _window.Hear("what a lovely morning it is");
+        await WaitUntil(() => _arbiter.Requests.Count > 0);
+
+        Assert.Empty(boarding.Handled);
+        Assert.Single(_intent.Asked);
+        Assert.NotEmpty(_arbiter.Requests); // the did-not-catch line, as before
+    }
+
+    [Fact]
+    public async Task IntentTier_StandsDown_OnTheOfflineEngine_AndWhenOff()
+    {
+        _window.FreeFormCapable = false;
+        _intent = new FakeIntentResolver { Tier = "auto" };
+        _intent.Picks["can we get the people on"] = "start boarding";
+        var boarding = new ScriptedFeature("start boarding");
+        using var router = CreateRouter(null, new SpeechOptions { IntentTier = "auto" }, boarding);
+
+        _window.Hear("can we get the people on");
+        await WaitUntil(() => _arbiter.Requests.Count > 0);
+        Assert.Empty(_intent.Asked);
+        Assert.Empty(boarding.Handled);
+
+        _window.FreeFormCapable = true;
+        _intent.Enabled = false; // tier off, or the model unhealthy
+        _window.Hear("can we get the people on");
+        await WaitUntil(() => _arbiter.Requests.Count > 1);
+        Assert.Empty(_intent.Asked);
+        Assert.Empty(boarding.Handled);
     }
 }
