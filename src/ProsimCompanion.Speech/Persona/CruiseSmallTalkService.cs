@@ -702,7 +702,10 @@ public sealed class CruiseSmallTalkService : Core.Hosting.IStartupModule, IDispo
         });
     }
 
-    /// <summary>The first sentence of a model reply, quotes and whitespace trimmed.</summary>
+    /// <summary>The first sentence of a model reply, quotes and whitespace trimmed. A sentence
+    /// ends at a full stop, exclamation or question mark that is followed by a space or the
+    /// end — never at the point of a decimal ("about 1.5 hours to Amsterdam" used to become
+    /// "about 1." and the number guard judged the wrong figure; review 2026-11-05).</summary>
     internal static string FirstSentence(string? reply)
     {
         var text = (reply ?? "").Trim().Trim('"', '\'', '`').Trim();
@@ -711,7 +714,20 @@ public sealed class CruiseSmallTalkService : Core.Hosting.IStartupModule, IDispo
             return "";
         }
 
-        var end = text.IndexOfAny(['.', '!', '?']);
-        return end > 0 && end < text.Length - 1 ? text[..(end + 1)].Trim() : text;
+        for (var i = 0; i < text.Length - 1; i++)
+        {
+            if (text[i] is not ('.' or '!' or '?'))
+            {
+                continue;
+            }
+
+            var next = text[i + 1];
+            if (char.IsWhiteSpace(next) || next is '"' or '\'' or '”' or '’')
+            {
+                return text[..(i + 1)].Trim();
+            }
+        }
+
+        return text;
     }
 }

@@ -147,7 +147,7 @@ public sealed class TechLogDialogueService : IVoiceFeature, ISessionFinalization
     /// captain agreed to log) — the same one-dialogue lock and mic borrow as the voice-started
     /// raise, the read-back confirmation kept. True when the item was raised; false when the
     /// tech log is off, the captain did not confirm, or the dialogue failed.</summary>
-    public async Task<bool> RaisePrefilledAsync(string title, MelCategory category, string source)
+    public async Task<bool> RaisePrefilledAsync(string title, MelCategory category, string source, CancellationToken cancellationToken = default)
     {
         if (!_options.CurrentValue.Enabled)
         {
@@ -155,7 +155,7 @@ public sealed class TechLogDialogueService : IVoiceFeature, ISessionFinalization
         }
 
         var raised = false;
-        await RunDialogueAsync("prefilled", async ct => raised = await _core.RunPrefilledRaiseAsync(title, category, source, ct).ConfigureAwait(false))
+        await RunDialogueAsync("prefilled", async ct => raised = await _core.RunPrefilledRaiseAsync(title, category, source, ct).ConfigureAwait(false), cancellationToken)
             .ConfigureAwait(false);
         return raised;
     }
@@ -164,16 +164,21 @@ public sealed class TechLogDialogueService : IVoiceFeature, ISessionFinalization
 
     /// <summary>One dialogue at a time (raise/rectify/offer share the mic); the borrow's
     /// using-disposal restores routing before the failure path logs, so an exception can never
-    /// leave the mic held.</summary>
-    private async Task RunDialogueAsync(string name, Func<CancellationToken, Task> dialogue)
+    /// leave the mic held. The caller's token (the walkaround's shutdown, review 2026-11-05)
+    /// ends the dialogue; the voice-started raises pass none.</summary>
+    private async Task RunDialogueAsync(string name, Func<CancellationToken, Task> dialogue, CancellationToken cancellationToken = default)
     {
-        await _oneDialogue.WaitAsync().ConfigureAwait(false);
+        await _oneDialogue.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
             using (_mic.Borrow("techlog:" + name))
             {
-                await dialogue(CancellationToken.None).ConfigureAwait(false);
+                await dialogue(cancellationToken).ConfigureAwait(false);
             }
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            _logger.LogDebug("Tech-log {Dialogue} dialogue cancelled by its caller", name);
         }
         catch (Exception ex)
         {

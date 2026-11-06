@@ -252,7 +252,8 @@ public sealed class WalkaroundService : Core.Hosting.IStartupModule, IDisposable
                     _inFlight = Task.Run(() => ReportAsync(sample, duration), CancellationToken.None);
                     break;
                 case WalkaroundAction.Abandon:
-                    _inFlight = Task.Run(() => AbandonAsync(duration), CancellationToken.None);
+                    var reason = _core.LastAbandonReason ?? WalkaroundAbandonReason.LeftTheGate;
+                    _inFlight = Task.Run(() => AbandonAsync(duration, reason), CancellationToken.None);
                     break;
             }
 
@@ -372,14 +373,26 @@ public sealed class WalkaroundService : Core.Hosting.IStartupModule, IDisposable
         }
     }
 
-    private async Task AbandonAsync(TimeSpan? duration)
+    /// <summary>The abandon line for a reason — it names what actually happened (review
+    /// 2026-11-05: every abandon said "the refuel's been called"). Pure, for tests.</summary>
+    public static string AbandonLineFor(WalkaroundAbandonReason reason) => reason switch
+    {
+        WalkaroundAbandonReason.RefuelCalled => AbandonLine,
+        WalkaroundAbandonReason.BoardingStarted => "Abandoning the walkaround, captain — boarding's been called.",
+        WalkaroundAbandonReason.EngineRunning => "Abandoning the walkaround, captain — we've got an engine running.",
+        WalkaroundAbandonReason.AircraftMoving => "Abandoning the walkaround, captain — we're moving.",
+        WalkaroundAbandonReason.PrepNotComplete => "Abandoning the walkaround, captain — the ground crew's still setting up.",
+        _ => "Abandoning the walkaround, captain — the aircraft's not ready for it.",
+    };
+
+    private async Task AbandonAsync(TimeSpan? duration, WalkaroundAbandonReason reason)
     {
         try
         {
             _availability.Clear();
-            _eventLog.Record("walkaround.abandoned", new { durationMinutes = duration is { } d ? Math.Round(d.TotalMinutes, 1) : (double?)null });
-            _logger.LogInformation("FO walkaround abandoned (refuel called or the aircraft no longer ready)");
-            await _arbiter.EnqueueAsync(new SpeechRequest(AbandonLine, SpeechPriority.Low, Ttl: TimeSpan.FromMinutes(1), Tag: "walkaround.abandon"), _shutdown.Token)
+            _eventLog.Record("walkaround.abandoned", new { reason = reason.ToString(), durationMinutes = duration is { } d ? Math.Round(d.TotalMinutes, 1) : (double?)null });
+            _logger.LogInformation("FO walkaround abandoned ({Reason})", reason);
+            await _arbiter.EnqueueAsync(new SpeechRequest(AbandonLineFor(reason), SpeechPriority.Low, Ttl: TimeSpan.FromMinutes(1), Tag: "walkaround.abandon"), _shutdown.Token)
                 .ConfigureAwait(false);
         }
         catch (OperationCanceledException)
@@ -443,14 +456,14 @@ public sealed class WalkaroundService : Core.Hosting.IStartupModule, IDisposable
 
     /// <summary>What a finding leads to after the report. Pure for the routing decision; the
     /// side effects follow in <see cref="HandleFindingAsync"/>.</summary>
-    public static string Outcome(WalkaroundFinding? finding, bool allowNoGo)
+    public static WalkaroundOutcome Outcome(WalkaroundFinding? finding, bool allowNoGo)
         => finding switch
         {
-            null => "none",
-            { Deice: true } => "deice",
-            { Severity: WalkaroundSeverity.NoGo } when allowNoGo && finding.TechLogTitle is not null => "raise",
-            { Severity: WalkaroundSeverity.Deferrable } when finding.TechLogTitle is not null => "ask",
-            _ => "cosmetic",
+            null => WalkaroundOutcome.None,
+            { Deice: true } => WalkaroundOutcome.Deice,
+            { Severity: WalkaroundSeverity.NoGo } when allowNoGo && finding.TechLogTitle is not null => WalkaroundOutcome.Raise,
+            { Severity: WalkaroundSeverity.Deferrable } when finding.TechLogTitle is not null => WalkaroundOutcome.Ask,
+            _ => WalkaroundOutcome.Cosmetic,
         };
 
     private async Task HandleFindingAsync(WalkaroundFinding? finding, WalkaroundSample sample)
@@ -458,24 +471,35 @@ public sealed class WalkaroundService : Core.Hosting.IStartupModule, IDisposable
         var outcome = Outcome(finding, Options.AllowNoGo);
         switch (outcome)
         {
-            case "deice":
+            case WalkaroundOutcome.Deice:
                 RaiseDeiceQuestion();
                 break;
 
-            case "ask":
+            case WalkaroundOutcome.Ask:
+                // The finding becomes the pending one only when the question is actually
+                // raised: a refused Ask (one already stands) used to overwrite the standing
+                // question's finding, so the captain's "yes" logged the wrong defect (review
+                // 2026-11-05).
+                WalkaroundFinding? standing;
                 lock (_gate)
                 {
+                    standing = _pendingFinding;
                     _pendingFinding = finding;
                 }
 
                 if (!_raise.Ask(finding!.Id, finding.TechLogTitle!, finding.TechLogCategory))
                 {
+                    lock (_gate)
+                    {
+                        _pendingFinding = standing;
+                    }
+
                     _logger.LogInformation("Walkaround: the raise question already stands — finding {Id} stays noted", finding.Id);
                 }
 
                 break;
 
-            case "raise":
+            case WalkaroundOutcome.Raise:
                 var defect = _techLog.RaiseDefect(_techLog.NewDraft("walkaround:" + finding!.Id, finding.TechLogTitle!, finding.TechLogCategory));
                 _eventLog.Record("walkaround.techLogRaised", new { finding = finding.Id, title = finding.TechLogTitle, category = finding.TechLogCategory.ToString(), defectId = defect.Id, confirmed = false });
                 await _arbiter.EnqueueAsync(new SpeechRequest(
@@ -484,7 +508,7 @@ public sealed class WalkaroundService : Core.Hosting.IStartupModule, IDisposable
                 break;
         }
 
-        _eventLog.Record("walkaround.finding", new { finding = finding?.Id, outcome });
+        _eventLog.Record("walkaround.finding", new { finding = finding?.Id, outcome = outcome.ToString().ToLowerInvariant() });
     }
 
     private void RaiseDeiceQuestion()
@@ -536,7 +560,7 @@ public sealed class WalkaroundService : Core.Hosting.IStartupModule, IDisposable
         {
             try
             {
-                var raised = await _techLogDialogue.RaisePrefilledAsync(finding.TechLogTitle, finding.TechLogCategory, "walkaround:" + finding.Id).ConfigureAwait(false);
+                var raised = await _techLogDialogue.RaisePrefilledAsync(finding.TechLogTitle, finding.TechLogCategory, "walkaround:" + finding.Id, _shutdown.Token).ConfigureAwait(false);
                 _eventLog.Record("walkaround.techLogRaised", new { finding = finding.Id, title = finding.TechLogTitle, category = finding.TechLogCategory.ToString(), confirmed = raised });
             }
             catch (Exception ex)

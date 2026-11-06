@@ -4411,6 +4411,34 @@
       "notes": "See scenario-fires-and-detects. The exit clear runs in ScenarioService.StopAsync (IHostedService) AFTER the module host disposed the service (review 2026-11-05: the write lock is no longer disposed, so the clear can run); the startup clear-all waits for the ProSim connected edge (it used to run before any session existed and never retried); the ARRIVAL flight-cycle reset clears on GroundOpsSignals.FlightCycleReset (a new-plan reset keeps a Planned plan); all verify by re-reading getArmedFailures(). See scenario-turnaround-leg-planned. Unverified live."
     },
     {
+      "id": "speech-hygiene-2026-11-05",
+      "issue": 196,
+      "state": "fixed-unverified",
+      "kind": "assert-absent",
+      "machine": {
+        "kind": "required-fields",
+        "type": "walkaround.abandoned",
+        "fields": [
+          "reason"
+        ]
+      },
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "Review 2026-11-05 §5 P4 (speech hygiene): (1) the small-talk FirstSentence cut a model reply at the first '.', so 'about 1.5 hours to Amsterdam' became 'about 1.' and the number guard judged the wrong figure; (2) the walkaround's abandon always said 'the refuel's been called' (untrue for boarding / an engine start / a prep flip / a live blip) and walkaround.abandoned carried no reason, the finding outcome was a string switch, and a refused raise question overwrote the standing question's finding; (3) the dialogue hold exempted every 'fo.*' tag, so the FMS reminder and the FMGC cross-check readout talked over a captain's-question listen; (4) one radio hand-off held the transmit gate through the frequency-clear wait, the tune and the COM1 wait — every later read-back queued behind it for up to ~64 s; (5) fire-and-forget speech lines (transition reminder, checklist cancelled, FO away line, the roster intro's styling) dropped their faults or the shutdown token.",
+        "assert-present (machine): every walkaround.abandoned carries reason ∈ RefuelCalled | BoardingStarted | EngineRunning | AircraftMoving | PrepNotComplete | FlightNotLive | LeftTheGate, and the spoken line (walkaround.abandon tag in the arbiter trail) matches it — 'the refuel's been called' ONLY with reason RefuelCalled, 'boarding's been called' with BoardingStarted, 'an engine running' with EngineRunning.",
+        "assert-absent: a smallTalk / regionFact spoken line ending in a digit followed by a full stop with nothing after it ('about 1.') — the first sentence now ends only at a terminator followed by a space or the end of the text.",
+        "assert-absent: an fo.fmsReminder or fo.crossCheck line SPOKEN (not deferred) while a dialogue holds the mic (a captain's question, the minima capture, a tech-log raise in its listen) — the arbiter trail shows them deferred until the borrow ends; fo.answer / fo.readback / fo.baro / fo.efis / fo.gear / fo.chrono / fo.disregard / fo.announce still go through.",
+        "assert-absent: a sayintentions.readback whose radioWaitMs exceeds ~5 s while another hand-off's COM1 wait is in progress (two ATC lines inside 60 s, the first a hand-off) — the transmit gate is released before the hand-off's waits and taken again only around the check-in's own transmission.",
+        "assert-absent: 'Transition reminder line faulted' / 'Checklist cancelled line faulted' / 'FO away line faulted' warnings in the log — the fire-and-forgets now observe their faults; if one appears, quote the exception type (a real arbiter fault, previously invisible).",
+        "assert-absent: walkaround.finding {outcome} with a value outside none | deice | ask | raise | cosmetic; a walkaround.techLogRaised whose title differs from the finding the captain was asked about in the preceding walkaround.raise question (the standing question's finding is no longer overwritten by a refused second Ask).",
+        "requires-human: during a walkaround with boarding called early the FO says 'boarding's been called', not 'the refuel's been called'."
+      ],
+      "notes": "Fixed 2026-11-07 (review 2026-11-05 README §5 P4, branch fix/branch-review-2026-11-05). CruiseSmallTalkService.FirstSentence (terminator + whitespace/end); WalkaroundOutcome and WalkaroundAbandonReason enums, WalkaroundCore.AbandonReason / LastAbandonReason, WalkaroundService.AbandonLineFor, walkaround.abandoned {reason}, pending-finding restore on a refused Ask; DialogueHoldRule ExemptTags (named fo.* tags) in place of the 'fo.' prefix; FoRadiosService releases _transmitGate before the hand-off waits (holdsGate) and re-takes it for the check-in; TechLogDialogueService.RaisePrefilledAsync takes a CancellationToken (the walkaround passes its shutdown), FoRosterVoiceFeature.SpeakIntro passes its shutdown token to StyleAsync/EnqueueAsync; Speech Arbiter FireAndForget.Observe used by TransitionReminderService, SpokenChecklistEngine and UtteranceRouter. Tests: SmallTalkCoreTests.FirstSentence_…, WalkaroundTests (abandon reasons, outcome enum), DialogueHoldRuleTests (fo.crossCheck held, fo.baro exempt). The small-talk layover listen's hold power was left as is (review 'consider'). Unverified live."
+    },
+    {
       "id": "one-definition-per-shared-gate",
       "issue": 213,
       "state": "fixed-unverified",

@@ -491,7 +491,7 @@ public sealed class UtteranceRouter : IDisposable
         if (_skippedWhileAway)
         {
             _skippedWhileAway = false;
-            _ = _arbiter.EnqueueAsync(new SpeechRequest(Core.State.FoAvailabilityStore.AwayLine, SpeechPriority.Normal, Tag: "walkaround.busy"));
+            _arbiter.EnqueueAsync(new SpeechRequest(Core.State.FoAvailabilityStore.AwayLine, SpeechPriority.Normal, Tag: "walkaround.busy")).Observe(_logger, "FO away line");
             _unmatched?.Record(rawText, score, "fo-away", reason);
             return;
         }

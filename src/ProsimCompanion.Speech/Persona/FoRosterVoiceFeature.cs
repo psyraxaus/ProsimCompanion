@@ -42,6 +42,7 @@ public sealed class FoRosterVoiceFeature : IVoiceFeature, IStartupModule, IDispo
     private readonly DayStatusStore _dayStore;
     private readonly ILegBoundaryEvents _legEvents;
     private readonly LegBoundaryStore _legStore;
+    private readonly CancellationTokenSource _shutdown = new();
     private readonly ISpeechArbiter _arbiter;
     private readonly StyledSpeechService _styled;
     private readonly JsonlEventLog _eventLog;
@@ -150,6 +151,8 @@ public sealed class FoRosterVoiceFeature : IVoiceFeature, IStartupModule, IDispo
         _dayStore.Changed -= OnDayChanged;
         _legEvents.LegBegan -= OnLegBegan;
         _change.Answered -= OnChangeAnswered;
+        _shutdown.Cancel();
+        _shutdown.Dispose();
     }
 
     private void OnPhaseChanged(object? sender, FlightPhaseChangedEventArgs e)
@@ -319,14 +322,19 @@ public sealed class FoRosterVoiceFeature : IVoiceFeature, IStartupModule, IDispo
         {
             try
             {
-                var styled = await _styled.StyleAsync(template, PersonaStyleCategory.Advisory, $"roster-intro:{fo.Id}:{word}").ConfigureAwait(false);
-                await _arbiter.EnqueueAsync(new SpeechRequest(styled, SpeechPriority.Low, Ttl: IntroTtl, Tag: IntroTag)).ConfigureAwait(false);
+                // The shutdown token rides along (review 2026-11-05): a styling call in flight
+                // at app exit ends with the service instead of outliving it.
+                var styled = await _styled.StyleAsync(template, PersonaStyleCategory.Advisory, $"roster-intro:{fo.Id}:{word}", _shutdown.Token).ConfigureAwait(false);
+                await _arbiter.EnqueueAsync(new SpeechRequest(styled, SpeechPriority.Low, Ttl: IntroTtl, Tag: IntroTag), _shutdown.Token).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
             }
             catch (Exception ex)
             {
                 _logger.LogDebug(ex, "FO gate intro failed to speak");
             }
-        });
+        }, CancellationToken.None);
     }
 
     /// <summary>The deterministic gate intro — pure, for tests. The time-of-day word is the

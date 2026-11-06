@@ -27,7 +27,15 @@ public sealed class DialogueHoldRule : ISpeechSuppressionRule
     // "day.debrief" (ADR-0019 §8, issue #222): the end-of-duty debrief ends the day — nothing
     // outranks it then, and the EGLL 2026-11-01 summary died deferred under a stuck hold.
     private static readonly string[] ExemptPrefixes =
-        ["sayintentions.", "fo.", "briefing.", "checklist.", "ecam.", "abnormal.", "minima.", "transition.", "clarifier", "confirm", "day.debrief"];
+        ["sayintentions.", "briefing.", "checklist.", "ecam.", "abnormal.", "minima.", "transition.", "clarifier", "confirm", "day.debrief"];
+
+    // The FO's own answers to something the captain just said — the "any questions" answer,
+    // a read-back, an acknowledged command (baro, EFIS, gear, chrono), the disregard. Named
+    // one by one (review 2026-11-05): the "fo." PREFIX also let the FMS reminder and the
+    // FMGC cross-check readout — monologues nobody asked for — talk over a captain's-question
+    // listen.
+    private static readonly string[] ExemptTags =
+        ["fo.answer", "fo.readback", "fo.disregard", "fo.baro", "fo.efis", "fo.gear", "fo.chrono", "fo.announce"];
 
     private readonly Func<bool> _micBorrowed;
 
@@ -65,6 +73,6 @@ public sealed class DialogueHoldRule : ISpeechSuppressionRule
             }
         }
 
-        return true;
+        return !ExemptTags.Contains(request.Tag, StringComparer.Ordinal);
     }
 }

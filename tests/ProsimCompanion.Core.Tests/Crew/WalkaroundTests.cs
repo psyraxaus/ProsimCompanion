@@ -73,6 +73,7 @@ public sealed class WalkaroundTests
         core.Evaluate(Sample(), Options(), () => 0);
         Assert.Equal(WalkaroundAction.Abandon, core.Evaluate(Sample(now: T0.AddMinutes(2), refuel: GsxServiceStage.Called), Options(), () => 0));
         Assert.Equal(WalkaroundState.Abandoned, core.State);
+        Assert.Equal(WalkaroundAbandonReason.RefuelCalled, core.LastAbandonReason);
         Assert.Equal(WalkaroundAction.None, core.Evaluate(Sample(now: T0.AddMinutes(9)), Options(), () => 0));
         Assert.Equal(WalkaroundState.Done, core.State);
     }
@@ -83,6 +84,25 @@ public sealed class WalkaroundTests
         var core = Baselined();
         core.Evaluate(Sample(), Options(), () => 0);
         Assert.Equal(WalkaroundAction.Abandon, core.Evaluate(Sample(now: T0.AddMinutes(3), enginesOff: false), Options(), () => 0));
+        Assert.Equal(WalkaroundAbandonReason.EngineRunning, core.LastAbandonReason);
+    }
+
+    // Review 2026-11-05: the abandon names what happened — "the refuel's been called" was the
+    // only line, untrue for boarding, an engine start, a prep flip or a live blip.
+    [Fact]
+    public void AbandonReason_NamesTheFirstFailingCondition_AndTheLineMatches()
+    {
+        Assert.Equal(WalkaroundAbandonReason.RefuelCalled, WalkaroundCore.AbandonReason(Sample(refuel: GsxServiceStage.Requested, enginesOff: false)));
+        Assert.Equal(WalkaroundAbandonReason.BoardingStarted, WalkaroundCore.AbandonReason(Sample() with { BoardingObserved = true }));
+        Assert.Equal(WalkaroundAbandonReason.EngineRunning, WalkaroundCore.AbandonReason(Sample(enginesOff: false)));
+        Assert.Equal(WalkaroundAbandonReason.PrepNotComplete, WalkaroundCore.AbandonReason(Sample(prepComplete: false)));
+        Assert.Equal(WalkaroundAbandonReason.FlightNotLive, WalkaroundCore.AbandonReason(Sample() with { Live = false }));
+        Assert.Equal(WalkaroundAbandonReason.LeftTheGate, WalkaroundCore.AbandonReason(Sample()));
+
+        Assert.Equal(WalkaroundService.AbandonLine, WalkaroundService.AbandonLineFor(WalkaroundAbandonReason.RefuelCalled));
+        Assert.Contains("boarding", WalkaroundService.AbandonLineFor(WalkaroundAbandonReason.BoardingStarted), StringComparison.Ordinal);
+        Assert.Contains("engine", WalkaroundService.AbandonLineFor(WalkaroundAbandonReason.EngineRunning), StringComparison.Ordinal);
+        Assert.DoesNotContain("refuel", WalkaroundService.AbandonLineFor(WalkaroundAbandonReason.PrepNotComplete), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -178,12 +198,12 @@ public sealed class WalkaroundTests
     [Fact]
     public void Outcome_IcingGoesToDeice_DeferrableAsks_NoGoRaisesOnlyWhenAllowed_CosmeticEndsThere()
     {
-        Assert.Equal("none", WalkaroundService.Outcome(null, false));
-        Assert.Equal("deice", WalkaroundService.Outcome(Finding("ice", WalkaroundSeverity.Cosmetic, deice: true), false));
-        Assert.Equal("ask", WalkaroundService.Outcome(Finding("tyre"), false));
-        Assert.Equal("cosmetic", WalkaroundService.Outcome(Finding("pitot", WalkaroundSeverity.Cosmetic), false));
-        Assert.Equal("raise", WalkaroundService.Outcome(Finding("leak", WalkaroundSeverity.NoGo), true));
-        Assert.Equal("cosmetic", WalkaroundService.Outcome(Finding("leak", WalkaroundSeverity.NoGo), false)); // never drawn without allowNoGo; routed harmlessly if it were
+        Assert.Equal(WalkaroundOutcome.None, WalkaroundService.Outcome(null, false));
+        Assert.Equal(WalkaroundOutcome.Deice, WalkaroundService.Outcome(Finding("ice", WalkaroundSeverity.Cosmetic, deice: true), false));
+        Assert.Equal(WalkaroundOutcome.Ask, WalkaroundService.Outcome(Finding("tyre"), false));
+        Assert.Equal(WalkaroundOutcome.Cosmetic, WalkaroundService.Outcome(Finding("pitot", WalkaroundSeverity.Cosmetic), false));
+        Assert.Equal(WalkaroundOutcome.Raise, WalkaroundService.Outcome(Finding("leak", WalkaroundSeverity.NoGo), true));
+        Assert.Equal(WalkaroundOutcome.Cosmetic, WalkaroundService.Outcome(Finding("leak", WalkaroundSeverity.NoGo), false)); // never drawn without allowNoGo; routed harmlessly if it were
         Assert.Equal(WalkaroundService.ReportTemplate + " tyre spoken", WalkaroundService.ReportText(Finding("tyre")));
     }
 

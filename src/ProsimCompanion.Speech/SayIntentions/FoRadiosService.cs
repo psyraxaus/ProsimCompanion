@@ -379,6 +379,7 @@ public sealed class FoRadiosService : Core.Hosting.IStartupModule, IDisposable
         }
 
         await _transmitGate.WaitAsync(_shutdown.Token).ConfigureAwait(false);
+        var holdsGate = true;
         try
         {
             await TransmitAsync(apiKey, readback, options, "sayintentions.readback", new
@@ -392,6 +393,13 @@ public sealed class FoRadiosService : Core.Hosting.IStartupModule, IDisposable
             {
                 return;
             }
+
+            // The gate serialises TRANSMISSIONS, not the hand-off's waits: holding it through
+            // the frequency-clear wait, the tune and the COM1 wait queued every later read-back
+            // behind one hand-off for up to ~64 s (review 2026-11-05). Released here; taken
+            // again only around the check-in's own transmission.
+            _transmitGate.Release();
+            holdsGate = false;
 
             // The OLD station must hear "Contacting X on Y" before COM1 changes (EHAM 2026-11-01:
             // the sayAs and the retune were logged in the same millisecond; SayIntentions
@@ -459,6 +467,8 @@ public sealed class FoRadiosService : Core.Hosting.IStartupModule, IDisposable
                 return;
             }
 
+            await _transmitGate.WaitAsync(_shutdown.Token).ConfigureAwait(false);
+            holdsGate = true;
             await TransmitAsync(apiKey, checkIn, options, "sayintentions.checkin", new
             {
                 station = readback.HandoffStation,
@@ -475,7 +485,10 @@ public sealed class FoRadiosService : Core.Hosting.IStartupModule, IDisposable
         }
         finally
         {
-            _transmitGate.Release();
+            if (holdsGate)
+            {
+                _transmitGate.Release();
+            }
         }
     }
 

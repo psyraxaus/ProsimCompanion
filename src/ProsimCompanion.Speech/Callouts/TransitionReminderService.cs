@@ -170,7 +170,7 @@ public sealed class TransitionReminderService : Core.Hosting.IStartupModule, IDi
             destination = _navFor?.Destination,
             text = reminder.Text,
         });
-        _ = _arbiter.EnqueueAsync(new SpeechRequest(reminder.Text, SpeechPriority.Normal, SpokenTtl, Tag: Tag));
+        _arbiter.EnqueueAsync(new SpeechRequest(reminder.Text, SpeechPriority.Normal, SpokenTtl, Tag: Tag)).Observe(_logger, "Transition reminder line");
         return reminder;
     }
 

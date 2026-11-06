@@ -23,6 +23,38 @@ public enum WalkaroundState
     Done,
 }
 
+/// <summary>What a finding leads to after the report (review 2026-11-05: five strings used to
+/// carry this and a switch matched them — a renamed value silently routed nowhere).</summary>
+public enum WalkaroundOutcome
+{
+    None,
+
+    /// <summary>Ice on the wing: the de-ice question is raised.</summary>
+    Deice,
+
+    /// <summary>A deferrable item with a tech-log title: the captain is asked whether to log it.</summary>
+    Ask,
+
+    /// <summary>A no-go item (with no-go findings allowed): raised in the tech log at once.</summary>
+    Raise,
+
+    /// <summary>Spoken, nothing more.</summary>
+    Cosmetic,
+}
+
+/// <summary>Why a walk in progress was abandoned (review 2026-11-05: every abandon said "the
+/// refuel's been called", which was untrue for boarding, an engine start or a prep flip).</summary>
+public enum WalkaroundAbandonReason
+{
+    RefuelCalled,
+    BoardingStarted,
+    EngineRunning,
+    AircraftMoving,
+    PrepNotComplete,
+    FlightNotLive,
+    LeftTheGate,
+}
+
 /// <summary>What the shell must do after one evaluation.</summary>
 public enum WalkaroundAction
 {
@@ -121,6 +153,26 @@ public sealed class WalkaroundCore
         return sample.Live && sample.Phase.IsAtGate() && sample.Parked && sample.EnginesOff && sample.PrepComplete && !sample.BoardingObserved;
     }
 
+    /// <summary>Why a walk is abandoned on this sample — the first condition that fails, in
+    /// the order the captain would name it. Pure, for tests.</summary>
+    public static WalkaroundAbandonReason AbandonReason(WalkaroundSample sample)
+    {
+        ArgumentNullException.ThrowIfNull(sample);
+        return sample switch
+        {
+            { RefuelStage: GsxServiceStage.Called or GsxServiceStage.Requested or GsxServiceStage.Active } => WalkaroundAbandonReason.RefuelCalled,
+            { BoardingObserved: true } => WalkaroundAbandonReason.BoardingStarted,
+            { EnginesOff: false } => WalkaroundAbandonReason.EngineRunning,
+            { Parked: false } => WalkaroundAbandonReason.AircraftMoving,
+            { Live: false } => WalkaroundAbandonReason.FlightNotLive,
+            { PrepComplete: false } => WalkaroundAbandonReason.PrepNotComplete,
+            _ => WalkaroundAbandonReason.LeftTheGate,
+        };
+    }
+
+    /// <summary>The reason of the last <see cref="WalkaroundAction.Abandon"/>; null before one.</summary>
+    public WalkaroundAbandonReason? LastAbandonReason { get; private set; }
+
     /// <summary>Boarding has started as far as the service board can tell: any stage from the
     /// trigger on, the seeded Completed of a startup resync included.</summary>
     public static bool BoardingStarted(GsxServiceStage? boardingStage)
@@ -197,6 +249,7 @@ public sealed class WalkaroundCore
                     || !ready)
                 {
                     State = WalkaroundState.Abandoned;
+                    LastAbandonReason = AbandonReason(sample);
                     return WalkaroundAction.Abandon;
                 }
 

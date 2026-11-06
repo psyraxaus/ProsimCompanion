@@ -225,6 +225,10 @@ public sealed class SmallTalkCoreTests
         Assert.Equal("Lovely spot, captain.", CruiseSmallTalkService.FirstSentence("\"Lovely spot, captain. You'll like the old town.\""));
         Assert.Equal("No question here", CruiseSmallTalkService.FirstSentence("No question here"));
         Assert.Equal("", CruiseSmallTalkService.FirstSentence(null));
+        // Review 2026-11-05: a decimal point is not a sentence end.
+        Assert.Equal("About 1.5 hours to Amsterdam, captain.", CruiseSmallTalkService.FirstSentence("About 1.5 hours to Amsterdam, captain. Should be smooth."));
+        Assert.Equal("Flight level 350 it is!", CruiseSmallTalkService.FirstSentence("Flight level 350 it is! Nice and smooth up here."));
+        Assert.Equal("About 1.5 hours.", CruiseSmallTalkService.FirstSentence("About 1.5 hours."));
     }
 
     [Theory]

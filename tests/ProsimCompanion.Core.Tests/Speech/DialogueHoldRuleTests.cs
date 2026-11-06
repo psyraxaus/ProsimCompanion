@@ -16,6 +16,10 @@ public sealed class DialogueHoldRuleTests
     [InlineData("walkaround.announce", SpeechPriority.Low, true)]
     [InlineData("sayintentions.tx", SpeechPriority.Normal, false)]            // ATC is waiting
     [InlineData("fo.answer", SpeechPriority.Normal, false)]                   // the "any questions" answer
+    [InlineData("fo.baro", SpeechPriority.Normal, false)]                     // an acknowledged command
+    [InlineData("fo.readback", SpeechPriority.Normal, false)]
+    [InlineData("fo.crossCheck", SpeechPriority.Normal, true)]                // a readout nobody asked for (review 2026-11-05)
+    [InlineData("fo.fmsReminder", SpeechPriority.Normal, true)]               // the "fo." prefix no longer exempts
     [InlineData("briefing.arrival", SpeechPriority.Normal, false)]
     [InlineData("checklist.read", SpeechPriority.Normal, false)]
     [InlineData("ecam.line", SpeechPriority.Normal, false)]
