@@ -482,6 +482,14 @@
         "hint": "응답 후 승무원이 당신의 요청을 기다리는 시간."
       },
       "upcalls": {
+        "refuelStarted": {
+          "label": "급유 진행 중",
+          "hint": "급유차가 시작할 때: 'fuelling in progress, N tonnes requested' - 계획 블록 연료(INIT 오버라이드, 없으면 OFP)."
+        },
+        "deiceComplete": {
+          "label": "제빙 완료",
+          "hint": "GSX 제빙이 끝날 때: 'de-icing complete, Type four - holdover time starts now'."
+        },
         "title": "지상에서의 호출",
         "hint": "각 호출은 턴어라운드마다 한 번",
         "groundPower": "지상 전원 연결",
@@ -494,6 +502,8 @@
       "wording": {
         "title": "지상 승무원 문구",
         "hint": "글자 그대로 말합니다. {fuel}은 탑재 연료 톤수가 됩니다",
+        "refuelStarted": "급유 진행 중({fuel} = 계획 톤수)",
+        "deiceComplete": "제빙 완료({fluid} = 유형)",
         "standingBy": "대기 중",
         "groundPower": "지상 전원",
         "chocks": "초크",
@@ -501,6 +511,10 @@
       }
     },
     "cabin": {
+      "boardingComplete": {
+        "label": "탑승 완료 보고",
+        "hint": "탑승이 완료되고 마지막 도어가 닫히면: 'boarding complete, N on board, doors closed'. 객실 안전 보고는 별도 타이머로 이어집니다."
+      },
       "title": "객실 승무원",
       "hint": "객실 인터폰의 퍼서 보고",
       "secure": {
@@ -626,6 +640,8 @@
           "hint": "객실 안전 확보 대기가 아직 진행 중일 때 호출에 대한 응답."
         },
         "secure": "객실 안전 확보",
+        "boardingComplete": "탑승 완료({pax} = 탑승 인원)",
+        "boardingCompleteAck": "탑승 완료에 대한 FO의 답",
         "secureAck": "객실 안전 확보 — FO 확인",
         "ready": "객실 준비",
         "readyAck": "객실 준비 — FO 확인",

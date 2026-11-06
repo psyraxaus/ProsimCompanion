@@ -340,6 +340,8 @@ else if (CurrentSection == "groundCrew")
         <OptionField Draft="_groundCrew" For="o => o.CallOnChocks" />
         <OptionField Draft="_groundCrew" For="o => o.CallOnRefuelComplete" />
         <OptionField Draft="_groundCrew" For="o => o.CallOnCateringComplete" />
+        <OptionField Draft="_groundCrew" For="o => o.CallOnRefuelStarted" />
+        <OptionField Draft="_groundCrew" For="o => o.CallOnDeiceComplete" />
     </Section>
 
     @* The pushback crew (owner request 2026-11-07, plan V2). *@
@@ -381,6 +383,8 @@ else if (CurrentSection == "groundCrew")
         <OptionField Draft="_groundCrew" For="o => o.ChocksText" />
         <OptionField Draft="_groundCrew" For="o => o.RefuelCompleteText" />
         <OptionField Draft="_groundCrew" For="o => o.CateringCompleteText" />
+        <OptionField Draft="_groundCrew" For="o => o.RefuelStartedText" />
+        <OptionField Draft="_groundCrew" For="o => o.DeiceCompleteText" />
     </Section>
 }
 else if (CurrentSection == "cabin")
@@ -392,6 +396,7 @@ else if (CurrentSection == "cabin")
         <OptionField Draft="_cabin" For="o => o.CabinSecureSecondsPerPax" />
         <OptionField Draft="_cabin" For="o => o.CabinReady" />
         <OptionField Draft="_cabin" For="o => o.CabinReadyBelowAltFt" />
+        <OptionField Draft="_cabin" For="o => o.BoardingCompleteReport" />
         <OptionField Draft="_cabin" For="o => o.FoAcknowledge" />
         <OptionField Draft="_cabin" For="o => o.RequireCabChannel" />
         <AdvancedFields>
@@ -434,6 +439,8 @@ else if (CurrentSection == "cabin")
         <OptionField Draft="_cabin" For="o => o.CabinSecuringReplyText" />
         <OptionField Draft="_cabin" For="o => o.CabinSecureText" />
         <OptionField Draft="_cabin" For="o => o.CabinSecureAckText" />
+        <OptionField Draft="_cabin" For="o => o.BoardingCompleteText" />
+        <OptionField Draft="_cabin" For="o => o.BoardingCompleteAckText" />
         <OptionField Draft="_cabin" For="o => o.CabinReadyText" />
         <OptionField Draft="_cabin" For="o => o.CabinReadyAckText" />
         <OptionField Draft="_cabin" For="o => o.BoardingDelayText" />

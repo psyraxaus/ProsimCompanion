@@ -482,6 +482,14 @@
         "hint": "How long the crew waits for your request after answering."
       },
       "upcalls": {
+        "refuelStarted": {
+          "label": "Fuelling in progress",
+          "hint": "When the truck starts: 'fuelling in progress, N tonnes requested' - the planned block fuel (INIT override, else the OFP)."
+        },
+        "deiceComplete": {
+          "label": "De-icing complete",
+          "hint": "At the end of GSX de-icing: 'de-icing complete, Type four - holdover time starts now'."
+        },
         "title": "Upcalls",
         "hint": "Each call comes once per turnaround",
         "groundPower": "Ground power connected",
@@ -494,6 +502,8 @@
       "wording": {
         "title": "Ground Crew Wording",
         "hint": "Spoken word for word. {fuel} becomes the tonnes on board",
+        "refuelStarted": "Fuelling in progress ({fuel} = tonnes planned)",
+        "deiceComplete": "De-icing complete ({fluid} = the type)",
         "standingBy": "Standing by",
         "groundPower": "Ground power",
         "chocks": "Chocks",
@@ -501,6 +511,10 @@
       }
     },
     "cabin": {
+      "boardingComplete": {
+        "label": "Boarding complete report",
+        "hint": "Once boarding has completed and the last door closes: 'boarding complete, N on board, doors closed'. The cabin-secure report follows on its own timer."
+      },
       "title": "Cabin Crew",
       "hint": "Purser reports on the cabin interphone",
       "secure": {
@@ -626,6 +640,8 @@
           "hint": "Answer to a hail while the cabin-secure wait is still running."
         },
         "secure": "Cabin secure",
+        "boardingComplete": "Boarding complete ({pax} = on board)",
+        "boardingCompleteAck": "FO's answer to boarding complete",
         "secureAck": "Cabin secure — FO ack",
         "ready": "Cabin ready",
         "readyAck": "Cabin ready — FO ack",

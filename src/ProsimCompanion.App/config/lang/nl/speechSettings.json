@@ -482,6 +482,14 @@
         "hint": "Hoe lang de crew na het antwoorden op je verzoek wacht."
       },
       "upcalls": {
+        "refuelStarted": {
+          "label": "Tanken bezig",
+          "hint": "Als de tankwagen begint: 'fuelling in progress, N tonnes requested' - de geplande blokbrandstof (INIT-override, anders het OFP)."
+        },
+        "deiceComplete": {
+          "label": "De-icing voltooid",
+          "hint": "Aan het einde van de GSX-de-icing: 'de-icing complete, Type four - holdover time starts now'."
+        },
         "title": "Oproepen van beneden",
         "hint": "Elke oproep komt eenmaal per turnaround",
         "groundPower": "Grondstroom aangesloten",
@@ -494,6 +502,8 @@
       "wording": {
         "title": "Bewoording grondcrew",
         "hint": "Woord voor woord uitgesproken. {fuel} wordt de tonnen aan boord",
+        "refuelStarted": "Tanken bezig ({fuel} = geplande tonnen)",
+        "deiceComplete": "De-icing voltooid ({fluid} = het type)",
         "standingBy": "Standing by",
         "groundPower": "Grondstroom",
         "chocks": "Blokken",
@@ -501,6 +511,10 @@
       }
     },
     "cabin": {
+      "boardingComplete": {
+        "label": "Melding instappen voltooid",
+        "hint": "Als het instappen klaar is en de laatste deur sluit: 'boarding complete, N on board, doors closed'. De melding cabine veilig volgt met haar eigen timer."
+      },
       "title": "Cabinecrew",
       "hint": "Purserrapporten op de cabine-interphone",
       "secure": {
@@ -626,6 +640,8 @@
           "hint": "Antwoord op een oproep terwijl de wachttijd cabine gezekerd nog loopt."
         },
         "secure": "Cabine gezekerd",
+        "boardingComplete": "Instappen voltooid ({pax} = aan boord)",
+        "boardingCompleteAck": "Antwoord van de FO op instappen voltooid",
         "secureAck": "Cabine gezekerd — FO-bevestiging",
         "ready": "Cabine gereed",
         "readyAck": "Cabine gereed — FO-bevestiging",

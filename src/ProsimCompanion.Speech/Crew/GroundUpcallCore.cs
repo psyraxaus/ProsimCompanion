@@ -19,6 +19,8 @@ internal static class GroundUpcallCore
         Chocks,
         RefuelComplete,
         CateringComplete,
+        /// <summary>GSX Refueling went Active: "fuelling in progress, N tonnes requested" (owner request 2026-11-07, plan V3).</summary>
+        RefuelStarted,
     }
 
     /// <summary>Edge baselines (null = not yet observed) + per-cycle called latches.</summary>
@@ -30,7 +32,9 @@ internal static class GroundUpcallCore
         bool GroundPowerCalled,
         bool ChocksCalled,
         bool RefuelCalled,
-        bool CateringCalled)
+        bool CateringCalled,
+        bool RefuelStartedCalled,
+        bool DeiceCalled)
     {
         internal static readonly UpcallState Initial = default;
     }
@@ -44,7 +48,8 @@ internal static class GroundUpcallCore
         bool CallOnGroundPower,
         bool CallOnChocks,
         bool CallOnRefuelComplete,
-        bool CallOnCateringComplete);
+        bool CallOnCateringComplete,
+        bool CallOnRefuelStarted);
 
     /// <summary>A new ground-ops cycle: the called latches reset. Edge baselines survive
     /// deliberately — the equipment states themselves carry over into the new cycle, and a
@@ -56,6 +61,8 @@ internal static class GroundUpcallCore
             ChocksCalled = false,
             RefuelCalled = false,
             CateringCalled = false,
+            RefuelStartedCalled = false,
+            DeiceCalled = false,
         };
 
     /// <summary>The refuel sync retired the transfer for tankering while GSX Refueling ran
@@ -85,6 +92,10 @@ internal static class GroundUpcallCore
         // previous session's refuel). Waiting/Held → Completed is history, not a truck leaving.
         var refuelCompleted = IsRunning(state.LastRefuelStage) && sample.RefuelStage == GsxServiceStage.Completed;
         var cateringCompleted = IsRunning(state.LastCateringStage) && sample.CateringStage == GsxServiceStage.Completed;
+        // The truck starting (owner request 2026-11-07, plan V3): Active out of any OBSERVED other
+        // stage — a first read of Active after a restart is a baseline, not a start.
+        var refuelStarted = state.LastRefuelStage is { } lastRefuel && lastRefuel != GsxServiceStage.Active
+            && sample.RefuelStage == GsxServiceStage.Active;
 
         state = state with
         {
@@ -102,6 +113,10 @@ internal static class GroundUpcallCore
         {
             return (state with { ChocksCalled = true }, UpcallKind.Chocks);
         }
+        if (refuelStarted && departureWindow && sample.CallOnRefuelStarted && !state.RefuelStartedCalled)
+        {
+            return (state with { RefuelStartedCalled = true }, UpcallKind.RefuelStarted);
+        }
         if (refuelCompleted && departureWindow && sample.CallOnRefuelComplete && !state.RefuelCalled)
         {
             return (state with { RefuelCalled = true }, UpcallKind.RefuelComplete);
@@ -113,4 +128,19 @@ internal static class GroundUpcallCore
 
         return (state, null);
     }
+
+    /// <summary>GSX de-icing completed (owner request 2026-11-07, plan V3): the crew reports it
+    /// once per cycle — the signal is a completion edge already, the latch guards a repeat.</summary>
+    internal static (UpcallState State, bool Speak) OnDeiceCompleted(UpcallState state)
+        => state.DeiceCalled ? (state, false) : (state with { DeiceCalled = true }, true);
+
+    /// <summary>The GSX fluid enum as the crew says it; empty when unknown (0) so the clause drops.</summary>
+    internal static string FluidSpoken(int fluidType) => fluidType switch
+    {
+        1 => "Type one",
+        2 => "Type two",
+        3 => "Type three",
+        4 => "Type four",
+        _ => "",
+    };
 }

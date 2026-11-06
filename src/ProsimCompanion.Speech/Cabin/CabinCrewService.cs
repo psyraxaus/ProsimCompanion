@@ -75,6 +75,7 @@ public sealed class CabinCrewService : Core.Hosting.IStartupModule, IDisposable,
     private readonly CabinCrewCore _core = new();
     private readonly CancellationTokenSource _shutdown = new();
     private int _cabinEmptyReported;
+    private int _boardingCompleted;
 
     private IDataRefSubscription<bool>? _doorLF;
     private IDataRefSubscription<bool>? _doorLA;
@@ -165,6 +166,8 @@ public sealed class CabinCrewService : Core.Hosting.IStartupModule, IDisposable,
         if (_signals is not null)
         {
             _signals.ArrivalCompleted += OnArrivalCompleted;
+            _signals.BoardingCompleted += OnBoardingCompleted;
+            _signals.FlightCycleReset += OnFlightCycleReset;
         }
 
         if (_legBoundary is not null)
@@ -179,6 +182,8 @@ public sealed class CabinCrewService : Core.Hosting.IStartupModule, IDisposable,
         if (_signals is not null)
         {
             _signals.ArrivalCompleted -= OnArrivalCompleted;
+            _signals.BoardingCompleted -= OnBoardingCompleted;
+            _signals.FlightCycleReset -= OnFlightCycleReset;
         }
 
         if (_legBoundary is not null)
@@ -221,6 +226,12 @@ public sealed class CabinCrewService : Core.Hosting.IStartupModule, IDisposable,
     // ---- "cabin's empty" at deboarding complete (ADR-0019 §2, issue #214) ---------------------
 
     private void OnLegBegan(object? sender, LegBeganEventArgs e) => Interlocked.Exchange(ref _cabinEmptyReported, 0);
+
+    // Boarding complete is a fact of this leg (owner request 2026-11-07, plan V3): set by the GSX
+    // edge, cleared with the cycle; the report itself waits for the doors in the tick.
+    private void OnBoardingCompleted() => Interlocked.Exchange(ref _boardingCompleted, 1);
+
+    private void OnFlightCycleReset(FlightCycleResetKind _) => Interlocked.Exchange(ref _boardingCompleted, 0);
 
     private void OnArrivalCompleted()
     {
@@ -356,7 +367,8 @@ public sealed class CabinCrewService : Core.Hosting.IStartupModule, IDisposable,
                 HasBeenAirborne: _flight.Snapshot().HasBeenAirborneThisSession,
                 PaxOnBoard: PaxOnBoard(),
                 NowUtc: DateTimeOffset.UtcNow,
-                VoicePaused: _store.Snapshot().ListeningPaused);
+                VoicePaused: _store.Snapshot().ListeningPaused,
+                BoardingCompleted: Volatile.Read(ref _boardingCompleted) == 1);
 
             var before = _core.Capture();
             var action = _core.Evaluate(sample, options, () => Random.Shared.NextDouble());
@@ -420,6 +432,10 @@ public sealed class CabinCrewService : Core.Hosting.IStartupModule, IDisposable,
                 CabinAction.BoardingDelay => RunReportAsync(
                     "cabin.boarding", options.BoardingDelayText, foAckText: null,
                     ttl: TimeSpan.FromSeconds(30)),
+                CabinAction.BoardingCompleteReport => RunReportAsync(
+                    "cabin.boarding-complete",
+                    Crew.SpokenTemplate.FillOrDrop(options.BoardingCompleteText, "{pax}", sample.PaxOnBoard > 0 ? sample.PaxOnBoard.ToString(System.Globalization.CultureInfo.InvariantCulture) : null),
+                    options.FoAcknowledge ? options.BoardingCompleteAckText : null),
                 _ => Task.CompletedTask,
             };
         }
@@ -500,6 +516,7 @@ public sealed class CabinCrewService : Core.Hosting.IStartupModule, IDisposable,
     {
         "cabin.secure" => options.CabinSecureAckText,
         "cabin.ready" => options.CabinReadyAckText,
+        "cabin.boarding-complete" => options.BoardingCompleteAckText,
         _ => null,
     };
 

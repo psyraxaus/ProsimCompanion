@@ -36,6 +36,12 @@ public sealed class CabinOptions : IOptionSection
     [OptionField(FieldKind.Bool, "speechSettings.cabin.ready", DependsOn = "Enabled")]
     public bool CabinReady { get; set; } = true;
 
+    /// <summary>The purser's "boarding complete, N on board, doors closed" (owner request
+    /// 2026-11-07, plan V3): once per flight when boarding has completed and the last door
+    /// closes.</summary>
+    [OptionField(FieldKind.Bool, "speechSettings.cabin.boardingComplete", DependsOn = "Enabled")]
+    public bool BoardingCompleteReport { get; set; } = true;
+
     /// <summary>The FO gives a short verbatim acknowledgement after each report.</summary>
     [OptionField(FieldKind.Bool, "speechSettings.cabin.foAck", DependsOn = "Enabled")]
     public bool FoAcknowledge { get; set; } = true;
@@ -199,6 +205,14 @@ public sealed class CabinOptions : IOptionSection
     [OptionField(FieldKind.Text, "speechSettings.cabin.wording.boardingDelay")]
     public string BoardingDelayText { get; set; } =
         "Flight deck, cabin crew. We have a short delay — a few passengers still to board.";
+
+    /// <summary><c>{pax}</c> = GSX's boarded count, else the OFP figure; the clause drops when neither is known.</summary>
+    [OptionField(FieldKind.Text, "speechSettings.cabin.wording.boardingComplete")]
+    public string BoardingCompleteText { get; set; } =
+        "Flight deck, cabin crew. Boarding complete, {pax} on board, doors closed.";
+
+    [OptionField(FieldKind.Text, "speechSettings.cabin.wording.boardingCompleteAck")]
+    public string BoardingCompleteAckText { get; set; } = "Thank you.";
 
     /// <summary>The purser's answer to a "cockpit to crew" hail (ADR-0006 / issue #51).</summary>
     [OptionField(FieldKind.Text, "speechSettings.common.hailReply", Hint = "speechSettings.cabin.wording.hailReplyHint")]

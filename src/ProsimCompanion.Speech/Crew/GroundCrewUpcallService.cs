@@ -2,6 +2,7 @@ using System.Globalization;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ProsimCompanion.Core.Aircraft;
+using ProsimCompanion.Core.Aircraft.Ofp;
 using ProsimCompanion.Core.Configuration;
 using ProsimCompanion.Core.EventLog;
 using ProsimCompanion.Core.Flight;
@@ -31,6 +32,8 @@ public sealed class GroundCrewUpcallService : Core.Hosting.IStartupModule, IDisp
     private readonly IOptionsMonitor<GroundCrewOptions> _options;
     private readonly JsonlEventLog _eventLog;
     private readonly ILogger<GroundCrewUpcallService> _logger;
+    private readonly IEfbInitOverrides? _initOverrides;
+    private readonly OfpStore? _ofp;
     private readonly CancellationTokenSource _shutdown = new();
 
     private IDataRefSubscription<bool>? _groundPower;
@@ -50,7 +53,9 @@ public sealed class GroundCrewUpcallService : Core.Hosting.IStartupModule, IDisp
         IAcpChannel acp,
         IOptionsMonitor<GroundCrewOptions> options,
         JsonlEventLog eventLog,
-        ILogger<GroundCrewUpcallService> logger)
+        ILogger<GroundCrewUpcallService> logger,
+        IEfbInitOverrides? initOverrides = null,
+        OfpStore? ofp = null)
     {
         ArgumentNullException.ThrowIfNull(dataRefs);
         ArgumentNullException.ThrowIfNull(diagnostics);
@@ -71,6 +76,8 @@ public sealed class GroundCrewUpcallService : Core.Hosting.IStartupModule, IDisp
         _options = options;
         _eventLog = eventLog;
         _logger = logger;
+        _initOverrides = initOverrides;
+        _ofp = ofp;
     }
 
     public void Start()
@@ -81,6 +88,7 @@ public sealed class GroundCrewUpcallService : Core.Hosting.IStartupModule, IDisp
 
         _signals.FlightCycleReset += OnFlightCycleReset;
         _signals.RefuelSkippedForTankering += OnRefuelSkippedForTankering;
+        _signals.DeiceCompleted += OnDeiceCompleted;
         _timer = new Timer(_ => Tick(), null, 1000, 1000);
     }
 
@@ -88,6 +96,7 @@ public sealed class GroundCrewUpcallService : Core.Hosting.IStartupModule, IDisp
     {
         _signals.FlightCycleReset -= OnFlightCycleReset;
         _signals.RefuelSkippedForTankering -= OnRefuelSkippedForTankering;
+        _signals.DeiceCompleted -= OnDeiceCompleted;
         _timer?.Dispose();
         _shutdown.Cancel();
         _shutdown.Dispose();
@@ -138,7 +147,8 @@ public sealed class GroundCrewUpcallService : Core.Hosting.IStartupModule, IDisp
                 CallOnGroundPower: options.CallOnGroundPower,
                 CallOnChocks: options.CallOnChocks,
                 CallOnRefuelComplete: options.CallOnRefuelComplete,
-                CallOnCateringComplete: options.CallOnCateringComplete));
+                CallOnCateringComplete: options.CallOnCateringComplete,
+                CallOnRefuelStarted: options.CallOnRefuelStarted));
             _state = nextState;
 
             switch (call)
@@ -155,11 +165,40 @@ public sealed class GroundCrewUpcallService : Core.Hosting.IStartupModule, IDisp
                 case GroundUpcallCore.UpcallKind.CateringComplete:
                     Run("ground.upcall.catering", options.CateringCompleteText);
                     break;
+                case GroundUpcallCore.UpcallKind.RefuelStarted:
+                    Run("ground.upcall.refuelStarted", FillPlannedFuel(options.RefuelStartedText));
+                    break;
             }
         }
         catch (Exception ex)
         {
             _logger.LogDebug(ex, "Ground upcall tick failed");
+        }
+    }
+
+    /// <summary>GSX de-icing completed (owner request 2026-11-07, plan V3): "de-icing complete,
+    /// Type four — holdover time starts now", once per cycle. Not a tick edge — the signal's
+    /// fluid type rides along; the holdover card arms on the same edge.</summary>
+    private void OnDeiceCompleted(int fluidType)
+    {
+        try
+        {
+            var options = _options.CurrentValue;
+            if (!options.Enabled || !options.CallOnDeiceComplete || !_flight.IsLive)
+            {
+                return;
+            }
+
+            bool speak;
+            (_state, speak) = GroundUpcallCore.OnDeiceCompleted(_state);
+            if (speak)
+            {
+                Run("ground.upcall.deice", SpokenTemplate.FillOrDrop(options.DeiceCompleteText, "{fluid}", GroundUpcallCore.FluidSpoken(fluidType)));
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "De-ice complete upcall failed");
         }
     }
 
@@ -215,6 +254,15 @@ public sealed class GroundCrewUpcallService : Core.Hosting.IStartupModule, IDisp
         }
 
         return null;
+    }
+
+    /// <summary>The plan the truck was sent for: INIT override, else the OFP block fuel
+    /// (<see cref="EffectiveBlockFuel"/>); no plan → the clause drops.</summary>
+    private string FillPlannedFuel(string template)
+    {
+        var kg = EffectiveBlockFuel.PlanKg(_initOverrides?.Snapshot(), _ofp?.Current);
+        var tonnes = kg > 0 ? (kg / 1000.0).ToString("0.0", CultureInfo.InvariantCulture) : null;
+        return SpokenTemplate.FillOrDrop(template, "{fuel}", tonnes);
     }
 
     private string FillFuel(string template)

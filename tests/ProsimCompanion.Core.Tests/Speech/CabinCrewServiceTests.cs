@@ -178,4 +178,45 @@ public sealed class CabinCrewServiceTests : IDisposable
         Assert.Equal(2, _arbiter.Requests.Count);
         Assert.Equal(2, _secured);
     }
+
+    // ---- "boarding complete, N on board, doors closed" (owner request 2026-11-07, plan V3) ----
+
+    [Fact]
+    public void BoardingCompleted_DoorsClosed_InDeparture_ReportsOnce()
+    {
+        _flight.SetPhase(FlightPhase.Departure);
+        _signals.RaiseBoardingCompleted();
+
+        _service.Tick();
+        WaitForReport("cabin.boarding-complete");
+        _service.Tick();
+
+        Assert.Single(_arbiter.Tags, t => t == "cabin.boarding-complete");
+        Assert.DoesNotContain("cabin.secure", _arbiter.Tags); // no beacon yet
+    }
+
+    [Fact]
+    public void NoBoardingCompleted_OrSwitchedOff_NoBoardingReport()
+    {
+        _flight.SetPhase(FlightPhase.Departure);
+        _service.Tick();
+        Assert.DoesNotContain("cabin.boarding-complete", _arbiter.Tags);
+
+        _options.BoardingCompleteReport = false;
+        _signals.RaiseBoardingCompleted();
+        _service.Tick();
+        Assert.DoesNotContain("cabin.boarding-complete", _arbiter.Tags);
+    }
+
+    [Fact]
+    public void BoardingCompleted_ClearsWithTheCycleReset()
+    {
+        _flight.SetPhase(FlightPhase.Departure);
+        _signals.RaiseBoardingCompleted();
+        _signals.RaiseFlightCycleReset(FlightCycleResetKind.NewPlan);
+
+        _service.Tick();
+
+        Assert.DoesNotContain("cabin.boarding-complete", _arbiter.Tags);
+    }
 }

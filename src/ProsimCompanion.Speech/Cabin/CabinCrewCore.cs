@@ -22,6 +22,11 @@ public enum CabinAction
     /// <summary>Ambient boarding-delay call at the gate (opt-in, one dice roll per flight).</summary>
     BoardingDelay,
 
+    /// <summary>"Boarding complete, N on board, doors closed" (owner request 2026-11-07, plan V3):
+    /// once per flight, boarding completed and the last door closed, at the gate or as the
+    /// push begins; "cabin secure" follows on its own timer.</summary>
+    BoardingCompleteReport,
+
     /// <summary>The purser's once-per-flight cruise query ("any update on arrival time or
     /// turbulence?") with its reply window — due now; the shell runs the dialogue.</summary>
     CruiseQuery,
@@ -45,7 +50,8 @@ public sealed record CabinTickSample(
     bool HasBeenAirborne = false,
     int PaxOnBoard = 0,
     DateTimeOffset NowUtc = default,
-    bool VoicePaused = false);
+    bool VoicePaused = false,
+    bool BoardingCompleted = false);
 
 /// <summary>
 /// The pure once-per-flight trigger logic of the cabin-crew simulation (Prosim2FO semantics,
@@ -85,7 +91,8 @@ public sealed class CabinCrewCore
         bool CruiseQueryDone,
         bool CruiseQueryArmed,
         DateTimeOffset? CruiseQueryDueAtUtc,
-        int CruiseQueryDelaySeconds)
+        int CruiseQueryDelaySeconds,
+        bool BoardingReportDone = false)
     {
         public static LatchState Empty { get; } = new(false, false, null, 0, false, false, false, false, null, 0);
     }
@@ -98,6 +105,7 @@ public sealed class CabinCrewCore
     private DateTimeOffset _secureDueAtUtc;
     private bool _readyDone;
     private bool _boardingRolled;
+    private bool _boardingReportDone;
     private bool _cruiseQueryDone;
     private bool _cruiseQueryArmed;
     private DateTimeOffset _cruiseQueryDueAtUtc;
@@ -119,7 +127,8 @@ public sealed class CabinCrewCore
     public LatchState Capture() => new(
         _secureDone, _secureArmed, _secureArmed ? _secureDueAtUtc : null, SecureDelaySeconds,
         _readyDone, _boardingRolled,
-        _cruiseQueryDone, _cruiseQueryArmed, _cruiseQueryArmed ? _cruiseQueryDueAtUtc : null, CruiseQueryDelaySeconds);
+        _cruiseQueryDone, _cruiseQueryArmed, _cruiseQueryArmed ? _cruiseQueryDueAtUtc : null, CruiseQueryDelaySeconds,
+        _boardingReportDone);
 
     /// <summary>Takes persisted latches back. A due time in the past still fires on the next
     /// qualifying tick — the report is late, not lost.</summary>
@@ -136,6 +145,7 @@ public sealed class CabinCrewCore
         _cruiseQueryArmed = state.CruiseQueryArmed;
         _cruiseQueryDueAtUtc = state.CruiseQueryDueAtUtc ?? default;
         CruiseQueryDelaySeconds = state.CruiseQueryDelaySeconds;
+        _boardingReportDone = state.BoardingReportDone;
     }
 
     public void OnPhaseChanged(FlightPhase from, FlightPhase to)
@@ -148,6 +158,7 @@ public sealed class CabinCrewCore
             SecureDelaySeconds = 0;
             _readyDone = false;
             _boardingRolled = false;
+            _boardingReportDone = false;
             _cruiseQueryDone = false;
             _cruiseQueryArmed = false;
             CruiseQueryDelaySeconds = 0;
@@ -196,6 +207,16 @@ public sealed class CabinCrewCore
         ArgumentNullException.ThrowIfNull(sample);
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(roll);
+
+        // Boarding complete + the last door closed (owner request 2026-11-07, plan V3): judged
+        // before the secure timer so the two reports come in their real order.
+        if (options.BoardingCompleteReport && !_boardingReportDone
+            && sample.BoardingCompleted && sample.DoorsClosed
+            && sample.Phase is FlightPhase.Departure or FlightPhase.PushbackAndStart)
+        {
+            _boardingReportDone = true;
+            return CabinAction.BoardingCompleteReport;
+        }
 
         if (options.CabinSecure && !_secureDone
             && sample.Phase is FlightPhase.PushbackAndStart or FlightPhase.TaxiOut

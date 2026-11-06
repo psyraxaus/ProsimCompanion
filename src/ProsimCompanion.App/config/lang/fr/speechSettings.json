@@ -482,6 +482,14 @@
         "hint": "Combien de temps l'équipe attend ta demande après avoir répondu."
       },
       "upcalls": {
+        "refuelStarted": {
+          "label": "Avitaillement en cours",
+          "hint": "Quand le camion commence : 'fuelling in progress, N tonnes requested' - le carburant bloc prévu (override INIT, sinon l'OFP)."
+        },
+        "deiceComplete": {
+          "label": "Dégivrage terminé",
+          "hint": "À la fin du dégivrage GSX : 'de-icing complete, Type four - holdover time starts now'."
+        },
         "title": "Appels du sol",
         "hint": "Chaque appel vient une fois par escale",
         "groundPower": "Groupe de parc connecté",
@@ -494,6 +502,8 @@
       "wording": {
         "title": "Formulation du personnel au sol",
         "hint": "Dite mot pour mot. {fuel} devient les tonnes à bord",
+        "refuelStarted": "Avitaillement en cours ({fuel} = tonnes prévues)",
+        "deiceComplete": "Dégivrage terminé ({fluid} = le type)",
         "standingBy": "En attente",
         "groundPower": "Groupe de parc",
         "chocks": "Cales",
@@ -501,6 +511,10 @@
       }
     },
     "cabin": {
+      "boardingComplete": {
+        "label": "Rapport embarquement terminé",
+        "hint": "Quand l'embarquement est terminé et que la dernière porte se ferme : 'boarding complete, N on board, doors closed'. Le rapport cabine sécurisée suit avec son propre délai."
+      },
       "title": "Équipage de cabine",
       "hint": "Rapports du chef de cabine sur l'interphone cabine",
       "secure": {
@@ -626,6 +640,8 @@
           "hint": "Réponse à un appel tant que l'attente cabine sécurisée est en cours."
         },
         "secure": "Cabine sécurisée",
+        "boardingComplete": "Embarquement terminé ({pax} = à bord)",
+        "boardingCompleteAck": "Réponse de l'OPL à embarquement terminé",
         "secureAck": "Cabine sécurisée — accusé copilote",
         "ready": "Cabine prête",
         "readyAck": "Cabine prête — accusé copilote",

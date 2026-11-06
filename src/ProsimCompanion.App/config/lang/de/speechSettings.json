@@ -482,6 +482,14 @@
         "hint": "Wie lange die Crew nach dem Melden auf deine Anfrage wartet."
       },
       "upcalls": {
+        "refuelStarted": {
+          "label": "Betankung läuft",
+          "hint": "Wenn der Tankwagen beginnt: 'fuelling in progress, N tonnes requested' - der geplante Blockkraftstoff (INIT-Override, sonst der OFP)."
+        },
+        "deiceComplete": {
+          "label": "Enteisung abgeschlossen",
+          "hint": "Am Ende der GSX-Enteisung: 'de-icing complete, Type four - holdover time starts now'."
+        },
         "title": "Anrufe von unten",
         "hint": "Jeder Ruf kommt einmal pro Turnaround",
         "groundPower": "Bodenstrom angeschlossen",
@@ -494,6 +502,8 @@
       "wording": {
         "title": "Wortlaut der Bodencrew",
         "hint": "Wörtlich gesprochen. {fuel} wird zu den Tonnen an Bord",
+        "refuelStarted": "Betankung läuft ({fuel} = geplante Tonnen)",
+        "deiceComplete": "Enteisung abgeschlossen ({fluid} = der Typ)",
         "standingBy": "Standing by",
         "groundPower": "Bodenstrom",
         "chocks": "Bremsklötze",
@@ -501,6 +511,10 @@
       }
     },
     "cabin": {
+      "boardingComplete": {
+        "label": "Meldung Boarding abgeschlossen",
+        "hint": "Wenn das Boarding abgeschlossen ist und die letzte Tür schließt: 'boarding complete, N on board, doors closed'. Die Meldung Kabine gesichert folgt mit ihrem eigenen Timer."
+      },
       "title": "Kabinencrew",
       "hint": "Purser-Meldungen über das Kabinen-Interphone",
       "secure": {
@@ -626,6 +640,8 @@
           "hint": "Antwort auf einen Anruf, solange die Kabine-gesichert-Wartezeit noch läuft."
         },
         "secure": "Kabine gesichert",
+        "boardingComplete": "Boarding abgeschlossen ({pax} = an Bord)",
+        "boardingCompleteAck": "Antwort des FO auf Boarding abgeschlossen",
         "secureAck": "Kabine gesichert — FO-Bestätigung",
         "ready": "Kabine bereit",
         "readyAck": "Kabine bereit — FO-Bestätigung",

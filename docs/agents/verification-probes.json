@@ -4411,6 +4411,26 @@
       "notes": "See scenario-fires-and-detects. The exit clear runs in ScenarioService.StopAsync (IHostedService) AFTER the module host disposed the service (review 2026-11-05: the write lock is no longer disposed, so the clear can run); the startup clear-all waits for the ProSim connected edge (it used to run before any session existed and never retried); the ARRIVAL flight-cycle reset clears on GroundOpsSignals.FlightCycleReset (a new-plan reset keeps a Planned plan); all verify by re-reading getArmedFailures(). See scenario-turnaround-leg-planned. Unverified live."
     },
     {
+      "id": "crew-lines-2026-11",
+      "issue": 0,
+      "state": "fixed-unverified",
+      "kind": "watch",
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "Owner request 2026-11-07 (plan V3): three small real-life crew lines, each once per cycle. Ground (GroundCrewUpcallService, GroundCrew role, interphone): ground.upcall {call: ground.upcall.refuelStarted} 'fuelling in progress, N tonnes requested' when GSX Refueling goes Active out of an observed other stage (the planned block fuel: INIT override, else the OFP; no plan → the clause drops); ground.upcall {call: ground.upcall.deice} 'de-icing complete, Type four — holdover time starts now' on the GroundOpsSignals.DeiceCompleted edge (fluid 1–4 spoken as 'Type one' … 'Type four'; 0 → the clause drops). Cabin (CabinCrewService, Purser role): cabin.report {report: cabin.boarding-complete} 'boarding complete, N on board, doors closed' once boarding completed (the GSX edge) AND all four doors are closed, in Departure or PushbackAndStart.",
+        "assert-present (a refuel ran): one ground.upcall {call: ground.upcall.refuelStarted} after the Refueling Active edge (gsx-decision / gsx.service rows) and before ground.upcall.refuel (the completion); its text carries the planned tonnes, matching the figure the departure pump sent the truck for.",
+        "assert-present (de-iced departure): one ground.upcall {call: ground.upcall.deice} right after deice.completed / the holdover card arming, naming the fluid the Deice activity store shows.",
+        "assert-present (boarding completed, doors closed before the push): one cabin.report {report: cabin.boarding-complete} with the pax figure (GSX boarded count, else OFP), BEFORE cabin.secure-armed / cabin.secure; the two reports never overlap (the cabin is busy during a call).",
+        "assert-absent: any of the three lines twice in one cycle; a refuelStarted line after an app restart mid-refuel (the first read of Active is a baseline); a 'zero tonnes' / 'Type' with no number / a bare '{fuel}', '{fluid}', '{pax}' in any spoken text (SpokenTemplate drops the clause instead).",
+        "assert-absent: a cabin.boarding-complete report while any door is still open, or before the boarding-completed edge, or in Preflight (boarding never completed there).",
+        "requires-human: the three lines sound right in the flow — the fueller as the truck connects, the de-ice crew as the rig pulls away, the purser as the last door closes — and the FO's 'thank you' follows the purser when the acknowledgement option is on."
+      ],
+      "notes": "Built 2026-11-07. GroundUpcallCore: UpcallKind.RefuelStarted (edge Active out of an observed non-Active stage, once per cycle, RefuelStartedCalled latch), OnDeiceCompleted (DeiceCalled latch), FluidSpoken; GroundCrewUpcallService subscribes DeiceCompleted and fills {fuel} from EffectiveBlockFuel.PlanKg (optional IEfbInitOverrides + OfpStore). CabinCrewCore: CabinAction.BoardingCompleteReport judged before the secure timer, LatchState.BoardingReportDone persisted; CabinCrewService latches GroundOpsSignals.BoardingCompleted, clears it on FlightCycleReset, fills {pax}. SpokenTemplate.FillOrDrop shared. Options groundCrew.callOnRefuelStarted / callOnDeiceComplete / refuelStartedText / deiceCompleteText, cabin.boardingCompleteReport / boardingCompleteText / boardingCompleteAckText with controls and seven-pack texts. Tests GroundUpcallCoreTests, SpokenTemplateTests, CabinCrewServiceTests. Unverified live."
+    },
+    {
       "id": "pushback-crew-dialogue",
       "issue": 0,
       "state": "fixed-unverified",

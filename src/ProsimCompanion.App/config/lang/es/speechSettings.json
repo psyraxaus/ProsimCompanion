@@ -482,6 +482,14 @@
         "hint": "Cuánto espera el personal tu petición después de contestar."
       },
       "upcalls": {
+        "refuelStarted": {
+          "label": "Repostaje en curso",
+          "hint": "Cuando empieza el camión: 'fuelling in progress, N tonnes requested' - el combustible de bloque previsto (override INIT, si no el OFP)."
+        },
+        "deiceComplete": {
+          "label": "Deshielo terminado",
+          "hint": "Al terminar el deshielo de GSX: 'de-icing complete, Type four - holdover time starts now'."
+        },
         "title": "Avisos desde tierra",
         "hint": "Cada llamada llega una vez por escala",
         "groundPower": "Energía de tierra conectada",
@@ -494,6 +502,8 @@
       "wording": {
         "title": "Frases del personal de tierra",
         "hint": "Dichas palabra por palabra. {fuel} se convierte en las toneladas a bordo",
+        "refuelStarted": "Repostaje en curso ({fuel} = toneladas previstas)",
+        "deiceComplete": "Deshielo terminado ({fluid} = el tipo)",
         "standingBy": "A la espera",
         "groundPower": "Energía de tierra",
         "chocks": "Calzos",
@@ -501,6 +511,10 @@
       }
     },
     "cabin": {
+      "boardingComplete": {
+        "label": "Informe de embarque completo",
+        "hint": "Cuando el embarque ha terminado y se cierra la última puerta: 'boarding complete, N on board, doors closed'. El informe de cabina asegurada sigue con su propio temporizador."
+      },
       "title": "Tripulación de cabina",
       "hint": "Reportes del sobrecargo por el interfono de cabina",
       "secure": {
@@ -626,6 +640,8 @@
           "hint": "Respuesta a una llamada mientras aún corre la espera de cabina asegurada."
         },
         "secure": "Cabina asegurada",
+        "boardingComplete": "Embarque completo ({pax} = a bordo)",
+        "boardingCompleteAck": "Respuesta del FO al embarque completo",
         "secureAck": "Cabina asegurada — confirmación del FO",
         "ready": "Cabina lista",
         "readyAck": "Cabina lista — confirmación del FO",

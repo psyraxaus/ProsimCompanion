@@ -51,6 +51,16 @@ public sealed class GroundCrewOptions : IOptionSection
     [OptionField(FieldKind.Bool, "speechSettings.common.cateringComplete", DependsOn = "Enabled")]
     public bool CallOnCateringComplete { get; set; } = true;
 
+    /// <summary>"Fuelling in progress, N tonnes requested" as GSX Refueling goes Active (owner
+    /// request 2026-11-07, plan V3).</summary>
+    [OptionField(FieldKind.Bool, "speechSettings.groundCrew.upcalls.refuelStarted", DependsOn = "Enabled")]
+    public bool CallOnRefuelStarted { get; set; } = true;
+
+    /// <summary>"De-icing complete, Type four — holdover time starts now" at the GSX de-icing
+    /// completed edge (owner request 2026-11-07, plan V3).</summary>
+    [OptionField(FieldKind.Bool, "speechSettings.groundCrew.upcalls.deiceComplete", DependsOn = "Enabled")]
+    public bool CallOnDeiceComplete { get; set; } = true;
+
     /// <summary>The FO's exterior walkaround (issue #196): off by default.</summary>
     public WalkaroundOptions Walkaround { get; set; } = new();
 
@@ -80,6 +90,18 @@ public sealed class GroundCrewOptions : IOptionSection
     [OptionField(FieldKind.Text, "speechSettings.common.cateringComplete")]
     public string CateringCompleteText { get; set; } =
         "Cockpit, ground — catering is finished, all service doors closed.";
+
+    /// <summary><c>{fuel}</c> = the planned block fuel in tonnes (INIT override, else the OFP);
+    /// the clause drops when no plan is known.</summary>
+    [OptionField(FieldKind.Text, "speechSettings.groundCrew.wording.refuelStarted")]
+    public string RefuelStartedText { get; set; } =
+        "Cockpit, ground — fuelling in progress, {fuel} tonnes requested.";
+
+    /// <summary><c>{fluid}</c> = "Type one" … "Type four" from GSX's fluid enum; the clause
+    /// drops when the type is unknown.</summary>
+    [OptionField(FieldKind.Text, "speechSettings.groundCrew.wording.deiceComplete")]
+    public string DeiceCompleteText { get; set; } =
+        "Cockpit, ground — de-icing complete, {fluid}. Holdover time starts now.";
 }
 
 /// <summary>

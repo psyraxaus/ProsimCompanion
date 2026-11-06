@@ -27,7 +27,8 @@ public sealed class GroundUpcallCoreTests
             CallOnGroundPower: true,
             CallOnChocks: true,
             CallOnRefuelComplete: true,
-            CallOnCateringComplete: true);
+            CallOnCateringComplete: true,
+            CallOnRefuelStarted: true);
 
     [Fact]
     public void RisingEdge_CallsOnce_ThenLatchesForTheCycle()
@@ -182,4 +183,64 @@ public sealed class GroundUpcallCoreTests
         (_, call) = GroundUpcallCore.Evaluate(state, Sample(refuel: GsxServiceStage.Completed));
         Assert.Equal(GroundUpcallCore.UpcallKind.RefuelComplete, call);
     }
+
+    // ---- the smaller real-life lines (owner request 2026-11-07, plan V3) ----
+
+    [Fact]
+    public void RefuelActive_OutOfAnObservedStage_CallsOnce_ThenLatches()
+    {
+        var (state, baseline) = GroundUpcallCore.Evaluate(GroundUpcallCore.UpcallState.Initial, Sample(refuel: GsxServiceStage.Requested));
+        Assert.Null(baseline);
+
+        var (started, call) = GroundUpcallCore.Evaluate(state, Sample(refuel: GsxServiceStage.Active));
+        Assert.Equal(GroundUpcallCore.UpcallKind.RefuelStarted, call);
+
+        var (_, again) = GroundUpcallCore.Evaluate(started, Sample(refuel: GsxServiceStage.Active));
+        Assert.Null(again);
+
+        // A second truck on the same cycle (Completed → Active) is not announced twice.
+        var (completed, done) = GroundUpcallCore.Evaluate(started, Sample(refuel: GsxServiceStage.Completed));
+        Assert.Equal(GroundUpcallCore.UpcallKind.RefuelComplete, done);
+        var (_, topUp) = GroundUpcallCore.Evaluate(completed, Sample(refuel: GsxServiceStage.Active));
+        Assert.Null(topUp);
+    }
+
+    [Fact]
+    public void RefuelActive_OnTheFirstRead_IsABaseline_NeverAStart()
+    {
+        var (_, call) = GroundUpcallCore.Evaluate(GroundUpcallCore.UpcallState.Initial, Sample(refuel: GsxServiceStage.Active));
+        Assert.Null(call);
+    }
+
+    [Fact]
+    public void RefuelStarted_ResetsWithTheCycle_AndRespectsItsSwitch()
+    {
+        var (state, _) = GroundUpcallCore.Evaluate(GroundUpcallCore.UpcallState.Initial, Sample(refuel: GsxServiceStage.Requested));
+        var (latched, _) = GroundUpcallCore.Evaluate(state, Sample(refuel: GsxServiceStage.Active));
+        Assert.True(latched.RefuelStartedCalled);
+        Assert.False(GroundUpcallCore.OnFlightCycleReset(latched).RefuelStartedCalled);
+
+        var off = Sample(refuel: GsxServiceStage.Active) with { CallOnRefuelStarted = false };
+        var (afterOff, call) = GroundUpcallCore.Evaluate(state, off);
+        Assert.Null(call);
+        Assert.False(afterOff.RefuelStartedCalled);
+    }
+
+    [Fact]
+    public void DeiceCompleted_SpeaksOncePerCycle()
+    {
+        var (state, first) = GroundUpcallCore.OnDeiceCompleted(GroundUpcallCore.UpcallState.Initial);
+        var (again, second) = GroundUpcallCore.OnDeiceCompleted(state);
+        Assert.True(first);
+        Assert.False(second);
+        Assert.False(GroundUpcallCore.OnFlightCycleReset(again).DeiceCalled);
+    }
+
+    [Theory]
+    [InlineData(1, "Type one")]
+    [InlineData(4, "Type four")]
+    [InlineData(0, "")]
+    [InlineData(9, "")]
+    public void FluidSpoken_NamesTheGsxEnum(int fluid, string spoken)
+        => Assert.Equal(spoken, GroundUpcallCore.FluidSpoken(fluid));
 }

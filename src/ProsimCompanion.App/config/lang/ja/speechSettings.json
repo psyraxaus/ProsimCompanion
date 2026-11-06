@@ -482,6 +482,14 @@
         "hint": "応答後、クルーがあなたの要求を待つ時間。"
       },
       "upcalls": {
+        "refuelStarted": {
+          "label": "給油中",
+          "hint": "給油車が始めたとき：'fuelling in progress, N tonnes requested' - 計画ブロック燃料（INITオーバーライド、なければOFP）。"
+        },
+        "deiceComplete": {
+          "label": "除氷完了",
+          "hint": "GSXの除氷が終わったとき：'de-icing complete, Type four - holdover time starts now'。"
+        },
         "title": "地上からの呼び出し",
         "hint": "各呼び出しはターンアラウンドごとに一度",
         "groundPower": "地上電源接続",
@@ -494,6 +502,8 @@
       "wording": {
         "title": "地上クルーの言い回し",
         "hint": "そのまま読み上げられます。{fuel} は搭載燃料のトン数になります",
+        "refuelStarted": "給油中（{fuel} = 計画トン数）",
+        "deiceComplete": "除氷完了（{fluid} = タイプ）",
         "standingBy": "スタンバイ中",
         "groundPower": "地上電源",
         "chocks": "チョーク",
@@ -501,6 +511,10 @@
       }
     },
     "cabin": {
+      "boardingComplete": {
+        "label": "搭乗完了の報告",
+        "hint": "搭乗が完了し最後のドアが閉まったとき：'boarding complete, N on board, doors closed'。客室安全確認の報告は別のタイマーで続きます。"
+      },
       "title": "客室乗務員",
       "hint": "キャビンインターフォンでのパーサー報告",
       "secure": {
@@ -626,6 +640,8 @@
           "hint": "キャビンセキュアの待ち時間中に呼ばれた場合の応答。"
         },
         "secure": "キャビンセキュア",
+        "boardingComplete": "搭乗完了（{pax} = 搭乗者数）",
+        "boardingCompleteAck": "搭乗完了へのFOの返答",
         "secureAck": "キャビンセキュア — FO の了解",
         "ready": "キャビンレディ",
         "readyAck": "キャビンレディ — FO の了解",
