@@ -1,5 +1,5 @@
 {
-  "_comment": "Scenario mode (Settings → Voice First Officer → ECAM Abnormals → Scenarios). Each: id (unique), title, abnormalId (a file in config/abnormals — the FO's response), failureName (ProSim's own failure name as ProSimConnect.getFailures() lists it — see the STATUS page / scenario.listFailures), verified (false until the name was confirmed on your rig; an unverified entry is never armed), phases (where it may fire), weight, severity minor|significant|major (major needs allowMajor), takeoff (armed on the ground on ProSim's after-V1 / takeoff condition; needs takeoffScenarios and the RTO / EFATO features), clearAfterSeconds (a transient the app resets itself), techLogAfter (the shutdown offer's title), decision (the FO's line after the ECAM; {alternate} and {destination} are filled in), wearTitle (an open tech-log item of this title doubles the weight). Edits are picked up live.",
+  "_comment": "Scenario mode (Settings → Voice First Officer → ECAM Abnormals → Scenarios). Each: id (unique), title, abnormalId (a file in config/abnormals — the FO's response), failureName (ProSim's own failure name as ProSimConnect.getFailures() lists it — see the STATUS page / scenario.listFailures), verified (false until the name was confirmed on your rig; an unverified entry is never armed), phases (where it may fire), weight, severity minor|significant|major (major needs allowMajor), takeoff (armed on the ground on ProSim's after-V1 / takeoff condition; needs takeoffScenarios and the RTO / EFATO features), afterEvent takeoff|v1 (which ProSim condition a takeoff entry arms on; v1 needs the EFATO feature, takeoff the RTO feature; default takeoff), clearAfterSeconds (a transient the app resets itself), techLogAfter (the shutdown offer's title), decision (the FO's line after the ECAM; {alternate} and {destination} are filled in), wearTitle (an open tech-log item of this title doubles the weight). Edits are picked up live.",
   "scenarios": [
     {
       "id": "pack-1-fault",
@@ -218,6 +218,7 @@
       "weight": 1,
       "severity": "major",
       "takeoff": true,
+      "afterEvent": "takeoff",
       "techLogAfter": "Engine 1 fire on the takeoff roll — rejected takeoff",
       "decision": "We're stopped, fire's out — I'd suggest we return to the stand and get engineering out. Your call, captain."
     },
@@ -231,6 +232,7 @@
       "weight": 1,
       "severity": "major",
       "takeoff": true,
+      "afterEvent": "v1",
       "techLogAfter": "Engine 1 failure after V1 — return",
       "decision": "Engine 1 is secured, we're single engine and heavy — I'd suggest we return. Your call, captain."
     }

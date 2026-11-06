@@ -4408,7 +4408,41 @@
         "assert-absent: a scenario.armed in a session whose scenario-state.json held Armed or Fired at start (only Planned survives a restart); a scenario.cleared without a preceding scenario.armed or scenario.clearAllRequested.",
         "requires-human: after the app closed with a scenario armed, the ProSim IOS failure list is empty."
       ],
-      "notes": "See scenario-fires-and-detects. The exit clear runs in ScenarioService.StopAsync (IHostedService); the flight-cycle reset clear runs on GroundOpsSignals.FlightCycleReset; both verify by re-reading getArmedFailures(). Unverified live."
+      "notes": "See scenario-fires-and-detects. The exit clear runs in ScenarioService.StopAsync (IHostedService) AFTER the module host disposed the service (review 2026-11-05: the write lock is no longer disposed, so the clear can run); the startup clear-all waits for the ProSim connected edge (it used to run before any session existed and never retried); the ARRIVAL flight-cycle reset clears on GroundOpsSignals.FlightCycleReset (a new-plan reset keeps a Planned plan); all verify by re-reading getArmedFailures(). See scenario-turnaround-leg-planned. Unverified live."
+    },
+    {
+      "id": "scenario-turnaround-leg-planned",
+      "issue": 197,
+      "state": "fixed-unverified",
+      "kind": "assert-present",
+      "machine": {
+        "kind": "signature",
+        "signature": {
+          "source": "session",
+          "type": "scenario.rolled",
+          "contains": "\"planned\""
+        },
+        "trigger": {
+          "source": "session",
+          "type": "leg.boundary",
+          "contains": "\"legBegan\":true"
+        }
+      },
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "Review 2026-11-05 (branch review, scenario mode P1): four independent mechanisms stopped scenario mode — (1) the new-plan flight-cycle reset dropped the plan without reading its kind and nothing re-planned, so every leg after the first flew scenario-free; (2) a refused arm was re-queued every second for the rest of the phase (an arming/armFailed pair every ~3 s); (3) the module host disposed the service's write lock before the exit clear ran (ObjectDisposedException inside the clear); (4) the crash-recovery clear-all ran at module start, before any ProSim session existed, and never retried.",
+        "assert-present: for EVERY leg.boundary {legBegan: true} this session (leg 1 included) exactly ONE scenario.rolled {planned: true|false, phase} for that leg — at the Preflight edge before it, at the first live Preflight tick, or on the leg-began edge itself when nothing rolled yet. A session with two leg-began edges and one scenario.rolled is the turnaround miss back. With scenario.enabled = false no scenario.rolled is expected at all (not a failure).",
+        "assert-absent: two scenario.rolled between two arrival resets (gsx-cycle-reset {reason: arrival} / the TaxiIn → Shutdown edge) — one roll per leg; a scenario.planned followed by a gsx-cycle-reset {reason: 'new plan'} and then NO scenario.planned/armed for that leg while the plan was Planned (the new-plan reset must keep a Planned plan — the log says 'Scenario plan kept across the new-plan reset').",
+        "assert-absent: two scenario.arming for the same {scenario} within one leg without a scenario.armCancelled between them; more than one scenario.armFailed per leg — a refused or unverified arm now spends the plan (STATUS row FAILED, log 'no further attempt this leg').",
+        "assert-present (crash case): a session whose scenario-state.json held Armed/Fired at start logs 'Scenario state shows a failure armed at the last exit — clearing all failures once ProSim is connected' and records scenario.clearAllRequested {source: startup} AFTER the ProSim connected edge (the 'ProSim SDK … connected' log line), never before it; scenario.cleared {count} follows (count may be 0).",
+        "assert-absent: 'Scenario exit clear faulted' / an ObjectDisposedException in the log at shutdown; a scenario.armed with no scenario.cleared or scenario.clearFailed before the session ends.",
+        "assert-absent: a scenario.armed for a non-takeoff entry while the phase is TakeoffRoll or LandingRollout (the log says 'held: the takeoff or landing roll' instead); a scenario.armed from scenario.arm (source command/api/voice) in a phase the catalogue entry does not list (the command answers 'is not allowed in <phase> — its catalogue phases are …').",
+        "requires-human: on the second leg of a duty day with scenario.enabled and showPlanned, the STATUS page SCENARIO row reads PLANNED again after the new OFP is in."
+      ],
+      "notes": "Fixed 2026-11-07 (review 2026-11-05 README §5 P1, branch fix/branch-review-2026-11-05). ScenarioService: one roll per leg (_rolledThisLeg, reset at the arrival reset only; LegBegan from ILegBoundaryEvents plans when nothing rolled; a Preflight edge before the live gate leaves the roll pending for the first live tick); ScenarioPlanState.Failed after a refused/unverified arm; one arm in flight at a time (_arming); the write lock is never disposed (StartupModuleHost disposes modules BEFORE the hosted StopAsync, reverse registration order) and the exit clear uses the host token; the startup clear-all waits for ConnectionStatusStore ProSim = Connected and retries on the next edge when refused; SdkFailureInjector.ClearAsync removes the handle only after a successful Reset and ArmedAsync falls back to matching ours by failure name; ScenarioScheduler holds on both rolls, applies the AGL floor in every phase but parked/taxi, and AllowsPhase gates the manual arm; the catalogue field afterEvent (takeoff|v1) replaces the 'after-v1'/'efato' id sniff. Tests ScenarioTests (turnaround roll, pending roll, refused arm, startup clear edge, manual-arm phases, exit-after-dispose). Unverified live; the verify-by-reference question (does the SDK return fresh wrappers?) needs one rig check — the name fallback covers either answer."
     },
     {
       "id": "transition-reminders",

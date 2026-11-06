@@ -1,5 +1,6 @@
 using System.Reflection;
 using System.Text.Json;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using ProsimCompanion.Core.Commands;
@@ -42,8 +43,9 @@ public sealed class ScenarioTests : IDisposable
     }
 
     private static ScenarioEntry Entry(string id, string abnormal = "elec-gen-1-fault", string failure = "Generator 1 fault", bool verified = true,
-        ScenarioSeverity severity = ScenarioSeverity.Minor, bool takeoff = false, double weight = 1, string? wear = null, params FlightPhase[] phases)
-        => new(id, id, abnormal, failure, verified, phases.Length == 0 ? [FlightPhase.Cruise] : phases, weight, severity, takeoff, null, null, "{destination} / {alternate}", wear);
+        ScenarioSeverity severity = ScenarioSeverity.Minor, bool takeoff = false, double weight = 1, string? wear = null, FailureAfterEvent? afterEvent = null, params FlightPhase[] phases)
+        => new(id, id, abnormal, failure, verified, phases.Length == 0 ? [FlightPhase.Cruise] : phases, weight, severity, takeoff,
+            takeoff ? afterEvent ?? FailureAfterEvent.Takeoff : null, null, null, "{destination} / {alternate}", wear);
 
     private static ScenarioOptions Options(bool enabled = true, double chance = 1, bool major = false, bool takeoff = false, int floor = 1500)
         => new() { Enabled = enabled, PerFlightChance = chance, AllowMajor = major, TakeoffScenarios = takeoff, MinAltitudeFt = floor };
@@ -87,8 +89,9 @@ public sealed class ScenarioTests : IDisposable
             Entry("ok"),
             Entry("unverified", verified: false),
             Entry("major", severity: ScenarioSeverity.Major),
-            Entry("efato", abnormal: "drill-engine-failure-after-v1", takeoff: true, phases: FlightPhase.TakeoffRoll),
-            Entry("rto-cause", abnormal: "eng-1-fire", takeoff: true, phases: FlightPhase.TakeoffRoll),
+            // The afterEvent field decides EFATO vs RTO cause — the id spelling is deliberately unhelpful.
+            Entry("engine-out-after-vee-one", abnormal: "drill-engine-failure-after-v1", takeoff: true, afterEvent: FailureAfterEvent.V1, phases: FlightPhase.TakeoffRoll),
+            Entry("efato-sounding-rto", abnormal: "eng-1-fire", takeoff: true, afterEvent: FailureAfterEvent.Takeoff, phases: FlightPhase.TakeoffRoll),
             Entry("aged", wear: "Generator 1 fault"),
         };
 
@@ -100,8 +103,8 @@ public sealed class ScenarioTests : IDisposable
         Assert.Contains(withMajor, a => a.Entry.Id == "major");
 
         var takeoffOnly = ScenarioScheduler.Allowed(catalogue, Options(takeoff: true), Inputs(rto: false, efato: true));
-        Assert.Contains(takeoffOnly, a => a.Entry.Id == "efato");
-        Assert.DoesNotContain(takeoffOnly, a => a.Entry.Id == "rto-cause"); // RTO off
+        Assert.Contains(takeoffOnly, a => a.Entry.Id == "engine-out-after-vee-one");
+        Assert.DoesNotContain(takeoffOnly, a => a.Entry.Id == "efato-sounding-rto"); // RTO off — the id does not decide
 
         var aged = ScenarioScheduler.Allowed(catalogue, Options(), Inputs(wear: "Generator 1 fault"));
         Assert.Equal(2, aged.Single(a => a.Entry.Id == "aged").Weight);
@@ -168,6 +171,46 @@ public sealed class ScenarioTests : IDisposable
         Assert.False(ScenarioScheduler.Evaluate(plan, Tick(phase: FlightPhase.TaxiOut, agl: 0, abnormal: true), Options()).Arm);
     }
 
+    [Fact]
+    public void Evaluate_NonTakeoffPlan_NeverArmsOnARoll_AndTheFloorAppliesOutsideParkedAndTaxi()
+    {
+        // Review 2026-11-05: a user-edited entry naming TakeoffRoll armed instantly — no floor,
+        // no sterile hold (the sterile rule is false on the roll by design).
+        var roll = CruisePlan(after: 0);
+        roll.Phase = FlightPhase.TakeoffRoll;
+        Assert.Contains("roll", ScenarioScheduler.Evaluate(roll, Tick(phase: FlightPhase.TakeoffRoll, agl: 0), Options()).HoldReason);
+        Assert.Contains("roll", ScenarioScheduler.Evaluate(roll, Tick(phase: FlightPhase.TakeoffRoll, agl: 5_000), Options()).HoldReason);
+
+        var rollout = CruisePlan(after: 0);
+        rollout.Phase = FlightPhase.LandingRollout;
+        Assert.Contains("roll", ScenarioScheduler.Evaluate(rollout, Tick(phase: FlightPhase.LandingRollout, agl: 0), Options()).HoldReason);
+
+        // Parked or taxiing: no floor — brakes hot on the taxi in arms at 0 ft AGL.
+        var taxi = CruisePlan(after: 0);
+        taxi.Phase = FlightPhase.TaxiIn;
+        Assert.True(ScenarioScheduler.Evaluate(taxi, Tick(phase: FlightPhase.TaxiIn, agl: 0), Options()).Arm);
+
+        // Everything else needs the floor, Unknown included.
+        var unknown = CruisePlan(after: 0);
+        unknown.Phase = FlightPhase.Unknown;
+        Assert.Contains("floor", ScenarioScheduler.Evaluate(unknown, Tick(phase: FlightPhase.Unknown, agl: 0), Options()).HoldReason);
+        Assert.Contains("floor", ScenarioScheduler.Evaluate(CruisePlan(), Tick(phase: FlightPhase.Cruise, agl: 900), Options()).HoldReason);
+    }
+
+    [Fact]
+    public void AllowsPhase_FollowsTheCatalogue_TakeoffEntriesArmBeforeTheRoll()
+    {
+        var cruise = Entry("cruise-only", phases: FlightPhase.Cruise);
+        Assert.True(ScenarioScheduler.AllowsPhase(cruise, FlightPhase.Cruise));
+        Assert.False(ScenarioScheduler.AllowsPhase(cruise, FlightPhase.TaxiIn));
+
+        var takeoff = Entry("rto", abnormal: "eng-1-fire", takeoff: true, phases: FlightPhase.TakeoffRoll);
+        Assert.True(ScenarioScheduler.AllowsPhase(takeoff, FlightPhase.TaxiOut));
+        Assert.True(ScenarioScheduler.AllowsPhase(takeoff, FlightPhase.Departure));
+        Assert.False(ScenarioScheduler.AllowsPhase(takeoff, FlightPhase.TakeoffRoll)); // armed before, fired by the SDK
+        Assert.False(ScenarioScheduler.AllowsPhase(takeoff, FlightPhase.Cruise));
+    }
+
     // ---- the state file ----
 
     [Fact]
@@ -208,17 +251,33 @@ public sealed class ScenarioTests : IDisposable
             { "scenarios": [
               { "id": "a", "title": "A", "abnormalId": "pack-1-fault", "failureName": "Pack 1 fault", "verified": true, "phases": [ "Cruise", "Nowhere" ], "weight": 2, "severity": "Major", "clearAfterSeconds": 60, "techLogAfter": "T", "decision": "d", "wearTitle": "W" },
               { "id": "b", "abnormalId": "x", "failureName": "Y", "takeoff": true, "phases": [ "TakeoffRoll" ] },
-              { "id": "c", "failureName": "no abnormal" }
+              { "id": "c", "failureName": "no abnormal" },
+              { "id": "d", "abnormalId": "x", "failureName": "Y", "takeoff": true, "afterEvent": "v1", "phases": [ "TakeoffRoll" ] },
+              { "id": "e", "abnormalId": "x", "failureName": "Y", "takeoff": true, "afterEvent": "sometime", "phases": [ "TakeoffRoll" ] }
             ] }
             """);
 
-        Assert.Equal(2, result.Scenarios.Count);
+        Assert.Equal(4, result.Scenarios.Count);
         var a = result.Scenarios[0];
         Assert.Equal((ScenarioSeverity.Major, 60, "T", "W", true), (a.Severity, a.ClearAfterSeconds, a.TechLogAfter, a.WearTitle, a.Verified));
         Assert.Equal([FlightPhase.Cruise], a.Phases);
+        Assert.Null(a.AfterEvent);
         Assert.True(result.Scenarios[1].Takeoff);
         Assert.False(result.Scenarios[1].Verified);
-        Assert.Equal(2, result.Problems.Count); // the unknown phase and the entry without an abnormal
+        Assert.Equal(FailureAfterEvent.Takeoff, result.Scenarios[1].AfterEvent); // the default for a takeoff entry
+        Assert.Equal(FailureAfterEvent.V1, result.Scenarios[2].AfterEvent);
+        Assert.Equal(FailureAfterEvent.Takeoff, result.Scenarios[3].AfterEvent); // unknown word: takeoff assumed, named
+        Assert.Equal(3, result.Problems.Count); // the unknown phase, the entry without an abnormal, the unknown afterEvent
+    }
+
+    [Fact]
+    public void ShippedCatalogue_NamesTheAfterEventOfBothTakeoffEntries()
+    {
+        var json = File.ReadAllText(Path.Combine(FindRepoRoot(), "src", "ProsimCompanion.App", "config", "scenarios.json"));
+        var result = ScenarioCatalogueFile.Parse(json);
+        Assert.Equal(FailureAfterEvent.V1, result.Scenarios.Single(s => s.Id == "efato").AfterEvent);
+        Assert.Equal(FailureAfterEvent.Takeoff, result.Scenarios.Single(s => s.Id == "rto-cause").AfterEvent);
+        Assert.All(result.Scenarios.Where(s => !s.Takeoff), s => Assert.Null(s.AfterEvent));
     }
 
     [Fact]
@@ -343,19 +402,47 @@ public sealed class ScenarioTests : IDisposable
         }
     }
 
-    private (ScenarioService Service, FakeInjector Injector, ScenarioStore Store, FakePhaseSource Phases) CreateService(bool enabled)
+    private sealed class FakeLegBoundary : ILegBoundaryEvents
+    {
+        public event EventHandler<LegBeganEventArgs>? LegBegan;
+
+        public void RaiseLegBegan(string planId, string? previous = null)
+            => LegBegan?.Invoke(this, new LegBeganEventArgs(planId, previous, LegBoundaryState.Turnaround));
+    }
+
+    private sealed record Harness(
+        ScenarioService Service,
+        FakeInjector Injector,
+        ScenarioStore Store,
+        FakePhaseSource Phases,
+        GroundOpsSignals Signals,
+        FakeLegBoundary LegBoundary,
+        ConnectionStatusStore Connections,
+        JsonlEventLog EventLog);
+
+    private string StatePath => Path.Combine(_dir, "state.json");
+
+    private Harness CreateService(bool enabled, bool live = false, bool prosimConnected = false)
     {
         File.WriteAllText(Path.Combine(_dir, ScenarioCatalogueBank.FileName), """
             { "scenarios": [ { "id": "gen-1-fault", "title": "Generator 1 fault", "abnormalId": "elec-gen-1-fault", "failureName": "Generator 1 fault", "verified": true, "phases": [ "Cruise" ], "decision": "continue" } ] }
             """);
         var phases = new FakePhaseSource();
-        phases.SetLive(false);
+        phases.SetLive(live);
         var arbiter = new FakeArbiter();
         var eventLog = new JsonlEventLog(Path.Combine(_dir, "sessions"), NullLogger<JsonlEventLog>.Instance);
         var monitor = new FailureMonitor(arbiter, Mock.Of<Core.Aircraft.IProsimDataRefs>(), phases, eventLog, NullLogger<FailureMonitor>.Instance);
         monitor.Load([new AbnormalDefinition { Id = "elec-gen-1-fault", Title = "Generator 1 fault" }]);
         var injector = new FakeInjector();
         var store = new ScenarioStore();
+        var signals = new GroundOpsSignals();
+        var legBoundary = new FakeLegBoundary();
+        var connections = new ConnectionStatusStore();
+        if (prosimConnected)
+        {
+            connections.Set(Subsystems.Prosim, ConnectionState.Connected);
+        }
+
         var techLog = new Mock<ITechLogService>();
         techLog.SetupGet(t => t.OpenDefects).Returns([]);
         var service = new ScenarioService(
@@ -365,52 +452,215 @@ public sealed class ScenarioTests : IDisposable
             SpeechTestSupport.BriefingMonitor(new BriefingOptions()),
             phases, monitor, injector,
             new ScenarioCatalogueBank(NullLogger<ScenarioCatalogueBank>.Instance, configDirectory: _dir),
-            new ScenarioStateFile(NullLogger<ScenarioStateFile>.Instance, Path.Combine(_dir, "state.json")),
-            store, new ScenarioDecisionStore(new GroundOpsSignals()), techLog.Object, new GroundOpsSignals(), arbiter, eventLog,
+            new ScenarioStateFile(NullLogger<ScenarioStateFile>.Instance, StatePath),
+            store, new ScenarioDecisionStore(signals), techLog.Object, signals, legBoundary, connections, arbiter, eventLog,
             NullLogger<ScenarioService>.Instance)
         {
             Roll = () => 0,
             Now = () => T0,
+            CancelWindow = TimeSpan.Zero,
         };
         service.Start();
-        return (service, injector, store, phases);
+        return new Harness(service, injector, store, phases, signals, legBoundary, connections, eventLog);
+    }
+
+    private static List<string> EventTypes(JsonlEventLog log)
+    {
+        // The log keeps its file open for writing: share the read.
+        using var stream = new FileStream(log.Path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+        using var reader = new StreamReader(stream);
+        var types = new List<string>();
+        while (reader.ReadLine() is { } line)
+        {
+            if (line.Length > 0)
+            {
+                types.Add(JsonDocument.Parse(line).RootElement.GetProperty("type").GetString() ?? "");
+            }
+        }
+
+        return types;
+    }
+
+    /// <summary>Puts the fake flight in the cruise at 35,000 ft AGL with the plan's moment passed.</summary>
+    private static void Cruise(FakePhaseSource phases)
+    {
+        phases.Data = new FlightDataSnapshot { IsValid = true, AltitudeFt = 35_000, AltitudeAglFt = 35_000 };
+        phases.SetPhase(FlightPhase.Cruise);
     }
 
     [Fact]
     public async Task ClearAll_IsUnconditional_EvenWithScenarioModeOff()
     {
-        var (service, injector, store, _) = CreateService(enabled: false);
-        using (service)
+        var h = CreateService(enabled: false);
+        using (h.Service)
         {
-            injector.Armed["ios-1"] = "Engine 1 fire"; // set on the IOS, not by us
-            var result = await service.ClearAllAsync("test");
+            h.Injector.Armed["ios-1"] = "Engine 1 fire"; // set on the IOS, not by us
+            var result = await h.Service.ClearAllAsync("test");
 
             Assert.Equal(CommandOutcome.Success, result.Outcome);
-            Assert.Equal(1, injector.ClearAllCalls);
-            Assert.Empty(injector.Armed);
-            Assert.Equal("off", store.Snapshot().State);
-            Assert.StartsWith("cleared 1", store.Snapshot().LastClear, StringComparison.Ordinal);
+            Assert.Equal(1, h.Injector.ClearAllCalls);
+            Assert.Empty(h.Injector.Armed);
+            Assert.Equal("off", h.Store.Snapshot().State);
+            Assert.StartsWith("cleared 1", h.Store.Snapshot().LastClear, StringComparison.Ordinal);
         }
     }
 
     [Fact]
     public async Task Arm_RefusesWhenTheFlightIsNotLive_AndPlansOnlyWhenLive()
     {
-        var (service, injector, _, phases) = CreateService(enabled: true);
-        using (service)
+        var h = CreateService(enabled: true);
+        using (h.Service)
         {
-            var refused = await service.ArmAsync("gen-1-fault", "test");
+            var refused = await h.Service.ArmAsync("gen-1-fault", "test");
             Assert.Equal(CommandOutcome.PreconditionFailed, refused.Outcome);
-            Assert.Empty(injector.Armed);
-            Assert.Null(service.TryPlan(T0)); // not live: nothing planned
+            Assert.Empty(h.Injector.Armed);
+            Assert.Null(h.Service.TryPlan(T0)); // not live: nothing planned
 
-            phases.SetLive(true);
-            var plan = service.TryPlan(T0);
+            h.Phases.SetLive(true);
+            var plan = h.Service.TryPlan(T0);
             Assert.NotNull(plan);
             Assert.Equal("gen-1-fault", plan!.ScenarioId);
             Assert.Equal(ScenarioPlanState.Planned, plan.State);
-            Assert.Equal(CommandOutcome.PreconditionFailed, (await service.ArmAsync("unknown", "test")).Outcome);
+            Assert.Equal(CommandOutcome.PreconditionFailed, (await h.Service.ArmAsync("unknown", "test")).Outcome);
         }
+    }
+
+    // ---- review 2026-11-05: the four mechanisms that stopped scenario mode ----
+
+    [Fact]
+    public void TurnaroundLeg_RollsOnce_NewPlanResetKeepsThePlan_ArrivalResetReArmsTheDice()
+    {
+        var h = CreateService(enabled: true, live: true);
+        using (h.Service)
+        {
+            // Leg 1: the Preflight edge rolls (chance 1, roll 0 → planned).
+            h.Phases.SetPhase(FlightPhase.Preflight);
+            var leg1 = h.Service.Plan;
+            Assert.NotNull(leg1);
+
+            // The OFP lands after the Preflight edge: a new-plan reset keeps the plan, and the
+            // leg-began edge does not roll a second time.
+            h.Signals.RaiseFlightCycleReset(FlightCycleResetKind.NewPlan);
+            Assert.Same(leg1, h.Service.Plan);
+            h.LegBoundary.RaiseLegBegan("plan-1");
+            Assert.Same(leg1, h.Service.Plan);
+
+            // The arrival reset ends the leg; the next OFP (leg 2) rolls again — no Preflight
+            // edge needed (in a turnaround it came 30 s after deboarding, before the plan).
+            h.Signals.RaiseFlightCycleReset(FlightCycleResetKind.Arrival);
+            Assert.Null(h.Service.Plan);
+            h.LegBoundary.RaiseLegBegan("plan-2", "plan-1");
+            var leg2 = h.Service.Plan;
+            Assert.NotNull(leg2);
+            Assert.NotSame(leg1, leg2);
+
+            Assert.Equal(2, EventTypes(h.EventLog).Count(t => t == ScenarioService.RolledEvent));
+        }
+    }
+
+    [Fact]
+    public void PreflightEdgeBeforeTheFlightIsLive_RollsOnTheFirstLiveTick()
+    {
+        var h = CreateService(enabled: true, live: false);
+        using (h.Service)
+        {
+            h.Phases.SetPhase(FlightPhase.Preflight);
+            Assert.Null(h.Service.Plan);
+            h.Service.ProcessTick(T0.AddSeconds(1));
+            Assert.Null(h.Service.Plan); // still not live
+
+            h.Phases.SetLive(true);
+            h.Service.ProcessTick(T0.AddSeconds(2));
+            Assert.NotNull(h.Service.Plan);
+            h.Service.ProcessTick(T0.AddSeconds(3));
+            Assert.Single(EventTypes(h.EventLog), t => t == ScenarioService.RolledEvent);
+        }
+    }
+
+    [Fact]
+    public async Task RefusedArm_SpendsThePlan_NoSecondAttemptThisLeg()
+    {
+        var h = CreateService(enabled: true, live: true);
+        using (h.Service)
+        {
+            h.Phases.SetPhase(FlightPhase.Preflight);
+            var plan = h.Service.Plan!;
+            h.Injector.Live.Clear(); // ProSim no longer lists the failure: the gate refuses
+            Cruise(h.Phases);
+
+            var decision = h.Service.ProcessTick(T0.AddMinutes(30));
+            Assert.True(decision.Arm);
+            await h.Service.LastBackgroundWork!;
+
+            Assert.Equal(ScenarioPlanState.Failed, plan.State);
+            Assert.Equal("failed", h.Store.Snapshot().State);
+            Assert.Empty(h.Injector.Armed);
+            Assert.False(h.Service.ProcessTick(T0.AddMinutes(31)).Arm);
+            Assert.False(h.Service.ProcessTick(T0.AddMinutes(32)).Arm);
+            var types = EventTypes(h.EventLog);
+            Assert.Single(types, t => t == ScenarioService.ArmingEvent);
+            Assert.Single(types, t => t == "scenario.armFailed");
+            Assert.Equal(ScenarioPlanState.Failed, h.Service.TryPlan(T0.AddMinutes(33))!.State); // nothing re-plans mid-leg
+        }
+    }
+
+    [Fact]
+    public async Task StartupClearAll_WaitsForTheProsimConnectedEdge_AndRetriesWhenRefused()
+    {
+        var crashed = CruisePlan();
+        crashed.State = ScenarioPlanState.Armed;
+        crashed.Handle = "h";
+        new ScenarioStateFile(NullLogger<ScenarioStateFile>.Instance, StatePath).Save(crashed);
+
+        var h = CreateService(enabled: true);
+        using (h.Service)
+        {
+            Assert.Equal(0, h.Injector.ClearAllCalls); // no session yet: nothing to clear with
+
+            h.Connections.Set(Subsystems.Prosim, ConnectionState.Connected);
+            await h.Service.LastBackgroundWork!;
+            Assert.Equal(1, h.Injector.ClearAllCalls);
+            Assert.Contains("scenario.clearAllRequested", EventTypes(h.EventLog));
+
+            // A second connected edge does not clear again.
+            h.Connections.Set(Subsystems.Prosim, ConnectionState.Disconnected);
+            h.Connections.Set(Subsystems.Prosim, ConnectionState.Connected);
+            await h.Service.LastBackgroundWork!;
+            Assert.Equal(1, h.Injector.ClearAllCalls);
+        }
+    }
+
+    [Fact]
+    public async Task ManualArm_RefusesOutsideTheCataloguePhases()
+    {
+        var h = CreateService(enabled: true, live: true);
+        using (h.Service)
+        {
+            h.Phases.SetPhase(FlightPhase.TaxiIn); // the catalogue says Cruise
+            var result = await h.Service.ArmAsync("gen-1-fault", "test");
+            Assert.Equal(CommandOutcome.PreconditionFailed, result.Outcome);
+            Assert.Contains("Cruise", result.Reason, StringComparison.Ordinal);
+            Assert.Empty(h.Injector.Armed);
+        }
+    }
+
+    [Fact]
+    public async Task ExitClear_RunsAfterTheModuleHostDisposedTheService()
+    {
+        var h = CreateService(enabled: true, live: true);
+        Cruise(h.Phases);
+        var armed = await h.Service.ArmAsync("gen-1-fault", "test");
+        Assert.Equal(CommandOutcome.Success, armed.Outcome);
+        Assert.Single(h.Injector.Armed);
+
+        // Hosted services stop in reverse registration order: the StartupModuleHost disposes
+        // the module first, then the module's own StopAsync runs the exit clear.
+        h.Service.Dispose();
+        await ((IHostedService)h.Service).StopAsync(CancellationToken.None);
+
+        Assert.Empty(h.Injector.Armed);
+        Assert.Contains(ScenarioService.ClearedEvent, EventTypes(h.EventLog));
+        h.Service.Dispose(); // the container's second dispose stays harmless
     }
 
     private static string FindRepoRoot()

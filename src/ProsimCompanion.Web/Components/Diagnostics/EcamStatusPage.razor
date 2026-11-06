@@ -74,7 +74,7 @@ else
     var scenarioState = scenario.State.ToUpperInvariant();
     var scenarioClass = scenario.State switch
     {
-        "armed" or "fired" => "c-amber",
+        "armed" or "fired" or "failed" => "c-amber",
         "off" => "c-grey",
         _ => "c-green",
     };

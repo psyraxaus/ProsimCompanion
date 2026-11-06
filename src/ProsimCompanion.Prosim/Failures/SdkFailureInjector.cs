@@ -94,12 +94,32 @@ public sealed class SdkFailureInjector : IFailureInjector, IDisposable
                 return result;
             }
 
+            // "Ours" is first the very object we created; when the SDK hands out fresh
+            // wrappers per call (unverified on a rig — review 2026-11-05), the failure name
+            // identifies it instead, each handle matched at most once.
+            var oursByName = _ours.ToDictionary(pair => pair.Key, pair => FirstName((ArmedFailure)pair.Value), StringComparer.Ordinal);
+            var unmatched = new HashSet<string>(oursByName.Keys, StringComparer.Ordinal);
             var index = 0;
             foreach (var item in armed)
             {
                 index++;
-                var handle = _ours.FirstOrDefault(pair => ReferenceEquals(pair.Value, item)).Key ?? ("ios-" + index);
-                result.Add(new ArmedFailureInfo(handle, FirstName(item), item.isActive));
+                var name = FirstName(item);
+                var handle = _ours.FirstOrDefault(pair => ReferenceEquals(pair.Value, item)).Key;
+                if (handle is null && name.Length > 0)
+                {
+                    handle = unmatched.FirstOrDefault(h => string.Equals(oursByName[h], name, StringComparison.Ordinal));
+                    if (handle is not null)
+                    {
+                        _logger.LogDebug("Armed failure {Failure} matched to our handle by name (the SDK returned a fresh wrapper)", name);
+                    }
+                }
+
+                if (handle is not null)
+                {
+                    unmatched.Remove(handle);
+                }
+
+                result.Add(new ArmedFailureInfo(handle ?? ("ios-" + index), name, item.isActive));
             }
 
             return result;
@@ -110,16 +130,24 @@ public sealed class SdkFailureInjector : IFailureInjector, IDisposable
     public async Task<bool> ClearAsync(string handle, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(handle);
-        if (!_ours.TryRemove(handle, out var ours))
+        if (!_ours.TryGetValue(handle, out var ours))
         {
             return false;
         }
 
+        // The handle leaves the table only once ProSim has taken the reset: removed first, a
+        // failed call (session gone, SDK threw) left the failure armed in ProSim with no handle
+        // to clear it by — only clear-all could reach it (review 2026-11-05).
         var cleared = await RunAsync(_ =>
         {
             ((ArmedFailure)ours).Reset();
             return true;
         }, cancellationToken).ConfigureAwait(false);
+        if (cleared)
+        {
+            _ours.TryRemove(handle, out _);
+        }
+
         return cleared;
     }
 

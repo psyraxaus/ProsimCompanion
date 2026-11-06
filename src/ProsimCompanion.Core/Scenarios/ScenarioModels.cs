@@ -24,6 +24,9 @@ public enum ScenarioSeverity
 /// <param name="Verified">The name was confirmed against the live list on a rig; unverified names are never armed.</param>
 /// <param name="Phases">The flight phases the failure may fire in.</param>
 /// <param name="Takeoff">A takeoff scenario (RTO cause / EFATO): armed on the ground on the SDK's own after-event condition.</param>
+/// <param name="AfterEvent">The SDK condition a takeoff scenario arms on (<c>afterEvent</c>: <c>takeoff</c> = an RTO
+/// cause on the roll, <c>v1</c> = an engine failure after V1, needs the EFATO feature); null for a non-takeoff entry.
+/// The catalogue says which it is — never the spelling of the id (review 2026-11-05).</param>
 /// <param name="ClearAfterSeconds">A transient the app resets itself after this long; null = stays until cleared.</param>
 /// <param name="TechLogAfter">The title the post-abnormal tech-log offer uses; null = the abnormal's title.</param>
 /// <param name="Decision">The FO's decision-turn template (<c>{alternate}</c>, <c>{destination}</c>); the floor under the model.</param>
@@ -38,6 +41,7 @@ public sealed record ScenarioEntry(
     double Weight,
     ScenarioSeverity Severity,
     bool Takeoff,
+    FailureAfterEvent? AfterEvent,
     int? ClearAfterSeconds,
     string? TechLogAfter,
     string Decision,
@@ -110,6 +114,27 @@ public static class ScenarioCatalogueFile
                 "major" => ScenarioSeverity.Major,
                 _ => ScenarioSeverity.Minor,
             };
+            var takeoff = item.TryGetProperty("takeoff", out var t) && t.ValueKind == JsonValueKind.True;
+            FailureAfterEvent? afterEvent = null;
+            if (takeoff)
+            {
+                // The field, not the id, decides the SDK condition: "efato" in an id used to be
+                // the switch, and a renamed entry silently became an RTO cause.
+                var afterText = (Text(item, "afterEvent") ?? "takeoff").Trim().ToLowerInvariant();
+                afterEvent = afterText switch
+                {
+                    "takeoff" => FailureAfterEvent.Takeoff,
+                    "v1" => FailureAfterEvent.V1,
+                    "landing" => FailureAfterEvent.Landing,
+                    _ => null,
+                };
+                if (afterEvent is null)
+                {
+                    problems.Add($"entry {index} ({id}): unknown afterEvent \"{afterText}\" (takeoff | v1 | landing) — takeoff assumed");
+                    afterEvent = FailureAfterEvent.Takeoff;
+                }
+            }
+
             entries.Add(new ScenarioEntry(
                 id.Trim(),
                 Text(item, "title")?.Trim() ?? id.Trim(),
@@ -119,7 +144,8 @@ public static class ScenarioCatalogueFile
                 phases,
                 item.TryGetProperty("weight", out var w) && w.ValueKind == JsonValueKind.Number && w.TryGetDouble(out var wd) ? Math.Max(0, wd) : 1.0,
                 severity,
-                item.TryGetProperty("takeoff", out var t) && t.ValueKind == JsonValueKind.True,
+                takeoff,
+                afterEvent,
                 item.TryGetProperty("clearAfterSeconds", out var c) && c.ValueKind == JsonValueKind.Number && c.TryGetInt32(out var cs) && cs > 0 ? cs : null,
                 NullIfBlank(Text(item, "techLogAfter")),
                 Text(item, "decision")?.Trim() ?? "",
@@ -142,6 +168,11 @@ public enum ScenarioPlanState
     Armed,
     Fired,
     Cleared,
+
+    /// <summary>ProSim refused the arm, or the armed failure never verified: the plan is spent
+    /// for this leg. Without this state the tick re-queued the arm every second for the rest of
+    /// the phase (review 2026-11-05 — the "re-arm storm").</summary>
+    Failed,
 }
 
 /// <summary>The one scenario of the current flight cycle, persisted in <c>scenario-state.json</c>.</summary>
@@ -162,6 +193,9 @@ public sealed class ScenarioPlan
     public int FireAfterSeconds { get; set; }
 
     public bool Takeoff { get; set; }
+
+    /// <summary>The SDK after-event condition of a takeoff plan (from the catalogue entry); null otherwise.</summary>
+    public FailureAfterEvent? AfterEvent { get; set; }
 
     public int? ClearAfterSeconds { get; set; }
 
@@ -311,7 +345,7 @@ public sealed class ScenarioStateFile
 }
 
 /// <summary>What the STATUS page and the API read (issue #197).</summary>
-/// <param name="State">"off" | "idle" | "planned" | "armed" | "fired" | "cleared".</param>
+/// <param name="State">"off" | "idle" | "planned" | "armed" | "fired" | "cleared" | "failed".</param>
 /// <param name="PlannedTitle">The planned / armed scenario's title — null unless <c>scenario.showPlanned</c> or once fired.</param>
 /// <param name="FailureName">The armed failure's SDK name, once armed and shown.</param>
 /// <param name="LastClear">The last clear's outcome line ("cleared 1", "could not clear — check the IOS").</param>

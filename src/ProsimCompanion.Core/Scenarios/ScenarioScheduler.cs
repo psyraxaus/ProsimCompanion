@@ -83,8 +83,9 @@ public static class ScenarioScheduler
                     continue;
                 }
 
-                var isEfato = entry.AbnormalId.Contains("after-v1", StringComparison.OrdinalIgnoreCase)
-                    || entry.Id.Contains("efato", StringComparison.OrdinalIgnoreCase);
+                // The catalogue's afterEvent field decides which feature the entry needs: after V1
+                // is the EFATO drill's case, everything else is an RTO cause on the roll.
+                var isEfato = entry.AfterEvent == FailureAfterEvent.V1;
                 if (isEfato ? !inputs.EfatoEnabled : !inputs.RtoEnabled)
                 {
                     continue;
@@ -154,6 +155,7 @@ public static class ScenarioScheduler
             Phase = phase,
             FireAfterSeconds = picked.Takeoff ? 0 : (int)Math.Round(fraction * windowSeconds),
             Takeoff = picked.Takeoff,
+            AfterEvent = picked.AfterEvent,
             ClearAfterSeconds = picked.ClearAfterSeconds,
             TechLogAfter = picked.TechLogAfter,
             Decision = picked.Decision,
@@ -163,9 +165,33 @@ public static class ScenarioScheduler
         };
     }
 
+    /// <summary>The phases a takeoff scenario is armed in: on the ground, before the roll — the
+    /// SDK's own after-event condition does the timing from there.</summary>
+    public static bool IsTakeoffArmPhase(FlightPhase phase)
+        => phase is FlightPhase.TaxiOut or FlightPhase.Departure or FlightPhase.PushbackAndStart;
+
+    /// <summary>The phases where the aircraft is parked or taxiing: the only ones the AGL floor
+    /// does not apply to. Everything else — the two rolls included, Unknown included — needs
+    /// the floor (ADR-0018 §4; review 2026-11-05: a user-edited entry naming TakeoffRoll armed
+    /// instantly with no floor and no sterile hold).</summary>
+    public static bool IsParkedOrTaxiing(FlightPhase phase)
+        => phase is FlightPhase.ColdAndDark or FlightPhase.Preflight or FlightPhase.Departure
+            or FlightPhase.PushbackAndStart or FlightPhase.TaxiOut or FlightPhase.TaxiIn or FlightPhase.Shutdown;
+
+    /// <summary>Whether the catalogue allows <paramref name="entry"/> in <paramref name="phase"/>:
+    /// a takeoff entry in its arm phases, any other entry in one of its listed phases. The
+    /// manual <c>scenario.arm</c> passes this too (ADR-0018 §5 — the catalogue is the only
+    /// source of where a failure may fire).</summary>
+    public static bool AllowsPhase(ScenarioEntry entry, FlightPhase phase)
+    {
+        ArgumentNullException.ThrowIfNull(entry);
+        return entry.Takeoff ? IsTakeoffArmPhase(phase) : entry.Phases.Contains(phase);
+    }
+
     /// <summary>Whether the planned failure may be armed now. A takeoff scenario arms on the
     /// ground before the roll (the SDK's own after-event condition does the timing); every
-    /// other one arms in its phase, after its moment, above the floor, with nothing open.</summary>
+    /// other one arms in its phase, after its moment, above the floor, never on a roll, with
+    /// nothing open.</summary>
     public static ScenarioDecision Evaluate(ScenarioPlan plan, ScenarioTick tick, ScenarioOptions options)
     {
         ArgumentNullException.ThrowIfNull(plan);
@@ -189,7 +215,7 @@ public static class ScenarioScheduler
 
         if (plan.Takeoff)
         {
-            if (tick.Phase is not (FlightPhase.TaxiOut or FlightPhase.Departure or FlightPhase.PushbackAndStart))
+            if (!IsTakeoffArmPhase(tick.Phase))
             {
                 return ScenarioDecision.Wait;
             }
@@ -206,8 +232,15 @@ public static class ScenarioScheduler
                 return ScenarioDecision.Wait;
             }
 
-            var airborne = tick.Phase is FlightPhase.InitialClimb or FlightPhase.Climb or FlightPhase.Cruise or FlightPhase.Descent or FlightPhase.Approach;
-            if (airborne && (tick.AltitudeAglFt is not { } agl || agl < options.MinAltitudeFt))
+            // The rolls are sterile whatever the sterile rule says (it is false there by
+            // design, for the callouts): nothing but a takeoff scenario — armed before the
+            // roll, timed by the SDK — may fail an aircraft on a runway.
+            if (tick.Phase is FlightPhase.TakeoffRoll or FlightPhase.LandingRollout)
+            {
+                return ScenarioDecision.Hold("the takeoff or landing roll");
+            }
+
+            if (!IsParkedOrTaxiing(tick.Phase) && (tick.AltitudeAglFt is not { } agl || agl < options.MinAltitudeFt))
             {
                 return ScenarioDecision.Hold($"below the {options.MinAltitudeFt} ft floor");
             }
