@@ -110,8 +110,6 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl, IG
         Core.Day.DutyDaySignals? dutyDay = null)
     {
         ArgumentNullException.ThrowIfNull(tracking);
-        _tracking = tracking;
-        _dutyDay = dutyDay;
         ArgumentNullException.ThrowIfNull(api);
         ArgumentNullException.ThrowIfNull(slot);
         ArgumentNullException.ThrowIfNull(lifecycle);
@@ -157,6 +155,8 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl, IG
         _paxTarget = paxTarget;
         _decisions = decisions;
         _logger = logger;
+        _dutyDay = dutyDay;
+        _tracking = tracking;
 
         // The cockpit "smart button" (predecessor semantics): a switch reaching its trigger
         // value force-calls the next departure service. Default: INT/RAD to INT (0) on either

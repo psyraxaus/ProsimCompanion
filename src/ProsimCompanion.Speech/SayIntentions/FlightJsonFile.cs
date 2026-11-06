@@ -40,10 +40,10 @@ internal static class FlightJsonFile
             var apiKey = (root?["flight_details"] ?? root)?["api_key"]?.GetValue<string>();
             if (string.IsNullOrWhiteSpace(apiKey))
             {
-                return _lastGoodApiKey;
+                return _lastGoodCredential;
             }
 
-            _lastGoodApiKey = apiKey;
+            _lastGoodCredential = apiKey;
             return apiKey;
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException
@@ -51,11 +51,11 @@ internal static class FlightJsonFile
         {
             // SayIntentions rewrites the file about once a second: a read that lands mid-write
             // must not cost a read-back (the key does not change within a session).
-            return _lastGoodApiKey;
+            return _lastGoodCredential;
         }
     }
 
-    private static string? _lastGoodApiKey;
+    private static string? _lastGoodCredential;
     /// <summary>What the FO needs to work the radios (owner request 2026-10-25): the callsign as
     /// SayIntentions speaks it, the filed SID / STAR and runways, the assigned gate. Null when the
     /// file is absent, mid-write or malformed; IsActive false when no flight is filed.</summary>

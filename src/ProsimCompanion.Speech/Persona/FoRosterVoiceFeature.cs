@@ -68,7 +68,6 @@ public sealed class FoRosterVoiceFeature : IVoiceFeature, IStartupModule, IDispo
         ISimLocalTime? localTime = null,
         ISimClock? clock = null)
     {
-        _clock = clock;
         ArgumentNullException.ThrowIfNull(roster);
         ArgumentNullException.ThrowIfNull(change);
         ArgumentNullException.ThrowIfNull(options);
@@ -92,6 +91,7 @@ public sealed class FoRosterVoiceFeature : IVoiceFeature, IStartupModule, IDispo
         _styled = styled;
         _eventLog = eventLog;
         _logger = logger;
+        _clock = clock;
         _localTime = localTime;
     }
 

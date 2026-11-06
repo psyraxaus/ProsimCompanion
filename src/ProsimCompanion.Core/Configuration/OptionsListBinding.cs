@@ -158,8 +158,10 @@ internal static class OptionsListBinding
         {
             return type.GetConstructor(Type.EmptyTypes) is not null ? Activator.CreateInstance(type) : null;
         }
-        catch (Exception)
+        catch (Exception ex) when (ex is TargetInvocationException or MemberAccessException or TypeLoadException)
         {
+            // A ctor that throws or a type that cannot be built: no defaults to compare
+            // against, the item is then "changed" — nothing else is hidden (review 2026-11-05).
             return null;
         }
     }
@@ -188,8 +190,9 @@ internal static class OptionsListBinding
                 JsonSerializer.Serialize(b, b.GetType(), Compare),
                 StringComparison.Ordinal);
         }
-        catch (Exception)
+        catch (Exception ex) when (ex is JsonException or NotSupportedException or InvalidOperationException)
         {
+            // Not serialisable: treated as different, never as equal (review 2026-11-05).
             return false;
         }
     }

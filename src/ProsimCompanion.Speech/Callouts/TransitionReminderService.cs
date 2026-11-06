@@ -141,7 +141,6 @@ public sealed class TransitionReminderService : Core.Hosting.IStartupModule, IDi
             var input = new TransitionReminderInput(
                 _flight.CurrentPhase,
                 live,
-                true,
                 sample.SpokenAltitudeFt,
                 _pilotStd.RawValue is null ? null : _pilotStd.Value,
                 _transitionAltitudeFt,

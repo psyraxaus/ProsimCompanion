@@ -55,7 +55,6 @@ public sealed class GateMonitorService : IDisposable
         ILogger<GateMonitorService> logger,
         BoardingEvidenceStore? boardingEvidence = null)
     {
-        _boardingEvidence = boardingEvidence;
         ArgumentNullException.ThrowIfNull(diagnostics);
         ArgumentNullException.ThrowIfNull(connections);
         ArgumentNullException.ThrowIfNull(ofp);
@@ -80,6 +79,7 @@ public sealed class GateMonitorService : IDisposable
         _store = store;
         _eventLog = eventLog;
         _logger = logger;
+        _boardingEvidence = boardingEvidence;
 
         _door1L = dataRefs.Subscribe(ProsimDataRefNames.Door1L);
         _door1L.ValueChanged += OnEvidenceChanged;

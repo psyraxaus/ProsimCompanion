@@ -178,12 +178,16 @@ public enum ScenarioPlanState
 /// <summary>The one scenario of the current flight cycle, persisted in <c>scenario-state.json</c>.</summary>
 public sealed class ScenarioPlan
 {
+    /// <summary>The catalogue entry's id.</summary>
     public string ScenarioId { get; set; } = "";
 
+    /// <summary>The entry's title, as the STATUS page and the debrief name it.</summary>
     public string Title { get; set; } = "";
 
+    /// <summary>The ECAM abnormal the FO responds with (the monitor's detection pairs on it).</summary>
     public string AbnormalId { get; set; } = "";
 
+    /// <summary>ProSim's failure name the gate arms.</summary>
     public string FailureName { get; set; } = "";
 
     /// <summary>The phase the failure fires in.</summary>
@@ -199,22 +203,29 @@ public sealed class ScenarioPlan
 
     public int? ClearAfterSeconds { get; set; }
 
+    /// <summary>The post-abnormal tech-log offer's title; null = the abnormal's own.</summary>
     public string? TechLogAfter { get; set; }
 
+    /// <summary>The FO's decision-turn template (the floor under the model's line).</summary>
     public string Decision { get; set; } = "";
 
+    /// <summary>When the dice were rolled; a plan older than six hours is not resumed.</summary>
     public DateTimeOffset PlannedAtUtc { get; set; }
 
+    /// <summary>Planned → Armed → Fired → Cleared, or Failed after a refused arm.</summary>
     public ScenarioPlanState State { get; set; } = ScenarioPlanState.Planned;
 
     /// <summary>The injector's handle once armed; null before, and after a restart (the SDK
     /// forbids reusing a handle across sessions — the injector re-reads what is armed).</summary>
     public string? Handle { get; set; }
 
+    /// <summary>When the injector's write verified.</summary>
     public DateTimeOffset? ArmedAtUtc { get; set; }
 
+    /// <summary>When the failure monitor detected the matching abnormal.</summary>
     public DateTimeOffset? FiredAtUtc { get; set; }
 
+    /// <summary>When the failure was reset (by us, or by a clear-all).</summary>
     public DateTimeOffset? ClearedAtUtc { get; set; }
 
     /// <summary>The session id the plan belongs to (a plan from another session is stale).</summary>

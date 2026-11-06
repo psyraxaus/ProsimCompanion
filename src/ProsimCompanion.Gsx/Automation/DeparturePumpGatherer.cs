@@ -86,7 +86,6 @@ public sealed class DeparturePumpGatherer : IDisposable
         IProsimDataRefs prosim,
         FoAvailabilityStore? foAvailability = null)
     {
-        _foAvailability = foAvailability;
         ArgumentNullException.ThrowIfNull(api);
         ArgumentNullException.ThrowIfNull(slot);
         ArgumentNullException.ThrowIfNull(lifecycle);
@@ -101,6 +100,7 @@ public sealed class DeparturePumpGatherer : IDisposable
         ArgumentNullException.ThrowIfNull(prosim);
 
         _api = api;
+        _foAvailability = foAvailability;
         _slot = slot;
         _lifecycle = lifecycle;
         _cycle = cycle;

@@ -97,7 +97,6 @@ public sealed class FlightStateSnapshotService : IStartupModule, IDisposable
         Func<DateTimeOffset>? clock = null,
         Day.DutyDaySignals? dutyDay = null)
     {
-        _dutyDay = dutyDay;
         ArgumentNullException.ThrowIfNull(parts);
         ArgumentNullException.ThrowIfNull(file);
         ArgumentNullException.ThrowIfNull(ofp);
@@ -115,6 +114,7 @@ public sealed class FlightStateSnapshotService : IStartupModule, IDisposable
         _eventLog = eventLog;
         _options = options;
         _logger = logger;
+        _dutyDay = dutyDay;
         _finalizer = finalizer;
         _importer = importer;
         _clock = clock ?? (() => DateTimeOffset.UtcNow);
@@ -362,8 +362,8 @@ public sealed class FlightStateSnapshotService : IStartupModule, IDisposable
             return false;
         }
 
-        var boundaryKeys = _parts.Where(p => p.PersistsAcrossLegs).Select(p => p.Key).ToHashSet(StringComparer.Ordinal);
-        return snapshot.Parts.Keys.All(boundaryKeys.Contains);
+        var boundaryPartNames = _parts.Where(p => p.PersistsAcrossLegs).Select(p => p.Key).ToHashSet(StringComparer.Ordinal);
+        return snapshot.Parts.Keys.All(boundaryPartNames.Contains);
     }
 
     private void OnPartChanged(IFlightStatePart part)

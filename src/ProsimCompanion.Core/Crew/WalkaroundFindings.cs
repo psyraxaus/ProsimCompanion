@@ -141,6 +141,9 @@ public static class WalkaroundFindingsFile
 /// </summary>
 public static class WalkaroundFindingDraw
 {
+    /// <summary>One finding or none: the first roll against <paramref name="findingChance"/>
+    /// decides whether anything is found, the second picks by weight among the findings whose
+    /// conditions hold now (no-go ones only with <paramref name="allowNoGo"/>).</summary>
     public static WalkaroundFinding? Draw(
         IReadOnlyList<WalkaroundFinding> bank,
         WalkaroundConditions now,

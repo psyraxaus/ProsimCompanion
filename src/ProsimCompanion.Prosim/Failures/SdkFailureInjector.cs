@@ -207,9 +207,10 @@ public sealed class SdkFailureInjector : IFailureInjector, IDisposable
                 return failure?.name ?? "";
             }
         }
-        catch (Exception)
+        catch (Exception ex) when (ex is MissingMemberException or TypeLoadException or NullReferenceException)
         {
-            // An SDK build without the field: the name is simply unknown.
+            // An SDK build without the field, or a wrapper with nothing behind it: the name is
+            // simply unknown (review 2026-11-05: narrowed from everything).
         }
 
         return "";

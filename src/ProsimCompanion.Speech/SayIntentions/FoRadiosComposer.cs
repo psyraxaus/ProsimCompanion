@@ -83,6 +83,10 @@ public static partial class ReadbackComposer
         "have a good", "have a nice", "welcome", "roger", "thank you", "thanks", "copy",
     ];
 
+    /// <summary>"All aircraft …" — an ATIS-style broadcast, addressed to nobody in particular.</summary>
+    public static bool IsBroadcast(string atcText)
+        => !string.IsNullOrWhiteSpace(atcText) && Broadcast().IsMatch(atcText.Trim());
+
     /// <summary>The read-back of <paramref name="atcText"/>, or null when nothing needs one.
     /// Every read-back and hand-off answer ENDS with the callsign (owner request 2026-10-29,
     /// standard RT: "Push and start approved, face South-East, Speedbird-eight-five-zero.") — a
@@ -93,10 +97,6 @@ public static partial class ReadbackComposer
     /// from the front of the instruction, where SI ATC identifies itself on a check-in reply.</param>
     /// <param name="ourAtisLetter">The ATIS letter we hold for the airport in question (null
     /// when none): ATC's "have you got information Victor?" is answered from it.</param>
-    /// <summary>"All aircraft …" — an ATIS-style broadcast, addressed to nobody in particular.</summary>
-    public static bool IsBroadcast(string atcText)
-        => !string.IsNullOrWhiteSpace(atcText) && Broadcast().IsMatch(atcText.Trim());
-
     public static Readback? Compose(string atcText, string? callsign, string? station, string? ourAtisLetter = null)
     {
         if (string.IsNullOrWhiteSpace(atcText))

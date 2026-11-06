@@ -414,12 +414,9 @@ public sealed class CruiseSmallTalkService : Core.Hosting.IStartupModule, IDispo
                     return (result.Text.Trim(), result.LlmSentences > 0 ? "llm" : "bank");
                 }
 
-                if (result.Preempted || result.Outcome != SpeechOutcome.Suppressed)
-                {
-                    return (null, "llm");
-                }
-
-                return (null, "llm"); // suppressed (sterile slipped in): nothing was heard
+                // Pre-empted, suppressed (sterile slipped in) or otherwise not spoken: nothing
+                // was heard either way (review 2026-11-05: two arms returned the same thing).
+                return (null, "llm");
             }
             catch (OperationCanceledException) when (budget.IsCancellationRequested && !_shutdown.IsCancellationRequested)
             {

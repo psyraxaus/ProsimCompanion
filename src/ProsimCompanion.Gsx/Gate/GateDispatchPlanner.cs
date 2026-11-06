@@ -74,8 +74,12 @@ public static class GateDispatchPlanner
     /// through 45 s after touchdown). Re-send on this cadence, this many times, while airborne.</summary>
     public static readonly TimeSpan NoAirportResendBackoff = TimeSpan.FromSeconds(60);
 
+    /// <summary>How many times the gate is re-sent after a pick before the planner gives up
+    /// — a mirror that never patches the airport stays unanswered, not spammed.</summary>
     public const int MaxSendsAfterPick = 5;
 
+    /// <summary>The next dispatch step for the arrival gate: send now, wait, re-send on the
+    /// back-off, or stop — from the pick, the mirror's answers and the clock alone (pure).</summary>
     public static GateDispatchStep Decide(GateDispatchInputs inputs)
     {
         ArgumentNullException.ThrowIfNull(inputs);

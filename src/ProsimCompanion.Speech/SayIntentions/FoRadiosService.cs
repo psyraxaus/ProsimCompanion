@@ -85,8 +85,6 @@ public sealed class FoRadiosService : Core.Hosting.IStartupModule, IDisposable
         Core.Aircraft.Ofp.OfpStore? ofp = null,
         Core.Weather.HeroWeatherStore? weather = null)
     {
-        _ofp = ofp;
-        _weather = weather;
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(monitor);
         ArgumentNullException.ThrowIfNull(arbiter);
@@ -98,6 +96,8 @@ public sealed class FoRadiosService : Core.Hosting.IStartupModule, IDisposable
         _arbiter = arbiter;
         _eventLog = eventLog;
         _logger = logger;
+        _weather = weather;
+        _ofp = ofp;
         _tuner = tuner;
         _phase = phase;
         _flightData = flightData;
@@ -230,10 +230,10 @@ public sealed class FoRadiosService : Core.Hosting.IStartupModule, IDisposable
             return;
         }
 
-        var key = icao + "/" + runway;
+        var geometryId = icao + "/" + runway;
         lock (_state)
         {
-            if (string.Equals(_departureGeometryFor, key, StringComparison.Ordinal))
+            if (string.Equals(_departureGeometryFor, geometryId, StringComparison.Ordinal))
             {
                 return;
             }
@@ -251,7 +251,7 @@ public sealed class FoRadiosService : Core.Hosting.IStartupModule, IDisposable
                 var geometry = await _runways.FindAsync(icao, runway, _shutdown.Token).ConfigureAwait(false);
                 lock (_state)
                 {
-                    _departureGeometryFor = key;
+                    _departureGeometryFor = geometryId;
                     _departureGeometry = geometry;
                 }
 

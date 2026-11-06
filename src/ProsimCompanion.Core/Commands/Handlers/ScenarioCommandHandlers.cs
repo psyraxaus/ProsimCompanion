@@ -27,8 +27,14 @@ public interface IScenarioControl
     Task<CommandResult> ListFailuresAsync(CancellationToken cancellationToken = default);
 }
 
+/// <summary>The scenario-mode commands (issue #197, ADR-0018 §3): <c>scenario.arm</c>,
+/// <c>scenario.clear</c>, <c>scenario.clearAll</c>, <c>scenario.listFailures</c> — each names
+/// a catalogue id, never a failure name, and reaches ProSim only through the one serialised
+/// <see cref="IScenarioControl"/>.</summary>
 public static class ScenarioCommandHandlers
 {
+    /// <summary>Registers the four commands; with no control (the Speech pillar absent) they
+    /// answer "not available" instead of being missing.</summary>
     public static void Register(CommandRegistry registry, IScenarioControl? control)
     {
         ArgumentNullException.ThrowIfNull(registry);

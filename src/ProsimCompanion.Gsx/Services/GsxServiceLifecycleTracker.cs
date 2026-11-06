@@ -261,19 +261,6 @@ public sealed class GsxServiceLifecycleTracker : IGsxServiceLifecycleView
         return true;
     }
 
-    /// <summary>Whether any service outside <paramref name="exempt"/> was really called,
-    /// active or completed this cycle (seeds do not count) — the "departure services for THIS
-    /// plan have begun" test behind the new-plan cycle reset.</summary>
-    public bool AnyObservedProgress(IReadOnlySet<string> exempt)
-    {
-        ArgumentNullException.ThrowIfNull(exempt);
-        lock (_gate)
-        {
-            return _cycles.Any(pair => !exempt.Contains(pair.Key) && !pair.Value.Seeded
-                && (pair.Value.WasCalled || pair.Value.WasActive || pair.Value.CompletedNotified));
-        }
-    }
-
     /// <summary>Whether ONE service was really called, active or completed this cycle (a seed
     /// does not count) — the "boarding has started" test behind the new-plan cycle reset
     /// (ADR-0019 §6, issue #213): refuel or catering already run for the old plan do not hold

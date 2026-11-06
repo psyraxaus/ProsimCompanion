@@ -81,9 +81,6 @@ public sealed class GsxServiceControl : IGsxServiceControl, IDisposable
         ArgumentNullException.ThrowIfNull(departure);
         ArgumentNullException.ThrowIfNull(groundPower);
         ArgumentNullException.ThrowIfNull(jetwayRetraction);
-        _departure = departure;
-        _groundPower = groundPower;
-        _jetwayRetraction = jetwayRetraction;
         ArgumentNullException.ThrowIfNull(api);
         ArgumentNullException.ThrowIfNull(lifecycle);
         ArgumentNullException.ThrowIfNull(slot);
@@ -115,6 +112,9 @@ public sealed class GsxServiceControl : IGsxServiceControl, IDisposable
         _groundOpsSignals = groundOpsSignals;
         _options = options;
         _logger = logger;
+        _departure = departure;
+        _groundPower = groundPower;
+        _jetwayRetraction = jetwayRetraction;
 
         _jetwayLvar = simVars.Subscribe(GsxLvarNames.Jetway);
         _fuelTotal = prosim.Subscribe(ProsimDataRefNames.FuelTotal);

@@ -2,8 +2,10 @@
 @using ProsimCompanion.Core.Scenarios
 @using ProsimCompanion.Core.Commands.Handlers
 @using Microsoft.Extensions.DependencyInjection
+@using Microsoft.Extensions.Logging
 @inject IServiceProvider Services
 @inject IStringLocalizer T
+@inject ILogger<EcamStatusPage> Logger
 @* STATUS: cautions by system on the left, INOP SYS / DEGRADED / RECENT on the right, the
    counts and the bundle export in the memo strip, and the scenario row (issue #197) with
    its CLEAR ALL box — clickable like the GSX page's GPU box. *@
@@ -130,8 +132,11 @@ else
             var result = await control.ClearAllAsync("status-page");
             _clearNote = result.Reason;
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
+            // Logged like the GSX page's calls (review 2026-11-05) — the page used to swallow
+            // it and show only the message.
+            Logger.LogWarning(ex, "Clear all failures from the STATUS page failed");
             _clearNote = ex.Message;
         }
         finally

@@ -12,6 +12,8 @@ public readonly record struct SunPosition(double ElevationDeg, double AzimuthDeg
 /// </summary>
 public static class SolarPosition
 {
+    /// <summary>The sun's elevation and azimuth at a place and a UTC moment (NOAA's low-accuracy
+    /// equations — within a degree, plenty for "is it dark yet").</summary>
     /// <param name="latitudeDeg">Aircraft latitude, degrees north.</param>
     /// <param name="longitudeDeg">Aircraft longitude, degrees east.</param>
     /// <param name="date">The calendar day (UTC).</param>

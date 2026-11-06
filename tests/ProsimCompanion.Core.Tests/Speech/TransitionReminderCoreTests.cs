@@ -11,8 +11,8 @@ public sealed class TransitionReminderCoreTests
 
     private static TransitionReminderInput Input(
         FlightPhase phase, double altitude, bool? std,
-        double? ta = 6000, double? tl = 70, double? qnh = 1013, DateTimeOffset? now = null, bool live = true, bool enabled = true)
-        => new(phase, live, enabled, altitude, std, ta, tl, qnh, now ?? T0);
+        double? ta = 6000, double? tl = 70, double? qnh = 1013, DateTimeOffset? now = null, bool live = true)
+        => new(phase, live, altitude, std, ta, tl, qnh, now ?? T0);
 
     [Fact]
     public void Climb_PastTransitionAltitude_OnQnh_RemindsStandard_AfterDelay_Once()
@@ -110,7 +110,6 @@ public sealed class TransitionReminderCoreTests
         var other = new TransitionReminderCore();
         Assert.Null(other.Process(Input(FlightPhase.Climb, 6500, std: false, live: false), Delay));
         Assert.Null(other.Process(Input(FlightPhase.Climb, 6500, std: false, live: false, now: T0.AddMinutes(2)), Delay));
-        Assert.Null(other.Process(Input(FlightPhase.Climb, 6500, std: false, enabled: false, now: T0.AddMinutes(4)), Delay));
     }
 
     [Fact]

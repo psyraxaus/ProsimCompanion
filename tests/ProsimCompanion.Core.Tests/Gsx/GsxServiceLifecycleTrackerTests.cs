@@ -194,7 +194,7 @@ public sealed class GsxServiceLifecycleTrackerTests
         _tracker.SeedCompleted("Boarding");
         Assert.True(_tracker.IsSeededOnly("Boarding"));
         Assert.True(_tracker.IsCompleted("Boarding"));
-        Assert.False(_tracker.AnyObservedProgress(new HashSet<string>()));
+        Assert.False(_tracker.ObservedProgress("Boarding"));
 
         Assert.True(_tracker.Unseed("Boarding"));
         Assert.False(_tracker.IsCompleted("Boarding"));
@@ -202,8 +202,7 @@ public sealed class GsxServiceLifecycleTrackerTests
 
         _tracker.Process(Services(("Boarding", GsxServiceState.Active)));
         Assert.False(_tracker.IsSeededOnly("Boarding"));
-        Assert.True(_tracker.AnyObservedProgress(new HashSet<string>()));
-        Assert.False(_tracker.AnyObservedProgress(new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "Boarding" }));
+        Assert.True(_tracker.ObservedProgress("Boarding"));
     }
 
     [Fact]
@@ -226,7 +225,6 @@ public sealed class GsxServiceLifecycleTrackerTests
         _tracker.Process(Services(("Refueling", GsxServiceState.Active), ("Boarding", GsxServiceState.Callable)));
         Assert.True(_tracker.ObservedProgress("Refueling"));
         Assert.False(_tracker.ObservedProgress("Boarding"));
-        Assert.True(_tracker.AnyObservedProgress(new HashSet<string>(StringComparer.OrdinalIgnoreCase)));
 
         _tracker.SeedCompleted("Boarding"); // the startup resync's word, not an observation
         Assert.False(_tracker.ObservedProgress("Boarding"));

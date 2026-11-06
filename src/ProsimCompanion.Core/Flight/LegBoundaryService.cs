@@ -46,6 +46,8 @@ public sealed class LegBoundaryService : ILegBoundaryEvents, ILegBoundaryRecover
     private readonly LegBoundaryCore _core = new();
     private readonly object _gate = new();
 
+    /// <summary>Wires the three edges and the end of duty; a plan already in the store (the
+    /// snapshot restored before this module woke) is taken as the current leg's.</summary>
     public LegBoundaryService(
         GroundOpsSignals signals,
         FmsPlanWatcher fms,

@@ -446,10 +446,6 @@ public sealed class UtteranceRouter : IDisposable
             .Any(definition => StartPhrases(definition).Any(Same));
     }
 
-    /// <summary>An utterance nothing routed while fully idle (issue #66): previously it fell
-    /// into the FCU's "which field?" clarifier or vanished silently. Now it gets the normal
-    /// did-not-catch line — or, once per session while the LLM is known-unhealthy, the
-    /// advisory that explains WHY free-form phrasing is falling flat.</summary>
     /// <summary>True (and remembered for the idle miss) when the FO is out of the cockpit and
     /// the feature has not declared itself available regardless (issue #196).</summary>
     private bool SkipWhileFoAway(IVoiceFeature feature)
@@ -463,6 +459,10 @@ public sealed class UtteranceRouter : IDisposable
         return true;
     }
 
+    /// <summary>An utterance nothing routed while fully idle (issue #66): previously it fell
+    /// into the FCU's "which field?" clarifier or vanished silently. Now it gets the normal
+    /// did-not-catch line — or, once per session while the LLM is known-unhealthy, the
+    /// advisory that explains WHY free-form phrasing is falling flat.</summary>
     private void HandleIdleMiss(string rawText, double score, UnmatchedReason reason)
     {
         // "Read back …" is a read-back, whatever the figure parser made of it (issue #148,

@@ -80,19 +80,14 @@ public sealed class SimLocalTime : ISimLocalTime, IDisposable
 
             var year = (int)Math.Round(_localYear.Value);
             var day = (int)Math.Round(_localDayOfYear.Value);
-            if (year < 1900 || year > 9999 || day < 1 || day > 366)
+            // Day 366 of a non-leap year is checked here: AddDays would roll it into January
+            // without a throw, so the catch that used to stand here never fired (review 2026-11-05).
+            if (year < 1900 || year > 9999 || day < 1 || day > (DateTime.IsLeapYear(year) ? 366 : 365))
             {
                 return null;
             }
 
-            try
-            {
-                return new DateOnly(year, 1, 1).AddDays(day - 1);
-            }
-            catch (ArgumentOutOfRangeException)
-            {
-                return null; // day 366 of a non-leap year
-            }
+            return new DateOnly(year, 1, 1).AddDays(day - 1);
         }
     }
 

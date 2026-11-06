@@ -58,7 +58,8 @@ public sealed class NotificationSignalSource : IStartupModule, IDisposable, IFli
     /// restore by 1.1 s and the boarding-complete notification went out a second time). The
     /// restore releases the held milestones at once; this is the backstop when there is no
     /// snapshot to restore.</summary>
-    public static readonly TimeSpan RestoreSettle = TimeSpan.FromSeconds(15);
+    public static readonly TimeSpan RestoreSettle = TimeSpan.FromSeconds(15);
+
 
     /// <summary>The live settle; tests set zero so milestones go straight through.</summary>
     public TimeSpan Settle { get; set; } = RestoreSettle;

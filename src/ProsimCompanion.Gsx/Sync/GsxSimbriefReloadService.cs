@@ -78,7 +78,6 @@ public sealed class GsxSimbriefReloadService : Core.Hosting.IStartupModule, IGsx
         Automation.DepartureCycleLatches latches)
     {
         ArgumentNullException.ThrowIfNull(latches);
-        _latches = latches;
         ArgumentNullException.ThrowIfNull(api);
         ArgumentNullException.ThrowIfNull(executor);
         ArgumentNullException.ThrowIfNull(ofpStore);
@@ -96,6 +95,7 @@ public sealed class GsxSimbriefReloadService : Core.Hosting.IStartupModule, IGsx
         _diagnostics = diagnostics;
         _eventLog = eventLog;
         _logger = logger;
+        _latches = latches;
     }
 
     public void Start()

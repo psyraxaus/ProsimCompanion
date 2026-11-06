@@ -70,8 +70,6 @@ public sealed class FmgcCrossCheckService : IVoiceFeature, Core.Hosting.IStartup
     {
         ArgumentNullException.ThrowIfNull(legBoundary);
         ArgumentNullException.ThrowIfNull(legStore);
-        _legBoundary = legBoundary;
-        _legStore = legStore;
         ArgumentNullException.ThrowIfNull(speech);
         ArgumentNullException.ThrowIfNull(dataRefs);
         ArgumentNullException.ThrowIfNull(flight);
@@ -88,6 +86,8 @@ public sealed class FmgcCrossCheckService : IVoiceFeature, Core.Hosting.IStartup
         _arbiter = arbiter;
         _eventLog = eventLog;
         _logger = logger;
+        _legStore = legStore;
+        _legBoundary = legBoundary;
         _signals = signals;
         _aligning = [dataRefs.Subscribe(ProsimDataRefNames.Adiru1Aligning), dataRefs.Subscribe(ProsimDataRefNames.Adiru2Aligning), dataRefs.Subscribe(ProsimDataRefNames.Adiru3Aligning)];
         _minutes = [dataRefs.Subscribe(ProsimDataRefNames.Adiru1AlignMinutesLeft), dataRefs.Subscribe(ProsimDataRefNames.Adiru2AlignMinutesLeft), dataRefs.Subscribe(ProsimDataRefNames.Adiru3AlignMinutesLeft)];

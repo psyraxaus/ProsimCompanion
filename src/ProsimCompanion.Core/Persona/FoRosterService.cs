@@ -16,6 +16,7 @@ namespace ProsimCompanion.Core.Persona;
 /// </summary>
 public sealed class FoRosterService : IFoRosterService
 {
+    /// <summary>The roster file name in the user config tree (ADR-0007).</summary>
     public const string FileName = "fo-roster.json";
 
     private readonly IOptionsMonitor<PersonaOptions> _options;
@@ -63,10 +64,13 @@ public sealed class FoRosterService : IFoRosterService
     /// bound. Null = <see cref="Random"/>.</summary>
     public Func<int, int>? Next { get; init; }
 
+    /// <inheritdoc />
     public event Action? Changed;
 
+    /// <summary>The roster file in the user config tree.</summary>
     public string FilePath => _path;
 
+    /// <inheritdoc />
     public bool IsActive
     {
         get
@@ -76,6 +80,7 @@ public sealed class FoRosterService : IFoRosterService
         }
     }
 
+    /// <inheritdoc />
     public IReadOnlyList<FoRosterEntry> Pool
     {
         get
@@ -88,6 +93,7 @@ public sealed class FoRosterService : IFoRosterService
         }
     }
 
+    /// <inheritdoc />
     public FoRosterState State
     {
         get
@@ -99,6 +105,7 @@ public sealed class FoRosterService : IFoRosterService
         }
     }
 
+    /// <inheritdoc />
     public FoRosterEntry? Current
     {
         get
@@ -117,6 +124,7 @@ public sealed class FoRosterService : IFoRosterService
         }
     }
 
+    /// <inheritdoc />
     public FoRosterEntry? Draw(string reason, DateTimeOffset nowUtc, string? drawnFor = null, string? dayId = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(reason);
@@ -161,6 +169,7 @@ public sealed class FoRosterService : IFoRosterService
         return picked;
     }
 
+    /// <inheritdoc />
     public void AdoptDay(string drawnFor, string? dayId = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(drawnFor);
@@ -201,6 +210,7 @@ public sealed class FoRosterService : IFoRosterService
         Changed?.Invoke();
     }
 
+    /// <inheritdoc />
     public bool Pin(string id)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(id);

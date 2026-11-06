@@ -695,16 +695,16 @@
   initServerRestartWatch();
   // Settings card folds (issue #199): which cards this browser keeps closed, one JSON object
   // under one key. A view preference of this device, never a server setting.
-  var FOLDS_KEY = "prosimCompanion.settingsFolds";
+  var FOLDS_STORAGE_NAME = "prosimCompanion.settingsFolds";
   window.prosimCompanion.settingsFolds = {
     load: function () {
-      try { return JSON.parse(localStorage.getItem(FOLDS_KEY) || "{}") || {}; } catch (_) { return {}; }
+      try { return JSON.parse(localStorage.getItem(FOLDS_STORAGE_NAME) || "{}") || {}; } catch (_) { return {}; }
     },
     set: function (changes) {
       try {
         var all = window.prosimCompanion.settingsFolds.load();
         Object.keys(changes || {}).forEach(function (id) { all[id] = !!changes[id]; });
-        localStorage.setItem(FOLDS_KEY, JSON.stringify(all));
+        localStorage.setItem(FOLDS_STORAGE_NAME, JSON.stringify(all));
       } catch (_) { /* private mode */ }
     }
   };

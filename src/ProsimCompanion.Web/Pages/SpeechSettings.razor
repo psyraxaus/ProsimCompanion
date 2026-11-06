@@ -1209,16 +1209,8 @@ else if (CurrentSection == "abnormals")
             StateHasChanged();
         });
 
-    private void OnPersonaOptionsChanged(PersonaOptions changed)
-        => _ = InvokeAsync(() =>
-        {
-            if (!_persona.IsDirty)
-            {
-                _persona.Reload();
-            }
-
-            StateHasChanged();
-        });
+    /// <summary>A persona options reload is the same refresh as a roster change.</summary>
+    private void OnPersonaOptionsChanged(PersonaOptions changed) => OnRosterChanged();
 
     private IReadOnlyList<string> _captureDevices = [];
     private IReadOnlyList<string> _renderDevices = [];

@@ -29,7 +29,6 @@ public enum TransitionReminderKind
 public sealed record TransitionReminderInput(
     FlightPhase Phase,
     bool IsLive,
-    bool Enabled,
     double IndicatedAltitudeFt,
     bool? PilotOnStd,
     double? TransitionAltitudeFt,
@@ -70,7 +69,7 @@ public sealed class TransitionReminderCore
     public TransitionReminder? Process(TransitionReminderInput input, TimeSpan delay)
     {
         ArgumentNullException.ThrowIfNull(input);
-        if (!input.Enabled || !input.IsLive || input.IndicatedAltitudeFt <= 0 || input.PilotOnStd is not { } onStd)
+        if (!input.IsLive || input.IndicatedAltitudeFt <= 0 || input.PilotOnStd is not { } onStd)
         {
             _standardSince = null;
             _qnhSince = null;

@@ -49,8 +49,10 @@ public sealed class FmsPlanWatcher : IDisposable
     /// Shown on the Diagnostics SIM page and logged beside a clear; nothing else reads it.</summary>
     public string? FmgcPhase => _fmgcPhase.Value;
 
+    /// <summary>The INIT page's origin as last read; null or empty while the box holds no plan.</summary>
     public string? Origin => _origin.Value;
 
+    /// <summary>The INIT page's destination as last read; null or empty while the box holds no plan.</summary>
     public string? Destination => _destination.Value;
 
     private void OnPlanRefChanged(object? sender, EventArgs e)

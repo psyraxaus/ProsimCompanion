@@ -31,7 +31,7 @@ public static class SettingsSearch
 {
     /// <summary>Pack root → the page's route base and (for single pages) its rail location.
     /// Roots with sections resolve the item per block; the others land on the page.</summary>
-    public static readonly IReadOnlyList<(string Root, string RouteBase, string? GroupKey, string? ItemKey)> Roots =
+    public static readonly IReadOnlyList<(string Root, string RouteBase, string? GroupId, string? ItemId)> Roots =
     [
         ("setup", "settings", "setup", null),
         ("gsxSettings", "settings/gsx", null, null),
@@ -193,22 +193,22 @@ public static class SettingsSearch
             return null;
         }
 
-        if (entry.GroupKey is not null)
+        if (entry.GroupId is not null)
         {
             // A single page, or a page that is one item of a group (Skalarki, the Advanced trio).
-            var group = SettingsNav.Groups.First(g => g.Key == entry.GroupKey);
-            var item = entry.ItemKey is null ? null : group.Items.FirstOrDefault(i => i.Key == entry.ItemKey);
+            var group = SettingsNav.Groups.First(g => g.Key == entry.GroupId);
+            var item = entry.ItemId is null ? null : group.Items.FirstOrDefault(i => i.Key == entry.ItemId);
             return (group, item, item?.Href ?? group.Href);
         }
 
         // A sectioned page: the mapped section, else a block named after its section (case-insensitive).
-        var itemKey = entry.ItemKey
+        var itemId = entry.ItemId
             ?? (BlockSections.TryGetValue(block, out var mapped) ? mapped : null)
             ?? SettingsNav.Groups
                 .SelectMany(g => g.Items)
                 .FirstOrDefault(i => i.Href.StartsWith(entry.RouteBase + "/", StringComparison.OrdinalIgnoreCase)
                                      && i.Key.Equals(name, StringComparison.OrdinalIgnoreCase))?.Key;
-        if (itemKey is not null && SettingsNav.FindItem(entry.RouteBase + "/" + itemKey) is { } found)
+        if (itemId is not null && SettingsNav.FindItem(entry.RouteBase + "/" + itemId) is { } found)
         {
             return (found.Group, found.Item, found.Item.Href);
         }

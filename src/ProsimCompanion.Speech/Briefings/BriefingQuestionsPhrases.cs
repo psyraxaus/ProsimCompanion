@@ -31,8 +31,9 @@ public static class BriefingQuestionsPhrases
 
     /// <summary>Builds the table over the store, the arbiter and the FO question service.
     /// <paramref name="questions"/> null (tests, or the feature off) answers every question
-    /// with the offline line and still asks again.</summary>
-    public static CaptainsQuestionPhrases Create(BriefingQuestionsStore store, ISpeechArbiter arbiter, FoQuestionService? questions)
+    /// with the offline line and still asks again. <paramref name="logger"/> observes the
+    /// follow-up's faults (null = nowhere to log them).</summary>
+    public static CaptainsQuestionPhrases Create(BriefingQuestionsStore store, ISpeechArbiter arbiter, FoQuestionService? questions, Microsoft.Extensions.Logging.ILogger? logger = null)
     {
         ArgumentNullException.ThrowIfNull(store);
         ArgumentNullException.ThrowIfNull(arbiter);
@@ -49,7 +50,7 @@ public static class BriefingQuestionsPhrases
                 // prompt waits for it so the FO never asks over their own answer.
                 var taken = questions?.TryAsk(captainAsked) ?? false;
                 var answer = taken ? questions?.InFlight : null;
-                _ = FollowUpAsync(store, arbiter, answer, taken);
+                FollowUpAsync(store, arbiter, answer, taken).Observe(logger ?? Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance, "Briefing questions follow-up");
             }),
             UnclearPrompt: _ => GoAhead,
             UnansweredPhrase: (_, _) => BriefingQuestionsStore.CompleteLine,
@@ -105,9 +106,12 @@ public static class BriefingQuestionsPhrases
                 await arbiter.SpeakAsync(Questions.FoQuestionCore.LlmOffline, SpeechPriority.Normal).ConfigureAwait(false);
             }
         }
-        catch (Exception)
+        catch (Exception ex) when (answer is { IsFaulted: true } || ex is OperationCanceledException)
         {
-            // The question service logged its own failure; the round still closes properly.
+            // The question service logged its own failure (the answer task's fault); a
+            // cancelled answer is not a failure. Anything else — the arbiter refusing the
+            // offline line — reaches the caller's observer (review 2026-11-05: this used to
+            // swallow everything).
         }
 
         if (!store.Asked("voice"))
