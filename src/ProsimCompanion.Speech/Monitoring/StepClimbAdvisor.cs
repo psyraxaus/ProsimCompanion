@@ -104,7 +104,7 @@ public sealed class StepClimbAdvisor : IVoiceFeature, Core.Hosting.IStartupModul
 
     public void Start()
     {
-        _signals.FlightCycleReset += OnReset;
+        _signals.FlightCycleReset += OnFlightCycleReset;
         _flight.SessionReset += OnReset;
         _timer = new Timer(_ => Tick(), null, TimeSpan.FromSeconds(5), Poll);
     }
@@ -112,9 +112,14 @@ public sealed class StepClimbAdvisor : IVoiceFeature, Core.Hosting.IStartupModul
     public void Dispose()
     {
         _timer?.Dispose();
-        _signals.FlightCycleReset -= OnReset;
+        _signals.FlightCycleReset -= OnFlightCycleReset;
         _flight.SessionReset -= OnReset;
     }
+
+    // Arrival and new-plan resets alike (ADR-0019 §6): per-leg state, the same reset as a session reset.
+
+    private void OnFlightCycleReset(FlightCycleResetKind _) => OnReset();
+
 
     private void OnReset()
     {

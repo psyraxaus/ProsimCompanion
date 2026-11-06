@@ -132,7 +132,7 @@ public sealed class FmgcCrossCheckService : IVoiceFeature, Core.Hosting.IStartup
             _armed = ArmedFor(_legStore.Snapshot().State);
         }
 
-        _signals.FlightCycleReset += OnReset;
+        _signals.FlightCycleReset += OnFlightCycleReset;
         _signals.ArrivalCompleted += OnArrivalCompleted;
         _legBoundary.LegBegan += OnLegBegan;
         _flight.SessionReset += OnReset;
@@ -147,7 +147,7 @@ public sealed class FmgcCrossCheckService : IVoiceFeature, Core.Hosting.IStartup
     public void Dispose()
     {
         _timer?.Dispose();
-        _signals.FlightCycleReset -= OnReset;
+        _signals.FlightCycleReset -= OnFlightCycleReset;
         _signals.ArrivalCompleted -= OnArrivalCompleted;
         _legBoundary.LegBegan -= OnLegBegan;
         _flight.SessionReset -= OnReset;
@@ -156,6 +156,11 @@ public sealed class FmgcCrossCheckService : IVoiceFeature, Core.Hosting.IStartup
             read.Dispose();
         }
     }
+
+    // Arrival and new-plan resets alike (ADR-0019 §6): per-leg state, the same reset as a session reset.
+
+    private void OnFlightCycleReset(FlightCycleResetKind _) => OnReset();
+
 
     private void OnReset()
     {

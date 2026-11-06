@@ -383,8 +383,9 @@ public sealed class FlightTimesTracker : IDisposable, IFlightStatePart
         Changed?.Invoke();
     }
 
-    private void OnFlightCycleReset()
+    private void OnFlightCycleReset(FlightCycleResetKind _)
     {
+        // Arrival and new-plan resets alike (ADR-0019 §6): per-leg state, it starts over either way.
         bool cleared;
         lock (_gate)
         {

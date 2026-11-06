@@ -102,8 +102,9 @@ public sealed class TurbulenceCabinService : Core.Hosting.IStartupModule, IDispo
         }
     }
 
-    private void OnCycleReset()
+    private void OnCycleReset(FlightCycleResetKind _)
     {
+        // Arrival and new-plan resets alike (ADR-0019 §6): per-leg state, it starts over either way.
         lock (_gate)
         {
             _core.Reset();

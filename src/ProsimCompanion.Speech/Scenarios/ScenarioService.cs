@@ -546,7 +546,7 @@ public sealed class ScenarioService : Core.Hosting.IStartupModule, IHostedServic
         }
 
         return new ScenarioTick(
-            view.Phase, _flight.IsLive, nowUtc, since,
+            view.Phase, FlightGate.IsLiveFor(view), nowUtc, since,
             data is { IsValid: true } ? data.AltitudeAglFt : null,
             _monitor.ActiveAbnormalTitles.Count > 0,
             _monitor.DialogueActive,
@@ -823,9 +823,8 @@ public sealed class ScenarioService : Core.Hosting.IStartupModule, IHostedServic
     /// Armed or Fired one is cleared like at the arrival. Before this the new-plan reset
     /// dropped the plan without reading the kind and nothing re-planned: every leg after the
     /// first flew scenario-free (review 2026-11-05).</summary>
-    private void OnFlightCycleReset()
+    private void OnFlightCycleReset(FlightCycleResetKind kind)
     {
-        var kind = _signals.LastFlightCycleResetKind;
         ScenarioPlan? toClear;
         lock (_gate)
         {

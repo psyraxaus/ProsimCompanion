@@ -21,6 +21,12 @@ namespace ProsimCompanion.Core.Boarding;
 /// unknown. A CLOSED-after-boarding strip over an empty cabin is the previous leg's (issue
 /// #213, EHAM 2026-11-01: an app restart at the gate read GSX's 119/119 and latched leg one's
 /// close until the next restart) — the strip resets whatever GSX's stale counter says.</param>
+/// <param name="BoardingObserved">The GSX lifecycle's word (<see cref="State.BoardingEvidence"/>,
+/// review 2026-11-05): true when THIS process saw the boarding called, run or complete; false
+/// when the board's reading is a startup-resync seed or a stale mirror nothing observed; null
+/// when unknown (no evidence store). A Completed strip that nobody observed, over a cabin
+/// whose occupation is unknown, is treated as the previous leg's — the hole the seat rule
+/// left when <paramref name="CabinEmpty"/> is null.</param>
 public sealed record GateMonitorInputs(
     GsxServiceStage? BoardingStage,
     int? PaxTarget,
@@ -32,7 +38,8 @@ public sealed record GateMonitorInputs(
     DateTimeOffset NowUtc,
     bool GsxConnected,
     string? OfpRequestId = null,
-    bool? CabinEmpty = null);
+    bool? CabinEmpty = null,
+    bool? BoardingObserved = null);
 
 /// <summary>
 /// Pure gate-monitor state machine (owner spec 2026-09-22). States only move forward
@@ -99,9 +106,12 @@ public sealed class GateMonitorCore
         // ProSim cabin itself as GSX boards (GsxBoardingSync), so a real completed boarding
         // always leaves seats taken. Such a reading is no evidence: it neither opens nor closes
         // the strip, and a close it already latched is undone below.
-        var staleClose = inputs.CabinEmpty == true
-            && inputs.Phase.IsAtGate()
-            && inputs.BoardingStage == GsxServiceStage.Completed;
+        // One more witness (review 2026-11-05): the lifecycle's own evidence. A Completed the
+        // process never observed (a resync seed, a stale mirror) with the cabin's occupation
+        // UNKNOWN is the previous leg's too — the seat rule alone left that hole open.
+        var staleClose = inputs.Phase.IsAtGate()
+            && inputs.BoardingStage == GsxServiceStage.Completed
+            && (inputs.CabinEmpty == true || (inputs.CabinEmpty is null && inputs.BoardingObserved == false));
         var paxReported = inputs.PaxBoarded is > 0 && !staleClose;
         var paxFlowing = paxReported
             && inputs.BoardingStage is GsxServiceStage.Called or GsxServiceStage.Requested

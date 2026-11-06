@@ -56,10 +56,10 @@ public sealed class DeiceActivityStore : SnapshotStore<DeiceActivitySnapshot>, I
     {
         ArgumentNullException.ThrowIfNull(signals);
         _signals = signals;
-        _signals.FlightCycleReset += Reset;
+        _signals.FlightCycleReset += OnFlightCycleReset;
     }
 
-    public void Dispose() => _signals.FlightCycleReset -= Reset;
+    public void Dispose() => _signals.FlightCycleReset -= OnFlightCycleReset;
 
     /// <summary>A lifecycle edge from the GSX relay. Edges never go backwards within a cycle
     /// (a late Requested after Active is ignored) so a mirror hiccup cannot restart the
@@ -81,6 +81,11 @@ public sealed class DeiceActivityStore : SnapshotStore<DeiceActivitySnapshot>, I
             MenuConcentration = concentration ?? s.MenuConcentration,
         });
     }
+
+    // Arrival and new-plan resets alike (ADR-0019 §6): per-leg state, it starts over either way.
+
+    private void OnFlightCycleReset(FlightCycleResetKind _) => Reset();
+
 
     public void Reset() => Update(_ => DeiceActivitySnapshot.Empty);
 }

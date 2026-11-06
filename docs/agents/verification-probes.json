@@ -4411,6 +4411,26 @@
       "notes": "See scenario-fires-and-detects. The exit clear runs in ScenarioService.StopAsync (IHostedService) AFTER the module host disposed the service (review 2026-11-05: the write lock is no longer disposed, so the clear can run); the startup clear-all waits for the ProSim connected edge (it used to run before any session existed and never retried); the ARRIVAL flight-cycle reset clears on GroundOpsSignals.FlightCycleReset (a new-plan reset keeps a Planned plan); all verify by re-reading getArmedFailures(). See scenario-turnaround-leg-planned. Unverified live."
     },
     {
+      "id": "one-definition-per-shared-gate",
+      "issue": 213,
+      "state": "fixed-unverified",
+      "kind": "assert-absent",
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "Review 2026-11-05 §4.2 (P3): four shared gates had more than one definition — the flight-cycle reset's KIND was a shared property read on the raising thread (two racing resets read the wrong kind); 'a new leg' was decided twice from the same OfpPlanIdentity (the leg boundary for Speech, GsxAutomationService again from the OFP store) plus a third spelling in the flight-state snapshot's raw request-id compare; 'boarding started' had three readers with three definitions after a restart (lifecycle ObservedProgress, gate monitor staleClose, walkaround diagnostics-board string); 'flight live' was copied four times.",
+        "assert-absent: a gsx-cycle-reset {reason: 'new flight plan'} with NO leg.boundary {legBegan: true} for the same planId before it in the session — the GSX departure-cycle reset now hangs off the leg-boundary's LegBegan edge (the one judge of 'a different plan'); it keeps only its own gate: parked with the engines off, boarding not observed. A leg.boundary {legBegan: true} while airborne or with Boarding observed yields no gsx-cycle-reset, correctly.",
+        "assert-absent: 'Flight-state snapshot invalidated: new OFP' for a plan whose request id equals the previous plan's (a same-plan re-import) — the snapshot compares OfpPlanIdentity (req:<id> | route:<from>-<to>) on both sides and normalises an old bare request id; a snapshot written before this build still restores on the same plan.",
+        "assert-absent: the arrival-side state cleared by a NEW-PLAN reset — GsxStartupResyncService re-arming PrepDone / the turnaround LVAR, or FlightStateSnapshotService dropping the restart file — on a gsx-cycle-reset {reason: 'new flight plan'}; both read the kind from the event argument now (FlightCycleReset carries FlightCycleResetKind), never a shared 'last kind'.",
+        "assert-absent: the walkaround refusing ('boarding has started') while the gate monitor reads Not called / Waiting for the same cycle, or the reverse — both read BoardingEvidence (Started = called/requested/active/completed, seed included; Observed = this process saw GSX do it) from the Core store the lifecycle tracker writes; the walkaround's readiness is DepartureCycleState.PrepComplete, not the diagnostics string 'Complete'.",
+        "watch: a gate strip that reads Closed over a Completed boarding right after an app restart with ProSim's seat occupation UNKNOWN — the lifecycle's Observed=false now resets it as the previous leg's (the hole the seat rule left when CabinEmpty was null); quote the strip state and the boarding stage.",
+        "requires-human: on a turnaround the GSX page's departure cycle resets once the new OFP is in (not before, not twice), and the walkaround still runs once boarding has not started."
+      ],
+      "notes": "Fixed 2026-11-07 (review 2026-11-05 README §5 P3, branch fix/branch-review-2026-11-05). GroundOpsSignals.FlightCycleReset is Action<FlightCycleResetKind> and LastFlightCycleResetKind is gone (every handler names the kind or discards it explicitly); GsxAutomationService subscribes to ILegBoundaryEvents.LegBegan (OnLegBegan) instead of OfpStore.Changed; FlightStateSnapshotService keys on OfpPlanIdentity.PlanId and FlightStateSnapshotRules normalises both sides (OfpPlanIdentity.Normalize); Core BoardingEvidence + BoardingEvidenceStore written by GsxServiceLifecycleTracker (PublishBoarding after every cycle change), read by WalkaroundService.BuildSample and GateMonitorService (GateMonitorInputs.BoardingObserved → staleClose when CabinEmpty is unknown); WalkaroundService reads DepartureCycleState.PrepComplete; Core FlightGate.IsLiveFor used by small talk, the walkaround, scenario mode and the transition reminder. Tests: FlightCycleResetKindTests (argument, no shared property), GateMonitorCoreTests.UnobservedCompleted_…, GsxServiceLifecycleTrackerTests.BoardingEvidence_…, FlightGateTests. No shell test drives GsxAutomationService (P7 debt). Unverified live."
+    },
+    {
       "id": "duty-day-edges-after-end",
       "issue": 212,
       "state": "fixed-unverified",

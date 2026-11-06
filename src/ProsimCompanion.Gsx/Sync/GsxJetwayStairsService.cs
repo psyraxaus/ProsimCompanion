@@ -122,7 +122,8 @@ public sealed class GsxJetwayStairsService : IGsxJetwayRetraction, IDisposable
 
     /// <summary>The arrival boundary or a new plan at the stand: the next cycle's retraction
     /// is a new one.</summary>
-    private void OnFlightCycleReset() => ClearRetractionLatch("flight cycle reset");
+    // Arrival and new-plan resets alike (ADR-0019 §6): the latch is per leg.
+    private void OnFlightCycleReset(FlightCycleResetKind _) => ClearRetractionLatch("flight cycle reset");
 
     /// <summary>The evidence-based release of the latch: once the mirror no longer reads a
     /// latched service as connected, the retraction took effect (or the service went away) and

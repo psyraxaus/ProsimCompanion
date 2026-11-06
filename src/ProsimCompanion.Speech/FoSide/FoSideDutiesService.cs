@@ -120,7 +120,7 @@ public sealed class FoSideDutiesService : IVoiceFeature, Core.Hosting.IStartupMo
 
     public void Start()
     {
-        _signals.FlightCycleReset += OnReset;
+        _signals.FlightCycleReset += OnFlightCycleReset;
         _flight.SessionReset += OnReset;
         _timer = new Timer(_ => Tick(), null, 2000, 1000);
     }
@@ -129,13 +129,18 @@ public sealed class FoSideDutiesService : IVoiceFeature, Core.Hosting.IStartupMo
     {
         _timer?.Dispose();
         CancelPending();
-        _signals.FlightCycleReset -= OnReset;
+        _signals.FlightCycleReset -= OnFlightCycleReset;
         _flight.SessionReset -= OnReset;
         foreach (var read in new IDataRefSubscription[] { _captainStd, _captainHpa, _foStd, _foHpa, _foMode, _foNdMode, _foNdZoom })
         {
             read.Dispose();
         }
     }
+
+    // Arrival and new-plan resets alike (ADR-0019 §6): per-leg state, the same reset as a session reset.
+
+    private void OnFlightCycleReset(FlightCycleResetKind _) => OnReset();
+
 
     private void OnReset()
     {

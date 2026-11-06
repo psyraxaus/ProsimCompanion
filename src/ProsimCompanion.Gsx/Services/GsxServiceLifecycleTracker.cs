@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using ProsimCompanion.Core.State;
 using ProsimCompanion.Gsx.Mirror;
 using ProsimCompanion.Gsx.Protocol;
 
@@ -31,13 +32,18 @@ public enum GsxServiceLifecycleEvent
 public sealed class GsxServiceLifecycleTracker : IGsxServiceLifecycleView
 {
     private readonly ILogger<GsxServiceLifecycleTracker> _logger;
+    private readonly BoardingEvidenceStore? _boarding;
     private readonly object _gate = new();
     private readonly Dictionary<string, ServiceCycle> _cycles = new(StringComparer.OrdinalIgnoreCase);
 
-    public GsxServiceLifecycleTracker(ILogger<GsxServiceLifecycleTracker> logger)
+    /// <param name="boarding">The Core store this tracker publishes the boarding cycle's
+    /// evidence to (review 2026-11-05: one definition of "boarding started" for the gate
+    /// monitor and the walkaround); null in tests that need none.</param>
+    public GsxServiceLifecycleTracker(ILogger<GsxServiceLifecycleTracker> logger, BoardingEvidenceStore? boarding = null)
     {
         ArgumentNullException.ThrowIfNull(logger);
         _logger = logger;
+        _boarding = boarding;
     }
 
     /// <summary>Raised once per (service, event) per cycle, on the caller's thread.</summary>
@@ -52,6 +58,32 @@ public sealed class GsxServiceLifecycleTracker : IGsxServiceLifecycleView
         {
             GetCycle(serviceId).WasCalled = true;
         }
+
+        PublishBoarding();
+    }
+
+    /// <summary>Publishes the boarding cycle's facts to the Core store after any change to the
+    /// cycles — the one place the gate monitor's and the walkaround's "boarding started" come from.</summary>
+    private void PublishBoarding()
+    {
+        if (_boarding is null)
+        {
+            return;
+        }
+
+        BoardingEvidence evidence;
+        lock (_gate)
+        {
+            evidence = _cycles.TryGetValue(GsxServiceIds.Boarding, out var cycle)
+                ? new BoardingEvidence(
+                    Started: cycle.WasCalled || cycle.RequestedNotified || cycle.WasActive || cycle.CompletedNotified,
+                    Observed: !cycle.Seeded && (cycle.WasCalled || cycle.WasActive || cycle.CompletedNotified),
+                    Completed: cycle.CompletedNotified,
+                    Seeded: cycle.Seeded)
+                : BoardingEvidence.None;
+        }
+
+        _boarding.Update(_ => evidence);
     }
 
     /// <summary>True when the service has completed this cycle (explicitly or via the
@@ -156,6 +188,7 @@ public sealed class GsxServiceLifecycleTracker : IGsxServiceLifecycleView
             }
         }
 
+        PublishBoarding();
         foreach (var (id, lifecycleEvent) in toFire)
         {
             _logger.LogInformation("GSX service {Service}: {Event}", id, lifecycleEvent);
@@ -193,6 +226,7 @@ public sealed class GsxServiceLifecycleTracker : IGsxServiceLifecycleView
             cycle.Seeded = true;
         }
 
+        PublishBoarding();
         _logger.LogInformation("GSX service {Service}: seeded completed (startup resync)", serviceId);
     }
 
@@ -222,6 +256,7 @@ public sealed class GsxServiceLifecycleTracker : IGsxServiceLifecycleView
             _cycles.Remove(serviceId);
         }
 
+        PublishBoarding();
         _logger.LogInformation("GSX service {Service}: seeded completion forgotten — the crew is calling it", serviceId);
         return true;
     }
@@ -269,6 +304,8 @@ public sealed class GsxServiceLifecycleTracker : IGsxServiceLifecycleView
         {
             _cycles.Remove(serviceId);
         }
+
+        PublishBoarding();
         _logger.LogInformation("GSX service {Service}: cycle re-armed for a second run", serviceId);
     }
 
@@ -280,6 +317,8 @@ public sealed class GsxServiceLifecycleTracker : IGsxServiceLifecycleView
         {
             _cycles.Clear();
         }
+
+        PublishBoarding();
         _logger.LogInformation("GSX service lifecycle cycle reset");
     }
 
@@ -297,6 +336,7 @@ public sealed class GsxServiceLifecycleTracker : IGsxServiceLifecycleView
             }
         }
 
+        PublishBoarding();
         _logger.LogInformation("GSX service lifecycle cycle reset (departure side; kept {Kept})", string.Join(", ", keep));
     }
 

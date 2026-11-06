@@ -21,6 +21,7 @@ namespace ProsimCompanion.Core.Boarding;
 public sealed class GateMonitorService : IDisposable
 {
     private readonly GsxDiagnosticsStore _diagnostics;
+    private readonly BoardingEvidenceStore? _boardingEvidence;
     private readonly ConnectionStatusStore _connections;
     private readonly OfpStore _ofp;
     private readonly LoadsheetStore _loadsheet;
@@ -51,8 +52,10 @@ public sealed class GateMonitorService : IDisposable
         IOptionsMonitor<FlightStatusOptions> options,
         GateStatusStore store,
         JsonlEventLog eventLog,
-        ILogger<GateMonitorService> logger)
+        ILogger<GateMonitorService> logger,
+        BoardingEvidenceStore? boardingEvidence = null)
     {
+        _boardingEvidence = boardingEvidence;
         ArgumentNullException.ThrowIfNull(diagnostics);
         ArgumentNullException.ThrowIfNull(connections);
         ArgumentNullException.ThrowIfNull(ofp);
@@ -101,8 +104,9 @@ public sealed class GateMonitorService : IDisposable
 
     private void OnPhaseChanged(object? sender, FlightPhaseChangedEventArgs e) => Evaluate();
 
-    private void OnFlightCycleReset()
+    private void OnFlightCycleReset(FlightCycleResetKind _)
     {
+        // Arrival and new-plan resets alike (ADR-0019 §6): per-leg state, it starts over either way.
         lock (_gate)
         {
             _core.Reset(_clock.UtcNowOrReal);
@@ -178,7 +182,8 @@ public sealed class GateMonitorService : IDisposable
             now,
             gsxConnected,
             string.IsNullOrWhiteSpace(ofp?.RequestId) ? null : ofp.RequestId,
-            _seatOccupation.RawValue is null ? null : !SeatMap.Parse(_seatOccupation.Value).Any(seat => seat));
+            _seatOccupation.RawValue is null ? null : !SeatMap.Parse(_seatOccupation.Value).Any(seat => seat),
+            _boardingEvidence?.Snapshot().Observed);
     }
 
     private (DateTimeOffset Ofp, DateTimeOffset Aligned)? _lastAlignmentNoted;

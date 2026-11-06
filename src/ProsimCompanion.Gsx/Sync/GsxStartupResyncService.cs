@@ -366,9 +366,9 @@ public sealed class GsxStartupResyncService : IDisposable
 
     /// <summary>The arrival boundary: this sim session is now in a turnaround, and the next
     /// leg's progress tracking starts clean.</summary>
-    private void OnFlightCycleReset()
+    private void OnFlightCycleReset(FlightCycleResetKind kind)
     {
-        if (_signals.LastFlightCycleResetKind == FlightCycleResetKind.NewPlan)
+        if (kind == FlightCycleResetKind.NewPlan)
         {
             // A different plan at the stand (ADR-0019 §6, issue #213) is the departure's
             // business: the turnaround LVAR already reads 1, PrepDone must stay 1 (an app

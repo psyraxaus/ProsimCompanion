@@ -127,8 +127,9 @@ public sealed class GrossErrorCheckMonitor : Core.Hosting.IStartupModule, IVoice
         _v2.Dispose();
     }
 
-    private void OnFlightCycleReset()
+    private void OnFlightCycleReset(FlightCycleResetKind _)
     {
+        // Arrival and new-plan resets alike (ADR-0019 §6): per-leg state, it starts over either way.
         lock (_gate)
         {
             _checkedEdition = null;

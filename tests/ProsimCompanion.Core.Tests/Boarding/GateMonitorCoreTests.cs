@@ -20,8 +20,28 @@ public sealed class GateMonitorCoreTests
         DateTimeOffset? now = null,
         DateTimeOffset? std = null,
         bool gsx = true,
-        bool? cabinEmpty = null)
-        => new(stage, target, boarded, door, bridge, phase, std ?? Std, now ?? T0, gsx, null, cabinEmpty);
+        bool? cabinEmpty = null,
+        bool? boardingObserved = null)
+        => new(stage, target, boarded, door, bridge, phase, std ?? Std, now ?? T0, gsx, null, cabinEmpty, boardingObserved);
+
+    // Review 2026-11-05: the lifecycle's boarding evidence is the one more witness — a
+    // Completed the process never observed, over a cabin whose occupation is UNKNOWN, is the
+    // previous leg's (the seat rule alone left that hole when CabinEmpty was null).
+    [Fact]
+    public void UnobservedCompleted_WithCabinUnknown_IsNoEvidence_ObservedCompletedStillCloses()
+    {
+        var stale = new GateMonitorCore();
+        var s = Eval(stale, Inputs(stage: GsxServiceStage.Completed, target: 119, boarded: 119, cabinEmpty: null, boardingObserved: false));
+        Assert.NotEqual(GateState.ClosedAfterBoarding, s.State);
+
+        var real = new GateMonitorCore();
+        var closed = Eval(real, Inputs(stage: GsxServiceStage.Completed, target: 119, boarded: 119, cabinEmpty: null, boardingObserved: true));
+        Assert.Equal(GateState.ClosedAfterBoarding, closed.State);
+
+        // Seats taken says a real boarding whatever the lifecycle saw (a restart after boarding).
+        var seated = new GateMonitorCore();
+        Assert.Equal(GateState.ClosedAfterBoarding, Eval(seated, Inputs(stage: GsxServiceStage.Completed, target: 119, boarded: 119, cabinEmpty: false, boardingObserved: false)).State);
+    }
 
     private static GateStatusSnapshot Eval(GateMonitorCore core, GateMonitorInputs inputs, int pct = 90, int minutes = 10)
         => core.Evaluate(inputs, "B12", pct, minutes);

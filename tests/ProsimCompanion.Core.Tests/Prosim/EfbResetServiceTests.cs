@@ -62,7 +62,7 @@ public sealed class EfbResetServiceTests : IDisposable
     {
         _ofp.Set(new OfpData { RequestId = "abcd1234" });
         var raised = 0;
-        _signals.FlightCycleReset += () => raised++;
+        _signals.FlightCycleReset += _ => raised++;
 
         var result = await _service.ResetFlightAsync();
 
@@ -124,7 +124,7 @@ public sealed class EfbResetServiceTests : IDisposable
             })
             .ReturnsAsync(true);
         var raised = 0;
-        _signals.FlightCycleReset += () => raised++;
+        _signals.FlightCycleReset += _ => raised++;
 
         var result = await _service.UnloadOfpAsync();
 
@@ -142,7 +142,7 @@ public sealed class EfbResetServiceTests : IDisposable
             .Setup(g => g.WriteDataRefAsync("efb.simbriefPlanImported", It.IsAny<object>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
         var raised = 0;
-        _signals.FlightCycleReset += () => raised++;
+        _signals.FlightCycleReset += _ => raised++;
 
         var result = await _service.UnloadOfpAsync();
 

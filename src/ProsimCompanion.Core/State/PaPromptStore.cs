@@ -86,7 +86,7 @@ public sealed class PaPromptStore : SnapshotStore<PaPromptSnapshot>
         : base(PaPromptSnapshot.Empty)
     {
         ArgumentNullException.ThrowIfNull(signals);
-        signals.FlightCycleReset += Clear;
+        signals.FlightCycleReset += OnFlightCycleReset;
     }
 
     /// <summary>Raises the prompt; false when this kind already prompted this cycle.</summary>
@@ -112,5 +112,8 @@ public sealed class PaPromptStore : SnapshotStore<PaPromptSnapshot>
     public void Reopen() => Update(s => s.Kind is null || !s.Dismissed ? s : s with { Dismissed = false });
 
     /// <summary>A new flight cycle: nothing prompted, nothing showing.</summary>
+    // Arrival and new-plan resets alike (ADR-0019 §6): per-leg state, it starts over either way.
+    private void OnFlightCycleReset(FlightCycleResetKind _) => Clear();
+
     public void Clear() => Update(_ => PaPromptSnapshot.Empty);
 }

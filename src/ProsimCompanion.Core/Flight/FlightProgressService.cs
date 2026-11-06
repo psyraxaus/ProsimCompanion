@@ -100,8 +100,9 @@ public sealed class FlightProgressService : IDisposable
         _timer = new Timer(_ => Tick(), null, TimeSpan.FromSeconds(2), TickInterval);
     }
 
-    private void OnFlightCycleReset()
+    private void OnFlightCycleReset(FlightCycleResetKind _)
     {
+        // Arrival and new-plan resets alike (ADR-0019 §6): per-leg state, it starts over either way.
         lock (_gate)
         {
             _core.Reset();

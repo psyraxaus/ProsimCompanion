@@ -147,10 +147,12 @@ public static class FlightStateSnapshotRules
         }
 
         // The plan the app already holds is the strongest witness: the same id is the same
-        // leg, a different id is the next one (or another flight altogether).
+        // leg, a different id is the next one (or another flight altogether). Both sides go
+        // through OfpPlanIdentity (the one spelling of "same plan", ADR-0019 §2); a snapshot
+        // written with a bare request id still compares.
         if (!string.IsNullOrWhiteSpace(currentRequestId))
         {
-            return string.Equals(currentRequestId.Trim(), identity.OfpRequestId.Trim(), StringComparison.Ordinal)
+            return string.Equals(Aircraft.Ofp.OfpPlanIdentity.Normalize(currentRequestId), Aircraft.Ofp.OfpPlanIdentity.Normalize(identity.OfpRequestId), StringComparison.Ordinal)
                 ? (FlightStateRestoreVerdict.Restore, $"the app already holds the snapshot's plan (request {currentRequestId})")
                 : (FlightStateRestoreVerdict.Discard,
                     boundaryOnly

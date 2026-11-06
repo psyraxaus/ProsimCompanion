@@ -136,8 +136,9 @@ public sealed class GsxDeiceRequestService : Core.Hosting.IStartupModule, IDispo
 
     /// <summary>The store is back to Pending for the new cycle — the "Off" verdict (or the
     /// per-cycle log line) must be published again, and the log dedupe starts over.</summary>
-    private void OnFlightCycleReset()
+    private void OnFlightCycleReset(FlightCycleResetKind _)
     {
+        // Arrival and new-plan resets alike (ADR-0019 §6): per-leg state, it starts over either way.
         lock (_gate)
         {
             _lastLoggedVerdict = DeicePolicyVerdict.Pending;

@@ -73,6 +73,7 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl, IG
 
     private readonly GroundOpsSignals _groundOpsSignals;
     private readonly OfpStore _ofpStore;
+    private readonly ILegBoundaryEvents _legBoundary;
     private readonly CompanionTrackingLvars _tracking;
     private string? _lastResetPlanId;
     private readonly GsxResyncState _resyncState;
@@ -98,6 +99,7 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl, IG
         FuelConfirmationStore fuelConfirmation,
         DeiceRequestStore deiceRequest,
         TurnaroundStartStore turnaroundStart,
+        ILegBoundaryEvents legBoundary,
         DeparturePumpGatherer gatherer,
         DeparturePumpEffectApplier applier,
         DepartureCycleLatches latches,
@@ -125,6 +127,7 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl, IG
         ArgumentNullException.ThrowIfNull(fuelConfirmation);
         ArgumentNullException.ThrowIfNull(deiceRequest);
         ArgumentNullException.ThrowIfNull(turnaroundStart);
+        ArgumentNullException.ThrowIfNull(legBoundary);
         ArgumentNullException.ThrowIfNull(gatherer);
         ArgumentNullException.ThrowIfNull(applier);
         ArgumentNullException.ThrowIfNull(latches);
@@ -141,6 +144,7 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl, IG
         _prosim = prosim;
         _flightPlan = flightPlan;
         _ofpStore = ofpStore;
+        _legBoundary = legBoundary;
         _options = options;
         _groundOpsSignals = groundOpsSignals;
         _resyncState = resyncState;
@@ -184,8 +188,11 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl, IG
         _turnaroundStart.Answered += OnTurnaroundStartAnswered;
         // An automation-started SimBrief import that landed satisfies the plan gate now.
         _applier.SimbriefImported += Pump;
-        // A new plan is a new leg (owner rule 2026-11-01): the departure side starts over.
-        _ofpStore.Changed += OnOfpChanged;
+        // A new plan is a new leg (owner rule 2026-11-01): the departure side starts over. The
+        // leg-boundary machine is the ONE judge of "a different plan" (ADR-0019 §1; review
+        // 2026-11-05 — this service used to decide it again from the OFP store with its own
+        // compare); what stays here is the GSX-side gate: parked, and boarding not started.
+        _legBoundary.LegBegan += OnLegBegan;
         if (_dutyDay is not null)
         {
             _dutyDay.DayEnded += OnDutyDayEnded;
@@ -236,7 +243,7 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl, IG
     /// SimBrief plan while parked with the engines off resets the departure side — service
     /// cycles, pax target, trigger slot, tracking memory — unless a departure service for the
     /// plan the cycle was opened with is already under way. Rule: <see cref="NewPlanCycleReset"/>.</summary>
-    private void OnOfpChanged(object? sender, EventArgs e)
+    private void OnLegBegan(object? sender, LegBeganEventArgs e)
     {
         try
         {
@@ -420,7 +427,7 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl, IG
         _deiceObserver.Dispose();
         _turnaroundStart.Answered -= OnTurnaroundStartAnswered;
         _applier.SimbriefImported -= Pump;
-        _ofpStore.Changed -= OnOfpChanged;
+        _legBoundary.LegBegan -= OnLegBegan;
         if (_dutyDay is not null)
         {
             _dutyDay.DayEnded -= OnDutyDayEnded;

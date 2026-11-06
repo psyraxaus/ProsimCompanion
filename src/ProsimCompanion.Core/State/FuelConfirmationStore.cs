@@ -41,13 +41,13 @@ public sealed class FuelConfirmationStore : SnapshotStore<FuelConfirmationSnapsh
         _signals = signals;
         _lastOfpRequestId = ofpStore.Current?.RequestId;
         _ofpStore.Changed += OnOfpChanged;
-        _signals.FlightCycleReset += Reset;
+        _signals.FlightCycleReset += OnFlightCycleReset;
     }
 
     public void Dispose()
     {
         _ofpStore.Changed -= OnOfpChanged;
-        _signals.FlightCycleReset -= Reset;
+        _signals.FlightCycleReset -= OnFlightCycleReset;
     }
 
     /// <summary>True once confirmed this cycle.</summary>
@@ -59,6 +59,9 @@ public sealed class FuelConfirmationStore : SnapshotStore<FuelConfirmationSnapsh
         => Update(_ => new FuelConfirmationSnapshot(true, kg, DateTimeOffset.UtcNow, source));
 
     /// <summary>Clears the confirmation (new cycle / new OFP).</summary>
+    // Arrival and new-plan resets alike (ADR-0019 §6): per-leg state, it starts over either way.
+    private void OnFlightCycleReset(FlightCycleResetKind _) => Reset();
+
     public void Reset() => Update(_ => FuelConfirmationSnapshot.Empty);
 
     private void OnOfpChanged(object? sender, EventArgs e)

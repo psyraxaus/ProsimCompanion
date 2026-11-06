@@ -42,6 +42,8 @@ public sealed class WalkaroundService : Core.Hosting.IStartupModule, IDisposable
     private readonly IFlightPhaseSource _flight;
     private readonly IGroundFactsSource _ground;
     private readonly GsxDiagnosticsStore _diagnostics;
+    private readonly BoardingEvidenceStore _boarding;
+    private readonly DepartureCycleState _departure;
     private readonly GroundOpsSignals _signals;
     private readonly FoAvailabilityStore _availability;
     private readonly WalkaroundFindingBank _bank;
@@ -73,6 +75,8 @@ public sealed class WalkaroundService : Core.Hosting.IStartupModule, IDisposable
         IFlightPhaseSource flight,
         IGroundFactsSource ground,
         GsxDiagnosticsStore diagnostics,
+        BoardingEvidenceStore boarding,
+        DepartureCycleState departure,
         GroundOpsSignals signals,
         FoAvailabilityStore availability,
         WalkaroundFindingBank bank,
@@ -94,6 +98,8 @@ public sealed class WalkaroundService : Core.Hosting.IStartupModule, IDisposable
         ArgumentNullException.ThrowIfNull(flight);
         ArgumentNullException.ThrowIfNull(ground);
         ArgumentNullException.ThrowIfNull(diagnostics);
+        ArgumentNullException.ThrowIfNull(boarding);
+        ArgumentNullException.ThrowIfNull(departure);
         ArgumentNullException.ThrowIfNull(signals);
         ArgumentNullException.ThrowIfNull(availability);
         ArgumentNullException.ThrowIfNull(bank);
@@ -108,6 +114,8 @@ public sealed class WalkaroundService : Core.Hosting.IStartupModule, IDisposable
         _flight = flight;
         _ground = ground;
         _diagnostics = diagnostics;
+        _boarding = boarding;
+        _departure = departure;
         _signals = signals;
         _availability = availability;
         _bank = bank;
@@ -168,8 +176,9 @@ public sealed class WalkaroundService : Core.Hosting.IStartupModule, IDisposable
         _shutdown.Dispose();
     }
 
-    private void OnFlightCycleReset()
+    private void OnFlightCycleReset(FlightCycleResetKind _)
     {
+        // Arrival and new-plan resets alike (ADR-0019 §6): per-leg state, it starts over either way.
         lock (_gate)
         {
             _core.OnFlightCycleReset();
@@ -318,30 +327,22 @@ public sealed class WalkaroundService : Core.Hosting.IStartupModule, IDisposable
     {
         var facts = _ground.Facts;
         GsxServiceStage? refuel = null;
-        var prepComplete = false;
-        var boardingObserved = false;
         try
         {
-            var snapshot = _diagnostics.Snapshot();
-            prepComplete = string.Equals(snapshot.GroundPrep?.Stage, "Complete", StringComparison.OrdinalIgnoreCase);
-            foreach (var row in snapshot.ServiceBoard)
-            {
-                if (string.Equals(row.ServiceId, GsxServiceIds.Refueling, StringComparison.OrdinalIgnoreCase))
-                {
-                    refuel = row.Stage;
-                }
-                else if (string.Equals(row.ServiceId, GsxServiceIds.Boarding, StringComparison.OrdinalIgnoreCase))
-                {
-                    boardingObserved = WalkaroundCore.BoardingStarted(row.Stage);
-                }
-            }
+            // The refuel stage is still read off the service board (it is what the board is
+            // for); readiness and boarding come from their owners (review 2026-11-05) — the
+            // departure cycle's PrepComplete flag, not a diagnostics string, and the lifecycle's
+            // boarding evidence, the same "started" the gate monitor reads.
+            refuel = _diagnostics.Snapshot().ServiceBoard
+                .FirstOrDefault(row => string.Equals(row.ServiceId, GsxServiceIds.Refueling, StringComparison.OrdinalIgnoreCase))?.Stage;
         }
         catch (Exception ex)
         {
             _logger.LogDebug(ex, "GSX diagnostics read failed");
         }
 
-        return new WalkaroundSample(_flight.CurrentPhase, _flight.IsLive, facts.Parked, facts.EnginesOff, prepComplete, refuel, nowUtc, boardingObserved);
+        var view = _flight.Snapshot();
+        return new WalkaroundSample(view.Phase, FlightGate.IsLiveFor(view), facts.Parked, facts.EnginesOff, _departure.PrepComplete, refuel, nowUtc, _boarding.Snapshot().Started);
     }
 
     private async Task AnnounceAsync(DateTimeOffset nowUtc)

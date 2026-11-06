@@ -169,7 +169,7 @@ public sealed partial class LoadsheetService : ILoadsheetControl, IDisposable
 
         _signals.RefuelServiceActive += OnRefuelServiceActive;
         _signals.BoardingCompleted += OnBoardingCompleted;
-        _signals.FlightCycleReset += ResetCycle;
+        _signals.FlightCycleReset += OnFlightCycleReset;
         _connections.Changed += OnConnectionChanged;
         _resyncState.Assessed += OnResyncAssessed;
         _lmcQuestion.Answered += OnLmcRevisionAnswered;
@@ -185,7 +185,7 @@ public sealed partial class LoadsheetService : ILoadsheetControl, IDisposable
         _stdTimer.Dispose();
         _signals.RefuelServiceActive -= OnRefuelServiceActive;
         _signals.BoardingCompleted -= OnBoardingCompleted;
-        _signals.FlightCycleReset -= ResetCycle;
+        _signals.FlightCycleReset -= OnFlightCycleReset;
         _connections.Changed -= OnConnectionChanged;
         _resyncState.Assessed -= OnResyncAssessed;
         _lmcQuestion.Answered -= OnLmcRevisionAnswered;
@@ -798,6 +798,11 @@ public sealed partial class LoadsheetService : ILoadsheetControl, IDisposable
 
         return true;
     }
+
+    // Arrival and new-plan resets alike (ADR-0019 §6): per-leg state, it starts over either way.
+
+    private void OnFlightCycleReset(FlightCycleResetKind _) => ResetCycle();
+
 
     public void ResetCycle()
     {

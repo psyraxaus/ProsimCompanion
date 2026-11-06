@@ -96,7 +96,7 @@ public sealed class TransitionReminderService : Core.Hosting.IStartupModule, IDi
 
     public void Start()
     {
-        _signals.FlightCycleReset += OnReset;
+        _signals.FlightCycleReset += OnFlightCycleReset;
         _flight.SessionReset += OnReset;
         if (!_options.CurrentValue.Transition.Enabled)
         {
@@ -109,7 +109,7 @@ public sealed class TransitionReminderService : Core.Hosting.IStartupModule, IDi
 
     public void Dispose()
     {
-        _signals.FlightCycleReset -= OnReset;
+        _signals.FlightCycleReset -= OnFlightCycleReset;
         _flight.SessionReset -= OnReset;
         _timer?.Dispose();
         _pilotStd.Dispose();
@@ -132,7 +132,7 @@ public sealed class TransitionReminderService : Core.Hosting.IStartupModule, IDi
 
         _disabledLogged = false;
         var sample = _source.Sample();
-        var live = _flight.IsLive && sample.IsValid;
+        var live = FlightGate.IsLiveFor(_flight.IsLive, sample);
         RefreshNavData();
 
         TransitionReminder? reminder;
@@ -240,6 +240,11 @@ public sealed class TransitionReminderService : Core.Hosting.IStartupModule, IDi
 
         return null;
     }
+
+    // Arrival and new-plan resets alike (ADR-0019 §6): per-leg state, the same reset as a session reset.
+
+    private void OnFlightCycleReset(FlightCycleResetKind _) => OnReset();
+
 
     private void OnReset()
     {

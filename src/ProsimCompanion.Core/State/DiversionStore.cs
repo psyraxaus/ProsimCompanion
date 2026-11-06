@@ -101,8 +101,9 @@ public sealed class DiversionStore : SnapshotStore<DiversionSnapshot>, IDisposab
         Update(s => s.Active && !s.Offers.Contains(offer, StringComparer.Ordinal) ? s with { Offers = [.. s.Offers, offer] } : s);
     }
 
-    private void OnFlightCycleReset()
+    private void OnFlightCycleReset(FlightCycleResetKind _)
     {
+        // Arrival and new-plan resets alike (ADR-0019 §6): per-leg state, it starts over either way.
         if (Current.Active)
         {
             _ofp.ClearDiversion();

@@ -65,16 +65,21 @@ public sealed class PurserPaService : Core.Hosting.IStartupModule, IDisposable
 
     internal void Attach()
     {
-        _signals.FlightCycleReset += OnReset;
+        _signals.FlightCycleReset += OnFlightCycleReset;
         _flight.SessionReset += OnReset;
     }
 
     public void Dispose()
     {
         _timer?.Dispose();
-        _signals.FlightCycleReset -= OnReset;
+        _signals.FlightCycleReset -= OnFlightCycleReset;
         _flight.SessionReset -= OnReset;
     }
+
+    // Arrival and new-plan resets alike (ADR-0019 §6): per-leg state, the same reset as a session reset.
+
+    private void OnFlightCycleReset(FlightCycleResetKind _) => OnReset();
+
 
     private void OnReset()
     {

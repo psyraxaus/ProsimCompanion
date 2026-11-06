@@ -29,15 +29,13 @@ public sealed class GroundOpsSignals
     /// <summary>The ground-ops cycle reset for a new leg: raised at the GSX arrival reset and,
     /// since ADR-0019 §6 (issue #213), when a DIFFERENT plan lands at the stand before boarding
     /// has started. Loadsheet caches, edition counters, upcall and notification latches reset
-    /// here. <see cref="LastFlightCycleResetKind"/> tells a handler which of the two it is —
-    /// the arrival-side state (the startup resync's turnaround LVARs, the flight-state
-    /// snapshot) must survive a new-plan reset, which only concerns the departure.</summary>
-    public event Action? FlightCycleReset;
-
-    /// <summary>Why the <see cref="FlightCycleReset"/> being raised right now was raised. Set
-    /// before the event fires and read by its handlers on the raising thread; between resets it
-    /// holds the last reason.</summary>
-    public FlightCycleResetKind LastFlightCycleResetKind { get; private set; } = FlightCycleResetKind.Arrival;
+    /// here. The argument says which of the two it is — the arrival-side state (the startup
+    /// resync's turnaround LVARs, the flight-state snapshot) must survive a new-plan reset,
+    /// which only concerns the departure. The kind travels WITH the event (review 2026-11-05):
+    /// a shared "last kind" property read on the raising thread was wrong whenever two resets
+    /// raced from different threads (the GSX arrival edge vs the SimBrief poller). A handler
+    /// that treats both kinds alike says so in its signature (<c>FlightCycleResetKind _</c>).</summary>
+    public event Action<FlightCycleResetKind>? FlightCycleReset;
 
     /// <summary>GSX de-icing completed; the argument is the applied fluid type from
     /// <c>L:FSDT_GSX_DEICING_TYPE</c> (1=Type I … 4=Type IV, 0 = unknown). Arms the holdover
@@ -108,9 +106,8 @@ public sealed class GroundOpsSignals
     /// <summary>Raises the cycle reset with its reason (see <see cref="FlightCycleResetKind"/>).</summary>
     public void RaiseFlightCycleReset(FlightCycleResetKind kind)
     {
-        LastFlightCycleResetKind = kind;
         Volatile.Write(ref _boardingUnderway, 0);
-        FlightCycleReset?.Invoke();
+        FlightCycleReset?.Invoke(kind);
     }
 
     public void RaiseDeiceCompleted(int fluidType) => DeiceCompleted?.Invoke(fluidType);

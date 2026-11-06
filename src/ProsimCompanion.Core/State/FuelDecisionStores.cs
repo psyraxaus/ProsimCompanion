@@ -14,7 +14,7 @@ public sealed class HoldingTimeStore : SnapshotStore<HoldingEstimate?>, IDisposa
     {
         ArgumentNullException.ThrowIfNull(signals);
         _signals = signals;
-        _signals.FlightCycleReset += Clear;
+        _signals.FlightCycleReset += OnFlightCycleReset;
     }
 
     public HoldingEstimate? Current => Snapshot();
@@ -25,11 +25,16 @@ public sealed class HoldingTimeStore : SnapshotStore<HoldingEstimate?>, IDisposa
         Update(_ => estimate);
     }
 
+    // Arrival and new-plan resets alike (ADR-0019 §6): per-leg state, it starts over either way.
+
+    private void OnFlightCycleReset(FlightCycleResetKind _) => Clear();
+
+
     public void Clear() => Update(_ => null);
 
     public void Dispose()
     {
-        _signals.FlightCycleReset -= Clear;
+        _signals.FlightCycleReset -= OnFlightCycleReset;
         GC.SuppressFinalize(this);
     }
 }

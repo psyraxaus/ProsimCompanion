@@ -307,7 +307,7 @@ public sealed class CruiseSmallTalkService : Core.Hosting.IStartupModule, IDispo
         }
 
         return new SmallTalkTick(
-            view.Phase, _flight.IsLive, nowUtc,
+            view.Phase, FlightGate.IsLiveFor(view), nowUtc,
             data?.AltitudeFt ?? 0, data?.IsValid ?? false,
             abnormalOpen, questionOpen,
             _turbulence.Snapshot().Level,

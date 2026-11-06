@@ -96,7 +96,8 @@ public sealed class GroundCrewUpcallService : Core.Hosting.IStartupModule, IDisp
         _fuelTotal?.Dispose();
     }
 
-    private void OnFlightCycleReset()
+    // Arrival and new-plan resets alike (ADR-0019 §6): the upcall latches are per leg.
+    private void OnFlightCycleReset(FlightCycleResetKind _)
         => _state = GroundUpcallCore.OnFlightCycleReset(_state);
 
     private void OnRefuelSkippedForTankering()

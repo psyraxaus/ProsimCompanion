@@ -65,18 +65,23 @@ public sealed class RunwayConditionStore : SnapshotStore<RunwayCondition?>, IDis
     {
         ArgumentNullException.ThrowIfNull(signals);
         _signals = signals;
-        _signals.FlightCycleReset += Clear;
+        _signals.FlightCycleReset += OnFlightCycleReset;
     }
 
     public RunwayCondition? Current => Snapshot();
 
     public void Set(RunwayCondition condition) => Update(_ => condition);
 
+    // Arrival and new-plan resets alike (ADR-0019 §6): per-leg state, it starts over either way.
+
+    private void OnFlightCycleReset(FlightCycleResetKind _) => Clear();
+
+
     public void Clear() => Update(_ => null);
 
     public void Dispose()
     {
-        _signals.FlightCycleReset -= Clear;
+        _signals.FlightCycleReset -= OnFlightCycleReset;
         GC.SuppressFinalize(this);
     }
 }

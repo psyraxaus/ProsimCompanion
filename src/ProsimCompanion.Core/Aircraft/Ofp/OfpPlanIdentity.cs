@@ -28,4 +28,21 @@ public static class OfpPlanIdentity
             ? null
             : $"route:{ofp.OriginIcao.Trim().ToUpperInvariant()}-{ofp.DestinationIcao.Trim().ToUpperInvariant()}";
     }
+
+    /// <summary>Brings an id written before this identity existed — a bare SimBrief request id,
+    /// as the flight-state snapshot stored it — to the same spelling, so one compare serves
+    /// both (review 2026-11-05: the snapshot compared raw request ids, a third spelling of
+    /// "same plan"). Null for blank.</summary>
+    public static string? Normalize(string? id)
+    {
+        if (string.IsNullOrWhiteSpace(id))
+        {
+            return null;
+        }
+
+        var trimmed = id.Trim();
+        return trimmed.StartsWith("req:", StringComparison.Ordinal) || trimmed.StartsWith("route:", StringComparison.Ordinal)
+            ? trimmed
+            : "req:" + trimmed;
+    }
 }

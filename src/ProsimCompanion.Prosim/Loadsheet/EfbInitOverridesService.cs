@@ -231,8 +231,9 @@ public sealed class EfbInitOverridesService : IEfbInitOverrides, IDisposable
         }
     }
 
-    private void OnCycleReset()
+    private void OnCycleReset(FlightCycleResetKind _)
     {
+        // Arrival and new-plan resets alike (ADR-0019 §6): per-leg state, it starts over either way.
         if (!_overrides.IsEmpty)
         {
             _overrides.Clear();

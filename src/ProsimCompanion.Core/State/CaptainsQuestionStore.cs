@@ -71,7 +71,7 @@ public abstract class CaptainsQuestionStore<TSnapshot> : SnapshotStore<TSnapshot
         Definition = definition;
         _empty = empty;
         _signals = signals;
-        _signals.FlightCycleReset += Reset;
+        _signals.FlightCycleReset += OnFlightCycleReset;
         _changedRelay = Observe(_ => Changed?.Invoke());
     }
 
@@ -91,11 +91,14 @@ public abstract class CaptainsQuestionStore<TSnapshot> : SnapshotStore<TSnapshot
     public event Action? Changed;
 
     /// <summary>The flight-cycle reset: everything back to empty (the adapters' extra facts too).</summary>
+    // Arrival and new-plan resets alike (ADR-0019 §6): per-leg state, it starts over either way.
+    private void OnFlightCycleReset(FlightCycleResetKind _) => Reset();
+
     public void Reset() => Update(_ => _empty);
 
     public virtual void Dispose()
     {
-        _signals.FlightCycleReset -= Reset;
+        _signals.FlightCycleReset -= OnFlightCycleReset;
         _changedRelay.Dispose();
         GC.SuppressFinalize(this);
     }

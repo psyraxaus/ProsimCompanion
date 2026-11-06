@@ -235,4 +235,33 @@ public sealed class GsxServiceLifecycleTrackerTests
         _tracker.MarkCalled("Boarding"); // … and the call itself is an observation
         Assert.True(_tracker.ObservedProgress("boarding"));
     }
+
+    // Review 2026-11-05: the tracker publishes the boarding cycle to the Core store — the one
+    // definition of "boarding started" the gate monitor and the walkaround read.
+    [Fact]
+    public void BoardingEvidence_FollowsTheCycle_SeedIsStartedButNotObserved()
+    {
+        var store = new ProsimCompanion.Core.State.BoardingEvidenceStore();
+        var tracker = new GsxServiceLifecycleTracker(NullLogger<GsxServiceLifecycleTracker>.Instance, store);
+        Assert.Equal(ProsimCompanion.Core.State.BoardingEvidence.None, store.Snapshot());
+
+        tracker.SeedCompleted("Boarding");
+        var seeded = store.Snapshot();
+        Assert.True(seeded.Started);
+        Assert.False(seeded.Observed);
+        Assert.True(seeded.Completed);
+        Assert.True(seeded.Seeded);
+
+        tracker.Unseed("Boarding");
+        Assert.Equal(ProsimCompanion.Core.State.BoardingEvidence.None, store.Snapshot());
+
+        tracker.MarkCalled("Boarding");
+        Assert.True(store.Snapshot() is { Started: true, Observed: true, Completed: false });
+        tracker.Process(Services(("Boarding", GsxServiceState.Active)));
+        tracker.Process(Services(("Boarding", GsxServiceState.Completed)));
+        Assert.True(store.Snapshot() is { Started: true, Observed: true, Completed: true, Seeded: false });
+
+        tracker.ResetCycle();
+        Assert.Equal(ProsimCompanion.Core.State.BoardingEvidence.None, store.Snapshot());
+    }
 }

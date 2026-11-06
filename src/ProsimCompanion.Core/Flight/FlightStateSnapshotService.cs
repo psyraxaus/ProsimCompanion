@@ -171,7 +171,7 @@ public sealed class FlightStateSnapshotService : IStartupModule, IDisposable
             return;
         }
 
-        _lastOfpRequestId = _ofp.Current?.RequestId;
+        _lastOfpRequestId = OfpPlanIdentity.PlanId(_ofp.Current);
         _loaded = _file.Load();
         if (_loaded is null)
         {
@@ -266,7 +266,7 @@ public sealed class FlightStateSnapshotService : IStartupModule, IDisposable
                 _fmsOrigin is { RawValue: not null } o ? o.Value : null,
                 _fmsDestination is { RawValue: not null } d ? d.Value : null,
                 _aircraftTitle is { RawValue: not null } t ? t.Value : null,
-                _ofp.Current?.RequestId,
+                OfpPlanIdentity.PlanId(_ofp.Current),
                 boundaryOnly);
             if (verdict == FlightStateRestoreVerdict.Wait)
             {
@@ -332,7 +332,7 @@ public sealed class FlightStateSnapshotService : IStartupModule, IDisposable
         lock (_gate)
         {
             _restored = items.Count > 0;
-            _lastOfpRequestId = _ofp.Current?.RequestId;
+            _lastOfpRequestId = OfpPlanIdentity.PlanId(_ofp.Current);
         }
 
         _logger.LogInformation(
@@ -368,7 +368,7 @@ public sealed class FlightStateSnapshotService : IStartupModule, IDisposable
 
     private void OnPartChanged(IFlightStatePart part)
     {
-        var ofpRequestId = _ofp.Current?.RequestId;
+        var ofpRequestId = OfpPlanIdentity.PlanId(_ofp.Current);
         lock (_gate)
         {
             if (!_decided || _disposed)
@@ -527,14 +527,14 @@ public sealed class FlightStateSnapshotService : IStartupModule, IDisposable
 
     /// <summary>The cycle reset the stamps honour (not the one on the Shutdown edge, which
     /// <see cref="FlightTimesCore.ResetForNewCycle"/> ignores): a leg is starting over.</summary>
-    private void OnFlightCycleReset()
+    private void OnFlightCycleReset(State.FlightCycleResetKind kind)
     {
         if (_flight.CurrentPhase is FlightPhase.LandingRollout or FlightPhase.TaxiIn or FlightPhase.Shutdown)
         {
             return;
         }
 
-        if (_signals.LastFlightCycleResetKind == State.FlightCycleResetKind.NewPlan)
+        if (kind == State.FlightCycleResetKind.NewPlan)
         {
             // A different plan at the stand (ADR-0019 §6, issue #213): the new request id
             // already replaced the file through the OFP part; the departure stores re-write

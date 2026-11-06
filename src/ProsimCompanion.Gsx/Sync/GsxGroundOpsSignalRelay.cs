@@ -54,8 +54,9 @@ public sealed class GsxGroundOpsSignalRelay : IDisposable
         _deiceFluidType.Dispose();
     }
 
-    private void OnFlightCycleReset()
+    private void OnFlightCycleReset(FlightCycleResetKind _)
     {
+        // Arrival and new-plan resets alike (ADR-0019 §6): per-leg state, it starts over either way.
         lock (_gate)
         {
             _core.Reset();

@@ -293,6 +293,8 @@ public static class CoreServiceCollectionExtensions
         services.AddStartupModule<Notifications.NotificationSignalSource>();
         services.AddSingleton<Flight.IFlightStatePart>(p => p.GetRequiredService<Notifications.NotificationSignalSource>());
         services.AddSingleton<ConnectionStatusStore>();
+        // One definition of "boarding started" for the gate monitor and the walkaround (review 2026-11-05); the GSX lifecycle tracker writes it.
+        services.AddSingleton<BoardingEvidenceStore>();
         // The ProSim setup check (2026-10-06): written by the ProSim pillar after each read of
         // the IOS options, read by the Setup page card and the Getting Started card.
         services.AddSingleton<ProsimSetupStore>();
