@@ -1212,6 +1212,27 @@ model) proposed seven fix packages; all seven are in rc.4, on `fix/branch-review
       recording of a restart after boarding; the owner's decision on the `fixed-unverified`
       probe state; the whole batch is **unflown**.
 
+## Phase 16 — Voice package and the first-plan pushback fix (1.0.0-rc.5)
+
+The owner's EGLL leg on rc.4 (2026-11-06) and the plan
+`docs/plans/2026-11-07-voice-vocabulary-and-ground-crew.md`, all on `fix/branch-review-2026-11-05`:
+
+- [x] The first plan of a departure cycle is adopted, never a new-leg reset — "commence ground
+      services" before the OFP no longer clears the ground prep and flags a turnaround, so the
+      beacon-orchestrated pushback arms (`NewPlanCycleReset.Decide`, `BeginNewLegCycle`,
+      probe `gsx-first-plan-adopted`).
+- [x] V1 every natural wording of a ground-service request (the verb × name grid, address
+      stripping, every boarding wording relays to the cabin; probe `gsx-voice-phrase-grid`).
+- [x] O2 free wording through the language model (`speech.intentTier` off | confirm | auto,
+      the pick checked against the live vocabulary; probe `voice-intent-tier`).
+- [x] V2 the pushback crew speaks (Core `PushbackStage`, the GSX tick's LVAR edges, the
+      interphone script from the bridge to the hand signal, "brakes released" / "ready for
+      pushback"; probe `pushback-crew-dialogue`).
+- [x] V3 the fueller, the de-ice crew and the purser's boarding-complete line (probe
+      `crew-lines-2026-11`).
+- [ ] Rig steps (owner): ramp crew off in SayIntentions, GSX's own crew audio off; confirm
+      `VEHICLE_PUSHBACK_STATE` 11 means "push complete" from the decision log. **Unflown.**
+
 ## Open items (after the code review, 2026-11-03)
 
 Nothing on this roadmap is open as code. What remains:
