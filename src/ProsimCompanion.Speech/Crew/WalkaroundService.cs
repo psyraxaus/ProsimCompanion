@@ -590,33 +590,9 @@ public sealed class WalkaroundService : Core.Hosting.IStartupModule, IDisposable
 
     /// <summary>The upcalls' delivery: the MECH call press (the ACP lamp cue), then the INT
     /// latch or the grace — a report is never lost to an unmonitored panel.</summary>
-    private async Task RingInterphoneAsync()
+    private Task RingInterphoneAsync()
     {
         var options = _options.CurrentValue;
-        if (options.MechCall && _dataRefs is not null)
-        {
-            try
-            {
-                await _dataRefs.PressMomentaryAsync(ProsimDataRefNames.OhCallsMech, _shutdown.Token).ConfigureAwait(false);
-            }
-            catch (OperationCanceledException)
-            {
-                throw;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogDebug(ex, "MECH call press failed — speaking the walkaround report anyway");
-            }
-        }
-
-        if (options.RequireIntChannel && _acp is not null)
-        {
-            var latched = await _acp.AwaitReceiveAsync(
-                AcpChannelKind.Intercom, TimeSpan.FromSeconds(Math.Max(0, options.IntChannelGraceSeconds)), _shutdown.Token).ConfigureAwait(false);
-            if (!latched)
-            {
-                _logger.LogInformation("INT channel not selected within grace — playing the walkaround report anyway");
-            }
-        }
+        return InterphoneRing.RingAsync(_dataRefs, _acp, options.MechCall, options.RequireIntChannel, options.IntChannelGraceSeconds, _logger, "walkaround report", _shutdown.Token);
     }
 }

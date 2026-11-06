@@ -23,14 +23,12 @@ public sealed class FoRosterService : IFoRosterService
     private readonly FoRosterStateFile _stateFile;
     private readonly JsonlEventLog _eventLog;
     private readonly ILogger<FoRosterService> _logger;
-    private readonly ConfigProblemStore? _problems;
     private readonly SettingsWriter? _settings;
     private readonly string _path;
+    private readonly RosterFileBank _bank;
     private readonly object _gate = new();
     private readonly Random _random = new();
 
-    private IReadOnlyList<FoRosterEntry> _pool = [];
-    private DateTime _loadedWriteTimeUtc = DateTime.MinValue;
     private FoRosterState _state;
 
     /// <param name="configDirectory">Where <c>fo-roster.json</c> lives; null = the user config root.</param>
@@ -54,9 +52,9 @@ public sealed class FoRosterService : IFoRosterService
         _stateFile = stateFile;
         _eventLog = eventLog;
         _logger = logger;
-        _problems = problems;
         _settings = settings;
         _path = Path.Combine(string.IsNullOrWhiteSpace(configDirectory) ? UserConfigPaths.Root : configDirectory, FileName);
+        _bank = new RosterFileBank(_path, logger, problems);
         _state = _stateFile.Load();
     }
 
@@ -87,8 +85,7 @@ public sealed class FoRosterService : IFoRosterService
         {
             lock (_gate)
             {
-                ReloadIfChangedLocked();
-                return _pool;
+                return _bank.Current;
             }
         }
     }
@@ -117,7 +114,6 @@ public sealed class FoRosterService : IFoRosterService
 
             lock (_gate)
             {
-                ReloadIfChangedLocked();
                 var id = _options.CurrentValue.Roster.IsPinned ? _state.PinnedId : _state.CurrentId;
                 return Find(id);
             }
@@ -132,9 +128,8 @@ public sealed class FoRosterService : IFoRosterService
         string? previous;
         lock (_gate)
         {
-            ReloadIfChangedLocked();
             previous = _state.CurrentId;
-            picked = FoRosterDraw.Pick(_pool, previous, Next ?? DefaultNext);
+            picked = FoRosterDraw.Pick(_bank.Current, previous, Next ?? DefaultNext);
             if (picked is null)
             {
                 _logger.LogWarning("FO roster draw requested ({Reason}) but {Path} holds no officers", reason, _path);
@@ -217,7 +212,6 @@ public sealed class FoRosterService : IFoRosterService
         FoRosterEntry? entry;
         lock (_gate)
         {
-            ReloadIfChangedLocked();
             entry = Find(id);
             if (entry is null)
             {
@@ -281,7 +275,7 @@ public sealed class FoRosterService : IFoRosterService
     }
 
     private FoRosterEntry? Find(string? id)
-        => id is null ? null : _pool.FirstOrDefault(e => string.Equals(e.Id, id, StringComparison.OrdinalIgnoreCase));
+        => id is null ? null : _bank.Current.FirstOrDefault(e => string.Equals(e.Id, id, StringComparison.OrdinalIgnoreCase));
 
     private void WriteMode(string mode)
     {
@@ -300,53 +294,25 @@ public sealed class FoRosterService : IFoRosterService
         }
     }
 
-    private void ReloadIfChangedLocked()
+    /// <summary>The roster file on the shared user-config-bank contract (review 2026-11-05):
+    /// re-read after its last-write time moved, problems on the Config page, an unreadable
+    /// file keeps the last good roster.</summary>
+    private sealed class RosterFileBank(string path, ILogger logger, ConfigProblemStore? problems)
+        : UserConfigFileBank<IReadOnlyList<FoRosterEntry>>(path, ConfigAreas.FoRoster, logger, problems, [])
     {
-        DateTime writeTime;
-        try
+        public new IReadOnlyList<FoRosterEntry> Current => base.Current;
+
+        protected override (IReadOnlyList<FoRosterEntry> Value, IReadOnlyList<string> Problems) Parse(string json)
         {
-            writeTime = File.GetLastWriteTimeUtc(_path); // MinValue-ish when absent
-        }
-        catch (IOException)
-        {
-            return;
+            var result = FoRosterFile.Parse(json);
+            return (result.Officers, result.Problems);
         }
 
-        if (writeTime == _loadedWriteTimeUtc)
-        {
-            return;
-        }
+        protected override void OnAbsent()
+            => logger.LogInformation("FO roster file {Path} is absent — no officers to draw from", FilePath);
 
-        _loadedWriteTimeUtc = writeTime;
-        if (!File.Exists(_path))
-        {
-            _pool = [];
-            _problems?.ClearArea(ConfigAreas.FoRoster);
-            _logger.LogInformation("FO roster file {Path} is absent — no officers to draw from", _path);
-            return;
-        }
-
-        try
-        {
-            var result = FoRosterFile.Parse(File.ReadAllText(_path));
-            _pool = result.Officers;
-            if (result.Problems.Count > 0)
-            {
-                _problems?.Report(ConfigAreas.FoRoster, _path, string.Join("; ", result.Problems));
-                _logger.LogWarning("fo-roster.json: {Problems}", string.Join("; ", result.Problems));
-            }
-            else
-            {
-                _problems?.ClearArea(ConfigAreas.FoRoster);
-            }
-
-            _logger.LogInformation("fo-roster.json loaded ({Count} officers)", _pool.Count);
-        }
-        catch (Exception ex) when (ex is System.Text.Json.JsonException or IOException)
-        {
-            _logger.LogWarning(ex, "fo-roster.json unreadable — keeping the last good roster ({Count} officers)", _pool.Count);
-            _problems?.Report(ConfigAreas.FoRoster, _path, ex.Message);
-        }
+        protected override void OnLoaded(IReadOnlyList<FoRosterEntry> value)
+            => logger.LogInformation("fo-roster.json loaded ({Count} officers)", value.Count);
     }
 
     private static FoRosterState Copy(FoRosterState state) => new()

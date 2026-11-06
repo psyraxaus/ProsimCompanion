@@ -155,10 +155,9 @@ public static class ScenarioCatalogueFile
         return new(entries, problems);
     }
 
-    private static string? Text(JsonElement item, string name)
-        => item.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.String ? value.GetString() : null;
+    private static string? Text(JsonElement item, string name) => JsonConfigText.Text(item, name);
 
-    private static string? NullIfBlank(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+    private static string? NullIfBlank(string? value) => JsonConfigText.NullIfBlank(value);
 }
 
 /// <summary>Where a planned scenario stands. Only <see cref="Planned"/> survives a restart.</summary>
@@ -237,13 +236,13 @@ public sealed class ScenarioPlan
 public sealed record ScenarioStateLoad(ScenarioPlan? Plan, bool LeftArmed);
 
 /// <summary>
-/// Persistence for <c>scenario-state.json</c> (issue #197, the <c>fo-roster-state.json</c>
-/// pattern): atomic writes, never a throw. On load only a <see cref="ScenarioPlanState.Planned"/>
+/// Persistence for <c>scenario-state.json</c> (issue #197) on the <see cref="JsonStateFile{T}"/>
+/// contract: atomic writes, never a throw. On load only a <see cref="ScenarioPlanState.Planned"/>
 /// plan survives — an Armed or Fired plan from a crashed run is reported so the caller runs a
 /// clear-all, and the plan is dropped. A replay or a startup resync therefore never finds a
 /// plan to re-arm: nothing but Planned is ever read back, and Planned is re-judged before it fires.
 /// </summary>
-public sealed class ScenarioStateFile
+public sealed class ScenarioStateFile : JsonStateFile<ScenarioPlan>
 {
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -255,102 +254,39 @@ public sealed class ScenarioStateFile
     };
 
     private readonly string _path;
-    private readonly ILogger<ScenarioStateFile> _logger;
-    private readonly object _io = new();
 
     public ScenarioStateFile(ILogger<ScenarioStateFile> logger, string? path = null)
+        : base(logger, "Scenario state", JsonOptions)
     {
-        ArgumentNullException.ThrowIfNull(logger);
-        _logger = logger;
         _path = string.IsNullOrWhiteSpace(path) ? Path.Combine(UserDataPaths.Root, "scenario-state.json") : path;
     }
 
-    public string FilePath => _path;
+    protected override string ResolvePath() => _path;
 
+    /// <summary>What the file held: a Planned plan to resume, or the fact that a plan was left
+    /// Armed / Fired (the caller clears all once); nothing otherwise.</summary>
     public ScenarioStateLoad Load()
     {
-        try
+        var plan = LoadOrNull();
+        return plan?.State switch
         {
-            lock (_io)
-            {
-                if (!File.Exists(_path))
-                {
-                    return new(null, false);
-                }
-
-                var json = File.ReadAllText(_path);
-                if (string.IsNullOrWhiteSpace(json))
-                {
-                    return new(null, false);
-                }
-
-                var plan = JsonSerializer.Deserialize<ScenarioPlan>(json, JsonOptions);
-                if (plan is null)
-                {
-                    return new(null, false);
-                }
-
-                return plan.State switch
-                {
-                    ScenarioPlanState.Planned => new(plan, false),
-                    ScenarioPlanState.Armed or ScenarioPlanState.Fired => new(null, true),
-                    _ => new(null, false),
-                };
-            }
-        }
-        catch (Exception ex)
-        {
-            var backup = _path + $".corrupt-{DateTime.UtcNow.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture)}.bak";
-            try
-            {
-                File.Move(_path, backup, overwrite: true);
-            }
-            catch (Exception moveEx)
-            {
-                _logger.LogDebug(moveEx, "Could not move the corrupt scenario state aside");
-            }
-
-            _logger.LogWarning(ex, "Scenario state corrupt — backed up to {Backup}; starting without a plan", backup);
-            return new(null, false);
-        }
+            null => new(null, false),
+            ScenarioPlanState.Planned => new(plan, false),
+            ScenarioPlanState.Armed or ScenarioPlanState.Fired => new(null, true),
+            _ => new(null, false),
+        };
     }
 
+    /// <summary>Writes the plan atomically; null removes the file.</summary>
     public void Save(ScenarioPlan? plan)
     {
-        var tmp = _path + "." + Guid.NewGuid().ToString("N") + ".tmp";
-        try
+        if (plan is null)
         {
-            lock (_io)
-            {
-                Directory.CreateDirectory(Path.GetDirectoryName(_path)!);
-                if (plan is null)
-                {
-                    if (File.Exists(_path))
-                    {
-                        File.Delete(_path);
-                    }
-
-                    return;
-                }
-
-                File.WriteAllText(tmp, JsonSerializer.Serialize(plan, JsonOptions));
-                File.Move(tmp, _path, overwrite: true);
-            }
+            Delete();
         }
-        catch (Exception ex)
+        else
         {
-            _logger.LogWarning(ex, "Could not write the scenario state {Path}", _path);
-            try
-            {
-                if (File.Exists(tmp))
-                {
-                    File.Delete(tmp);
-                }
-            }
-            catch (Exception deleteEx)
-            {
-                _logger.LogDebug(deleteEx, "Could not delete {Path}", tmp);
-            }
+            Write(plan);
         }
     }
 }

@@ -6,90 +6,36 @@ namespace ProsimCompanion.Core.Scenarios;
 
 /// <summary>
 /// The scenario catalogue on file (issue #197): <c>scenarios.json</c> in the USER config tree
-/// (ADR-0007), re-read on the next access after its last-write time moved. An unreadable file
-/// keeps the last good catalogue and surfaces on the Config page. The abnormal ids are checked
-/// by the Speech service against the loaded abnormal definitions (this project cannot see
-/// them); the failure names are checked by the gate against ProSim's live list.
+/// (ADR-0007), on the <see cref="UserConfigFileBank{T}"/> contract — re-read on the next access
+/// after its last-write time moved, an unreadable file keeps the last good catalogue and
+/// surfaces on the Config page. The abnormal ids are checked by the Speech service against the
+/// loaded abnormal definitions (this project cannot see them); the failure names are checked
+/// by the gate against ProSim's live list.
 /// </summary>
-public sealed class ScenarioCatalogueBank
+public sealed class ScenarioCatalogueBank : UserConfigFileBank<IReadOnlyList<ScenarioEntry>>
 {
     public const string FileName = "scenarios.json";
 
-    private readonly string _path;
     private readonly ILogger<ScenarioCatalogueBank> _logger;
-    private readonly ConfigProblemStore? _problems;
-    private readonly object _gate = new();
-    private IReadOnlyList<ScenarioEntry> _entries = [];
-    private DateTime _loadedWriteTimeUtc = DateTime.MinValue;
 
     public ScenarioCatalogueBank(ILogger<ScenarioCatalogueBank> logger, ConfigProblemStore? problems = null, string? configDirectory = null)
+        : base(Path.Combine(string.IsNullOrWhiteSpace(configDirectory) ? UserConfigPaths.Root : configDirectory, FileName), ConfigAreas.Scenarios, logger, problems, [])
     {
-        ArgumentNullException.ThrowIfNull(logger);
         _logger = logger;
-        _problems = problems;
-        _path = Path.Combine(string.IsNullOrWhiteSpace(configDirectory) ? UserConfigPaths.Root : configDirectory, FileName);
     }
 
-    public string FilePath => _path;
+    /// <summary>The catalogue as loaded (reloaded on file change).</summary>
+    public IReadOnlyList<ScenarioEntry> Entries => Current;
 
-    public IReadOnlyList<ScenarioEntry> Entries
+    protected override (IReadOnlyList<ScenarioEntry> Value, IReadOnlyList<string> Problems) Parse(string json)
     {
-        get
-        {
-            lock (_gate)
-            {
-                ReloadIfChanged();
-                return _entries;
-            }
-        }
+        var result = ScenarioCatalogueFile.Parse(json);
+        return (result.Scenarios, result.Problems);
     }
 
-    private void ReloadIfChanged()
-    {
-        DateTime writeTime;
-        try
-        {
-            writeTime = File.GetLastWriteTimeUtc(_path);
-        }
-        catch (IOException)
-        {
-            return;
-        }
+    protected override void OnAbsent()
+        => _logger.LogInformation("Scenario catalogue {Path} is absent — nothing to plan", FilePath);
 
-        if (writeTime == _loadedWriteTimeUtc)
-        {
-            return;
-        }
-
-        _loadedWriteTimeUtc = writeTime;
-        if (!File.Exists(_path))
-        {
-            _entries = [];
-            _problems?.ClearArea(ConfigAreas.Scenarios);
-            _logger.LogInformation("Scenario catalogue {Path} is absent — nothing to plan", _path);
-            return;
-        }
-
-        try
-        {
-            var result = ScenarioCatalogueFile.Parse(File.ReadAllText(_path));
-            _entries = result.Scenarios;
-            if (result.Problems.Count > 0)
-            {
-                _problems?.Report(ConfigAreas.Scenarios, _path, string.Join("; ", result.Problems));
-                _logger.LogWarning("scenarios.json: {Problems}", string.Join("; ", result.Problems));
-            }
-            else
-            {
-                _problems?.ClearArea(ConfigAreas.Scenarios);
-            }
-
-            _logger.LogInformation("scenarios.json loaded ({Count} scenarios, {Verified} verified)", _entries.Count, _entries.Count(e => e.Verified));
-        }
-        catch (Exception ex) when (ex is System.Text.Json.JsonException or IOException)
-        {
-            _logger.LogWarning(ex, "scenarios.json unreadable — keeping the last good catalogue ({Count})", _entries.Count);
-            _problems?.Report(ConfigAreas.Scenarios, _path, ex.Message);
-        }
-    }
+    protected override void OnLoaded(IReadOnlyList<ScenarioEntry> value)
+        => _logger.LogInformation("scenarios.json loaded ({Count} scenarios, {Verified} verified)", value.Count, value.Count(e => e.Verified));
 }

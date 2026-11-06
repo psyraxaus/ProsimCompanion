@@ -1,4 +1,5 @@
 using System.Text.Json;
+using ProsimCompanion.Core.Configuration;
 using ProsimCompanion.Core.TechLog;
 
 namespace ProsimCompanion.Core.Crew;
@@ -130,8 +131,7 @@ public static class WalkaroundFindingsFile
         return new(entries, problems);
     }
 
-    private static string? Text(JsonElement item, string name)
-        => item.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.String ? value.GetString() : null;
+    private static string? Text(JsonElement item, string name) => JsonConfigText.Text(item, name);
 }
 
 /// <summary>

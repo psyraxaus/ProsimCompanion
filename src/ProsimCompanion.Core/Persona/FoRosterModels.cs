@@ -1,4 +1,5 @@
 using System.Text.Json;
+using ProsimCompanion.Core.Configuration;
 
 namespace ProsimCompanion.Core.Persona;
 
@@ -147,5 +148,5 @@ public static class FoRosterFile
         return text is not null && allowed.Contains(text) ? text : fallback;
     }
 
-    private static string? NullIfBlank(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+    private static string? NullIfBlank(string? value) => JsonConfigText.NullIfBlank(value);
 }

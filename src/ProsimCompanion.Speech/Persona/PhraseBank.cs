@@ -1,43 +1,40 @@
-using System.IO;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using ProsimCompanion.Core.Configuration;
 
 namespace ProsimCompanion.Speech.Persona;
 
 /// <summary>
 /// Acknowledgement phrase pools, file-backed by <c>config/phrases.json</c> (Prosim2FO format:
-/// a flat object of string arrays, keys <c>areYouSure</c> and <c>didNotCatch</c>). A missing
-/// or unparseable file falls back to the shipped defaults; edits are picked up on the next
-/// access via a last-write-time check (no watcher thread). Round-robin via <c>Next*</c> — the
-/// persona layer draws RANDOM picks from the same lists, fixing the predecessor wart where
-/// enabling persona silently shadowed the user's phrases.json with hardcoded pools.
+/// a flat object of string arrays, keys <c>areYouSure</c> and <c>didNotCatch</c>) on the
+/// <see cref="UserConfigFileBank{T}"/> contract. A missing or unparseable file falls back to
+/// the shipped defaults; edits are picked up on the next access via a last-write-time check
+/// (no watcher thread). Round-robin via <c>Next*</c> — the persona layer draws RANDOM picks
+/// from the same lists, fixing the predecessor wart where enabling persona silently shadowed
+/// the user's phrases.json with hardcoded pools.
 /// </summary>
-public sealed class PhraseBank
+public sealed class PhraseBank : UserConfigFileBank<PhraseBank.Pools>
 {
+    /// <summary>The two pools as loaded.</summary>
+    public sealed record Pools(string[] AreYouSure, string[] DidNotCatch);
+
     private static readonly string[] DefaultAreYouSure =
         ["Are you sure?", "Confirm that?", "Double-check that one?", "Say again — that doesn't look set."];
 
     private static readonly string[] DefaultDidNotCatch = ["Say again?", "Didn't catch that.", "Repeat please."];
 
-    private readonly string _path;
+    private static readonly Pools Defaults = new(DefaultAreYouSure, DefaultDidNotCatch);
+
     private readonly ILogger<PhraseBank> _logger;
-    private readonly Core.State.ConfigProblemStore? _problems;
-    private readonly object _gate = new();
-    private string[] _areYouSure = DefaultAreYouSure;
-    private string[] _didNotCatch = DefaultDidNotCatch;
-    private DateTime _loadedWriteTimeUtc = DateTime.MinValue;
     private int _areYouSureIndex;
     private int _didNotCatchIndex;
 
     /// <summary>Optional <paramref name="problems"/>: an unparseable phrases.json surfaces on
     /// the web UI (issue #74) instead of only a log warning.</summary>
     public PhraseBank(string configDirectory, ILogger<PhraseBank> logger, Core.State.ConfigProblemStore? problems = null)
+        : base(Path.Combine(configDirectory ?? throw new ArgumentNullException(nameof(configDirectory)), "phrases.json"), Core.State.ConfigAreas.Phrases, logger, problems, Defaults)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(configDirectory);
-        ArgumentNullException.ThrowIfNull(logger);
-        _path = Path.Combine(configDirectory, "phrases.json");
         _logger = logger;
-        _problems = problems;
     }
 
     public string NextAreYouSure()
@@ -53,74 +50,24 @@ public sealed class PhraseBank
     }
 
     /// <summary>Current pool (persona random picks read these — same file, same lists).</summary>
-    public IReadOnlyList<string> AreYouSure
+    public IReadOnlyList<string> AreYouSure => Current.AreYouSure;
+
+    public IReadOnlyList<string> DidNotCatch => Current.DidNotCatch;
+
+    protected override (Pools Value, IReadOnlyList<string> Problems) Parse(string json)
     {
-        get
-        {
-            ReloadIfChanged();
-            return _areYouSure;
-        }
+        using var document = JsonDocument.Parse(json, JsonConfigText.DocumentOptions);
+        return (new Pools(ReadPool(document, "areYouSure", DefaultAreYouSure), ReadPool(document, "didNotCatch", DefaultDidNotCatch)), []);
     }
 
-    public IReadOnlyList<string> DidNotCatch
-    {
-        get
-        {
-            ReloadIfChanged();
-            return _didNotCatch;
-        }
-    }
+    /// <summary>An unreadable file yields the shipped defaults — never a stale user pool.</summary>
+    protected override Pools OnUnreadable(Pools lastGood) => Defaults;
 
-    private void ReloadIfChanged()
-    {
-        lock (_gate)
-        {
-            DateTime writeTime;
-            try
-            {
-                writeTime = File.GetLastWriteTimeUtc(_path); // MinValue-ish when absent
-            }
-            catch (IOException)
-            {
-                return;
-            }
-
-            if (writeTime == _loadedWriteTimeUtc)
-            {
-                return;
-            }
-            _loadedWriteTimeUtc = writeTime;
-
-            if (!File.Exists(_path))
-            {
-                _areYouSure = DefaultAreYouSure;
-                _didNotCatch = DefaultDidNotCatch;
-                _problems?.ClearArea(Core.State.ConfigAreas.Phrases);
-                return;
-            }
-
-            try
-            {
-                using var document = JsonDocument.Parse(
-                    File.ReadAllText(_path),
-                    new JsonDocumentOptions { CommentHandling = JsonCommentHandling.Skip, AllowTrailingCommas = true });
-                _areYouSure = ReadPool(document, "areYouSure", DefaultAreYouSure);
-                _didNotCatch = ReadPool(document, "didNotCatch", DefaultDidNotCatch);
-                _logger.LogInformation(
-                    "phrases.json loaded ({AreYouSure} are-you-sure, {DidNotCatch} did-not-catch phrases)",
-                    _areYouSure.Length,
-                    _didNotCatch.Length);
-                _problems?.ClearArea(Core.State.ConfigAreas.Phrases);
-            }
-            catch (Exception ex) when (ex is JsonException or IOException)
-            {
-                _logger.LogWarning(ex, "phrases.json unreadable — using the shipped defaults");
-                _problems?.Report(Core.State.ConfigAreas.Phrases, _path, ex.Message);
-                _areYouSure = DefaultAreYouSure;
-                _didNotCatch = DefaultDidNotCatch;
-            }
-        }
-    }
+    protected override void OnLoaded(Pools value)
+        => _logger.LogInformation(
+            "phrases.json loaded ({AreYouSure} are-you-sure, {DidNotCatch} did-not-catch phrases)",
+            value.AreYouSure.Length,
+            value.DidNotCatch.Length);
 
     private static string[] ReadPool(JsonDocument document, string poolName, string[] defaults)
     {

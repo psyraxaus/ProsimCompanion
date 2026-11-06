@@ -211,14 +211,10 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl, IG
         try
         {
             var current = _ofpStore.Current;
-            _lifecycle.ResetCycle(NewPlanCycleReset.ArrivalSide);
-            _cycle.BeginTurnaroundCycle();
-            _paxTarget.Reset();
+            var trackingLvars = ResetDepartureCycle("end of duty — departure cycle cleared");
             _latches.ResetForArrival(current);
             _lastResetPlanId = NewPlanCycleReset.PlanId(current) ?? _lastResetPlanId;
             _turnaroundStart.Withdraw();
-            _slot.Reset("end of duty — departure cycle cleared");
-            var trackingLvars = ClearDepartureTracking();
             _decisions.Record("departure cycle reset", $"end of duty ({ended.Source}) — the departure services wait for a new flight plan");
             _decisions.RecordEvent("gsx-cycle-reset", new
             {
@@ -260,11 +256,7 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl, IG
 
             var id = NewPlanCycleReset.PlanId(current)!;
             _lastResetPlanId = id;
-            _lifecycle.ResetCycle(NewPlanCycleReset.ArrivalSide);
-            _cycle.BeginTurnaroundCycle();
-            _paxTarget.Reset();
-            _slot.Reset("new flight plan — departure cycle reset");
-            var trackingLvars = ClearDepartureTracking();
+            var trackingLvars = ResetDepartureCycle("new flight plan — departure cycle reset");
             _decisions.Record("departure cycle reset", $"new flight plan {id} ({current?.OriginIcao}→{current?.DestinationIcao}) — the departure services start over for the new leg");
             _decisions.RecordEvent("gsx-cycle-reset", new
             {
@@ -288,6 +280,20 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl, IG
         {
             _logger.LogWarning(ex, "New-plan departure cycle reset failed");
         }
+    }
+
+    /// <summary>The six-step departure reset both the end of duty and the new plan run (review
+    /// 2026-11-05: each handler re-typed it): the departure-side service cycles, a fresh
+    /// turnaround cycle, the pax target, the trigger slot and the tracking LVARs. The arrival
+    /// side (deboarding, GPU, jetway) is left as it stands. Returns what the cycle-reset event
+    /// says about the tracking clear.</summary>
+    private string ResetDepartureCycle(string slotReason)
+    {
+        _lifecycle.ResetCycle(NewPlanCycleReset.ArrivalSide);
+        _cycle.BeginTurnaroundCycle();
+        _paxTarget.Reset();
+        _slot.Reset(slotReason);
+        return ClearDepartureTracking();
     }
 
     /// <summary>Clears the companion tracking LVARs of the departure one-shots and the

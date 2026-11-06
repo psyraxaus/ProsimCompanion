@@ -1,35 +1,28 @@
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using ProsimCompanion.Core.Configuration;
 
 namespace ProsimCompanion.Speech.Immersion;
 
 /// <summary>
 /// The curated offline facts (issue #122), file-backed by <c>region-facts.json</c> in the USER
-/// config tree (ADR-0007: seeded from <c>{app}\config</c>, user edits kept). Format: a flat
-/// object of string arrays keyed by the region key the atlas yields — the ISO 3166-1 alpha-2
-/// country code ("FR", "GB") or <c>sea:&lt;name&gt;</c> for open water ("sea:North Sea").
-/// Keys starting with "_" are comments. A missing or unparseable file means no curated tier:
-/// the model tier (when up) still speaks, and the problem is reported on the web UI once.
-/// Edits are picked up on the next access via a last-write-time check, like phrases.json.
+/// config tree (ADR-0007: seeded from <c>{app}\config</c>, user edits kept) on the
+/// <see cref="UserConfigFileBank{T}"/> contract. Format: a flat object of string arrays keyed by
+/// the region key the atlas yields — the ISO 3166-1 alpha-2 country code ("FR", "GB") or
+/// <c>sea:&lt;name&gt;</c> for open water ("sea:North Sea"). Keys starting with "_" are
+/// comments. A missing or unparseable file means no curated tier: the model tier (when up)
+/// still speaks, and the problem is reported on the web UI once.
 /// </summary>
-public sealed class RegionFactBank
+public sealed class RegionFactBank : UserConfigFileBank<Dictionary<string, string[]>>
 {
     public const string FileName = "region-facts.json";
 
-    private readonly string _path;
     private readonly ILogger<RegionFactBank> _logger;
-    private readonly Core.State.ConfigProblemStore? _problems;
-    private readonly object _gate = new();
-    private Dictionary<string, string[]> _facts = new(StringComparer.OrdinalIgnoreCase);
-    private DateTime _loadedWriteTimeUtc = DateTime.MinValue;
 
     public RegionFactBank(string configDirectory, ILogger<RegionFactBank> logger, Core.State.ConfigProblemStore? problems = null)
+        : base(Path.Combine(configDirectory ?? throw new ArgumentNullException(nameof(configDirectory)), FileName), Core.State.ConfigAreas.RegionFacts, logger, problems, Empty())
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(configDirectory);
-        ArgumentNullException.ThrowIfNull(logger);
-        _path = Path.Combine(configDirectory, FileName);
         _logger = logger;
-        _problems = problems;
     }
 
     /// <summary>The facts on file for a region key; empty when there are none.</summary>
@@ -40,73 +33,31 @@ public sealed class RegionFactBank
             return [];
         }
 
-        lock (_gate)
-        {
-            ReloadIfChanged();
-            return _facts.TryGetValue(regionKey, out var facts) ? facts : [];
-        }
+        return Current.TryGetValue(regionKey, out var facts) ? facts : [];
     }
 
     /// <summary>How many regions the file covers (for the log line and the settings hint).</summary>
-    public int RegionCount
+    public int RegionCount => Current.Count;
+
+    protected override (Dictionary<string, string[]> Value, IReadOnlyList<string> Problems) Parse(string json)
     {
-        get
-        {
-            lock (_gate)
-            {
-                ReloadIfChanged();
-                return _facts.Count;
-            }
-        }
+        using var document = JsonDocument.Parse(json, JsonConfigText.DocumentOptions);
+        return (Parse(document.RootElement), []);
     }
 
-    private void ReloadIfChanged()
-    {
-        DateTime writeTime;
-        try
-        {
-            writeTime = File.GetLastWriteTimeUtc(_path);
-        }
-        catch (IOException)
-        {
-            return;
-        }
+    /// <summary>An unreadable file yields no curated facts — not the last good set.</summary>
+    protected override Dictionary<string, string[]> OnUnreadable(Dictionary<string, string[]> lastGood) => Empty();
 
-        if (writeTime == _loadedWriteTimeUtc)
-        {
-            return;
-        }
+    protected override void OnLoaded(Dictionary<string, string[]> value)
+        => _logger.LogInformation("{File} loaded: {Regions} regions, {Facts} facts", FileName, value.Count, value.Values.Sum(f => f.Length));
 
-        _loadedWriteTimeUtc = writeTime;
-        if (!File.Exists(_path))
-        {
-            _facts = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase);
-            _problems?.ClearArea(Core.State.ConfigAreas.RegionFacts);
-            return;
-        }
-
-        try
-        {
-            using var document = JsonDocument.Parse(
-                File.ReadAllText(_path),
-                new JsonDocumentOptions { CommentHandling = JsonCommentHandling.Skip, AllowTrailingCommas = true });
-            _facts = Parse(document.RootElement);
-            _logger.LogInformation("{File} loaded: {Regions} regions, {Facts} facts", FileName, _facts.Count, _facts.Values.Sum(f => f.Length));
-            _problems?.ClearArea(Core.State.ConfigAreas.RegionFacts);
-        }
-        catch (Exception ex) when (ex is JsonException or IOException)
-        {
-            _logger.LogWarning(ex, "{File} unreadable — no curated region facts", FileName);
-            _problems?.Report(Core.State.ConfigAreas.RegionFacts, _path, ex.Message);
-            _facts = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase);
-        }
-    }
+    private static Dictionary<string, string[]> Empty() => new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>The flat-object parse, public for the tests: every string-array property
     /// whose name does not start with "_", blank entries dropped.</summary>
     public static Dictionary<string, string[]> Parse(JsonElement root)
     {
-        var facts = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase);
+        var facts = Empty();
         if (root.ValueKind != JsonValueKind.Object)
         {
             return facts;

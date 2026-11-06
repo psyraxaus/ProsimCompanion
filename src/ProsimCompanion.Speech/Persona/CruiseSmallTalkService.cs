@@ -63,11 +63,8 @@ public sealed class CruiseSmallTalkService : Core.Hosting.IStartupModule, IDispo
     private readonly IMicOwnership _mic;
     private readonly JsonlEventLog _eventLog;
     private readonly ILogger<CruiseSmallTalkService> _logger;
-    private readonly OfpStore? _ofp;
-    private readonly ISpokenText? _spokenText;
+    private readonly SmallTalkContextSource _context;
     private readonly IFoRosterService? _roster;
-    private readonly IPlaceLookup? _places;
-    private readonly ISimLocalTime? _clock;
     private readonly RegionFactService? _regionFacts;
     private readonly FailureMonitor? _failures;
     private readonly CabinCrewService? _cabin;
@@ -102,15 +99,13 @@ public sealed class CruiseSmallTalkService : Core.Hosting.IStartupModule, IDispo
         IMicOwnership mic,
         JsonlEventLog eventLog,
         ILogger<CruiseSmallTalkService> logger,
-        OfpStore? ofp = null,
-        ISpokenText? spokenText = null,
+        SmallTalkContextSource context,
         IFoRosterService? roster = null,
-        IPlaceLookup? places = null,
-        ISimLocalTime? clock = null,
         RegionFactService? regionFacts = null,
         FailureMonitor? failures = null,
         CabinCrewService? cabin = null)
     {
+        ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(speech);
         ArgumentNullException.ThrowIfNull(briefing);
@@ -150,11 +145,8 @@ public sealed class CruiseSmallTalkService : Core.Hosting.IStartupModule, IDispo
         _mic = mic;
         _eventLog = eventLog;
         _logger = logger;
-        _ofp = ofp;
-        _spokenText = spokenText;
+        _context = context;
         _roster = roster;
-        _places = places;
-        _clock = clock;
         _regionFacts = regionFacts;
         _failures = failures;
         _cabin = cabin;
@@ -589,72 +581,8 @@ public sealed class CruiseSmallTalkService : Core.Hosting.IStartupModule, IDispo
     internal static bool IsLocalMorning(TimeSpan? localTimeOfDay)
         => localTimeOfDay is { } local && TimeOfDayGreeting.IsMorning(local);
 
-    private SmallTalkContext BuildContext()
-    {
-        var fo = _roster?.Current;
-        var effective = _persona.Effective;
-        string? destination = null;
-        try
-        {
-            var ofp = _ofp?.Current;
-            destination = !string.IsNullOrWhiteSpace(ofp?.DestinationName) ? ofp!.DestinationName
-                : ofp?.DestinationIcao is { Length: 4 } icao ? _spokenText?.Airport(icao) : null;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogDebug(ex, "Small talk: destination lookup failed");
-        }
-
-        string? town = null, townSide = null, sunSide = null;
-        double? sunElevation = null;
-        var morning = false;
-        try
-        {
-            var progress = _progress.Snapshot();
-            if (progress.Position is { } position)
-            {
-                var fix = _places?.Locate(position, progress.TrackTrueDeg);
-                var near = fix?.Reference ?? fix?.Nearest;
-                town = near?.Town.Name;
-                townSide = near?.Side;
-                if (_clock is { LocalDate: { } date, ZuluTimeOfDay: { } zulu })
-                {
-                    var sun = SolarPosition.At(position.LatitudeDeg, position.LongitudeDeg, date, zulu);
-                    sunElevation = sun.ElevationDeg;
-                    sunSide = progress.TrackTrueDeg is { } track ? SolarPosition.SideOf(sun.AzimuthDeg, track) : null;
-                }
-            }
-
-            morning = IsLocalMorning(_clock?.LocalTimeOfDay);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogDebug(ex, "Small talk: place / sun lookup failed");
-        }
-
-        var sky = SkyCondition.Unknown;
-        try
-        {
-            sky = _weather.Snapshot().Local.Sky;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogDebug(ex, "Small talk: weather read failed");
-        }
-
-        return new SmallTalkContext(
-            FoName: fo?.Name ?? (string.IsNullOrWhiteSpace(effective.Name) ? null : effective.Name),
-            FoBase: fo?.Base is { Length: 4 } b ? (_spokenText?.Airport(b) ?? b) : null,
-            FoHours: fo?.SpokenHours ?? 0,
-            Confidence: effective.Confidence,
-            DestinationCity: destination,
-            TownName: town,
-            TownSide: townSide,
-            SunSide: sunSide,
-            SunElevationDeg: sunElevation,
-            Morning: morning,
-            Sky: sky);
-    }
+    /// <summary>The moment's context, gathered by <see cref="SmallTalkContextSource"/>.</summary>
+    private SmallTalkContext BuildContext() => _context.Build();
 
     /// <summary>Low priority, tagged <c>smalltalk.{kind}</c>: the quiet rule may drop it, any
     /// callout pre-empts it, the sterile rule suppresses it below the ceiling; valid only while

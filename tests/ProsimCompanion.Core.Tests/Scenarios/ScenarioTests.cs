@@ -445,15 +445,16 @@ public sealed class ScenarioTests : IDisposable
 
         var techLog = new Mock<ITechLogService>();
         techLog.SetupGet(t => t.OpenDefects).Returns([]);
+        var decisions = new ScenarioDecisionService(
+            SpeechTestSupport.BriefingMonitor(new BriefingOptions()), new ScenarioDecisionStore(signals), eventLog, NullLogger<ScenarioDecisionService>.Instance);
         var service = new ScenarioService(
             OptionsSupport.Monitor(new ScenarioOptions { Enabled = enabled, PerFlightChance = 1 }),
             OptionsSupport.Monitor(new AbnormalsOptions()),
             SpeechTestSupport.SpeechMonitor(new SpeechOptions()),
-            SpeechTestSupport.BriefingMonitor(new BriefingOptions()),
             phases, monitor, injector,
             new ScenarioCatalogueBank(NullLogger<ScenarioCatalogueBank>.Instance, configDirectory: _dir),
             new ScenarioStateFile(NullLogger<ScenarioStateFile>.Instance, StatePath),
-            store, new ScenarioDecisionStore(signals), techLog.Object, signals, legBoundary, connections, arbiter, eventLog,
+            store, decisions, techLog.Object, signals, legBoundary, connections, arbiter, eventLog,
             NullLogger<ScenarioService>.Instance)
         {
             Roll = () => 0,
@@ -466,8 +467,34 @@ public sealed class ScenarioTests : IDisposable
 
     private static List<string> EventTypes(JsonlEventLog log)
     {
+        // The log writes through a background channel: wait until the file has settled (two
+        // reads 50 ms apart agree, or two seconds pass) before judging what it holds.
+        var previous = -1;
+        List<string> types = [];
+        for (var attempt = 0; attempt < 40; attempt++)
+        {
+            types = ReadTypes(log.Path);
+            if (types.Count > 0 && types.Count == previous)
+            {
+                break;
+            }
+
+            previous = types.Count;
+            Thread.Sleep(50);
+        }
+
+        return types;
+    }
+
+    private static List<string> ReadTypes(string path)
+    {
+        if (!File.Exists(path))
+        {
+            return [];
+        }
+
         // The log keeps its file open for writing: share the read.
-        using var stream = new FileStream(log.Path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+        using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
         using var reader = new StreamReader(stream);
         var types = new List<string>();
         while (reader.ReadLine() is { } line)

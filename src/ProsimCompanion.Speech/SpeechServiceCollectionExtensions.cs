@@ -352,6 +352,7 @@ public static class SpeechServiceCollectionExtensions
         // Cruise small talk (issue #195): the FO's unprompted lines in the cruise beside the
         // region facts — same gates, same tiers, the roster FO as the person. The coffee offer
         // is a captain's question; the table below voices it.
+        services.AddSingleton<Persona.SmallTalkContextSource>();
         services.AddStartupModule<Persona.CruiseSmallTalkService>();
         services.AddSingleton(Persona.SmallTalkOfferPhrases.Table);
         // The FO's exterior walkaround (issue #196): announce, away, the interphone report, a
@@ -365,6 +366,7 @@ public static class SpeechServiceCollectionExtensions
         // Scenario mode (issue #197, ADR-0018): the one serialised failure-write path — a
         // startup module (the tick), a hosted service (the clear-all at exit), the
         // IScenarioControl the commands reach, and a voice feature ("clear all failures").
+        services.AddSingleton<Scenarios.ScenarioDecisionService>();
         services.AddStartupModule<Scenarios.ScenarioService>();
         services.AddHostedService(p => p.GetRequiredService<Scenarios.ScenarioService>());
         services.AddVoiceFeature<Scenarios.ScenarioService>();

@@ -176,37 +176,11 @@ public sealed class GroundCrewUpcallService : Core.Hosting.IStartupModule, IDisp
             _eventLog.Record("ground.calling", new { call = tag });
 
             // The MECH call press flashes the ACP lamp — the flight deck's "ground wants to
-            // talk" cue (ProSim's native pipeline handles lamp + audio).
-            if (_options.CurrentValue.MechCall)
-            {
-                try
-                {
-                    await _dataRefs.PressMomentaryAsync(ProsimDataRefNames.OhCallsMech, _shutdown.Token)
-                        .ConfigureAwait(false);
-                }
-                catch (OperationCanceledException)
-                {
-                    throw;
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogDebug(ex, "MECH call press failed — speaking the upcall anyway");
-                }
-            }
-
-            // Latch-or-grace is the ACP channel module's (campaign #85) — a call is never
-            // lost to an unmonitored panel.
-            if (_options.CurrentValue.RequireIntChannel)
-            {
-                var latched = await _acp.AwaitReceiveAsync(
-                    AcpChannelKind.Intercom,
-                    TimeSpan.FromSeconds(Math.Max(0, _options.CurrentValue.IntChannelGraceSeconds)),
-                    _shutdown.Token).ConfigureAwait(false);
-                if (!latched)
-                {
-                    _logger.LogInformation("INT channel not selected within grace — playing the ground call anyway");
-                }
-            }
+            // talk" cue (ProSim's native pipeline handles lamp + audio) — then latch-or-grace
+            // on the INT channel (campaign #85): a call is never lost to an unmonitored panel.
+            var options = _options.CurrentValue;
+            await InterphoneRing.RingAsync(_dataRefs, _acp, options.MechCall, options.RequireIntChannel, options.IntChannelGraceSeconds, _logger, "ground call", _shutdown.Token)
+                .ConfigureAwait(false);
 
             await _arbiter.EnqueueAsync(new SpeechRequest(
                 text, SpeechPriority.Normal, Ttl: TimeSpan.FromMinutes(2), Tag: tag,

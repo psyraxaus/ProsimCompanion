@@ -13,8 +13,6 @@ using ProsimCompanion.Core.TechLog;
 using ProsimCompanion.Core.VoiceReference;
 using ProsimCompanion.Speech.Abnormals;
 using ProsimCompanion.Speech.Arbiter;
-using ProsimCompanion.Speech.Llm;
-using ProsimCompanion.Speech.Persona;
 using ProsimCompanion.Speech.Questions;
 using ProsimCompanion.Speech.Recognition;
 
@@ -56,14 +54,13 @@ public sealed class ScenarioService : Core.Hosting.IStartupModule, IHostedServic
     private readonly IOptionsMonitor<ScenarioOptions> _options;
     private readonly IOptionsMonitor<AbnormalsOptions> _abnormals;
     private readonly IOptionsMonitor<SpeechOptions> _speech;
-    private readonly IOptionsMonitor<BriefingOptions> _briefing;
     private readonly IFlightPhaseSource _flight;
     private readonly FailureMonitor _monitor;
     private readonly IFailureInjector _injector;
     private readonly ScenarioCatalogueBank _catalogue;
     private readonly ScenarioStateFile _stateFile;
     private readonly ScenarioStore _store;
-    private readonly ScenarioDecisionStore _decision;
+    private readonly ScenarioDecisionService _decisions;
     private readonly ITechLogService _techLog;
     private readonly GroundOpsSignals _signals;
     private readonly ILegBoundaryEvents _legBoundary;
@@ -72,11 +69,6 @@ public sealed class ScenarioService : Core.Hosting.IStartupModule, IHostedServic
     private readonly JsonlEventLog _eventLog;
     private readonly ILogger<ScenarioService> _logger;
     private readonly OfpStore? _ofp;
-    private readonly DiversionStore? _diversion;
-    private readonly PersonaService? _persona;
-    private readonly OpenAiChatClient? _llm;
-    private readonly LlmHealthStore? _llmHealth;
-    private readonly FoFactSource? _facts;
 
     // Never disposed on purpose: the startup-module host disposes this service BEFORE the
     // hosted StopAsync runs the exit clear (hosted services stop in reverse registration
@@ -110,14 +102,13 @@ public sealed class ScenarioService : Core.Hosting.IStartupModule, IHostedServic
         IOptionsMonitor<ScenarioOptions> options,
         IOptionsMonitor<AbnormalsOptions> abnormals,
         IOptionsMonitor<SpeechOptions> speech,
-        IOptionsMonitor<BriefingOptions> briefing,
         IFlightPhaseSource flight,
         FailureMonitor monitor,
         IFailureInjector injector,
         ScenarioCatalogueBank catalogue,
         ScenarioStateFile stateFile,
         ScenarioStore store,
-        ScenarioDecisionStore decision,
+        ScenarioDecisionService decisions,
         ITechLogService techLog,
         GroundOpsSignals signals,
         ILegBoundaryEvents legBoundary,
@@ -125,24 +116,18 @@ public sealed class ScenarioService : Core.Hosting.IStartupModule, IHostedServic
         ISpeechArbiter arbiter,
         JsonlEventLog eventLog,
         ILogger<ScenarioService> logger,
-        OfpStore? ofp = null,
-        DiversionStore? diversion = null,
-        PersonaService? persona = null,
-        OpenAiChatClient? llm = null,
-        LlmHealthStore? llmHealth = null,
-        FoFactSource? facts = null)
+        OfpStore? ofp = null)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(abnormals);
         ArgumentNullException.ThrowIfNull(speech);
-        ArgumentNullException.ThrowIfNull(briefing);
         ArgumentNullException.ThrowIfNull(flight);
         ArgumentNullException.ThrowIfNull(monitor);
         ArgumentNullException.ThrowIfNull(injector);
         ArgumentNullException.ThrowIfNull(catalogue);
         ArgumentNullException.ThrowIfNull(stateFile);
         ArgumentNullException.ThrowIfNull(store);
-        ArgumentNullException.ThrowIfNull(decision);
+        ArgumentNullException.ThrowIfNull(decisions);
         ArgumentNullException.ThrowIfNull(techLog);
         ArgumentNullException.ThrowIfNull(signals);
         ArgumentNullException.ThrowIfNull(legBoundary);
@@ -154,14 +139,13 @@ public sealed class ScenarioService : Core.Hosting.IStartupModule, IHostedServic
         _options = options;
         _abnormals = abnormals;
         _speech = speech;
-        _briefing = briefing;
         _flight = flight;
         _monitor = monitor;
         _injector = injector;
         _catalogue = catalogue;
         _stateFile = stateFile;
         _store = store;
-        _decision = decision;
+        _decisions = decisions;
         _techLog = techLog;
         _signals = signals;
         _legBoundary = legBoundary;
@@ -170,11 +154,6 @@ public sealed class ScenarioService : Core.Hosting.IStartupModule, IHostedServic
         _eventLog = eventLog;
         _logger = logger;
         _ofp = ofp;
-        _diversion = diversion;
-        _persona = persona;
-        _llm = llm;
-        _llmHealth = llmHealth;
-        _facts = facts;
     }
 
     /// <summary>Roster declaration: "clear all failures" always works, whoever is in the
@@ -240,7 +219,6 @@ public sealed class ScenarioService : Core.Hosting.IStartupModule, IHostedServic
         _signals.FlightCycleReset += OnFlightCycleReset;
         _legBoundary.LegBegan += OnLegBegan;
         _connections.Changed += OnConnectionChanged;
-        _decision.Answered += OnDecisionAnswered;
 
         var load = _stateFile.Load();
         if (load.LeftArmed)
@@ -315,7 +293,6 @@ public sealed class ScenarioService : Core.Hosting.IStartupModule, IHostedServic
         _signals.FlightCycleReset -= OnFlightCycleReset;
         _legBoundary.LegBegan -= OnLegBegan;
         _connections.Changed -= OnConnectionChanged;
-        _decision.Answered -= OnDecisionAnswered;
         _timer?.Dispose();
         _transientTimer?.Dispose();
         _shutdown.Cancel();
@@ -731,88 +708,7 @@ public sealed class ScenarioService : Core.Hosting.IStartupModule, IHostedServic
             plan = p;
         }
 
-        Forget(Task.Run(() => RaiseDecisionAsync(plan)), "decision turn");
-    }
-
-    /// <summary>The FO's decision turn: the model's line when it is on (every number checked
-    /// against the fact sheet), the entry's template as the floor, as a pick-one captain's question.</summary>
-    private async Task RaiseDecisionAsync(ScenarioPlan plan)
-    {
-        var ofp = _ofp?.Current;
-        var floor = ScenarioScheduler.DecisionLine(plan.Decision, ofp?.AlternateName is { Length: > 0 } an ? an : ofp?.AlternateIcao, ofp?.DestinationName is { Length: > 0 } dn ? dn : ofp?.DestinationIcao);
-        var line = floor;
-        var source = "template";
-        try
-        {
-            var llmUp = _llm is { IsConfigured: true } && _briefing.CurrentValue.LlmEnabled && _llmHealth?.Snapshot().IsUnhealthy != true;
-            if (llmUp && _facts is not null)
-            {
-                var sheet = _facts.Build(Now());
-                using var budget = CancellationTokenSource.CreateLinkedTokenSource(_shutdown.Token);
-                budget.CancelAfter(TimeSpan.FromSeconds(15));
-                var reply = await _llm!.CompleteAsync(
-                    (_persona?.SystemPromptFragment(PersonaStyleCategory.Advisory) ?? "")
-                    + "You are the First Officer of an Airbus A320. The ECAM actions for a failure are complete and you now give the Captain "
-                    + "your recommendation in ONE or TWO short spoken sentences ending with 'your call, captain' — continue, return or divert, "
-                    + "with the one reason that matters. Use only the FACTS and the SHAPE; never add a figure of your own. Plain English for text-to-speech.",
-                    "FAILURE: " + plan.Title + "\nSHAPE (keep the meaning): " + floor + "\nFACTS:\n" + sheet.Text + "\n\nSay it now.",
-                    budget.Token).ConfigureAwait(false);
-                var candidate = (reply ?? "").Trim().Trim('"', '\'');
-                if (!string.IsNullOrWhiteSpace(candidate) && NumberVerifier.Check(SpokenNumberText.ToDigits(candidate), sheet.AllowedNumbers).Ok)
-                {
-                    line = candidate;
-                    source = "llm";
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogDebug(ex, "Scenario decision: model turn failed — template");
-        }
-
-        _eventLog.Record("scenario.decision", new { scenario = plan.ScenarioId, source, line });
-        if (!_decision.Ask(plan.ScenarioId, plan.Title, line))
-        {
-            _logger.LogInformation("Scenario decision not raised — a question already stands");
-        }
-    }
-
-    private void OnDecisionAnswered(object? sender, (bool Accepted, string Source) answer)
-    {
-        var outcome = _decision.Outcome;
-        ScenarioPlan? plan;
-        lock (_gate)
-        {
-            plan = _plan;
-        }
-
-        _eventLog.Record("scenario.decided", new { scenario = plan?.ScenarioId, outcome, source = answer.Source });
-        if (plan is null || _diversion is null || outcome == ScenarioDecisionStore.Continue)
-        {
-            return;
-        }
-
-        try
-        {
-            var ofp = _ofp?.Current;
-            var (icao, name) = outcome == ScenarioDecisionStore.Divert
-                ? (ofp?.AlternateIcao, ofp?.AlternateName)
-                : (ofp?.OriginIcao, ofp?.OriginName);
-            if (string.IsNullOrWhiteSpace(icao))
-            {
-                _logger.LogInformation("Scenario decision {Outcome}: no airport in the plan — the diversion is the captain's own", outcome);
-                return;
-            }
-
-            if (_diversion.Declare(icao, name, DiversionReason.Technical, Now()))
-            {
-                _logger.LogInformation("Scenario decision {Outcome}: diversion declared to {Icao}", outcome, icao);
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "Scenario decision: the diversion could not be declared");
-        }
+        Forget(Task.Run(() => _decisions.RaiseAsync(plan, _shutdown.Token)), "decision turn");
     }
 
     // ---- clearing ----

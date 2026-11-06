@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
@@ -8,13 +7,14 @@ using ProsimCompanion.Core.Configuration;
 namespace ProsimCompanion.Core.Day;
 
 /// <summary>
-/// Persistence for <c>daystate.json</c> so an open day survives an app restart mid-rotation.
-/// Same robustness contract as the logbook/tech-log stores: options-overridable path (the
-/// predecessor hard-coded <c>%LOCALAPPDATA%</c>), atomic temp-then-move writes, a corrupt file
-/// moved aside as <c>.corrupt-&lt;timestamp&gt;.bak</c> (the unified naming — the predecessor
-/// used a one-off <c>.bad-*</c> scheme here) and rebuilt, never a throw.
+/// Persistence for <c>daystate.json</c> so an open day survives an app restart mid-rotation —
+/// the <see cref="JsonStateFile{T}"/> contract (options-overridable path; the predecessor
+/// hard-coded <c>%LOCALAPPDATA%</c>; atomic temp-then-move writes; a corrupt file moved aside
+/// as <c>.corrupt-&lt;timestamp&gt;.bak</c> — the unified naming, the predecessor used a one-off
+/// <c>.bad-*</c> scheme here — and rebuilt, never a throw), plus two policies of its own: an
+/// EMPTY file is "no day", not corruption, and every write is logged with its size.
 /// </summary>
-public sealed class DayStateFile
+public sealed class DayStateFile : JsonStateFile<DayState>
 {
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -27,13 +27,11 @@ public sealed class DayStateFile
 
     private readonly IOptionsMonitor<DayOptions> _options;
     private readonly ILogger<DayStateFile> _logger;
-    private readonly object _io = new();
 
     public DayStateFile(IOptionsMonitor<DayOptions> options, ILogger<DayStateFile> logger)
+        : base(logger, "Day state", JsonOptions)
     {
         ArgumentNullException.ThrowIfNull(options);
-        ArgumentNullException.ThrowIfNull(logger);
-
         _options = options;
         _logger = logger;
     }
@@ -45,99 +43,17 @@ public sealed class DayStateFile
     /// stamped about a minute after the previous run's last log line), so the day never
     /// survived a restart and the log carried a stack trace for it. The empty file is removed
     /// and the fact logged plainly; which writer empties it is still open (issue filed
-    /// 2026-10-31) — Save now logs every write with its size to find out.</summary>
-    public DayState? Load()
-    {
-        var path = ResolvePath();
-        try
-        {
-            lock (_io)
-            {
-                if (!File.Exists(path))
-                {
-                    return null;
-                }
-
-                var json = File.ReadAllText(path);
-                if (string.IsNullOrWhiteSpace(json))
-                {
-                    _logger.LogInformation("Day state file {Path} is empty — starting without a day (no backup taken)", path);
-                    TryDelete(path);
-                    return null;
-                }
-
-                return JsonSerializer.Deserialize<DayState>(json, JsonOptions);
-            }
-        }
-        catch (Exception ex)
-        {
-            var backup = path + $".corrupt-{DateTime.UtcNow.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture)}.bak";
-            try
-            {
-                File.Move(path, backup, overwrite: true);
-            }
-            catch (Exception moveEx)
-            {
-                // Best effort — a locked/permission-denied file just stays put; starting
-                // fresh matters more than the backup.
-                _logger.LogDebug(moveEx, "Could not move corrupt day state aside");
-            }
-
-            _logger.LogWarning(ex, "Day state corrupt — backed up to {Backup} and starting fresh", backup);
-            return null;
-        }
-    }
+    /// 2026-10-31) — Save logs every write with its size to find out.</summary>
+    public DayState? Load() => LoadOrNull();
 
     /// <summary>Writes the day state atomically (temp-then-move). Never throws — a failed save
     /// costs restart recovery, not the running day. Writes are serialized and each uses its
     /// own temp name, so two callers (the phase handler and the leg-facts step both save) can
     /// never truncate each other's temp file; nothing but a complete document is ever moved
     /// into place.</summary>
-    public void Save(DayState day)
-    {
-        ArgumentNullException.ThrowIfNull(day);
-        var path = ResolvePath();
-        var tmp = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
-        try
-        {
-            lock (_io)
-            {
-                var json = JsonSerializer.Serialize(day, JsonOptions);
-                if (string.IsNullOrWhiteSpace(json))
-                {
-                    _logger.LogWarning("Day state serialized to nothing — not written to {Path}", path);
-                    return;
-                }
+    public void Save(DayState day) => Write(day);
 
-                Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-                File.WriteAllText(tmp, json);
-                File.Move(tmp, path, overwrite: true);
-                _logger.LogInformation("Day state saved ({Bytes} bytes, day {DayId}, {State})", json.Length, day.DayId, day.State);
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "Could not write day state {Path}", path);
-            TryDelete(tmp);
-        }
-    }
-
-    private void TryDelete(string path)
-    {
-        try
-        {
-            if (File.Exists(path))
-            {
-                File.Delete(path);
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogDebug(ex, "Could not delete {Path}", path);
-        }
-    }
-
-    private string ResolvePath()
+    protected override string ResolvePath()
     {
         var configured = _options.CurrentValue.Path;
         if (!string.IsNullOrWhiteSpace(configured))
@@ -150,4 +66,24 @@ public sealed class DayStateFile
             "ProsimCompanion",
             "daystate.json");
     }
+
+    protected override void OnEmpty(string path)
+    {
+        _logger.LogInformation("Day state file {Path} is empty — starting without a day (no backup taken)", path);
+        TryDelete(path);
+    }
+
+    protected override bool AcceptJson(string path, string json)
+    {
+        if (string.IsNullOrWhiteSpace(json))
+        {
+            _logger.LogWarning("Day state serialized to nothing — not written to {Path}", path);
+            return false;
+        }
+
+        return true;
+    }
+
+    protected override void OnSaved(string path, string json, DayState value)
+        => _logger.LogInformation("Day state saved ({Bytes} bytes, day {DayId}, {State})", json.Length, value.DayId, value.State);
 }
