@@ -44,7 +44,8 @@
         "turnaround": "TURNAROUND",
         "awaitingPlan": "WACHT OP PLAN",
         "turnaroundTitle": "Uitstappen voltooid — het vorige vluchtplan staat nog in de FMS",
-        "awaitingPlanTitle": "De FMS is gewist — laad de volgende OFP"
+        "awaitingPlanTitle": "De FMS is gewist — laad de volgende OFP",
+        "endDayTitle": "Dienstdag nu beëindigen — hetzelfde als de knop op de Dienstdag-pagina en het spraakcommando ‘end duty day’"
       },
       "noFlightPlan": "Geen vluchtplan geladen — haal een OFP op via de INIT-pagina",
       "turbulenceTitle": "Turbulentie: piek {0} g in de laatste twee seconden (eenheid {1})",

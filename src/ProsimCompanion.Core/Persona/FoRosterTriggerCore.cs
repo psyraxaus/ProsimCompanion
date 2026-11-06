@@ -8,6 +8,11 @@ namespace ProsimCompanion.Core.Persona;
 /// <param name="OpenDayLegsCompleted">Legs already flown (on blocks) in the OPEN duty day;
 /// null when no duty day is open. One or more means the day is past its first leg: the FO on
 /// duty is pinned until end of duty whatever the calendar does (ADR-0019 §8).</param>
+/// <param name="OpenDayId">The open duty day's id; null when no day is open.</param>
+/// <param name="DrawnDayId">The day the FO on duty was drawn for or bound to
+/// (<c>FoRosterState.DrawnDayId</c>). Equal to <paramref name="OpenDayId"/> means the FO is
+/// this day's FO and stays pinned while it is open, flown leg or not (review 2026-11-05: an
+/// open leg-1 day restarted after a sim-date rollover redrew — mid-day by #219's definition).</param>
 /// <param name="LegBegan">This evaluation is the "a new leg began" edge — a different OFP
 /// landed (<c>ILegBoundaryEvents.LegBegan</c>).</param>
 /// <param name="LegPlanned">A plan is loaded and the leg boundary is None: the loaded plan is
@@ -25,6 +30,8 @@ public sealed record FoRosterTriggerInputs(
     bool RosterActive,
     bool Pinned,
     int? OpenDayLegsCompleted,
+    string? OpenDayId,
+    string? DrawnDayId,
     bool LegBegan,
     bool LegPlanned,
     bool InPreflight,
@@ -72,7 +79,12 @@ public static class FoRosterTriggerCore
         string? newStamp = null;
         string? reason = null;
         var opportunity = inputs.LegBegan || (inputs.InPreflight && inputs.LegPlanned);
-        var dayPinsFo = inputs.OpenDayLegsCompleted is > 0 && inputs.HasCurrent;
+        // An open day pins its FO: once a leg has been flown, or from the moment the FO on
+        // duty is this day's (drawn in it, or bound to it on the same sim date). A day that
+        // opened with yesterday's FO still on file is not that FO's day — the first leg of a
+        // new sim date must draw.
+        var dayPinsFo = inputs.HasCurrent && inputs.OpenDayId is not null
+            && (inputs.OpenDayLegsCompleted is > 0 || string.Equals(inputs.OpenDayId, inputs.DrawnDayId, StringComparison.Ordinal));
         if (opportunity && !dayPinsFo)
         {
             var date = inputs.SimLocalDate ?? inputs.FallbackDate;

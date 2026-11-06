@@ -44,7 +44,8 @@
         "turnaround": "ESCALE",
         "awaitingPlan": "EN ATTENTE DU PLAN",
         "turnaroundTitle": "Débarquement terminé — le plan de vol précédent est encore dans le FMS",
-        "awaitingPlanTitle": "Le FMS est effacé — chargez le prochain OFP"
+        "awaitingPlanTitle": "Le FMS est effacé — chargez le prochain OFP",
+        "endDayTitle": "Terminer la journée maintenant — comme le bouton de la page Journée de service et la commande vocale « end duty day »"
       },
       "noFlightPlan": "Aucun plan de vol chargé — récupérez un OFP sur la page INIT",
       "turbulenceTitle": "Turbulence : pic {0} g sur les deux dernières secondes (unité {1})",

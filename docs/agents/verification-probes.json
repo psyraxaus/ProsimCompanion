@@ -4411,6 +4411,40 @@
       "notes": "See scenario-fires-and-detects. The exit clear runs in ScenarioService.StopAsync (IHostedService) AFTER the module host disposed the service (review 2026-11-05: the write lock is no longer disposed, so the clear can run); the startup clear-all waits for the ProSim connected edge (it used to run before any session existed and never retried); the ARRIVAL flight-cycle reset clears on GroundOpsSignals.FlightCycleReset (a new-plan reset keeps a Planned plan); all verify by re-reading getArmedFailures(). See scenario-turnaround-leg-planned. Unverified live."
     },
     {
+      "id": "duty-day-edges-after-end",
+      "issue": 212,
+      "state": "fixed-unverified",
+      "kind": "assert-absent",
+      "machine": {
+        "kind": "signature",
+        "signature": {
+          "source": "session",
+          "type": "day.started",
+          "contains": "\"source\":\"auto\""
+        },
+        "trigger": {
+          "source": "session",
+          "type": "day.ended",
+          "contains": "\"dayId\""
+        }
+      },
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "Review 2026-11-05 §3.1 (ADR-0019 edges, issues #212 #213 #219 #220 #221 by another door): (1) an ENDED day read as 'no day' so the next ColdAndDark → Preflight edge auto-started a day seeded from the flown plan; (2) the end of duty dropped the leg boundary's plan id, so a forced re-import of the flown plan began a new leg; (3) the new-plan reset ran on a boarded aircraft when the cycle was complete; (4) the FMGC cross-check came up armed after a restart in a turnaround; (5) the end-of-duty button existed only on the Duty Day page; (6) the roster pinned the FO only once a leg had landed.",
+        "assert-absent (machine): a day.started {source: auto} anywhere after a day.ended in the same session — after the end of duty only the OFP opens a day (day.started {source: ofp} after an ofp.loaded / leg.boundary {legBegan: true}). A day.started {source: auto} BEFORE any day.ended (the session's first Preflight with no day on file) is the expected first start.",
+        "assert-absent: a leg.boundary {legBegan: true, reason: 'first plan of the session'} whose planId equals the planId of the preceding leg.boundary 'end of duty' line (the flown plan re-imported after the end of duty) — the end of duty keeps the plan id as the baseline, so this plan is 'the same OFP twice is one leg' and begins nothing.",
+        "assert-absent: a gsx-cycle-reset {reason: 'new plan'} after a gsx-service Boarding Active/Completed for the current cycle with no arrival reset between them — boarding is the bar, full stop, the cycle complete or not.",
+        "assert-absent: an fo.crossCheck {source: auto} in a session whose first leg.boundary line is the restored Turnaround / AwaitingPlan state (log 'Leg boundary restored from the flight-state snapshot') before a leg.boundary {legBegan: true} — the trigger starts disarmed with the flown plan in the box.",
+        "assert-present: an fms.cleared event carries parkedBy ('data' | 'phase' | null); 'phase' appears only when the SimConnect sample was not valid (ProSim up, MSFS down) and the committed phase was ColdAndDark / Preflight / Departure / Shutdown — the Reset FMS step is accepted on such a rig.",
+        "assert-absent: two persona.rosterDraw in one open duty day (the day.started … day.ended window) — an open day pins its FO from the moment the FO is that day's (persona.rosterDraw / the roster state's drawnDayId equals the day id), flown leg or not; a restart after a sim-date rollover inside leg 1 keeps the FO.",
+        "requires-human: the Flight Status card's hero shows an 'End duty day' button beside the phase reason while a day is open; pressing it ends the day exactly like the Duty Day page's button."
+      ],
+      "notes": "Fixed 2026-11-07 (review 2026-11-05 README §5 P2, branch fix/branch-review-2026-11-05). CompanyDayService.HandlePhase auto-starts only when _engine.Day is null; LegBoundaryService.OnDutyDayEnded keeps PlanId; NewPlanCycleReset.ShouldReset lost its cycleComplete parameter (boarding is the bar); FmgcCrossCheckService reads LegBoundaryStore at Start and every tick (ArmedFor); Home.razor hero End-duty-day button through IDayControl (text flightStatus.hero.leg.endDayTitle in all seven packs); FoRosterState.DrawnDayId + FoRosterTriggerInputs.OpenDayId/DrawnDayId — the day pins its FO when it has a flown leg OR the FO was drawn in / bound to it (BindDay on a day opening on the draw's sim date); fms.cleared gains parkedBy with a phase fallback. ADR-0019 'Amendments (2026-11-07)' records the four scope-creep items. Tests: CompanyDayServiceTests.AfterEndOfDuty_…, LegBoundaryRestoreTests.EndOfDuty_KeepsTheFlownPlanIdAsTheBaseline, FoRosterTests.Trigger_OpenDay…, FmgcCrossCheckAutoDueTests.ArmedFor_…, NewPlanCycleResetTests. Unverified live."
+    },
+    {
       "id": "scenario-turnaround-leg-planned",
       "issue": 197,
       "state": "fixed-unverified",

@@ -160,7 +160,41 @@ public sealed class FoRosterVoiceFeature : IVoiceFeature, IStartupModule, IDispo
         }
     }
 
-    private void OnDayChanged(object? sender, EventArgs e) => Evaluate(preflightEdge: false, legBegan: false);
+    private void OnDayChanged(object? sender, EventArgs e)
+    {
+        BindOpenDay();
+        Evaluate(preflightEdge: false, legBegan: false);
+    }
+
+    /// <summary>A day that opened after the draw, on the sim date the FO was drawn for, is that
+    /// FO's day (ADR-0019 §8: a plan loaded after the end of duty starts a new day with the same
+    /// FO) — bind it so the FO stays pinned while the day is open. A day opened on another date
+    /// is not bound: the evaluation that follows draws for it.</summary>
+    private void BindOpenDay()
+    {
+        try
+        {
+            lock (_gate)
+            {
+                var day = _dayStore.Snapshot();
+                if (day is not { View: { Active: true }, DayId: { } dayId } || _roster.Current is null)
+                {
+                    return;
+                }
+
+                var state = _roster.State;
+                var today = FoRosterTriggerCore.Stamp(SimLocalDate(_clock, _localTime) ?? DateOnly.FromDateTime(Now().UtcDateTime));
+                if (!string.Equals(state.DrawnDayId, dayId, StringComparison.Ordinal) && string.Equals(state.DrawnFor, today, StringComparison.Ordinal))
+                {
+                    _roster.BindDay(dayId);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "FO roster: binding the open day failed");
+        }
+    }
 
     private void OnLegBegan(object? sender, LegBeganEventArgs e) => HandleLegBegan();
 
@@ -182,13 +216,14 @@ public sealed class FoRosterVoiceFeature : IVoiceFeature, IStartupModule, IDispo
                 var decision = FoRosterTriggerCore.Evaluate(Inputs(legBegan));
                 if (decision.NewStamp is { } stamp)
                 {
+                    var openDayId = _dayStore.Snapshot() is { View: { Active: true }, DayId: { } id } ? id : null;
                     if (_options.CurrentValue.Roster.IsPinned)
                     {
-                        _roster.AdoptDay(stamp);
+                        _roster.AdoptDay(stamp, openDayId);
                     }
                     else
                     {
-                        _roster.Draw(decision.Reason ?? "trigger", Now(), stamp);
+                        _roster.Draw(decision.Reason ?? "trigger", Now(), stamp, openDayId);
                     }
 
                     // Re-read with the draw in place: the intro is due for the new stamp.
@@ -255,10 +290,14 @@ public sealed class FoRosterVoiceFeature : IVoiceFeature, IStartupModule, IDispo
             _logger.LogInformation("FO roster: the sim's calendar day is not available — the UTC wall date stands in for the draw");
         }
 
+        var day = _dayStore.Snapshot();
+        var openDay = day is { View: { Active: true } } ? day : null;
         return new FoRosterTriggerInputs(
             RosterActive: options.Roster.IsActive(options.Enabled),
             Pinned: options.Roster.IsPinned,
-            OpenDayLegsCompleted: _dayStore.Snapshot() is { View: { Active: true } view } ? view.LegsCompleted : null,
+            OpenDayLegsCompleted: openDay?.View?.LegsCompleted,
+            OpenDayId: openDay?.DayId,
+            DrawnDayId: state.DrawnDayId,
             LegBegan: legBegan,
             LegPlanned: leg.PlanId is not null && leg.State == LegBoundaryState.None,
             InPreflight: _flight.CurrentPhase == FlightPhase.Preflight,

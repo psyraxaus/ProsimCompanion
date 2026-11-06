@@ -33,11 +33,14 @@ public static class NewPlanCycleReset
     /// <summary>Whether the plan that just landed starts a new leg. <paramref name="lastResetPlanId"/>
     /// is the plan the last reset ran for (or the plan the cycle was started with), so the same
     /// plan never resets twice; <paramref name="boardingObserved"/> is true when GSX Boarding
-    /// was really called, active or completed this cycle (a startup-resync seed does not count).</summary>
+    /// was really called, active or completed this cycle (a startup-resync seed does not count).
+    /// Boarding is the bar, full stop (ADR-0019 §6): a regenerated OFP after boarding — the
+    /// cycle complete or not — never resets a boarded aircraft's pax target, latches, gate
+    /// monitor, walkaround or loadsheet editions (review 2026-11-05; "cycle complete" used to
+    /// override the bar).</summary>
     public static bool ShouldReset(
         OfpData? current,
         string? lastResetPlanId,
-        bool cycleComplete,
         bool boardingObserved,
         FlightDataSnapshot? data)
     {
@@ -52,8 +55,6 @@ public static class NewPlanCycleReset
             return false;
         }
 
-        // A cycle that is complete is over whatever it did; an open one is reset only while
-        // boarding has not begun for the plan it was opened with.
-        return cycleComplete || !boardingObserved;
+        return !boardingObserved;
     }
 }

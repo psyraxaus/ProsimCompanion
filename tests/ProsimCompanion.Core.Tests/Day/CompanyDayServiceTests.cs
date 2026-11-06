@@ -159,6 +159,28 @@ public sealed class CompanyDayServiceTests : IDisposable
         Assert.NotNull(_store.Snapshot().View);
     }
 
+    // Review 2026-11-05 (ADR-0019 §8): after the end of duty only the OFP opens the next day —
+    // the next ColdAndDark → Preflight edge (a power cycle, the next sim morning) used to
+    // re-open a day seeded from the flown plan.
+    [Fact]
+    public void AfterEndOfDuty_ThePreflightEdgeDoesNotReopenTheDay_TheNextPlanDoes()
+    {
+        _service.HandlePhase(FlightPhase.Preflight, T0);
+        var first = _store.Snapshot();
+        Assert.True(first.View!.Active);
+        Assert.True(_service.TryEndDay("voice", T0.AddMinutes(100)));
+        Assert.False(_store.Snapshot().View!.Active);
+
+        _service.HandlePhase(FlightPhase.ColdAndDark, T0.AddMinutes(110));
+        _service.HandlePhase(FlightPhase.Preflight, T0.AddMinutes(600));
+        Assert.False(_store.Snapshot().View!.Active);
+
+        _service.HandleLegBegan("req:2", T0.AddMinutes(610));
+        var next = _store.Snapshot();
+        Assert.True(next.View!.Active);
+        Assert.NotEqual(first.DayId, next.DayId);
+    }
+
     [Fact]
     public void Voice_StartTwice_SaysAlreadyRunning()
     {
@@ -573,8 +595,11 @@ public sealed class CompanyDayServiceTests : IDisposable
         return lines;
     }
 
+    /// <summary>ADR-0019 §8 (review 2026-11-05): after an end of duty the Preflight edge opens
+    /// nothing — the day that followed used to be seeded from the plan just flown. Only the
+    /// next OFP opens a day (the test below).</summary>
     [Fact]
-    public void AfterEndedDay_NextPreflightAutoStartsAFreshDay()
+    public void AfterEndedDay_TheNextPreflightDoesNotAutoStartADay()
     {
         _service.TryStartDay("test", T0);
         _service.TryEndDay("test", T0.AddMinutes(30));
@@ -582,8 +607,7 @@ public sealed class CompanyDayServiceTests : IDisposable
 
         var view = _store.Snapshot().View;
         Assert.NotNull(view);
-        Assert.True(view.Active);
-        Assert.Equal(0, view.LegsCompleted);
+        Assert.False(view.Active);
     }
 
     /// <summary>ADR-0019 §8: a plan loaded after the end starts a new duty day — leg 1 seeded

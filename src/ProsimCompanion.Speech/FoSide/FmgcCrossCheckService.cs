@@ -44,6 +44,7 @@ public sealed class FmgcCrossCheckService : IVoiceFeature, Core.Hosting.IStartup
     private readonly IDataRefSubscription<int> _flex;
     private readonly object _gate = new();
     private readonly ILegBoundaryEvents _legBoundary;
+    private readonly LegBoundaryStore _legStore;
     private Timer? _timer;
     private int _ticking;
     private bool _autoDone;
@@ -64,10 +65,13 @@ public sealed class FmgcCrossCheckService : IVoiceFeature, Core.Hosting.IStartup
         JsonlEventLog eventLog,
         ILogger<FmgcCrossCheckService> logger,
         GroundOpsSignals signals,
-        ILegBoundaryEvents legBoundary)
+        ILegBoundaryEvents legBoundary,
+        LegBoundaryStore legStore)
     {
         ArgumentNullException.ThrowIfNull(legBoundary);
+        ArgumentNullException.ThrowIfNull(legStore);
         _legBoundary = legBoundary;
+        _legStore = legStore;
         ArgumentNullException.ThrowIfNull(speech);
         ArgumentNullException.ThrowIfNull(dataRefs);
         ArgumentNullException.ThrowIfNull(flight);
@@ -120,12 +124,25 @@ public sealed class FmgcCrossCheckService : IVoiceFeature, Core.Hosting.IStartup
 
     public void Start()
     {
+        lock (_gate)
+        {
+            // A restart inside a turnaround (ADR-0019 §9) restores the boundary store before
+            // the modules start: with the flown plan still in the box the trigger must come up
+            // disarmed, or "INIT page: EGLL to EHAM" is spoken again (review 2026-11-05).
+            _armed = ArmedFor(_legStore.Snapshot().State);
+        }
+
         _signals.FlightCycleReset += OnReset;
         _signals.ArrivalCompleted += OnArrivalCompleted;
         _legBoundary.LegBegan += OnLegBegan;
         _flight.SessionReset += OnReset;
         _timer = new Timer(_ => Tick(), null, 3000, 1000);
     }
+
+    /// <summary>Whether the auto trigger is armed for a leg-boundary state: only while no
+    /// boundary is in progress — in Turnaround or Awaiting plan the plan in the box is the
+    /// arrival's. Pure, for tests.</summary>
+    public static bool ArmedFor(LegBoundaryState state) => state == LegBoundaryState.None;
 
     public void Dispose()
     {
@@ -216,7 +233,10 @@ public sealed class FmgcCrossCheckService : IVoiceFeature, Core.Hosting.IStartup
             bool due;
             lock (_gate)
             {
-                due = AutoDue(_flight.CurrentPhase, _flight.IsLive && !_origin.IsStale, _origin.Value, _destination.Value, _v1.Value, _autoDone, _armed);
+                // The store is read every tick as well: a snapshot restored after this module
+                // started, or a boundary step the events missed, disarms the trigger too.
+                due = AutoDue(_flight.CurrentPhase, _flight.IsLive && !_origin.IsStale, _origin.Value, _destination.Value, _v1.Value, _autoDone,
+                    _armed && ArmedFor(_legStore.Snapshot().State));
                 if (due)
                 {
                     _autoDone = true;

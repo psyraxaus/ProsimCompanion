@@ -120,6 +120,35 @@ What the code does today (mapped 2026-11-02; file references at that commit):
     `docs/testing/2026-11-02-duty-day-flow-audit.md`; each approved gap becomes one GitHub
     issue (`ready-for-agent`) linking this ADR and the report line.
 
+### Amendments (2026-11-07, branch review 2026-11-05)
+
+What the code does beyond the text above, now written down (review README §3.1 "scope creep"),
+and the edges the review found wrong, now fixed:
+
+- **§2** — a take-off ends any boundary state: Turnaround / Awaiting plan cannot exist in the
+  air (`LegBoundaryCore.Airborne`); the step flags re-arm for the next arrival, the plan id is
+  kept. **The end of duty keeps the plan id too**: the state and the flags go back to None,
+  the flown plan stays the baseline, so a forced re-import of the flown plan after the end of
+  duty is still "the same OFP twice is one leg", not a new day on the flown plan.
+- **§5** — an older build's `daystate.json` with a never-flown leg duplicating the completed
+  one is repaired at start (`CompanyDayEngine.DropPhantomLeg`, event `day.leg.dropped`, one
+  Warning) — a migration, not a behaviour.
+- **§6** — boarding is the bar, full stop: a different plan after boarding has started never
+  resets the departure side, the cycle complete or not (`NewPlanCycleReset`). The gate
+  monitor's restart hole is closed by **seat-occupation evidence** rather than request-id
+  adoption (stronger evidence; the hole remains while the cabin-empty fact is unknown).
+- **§7 / §8** — the Preflight edge auto-starts a day **only when no day has existed this
+  session**; after an end of duty only the OFP (`LegBegan`) opens the next day. The FO's
+  offer wait is a setting, `day.endOfDutyOfferMinutes` (default 10; 0 = never ask) — the ten
+  minutes above is its default. The end-of-duty button is on the Flight Status card's hero as
+  well as the Duty Day page. **The roster pins the FO from the moment they are the open day's
+  FO** (drawn in it, or bound to a day that opened on the same sim date), not only after a
+  flown leg: an open leg-1 day restarted after a sim-date rollover keeps its FO.
+- **§9** — the FMGC cross-check comes up disarmed when the restored boundary store says
+  Turnaround / Awaiting plan (the flown plan in the box is never read back as the leg's).
+  The FMS-cleared step counts "parked with the engines off" by the committed phase when the
+  SimConnect sample is not valid (ProSim up, MSFS down).
+
 Owner's own setting for **Reset FMS after landing or failure**: **off** (2026-11-02; the owner did not know the option existed — both values are supported, the audit
 replays that case first).
 

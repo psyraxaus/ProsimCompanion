@@ -30,12 +30,18 @@ public interface IFoRosterService
 
     /// <summary>Draws a new FO (never the previous one when the pool allows), stamps what the
     /// draw is for and resets the intro latch. Null when the pool is empty. <paramref name="reason"/>
-    /// is recorded on the <c>persona.rosterDraw</c> event ("new-leg", "preflight", "voice", "web").</summary>
-    FoRosterEntry? Draw(string reason, DateTimeOffset nowUtc, string? drawnFor = null);
+    /// is recorded on the <c>persona.rosterDraw</c> event ("new-leg", "preflight", "voice", "web").
+    /// <paramref name="dayId"/> is the open duty day the draw belongs to (null = none open): the
+    /// FO is pinned while that day is open (ADR-0019 §8).</summary>
+    FoRosterEntry? Draw(string reason, DateTimeOffset nowUtc, string? drawnFor = null, string? dayId = null);
 
     /// <summary>Adopts a new day stamp without drawing (pinned mode): the intro latch resets
     /// so the pinned FO greets once per day too.</summary>
-    void AdoptDay(string drawnFor);
+    void AdoptDay(string drawnFor, string? dayId = null);
+
+    /// <summary>Binds the FO on duty to the duty day that opened after the draw on the same
+    /// sim date — the FO stays pinned while it is open. No-op without an FO or when already bound.</summary>
+    void BindDay(string dayId);
 
     /// <summary>Pins one FO and switches the mode to pinned. False when the id is unknown.</summary>
     bool Pin(string id);

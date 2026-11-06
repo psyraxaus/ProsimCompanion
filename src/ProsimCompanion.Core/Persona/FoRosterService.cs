@@ -117,7 +117,7 @@ public sealed class FoRosterService : IFoRosterService
         }
     }
 
-    public FoRosterEntry? Draw(string reason, DateTimeOffset nowUtc, string? drawnFor = null)
+    public FoRosterEntry? Draw(string reason, DateTimeOffset nowUtc, string? drawnFor = null, string? dayId = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(reason);
         FoRosterEntry? picked;
@@ -136,6 +136,7 @@ public sealed class FoRosterService : IFoRosterService
             _state.PreviousId = previous;
             _state.CurrentId = picked.Id;
             _state.DrawnFor = drawnFor ?? _state.DrawnFor;
+            _state.DrawnDayId = dayId;
             _state.IntroDone = false;
             _stateFile.Save(_state);
         }
@@ -160,7 +161,7 @@ public sealed class FoRosterService : IFoRosterService
         return picked;
     }
 
-    public void AdoptDay(string drawnFor)
+    public void AdoptDay(string drawnFor, string? dayId = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(drawnFor);
         lock (_gate)
@@ -171,10 +172,32 @@ public sealed class FoRosterService : IFoRosterService
             }
 
             _state.DrawnFor = drawnFor;
+            _state.DrawnDayId = dayId;
             _state.IntroDone = false;
             _stateFile.Save(_state);
         }
 
+        Changed?.Invoke();
+    }
+
+    /// <summary>The duty day that opened after the draw on the same sim date is the FO's day:
+    /// from here the FO is pinned until that day ends (ADR-0019 §8). A no-op when the state
+    /// already names it.</summary>
+    public void BindDay(string dayId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(dayId);
+        lock (_gate)
+        {
+            if (_state.CurrentId is null || string.Equals(_state.DrawnDayId, dayId, StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            _state.DrawnDayId = dayId;
+            _stateFile.Save(_state);
+        }
+
+        _logger.LogDebug("FO roster: the FO on duty is bound to duty day {DayId}", dayId);
         Changed?.Invoke();
     }
 

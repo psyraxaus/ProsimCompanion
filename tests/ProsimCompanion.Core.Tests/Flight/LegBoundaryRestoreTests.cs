@@ -34,6 +34,7 @@ public sealed class LegBoundaryRestoreTests
         public OfpStore Ofp { get; } = new();
         public FakePhaseSource Phase { get; } = new();
         public LegBoundaryStore Store { get; } = new();
+        public Core.Day.DutyDaySignals DutyDay { get; } = new();
         public LegBoundaryService Service { get; }
         public List<LegBeganEventArgs> LegsBegan { get; } = [];
 
@@ -47,7 +48,8 @@ public sealed class LegBoundaryRestoreTests
                 Store,
                 SpeechTestSupport.TempEventLog(),
                 new DiagEventLog(),
-                NullLogger<LegBoundaryService>.Instance);
+                NullLogger<LegBoundaryService>.Instance,
+                DutyDay);
             Service.LegBegan += (_, e) => LegsBegan.Add(e);
         }
 
@@ -139,5 +141,31 @@ public sealed class LegBoundaryRestoreTests
         planned.Ofp.Set(Plan("191950000", "EHAM", "EGLL"));
         Assert.True(planned.Service.AdoptDeboardedFromEvidence("startup resync: tracking LVARs"));
         Assert.Equal(LegBoundaryState.Turnaround, planned.Store.Snapshot().State);
+    }
+
+    // Review 2026-11-05 (ADR-0019 §2 / §8): the end of duty clears the boundary state and the step
+    // flags but KEEPS the flown plan id as the baseline — a forced re-import of the flown plan
+    // after the end of duty used to read as "first plan of the session" and begin a new leg
+    // (a new day on the flown plan, the cross-check re-armed, the purser latch reset).
+    [Fact]
+    public void EndOfDuty_KeepsTheFlownPlanIdAsTheBaseline()
+    {
+        using var h = new Harness();
+        h.Ofp.Set(Plan("191949682", "EGLL", "EHAM"));
+        Assert.Single(h.LegsBegan);
+        h.Signals.RaiseArrivalCompleted();
+        Assert.Equal(LegBoundaryState.Turnaround, h.Store.Snapshot().State);
+
+        h.DutyDay.RaiseDayEnded(new Core.Day.DutyDayEnded("day-1", "voice", T0));
+        var after = h.Store.Snapshot();
+        Assert.Equal(LegBoundaryState.None, after.State);
+        Assert.False(after.Deboarded);
+        Assert.Equal("req:191949682", after.PlanId);
+
+        h.Ofp.Set(Plan("191949682", "EGLL", "EHAM")); // the flown plan re-imported: the same leg
+        Assert.Single(h.LegsBegan);
+
+        h.Ofp.Set(Plan("191950000", "EHAM", "EGLL")); // a different plan: the next leg
+        Assert.Equal(2, h.LegsBegan.Count);
     }
 }

@@ -185,8 +185,35 @@ public sealed class FoRosterTests : IDisposable
     private static FoRosterTriggerInputs Inputs(
         bool active = true, bool pinned = false, int? legsCompleted = null, bool legBegan = false,
         bool legPlanned = false, bool inPreflight = false, DateOnly? simDate = null, string? drawnFor = null,
-        bool hasCurrent = true, bool introDone = false, bool introEnabled = true)
-        => new(active, pinned, legsCompleted, legBegan, legPlanned, inPreflight, simDate, new DateOnly(2026, 11, 1), drawnFor, hasCurrent, introDone, introEnabled);
+        bool hasCurrent = true, bool introDone = false, bool introEnabled = true, string? openDayId = null, string? drawnDayId = null)
+        => new(active, pinned, legsCompleted, openDayId ?? (legsCompleted is not null ? "day-open" : null), drawnDayId,
+            legBegan, legPlanned, inPreflight, simDate, new DateOnly(2026, 11, 1), drawnFor, hasCurrent, introDone, introEnabled);
+
+    // Review 2026-11-05: an open day pins its FO from the moment the FO is that day's — not only
+    // after a flown leg (an open leg-1 day restarted after a sim-date rollover used to redraw).
+    [Fact]
+    public void Trigger_OpenDayWithItsOwnFo_PinsBeforeTheFirstLegIsFlown()
+    {
+        var restarted = FoRosterTriggerCore.Evaluate(Inputs(inPreflight: true, legPlanned: true, legsCompleted: 0, openDayId: "d1", drawnDayId: "d1",
+            simDate: new DateOnly(2026, 11, 2), drawnFor: "sim:2026-11-01", introDone: true));
+        Assert.Null(restarted.NewStamp);
+        Assert.Null(FoRosterTriggerCore.Evaluate(Inputs(legBegan: true, legsCompleted: 0, openDayId: "d1", drawnDayId: "d1",
+            simDate: new DateOnly(2026, 11, 2), drawnFor: "sim:2026-11-01", introDone: true)).NewStamp);
+    }
+
+    [Fact]
+    public void Trigger_OpenDayWithYesterdaysFo_DrawsOnANewDate_KeepsOnTheSameDate()
+    {
+        // The day opened (auto-start on the Preflight edge) with yesterday's FO still on file:
+        // not that FO's day — a new sim date draws, the same date keeps (ADR-0019 §8).
+        Assert.Equal("sim:2026-11-02", FoRosterTriggerCore.Evaluate(Inputs(legBegan: true, legsCompleted: 0, openDayId: "d2", drawnDayId: "d1",
+            simDate: new DateOnly(2026, 11, 2), drawnFor: "sim:2026-11-01")).NewStamp);
+        Assert.Null(FoRosterTriggerCore.Evaluate(Inputs(legBegan: true, legsCompleted: 0, openDayId: "d2", drawnDayId: "d1",
+            simDate: new DateOnly(2026, 11, 1), drawnFor: "sim:2026-11-01", introDone: true)).NewStamp);
+        // No day open at all: the date alone decides, as before.
+        Assert.Equal("sim:2026-11-02", FoRosterTriggerCore.Evaluate(Inputs(legBegan: true, drawnDayId: "d1",
+            simDate: new DateOnly(2026, 11, 2), drawnFor: "sim:2026-11-01")).NewStamp);
+    }
 
     [Fact]
     public void Trigger_RosterOff_DoesNothing()

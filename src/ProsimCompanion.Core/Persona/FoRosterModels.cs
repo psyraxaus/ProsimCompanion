@@ -47,6 +47,12 @@ public sealed class FoRosterState
     /// stamp draws again; the same stamp (a restart mid-day) keeps the FO.</summary>
     public string? DrawnFor { get; set; }
 
+    /// <summary>The duty day the current FO flies: the open day's id at the draw, or the day
+    /// that opened on the same sim date after it. While this day is open the FO is pinned
+    /// whatever the calendar does (ADR-0019 §8 "never mid-day"; review 2026-11-05: an open
+    /// leg-1 day restarted after a sim-date rollover redrew). Null before any day.</summary>
+    public string? DrawnDayId { get; set; }
+
     /// <summary>The gate intro has been spoken for the current draw.</summary>
     public bool IntroDone { get; set; }
 

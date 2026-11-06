@@ -44,7 +44,8 @@
         "turnaround": "TURNAROUND",
         "awaitingPlan": "AWAITING PLAN",
         "turnaroundTitle": "Deboarding complete — the previous flight plan is still in the FMS",
-        "awaitingPlanTitle": "The FMS is cleared — load the next OFP"
+        "awaitingPlanTitle": "The FMS is cleared — load the next OFP",
+        "endDayTitle": "End the duty day now — the same as the Duty Day page’s button and saying “end duty day”"
       },
       "noFlightPlan": "No flight plan loaded — fetch an OFP on the INIT page",
       "turbulenceTitle": "Turbulence: peak {0} g over the last two seconds (unit {1})",

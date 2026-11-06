@@ -246,7 +246,7 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl, IG
             // and catering already run for the old plan are reset like the rest and re-called.
             var boardingObserved = _lifecycle.ObservedProgress(GsxServiceIds.Boarding);
             var cycleWasComplete = _cycle.Complete; // read BEFORE the reset clears it (#223)
-            if (!NewPlanCycleReset.ShouldReset(current, _lastResetPlanId, cycleWasComplete, boardingObserved, data))
+            if (!NewPlanCycleReset.ShouldReset(current, _lastResetPlanId, boardingObserved, data))
             {
                 return;
             }

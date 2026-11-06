@@ -491,11 +491,15 @@ public sealed class CompanyDayService : IVoiceFeature, ISessionFinalizationStep,
             // other phase (power back on = the pilot is not done).
             _coldAndDarkSinceUtc = current == FlightPhase.ColdAndDark ? _coldAndDarkSinceUtc ?? nowUtc : null;
             var day = _engine.Day;
-            if (day is null || !day.IsOpen)
+            if (day is null)
             {
+                // Only a session that has never had a day auto-starts one on the Preflight edge.
+                // An ENDED day is not "no day": after the end of duty the next ColdAndDark →
+                // Preflight (a power cycle, the next sim morning before the OFP) used to re-open
+                // a day on the flown plan — ADR-0019 §8 says the OFP opens it (HandleLegBegan).
                 autoStart = current == FlightPhase.Preflight && options.Enabled && options.AutoStart;
             }
-            else
+            else if (day.IsOpen)
             {
                 switch (current)
                 {

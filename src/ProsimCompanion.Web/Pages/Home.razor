@@ -1,4 +1,5 @@
 @page "/"
+@using Microsoft.Extensions.DependencyInjection
 @using ProsimCompanion.Core.Aircraft
 @using ProsimCompanion.Core.Aircraft.Ofp
 @using ProsimCompanion.Core.Boarding
@@ -38,6 +39,7 @@
 @inject SettingsWriter Writer
 @inject IJSRuntime JS
 @inject IStringLocalizer T
+@inject IServiceProvider Services
 
 @* Prosim2GSX FlightStatusPanel clone: Flight Phase span card, then Sim / App / GSX /
    Services cards with the same rows in the same order. The log tail card is deliberately
@@ -153,6 +155,12 @@
                     @* The rule's reason — the one-look answer to "why does it think we are on
                        approach?" (review 2026-08-29). *@
                     <span class="fs-reason" title="@T["flightStatus.hero.reasonTitle"]">@PhaseReason</span>
+                    @if (_day?.View is { Active: true } && _dayControl is not null)
+                    {
+                        @* End of duty is the pilot's act, on the Flight Status card as well as
+                           the Duty Day page (ADR-0019 §8; review 2026-11-05 — only Day.razor had it). *@
+                        <button type="button" class="btn secondary fs-end-day" @onclick="EndDay" title="@T["flightStatus.hero.leg.endDayTitle"]">@T["day.end"]</button>
+                    }
                 </div>
             </div>
 
@@ -432,6 +440,8 @@
     private HeroWeatherSnapshot _weather = HeroWeatherSnapshot.Empty;
     private GateStatusSnapshot _gate = GateStatusSnapshot.Empty;
     private LegBoundarySnapshot _leg = LegBoundarySnapshot.Empty;
+    private Core.Day.DaySnapshot? _day; // optional: the duty day lives in the Speech pillar
+    private Core.Day.IDayControl? _dayControl;
     private FlightProgressSnapshot _progress = FlightProgressSnapshot.Empty;
     private Core.Fuel.HoldingEstimate? _holding; // issue #183
     private TurbulenceSnapshot _ride = TurbulenceSnapshot.Empty;
@@ -625,6 +635,10 @@
 
     private void RecheckAircraftState()
         => _recheckUnavailable = !StateCheckControl.RequestRecheck("web UI");
+
+    /// <summary>End of duty from the hero (ADR-0019 §8) — the same idempotent path as the Duty
+    /// Day page's button and the voice command; the store's change redraws the card.</summary>
+    private void EndDay() => _dayControl?.EndDay();
 
     private async Task OpenMonitor()
     {
@@ -848,6 +862,13 @@
         Watch(HeroWeather, snapshot => _weather = snapshot);
         Watch(GateStatus, snapshot => _gate = snapshot);
         Watch(LegBoundary, snapshot => _leg = snapshot);
+        // Optional resolution, like the Day page: the duty day is a Speech-pillar feature.
+        _dayControl = Services.GetService<Core.Day.IDayControl>();
+        if (Services.GetService<Core.Day.DayStatusStore>() is { } dayStore)
+        {
+            WatchChanged(h => dayStore.Changed += h, h => dayStore.Changed -= h, () => _day = dayStore.Snapshot());
+        }
+
         Watch(FlightProgress, snapshot => _progress = snapshot);
         Watch(Holding, estimate => _holding = estimate);
         Watch(Turbulence, snapshot => _ride = snapshot);

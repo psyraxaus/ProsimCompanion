@@ -44,7 +44,8 @@
         "turnaround": "ターンアラウンド",
         "awaitingPlan": "プラン待ち",
         "turnaroundTitle": "降機完了 — 前のフライトプランがまだFMSに残っています",
-        "awaitingPlanTitle": "FMSはクリア済み — 次のOFPを読み込んでください"
+        "awaitingPlanTitle": "FMSはクリア済み — 次のOFPを読み込んでください",
+        "endDayTitle": "勤務日を今終了します — 勤務日ページのボタンと同じ操作です"
       },
       "noFlightPlan": "フライトプランが読み込まれていません — INIT ページで OFP を取得してください",
       "turbulenceTitle": "タービュランス：直近2秒のピーク {0} g（単位 {1}）",

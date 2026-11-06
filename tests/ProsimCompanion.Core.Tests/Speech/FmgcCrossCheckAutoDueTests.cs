@@ -19,6 +19,16 @@ public sealed class FmgcCrossCheckAutoDueTests
         Assert.False(FmgcCrossCheckService.AutoDue(FlightPhase.Preflight, live: true, "EGLL", "EHAM", v1: 142, doneThisCycle: false, armed: false));
     }
 
+    // Review 2026-11-05: a restart inside a turnaround restores the boundary store before the
+    // module starts — the trigger comes up disarmed with the flown plan still in the box.
+    [Fact]
+    public void ArmedFor_FollowsTheRestoredBoundaryState()
+    {
+        Assert.True(FmgcCrossCheckService.ArmedFor(LegBoundaryState.None));
+        Assert.False(FmgcCrossCheckService.ArmedFor(LegBoundaryState.Turnaround));
+        Assert.False(FmgcCrossCheckService.ArmedFor(LegBoundaryState.AwaitingPlan));
+    }
+
     [Fact]
     public void TheOldRules_StillHold()
     {

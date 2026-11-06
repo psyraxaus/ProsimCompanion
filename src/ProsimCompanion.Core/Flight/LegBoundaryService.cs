@@ -184,18 +184,24 @@ public sealed class LegBoundaryService : ILegBoundaryEvents, ILegBoundaryRecover
     private void OnDutyDayEnded(DutyDayEnded ended)
     {
         LegBoundaryState before;
+        string? planId;
         lock (_gate)
         {
             before = _core.Snapshot.State;
+            planId = _core.Snapshot.PlanId;
             if (_core.Snapshot is { State: LegBoundaryState.None, Deboarded: false, FmsCleared: false })
             {
                 return;
             }
 
-            _core.Restore(LegBoundarySnapshot.Empty with { ChangedAtUtc = DateTimeOffset.UtcNow, Reason = "end of duty" });
+            // The state and the step flags go; the flown plan's id stays as the baseline —
+            // "the same OFP loaded twice is one leg" (ADR-0019 §2) holds across the end of duty
+            // too. Dropping it made a forced re-import of the flown plan read as "first plan of
+            // the session" → LegBegan → a new day on the flown plan (review 2026-11-05).
+            _core.Restore(LegBoundarySnapshot.Empty with { PlanId = planId, ChangedAtUtc = DateTimeOffset.UtcNow, Reason = "end of duty" });
         }
 
-        PublishAdopted(before, LegBoundaryState.None, $"end of duty ({ended.Source}) — no boundary in progress", null);
+        PublishAdopted(before, LegBoundaryState.None, $"end of duty ({ended.Source}) — no boundary in progress", planId);
     }
 
     // ---- the live edges --------------------------------------------------------------------------
@@ -214,13 +220,20 @@ public sealed class LegBoundaryService : ILegBoundaryEvents, ILegBoundaryRecover
     private void OnFmsCleared(object? sender, FmsClearedEventArgs e)
     {
         var data = _flight.Snapshot().Data;
-        var parked = data is { IsValid: true, OnGround: true, AnyEngineRunning: false } && data.GroundSpeedKt < 1;
+        // With SimConnect down and ProSim up the data sample is not valid, but the IOS Reset
+        // FMS is still the pilot's step: the committed phase stands in for "parked with the
+        // engines off" (review 2026-11-05 — the chip never left TURNAROUND on such a rig).
+        var parkedBy = data is { IsValid: true }
+            ? (data is { OnGround: true, AnyEngineRunning: false } && data.GroundSpeedKt < 1 ? "data" : null)
+            : (_flight.CurrentPhase is FlightPhase.ColdAndDark or FlightPhase.Preflight or FlightPhase.Departure or FlightPhase.Shutdown ? "phase" : null);
+        var parked = parkedBy is not null;
         _eventLog.Record("fms.cleared", new
         {
             origin = e.PreviousOrigin,
             destination = e.PreviousDestination,
             fmgcPhase = e.FmgcPhase,
             parked,
+            parkedBy,
             accepted = parked,
         });
 
