@@ -193,6 +193,9 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl, IG
         // 2026-11-05 — this service used to decide it again from the OFP store with its own
         // compare); what stays here is the GSX-side gate: parked, and boarding not started.
         _legBoundary.LegBegan += OnLegBegan;
+        // A plan already loaded when this service wakes is this cycle's (the restart case): the
+        // next DIFFERENT plan is the new leg, this one is the baseline.
+        _lastResetPlanId = NewPlanCycleReset.PlanId(_ofpStore.Current);
         if (_dutyDay is not null)
         {
             _dutyDay.DayEnded += OnDutyDayEnded;
@@ -211,7 +214,7 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl, IG
         try
         {
             var current = _ofpStore.Current;
-            var trackingLvars = ResetDepartureCycle("end of duty — departure cycle cleared");
+            var trackingLvars = ResetDepartureCycle("end of duty — departure cycle cleared", newLeg: false);
             _latches.ResetForArrival(current);
             _lastResetPlanId = NewPlanCycleReset.PlanId(current) ?? _lastResetPlanId;
             _turnaroundStart.Withdraw();
@@ -249,14 +252,25 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl, IG
             // and catering already run for the old plan are reset like the rest and re-called.
             var boardingObserved = _lifecycle.ObservedProgress(GsxServiceIds.Boarding);
             var cycleWasComplete = _cycle.Complete; // read BEFORE the reset clears it (#223)
-            if (!NewPlanCycleReset.ShouldReset(current, _lastResetPlanId, boardingObserved, data))
+            var decision = NewPlanCycleReset.Decide(current, _lastResetPlanId, boardingObserved, data);
+            if (decision == NewPlanCycleReset.NewPlanDecision.Adopt)
+            {
+                // The cycle's first plan (EGLL 2026-11-06: "commence ground services" before the
+                // OFP, SimBrief reloaded by the automation two minutes later): the baseline, not
+                // a new leg — nothing is reset.
+                _lastResetPlanId = NewPlanCycleReset.PlanId(current);
+                _decisions.Record("plan baseline", $"first plan of the cycle {_lastResetPlanId} ({current?.OriginIcao}→{current?.DestinationIcao}) adopted — not a new leg, nothing reset");
+                return;
+            }
+
+            if (decision != NewPlanCycleReset.NewPlanDecision.Reset)
             {
                 return;
             }
 
             var id = NewPlanCycleReset.PlanId(current)!;
             _lastResetPlanId = id;
-            var trackingLvars = ResetDepartureCycle("new flight plan — departure cycle reset");
+            var trackingLvars = ResetDepartureCycle("new flight plan — departure cycle reset", newLeg: true);
             _decisions.Record("departure cycle reset", $"new flight plan {id} ({current?.OriginIcao}→{current?.DestinationIcao}) — the departure services start over for the new leg");
             _decisions.RecordEvent("gsx-cycle-reset", new
             {
@@ -287,10 +301,18 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl, IG
     /// turnaround cycle, the pax target, the trigger slot and the tracking LVARs. The arrival
     /// side (deboarding, GPU, jetway) is left as it stands. Returns what the cycle-reset event
     /// says about the tracking clear.</summary>
-    private string ResetDepartureCycle(string slotReason)
+    private string ResetDepartureCycle(string slotReason, bool newLeg)
     {
         _lifecycle.ResetCycle(NewPlanCycleReset.ArrivalSide);
-        _cycle.BeginTurnaroundCycle();
+        if (newLeg)
+        {
+            _cycle.BeginNewLegCycle(); // prep stays done, turnaround flag unchanged
+        }
+        else
+        {
+            _cycle.BeginTurnaroundCycle();
+        }
+
         _paxTarget.Reset();
         _slot.Reset(slotReason);
         return ClearDepartureTracking();
@@ -401,8 +423,14 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl, IG
             return;
         }
 
+        PinPlanBaseline();
         Pump();
     }
+
+    /// <summary>The plan loaded when the sequence starts is the cycle's own: a later re-import
+    /// of the same plan is the same leg, and a first plan landing into a cycle started without
+    /// one is adopted (<see cref="NewPlanCycleReset.Decide"/>), never a reset.</summary>
+    private void PinPlanBaseline() => _lastResetPlanId ??= NewPlanCycleReset.PlanId(_ofpStore.Current);
 
     /// <summary>Single-shot force-next (INT/RAD / web button): the next evaluation bypasses the
     /// current step's activation rule — including Manual. Consumed by that evaluation whether or
@@ -700,6 +728,7 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl, IG
 
         if (_applier.StartCycle(source))
         {
+            PinPlanBaseline();
             Pump();
         }
 

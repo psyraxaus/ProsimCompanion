@@ -4411,6 +4411,36 @@
       "notes": "See scenario-fires-and-detects. The exit clear runs in ScenarioService.StopAsync (IHostedService) AFTER the module host disposed the service (review 2026-11-05: the write lock is no longer disposed, so the clear can run); the startup clear-all waits for the ProSim connected edge (it used to run before any session existed and never retried); the ARRIVAL flight-cycle reset clears on GroundOpsSignals.FlightCycleReset (a new-plan reset keeps a Planned plan); all verify by re-reading getArmedFailures(). See scenario-turnaround-leg-planned. Unverified live."
     },
     {
+      "id": "gsx-first-plan-adopted",
+      "issue": 213,
+      "state": "fixed-unverified",
+      "kind": "assert-absent",
+      "machine": {
+        "kind": "signature",
+        "signature": {
+          "source": "session",
+          "type": "gsx-cycle-reset",
+          "contains": "\"reason\":\"new flight plan\"",
+          "where": {
+            "cycleWasComplete": "false"
+          }
+        }
+      },
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "EGLL 2026-11-06 on 1.0.0-rc.4 (one flight, one leg): 'commence ground services' at 20:48:35Z with no OFP loaded; the automation reloaded SimBrief and the plan landed at 20:50:37Z; the app recorded gsx-cycle-reset {reason: 'new flight plan'} and reset the departure cycle MID-RUN — the ground-prep flag was cleared (nothing re-sets it), the cycle was flagged a turnaround on a first leg, the pump held on 'waiting for ground preparation to complete' (logged once) until the end of the flight, and the beacon-orchestrated pushback never armed (it arms on DepartureComplete).",
+        "assert-absent (machine): a gsx-cycle-reset {reason: 'new flight plan', cycleWasComplete: false} — a new-plan reset of an OPEN cycle. With the fix the first plan of a cycle is ADOPTED (gsx-decision {action: 'plan baseline'}); only a DIFFERENT plan after that, while parked with boarding not started, resets. A reset of a complete cycle (leg two's plan after leg one closed) is the designed case and is not flagged.",
+        "assert-present: when the departure sequence started before any OFP, a gsx-decision {action: 'plan baseline', reason: 'first plan of the cycle req:… adopted — not a new leg, nothing reset'} when the plan lands, and the sequencer's own triggers ('requested by sequencer — next in departure order') continue after it without a second 'departure sequence started'.",
+        "assert-present: with every departure service completed or skipped, a 'departure services' complete decision / the ready-for-pushback notification, and the beacon-on edge followed by the pushback sequence's own decisions (doors, jetway, ground equipment, 'Pushback' called) — the sequencer arms on DepartureComplete.",
+        "assert-absent: gsx-departure-started {turnaround: true} on the first leg of a session (no arrival before it); a new-plan reset that leaves PrepComplete false (the GSX page's prep stage reads Complete while the pump says 'waiting for ground preparation').",
+        "requires-human: beacon on with all departure services done → doors close, the jetway retracts, GPU and chocks go, the GSX pushback is called — without any menu click."
+      ],
+      "notes": "Fixed 2026-11-07 (owner's live flight EGLL→LIRF, 1.0.0-rc.4, session-20261106-204815). NewPlanCycleReset.Decide returns Adopt when the baseline is null (first plan of the cycle) — GsxAutomationService pins it (plan baseline decision) instead of resetting; the baseline is also pinned at construction from a plan already loaded and when the departure sequence starts (PinPlanBaseline, both start paths). The new-plan reset now calls DepartureCycleState.BeginNewLegCycle (started/complete only; prep and the turnaround flag untouched) instead of BeginTurnaroundCycle (which is the arrival's and the end of duty's). Tests NewPlanCycleResetTests.TheFirstPlanOfACycle_IsAdopted_NeverAReset, DepartureCycleStateTests.BeginNewLegCycle_…. Unverified live — the owner's next flight is the check."
+    },
+    {
       "id": "pushback-suggestion-loop-survives",
       "issue": 231,
       "state": "fixed-unverified",

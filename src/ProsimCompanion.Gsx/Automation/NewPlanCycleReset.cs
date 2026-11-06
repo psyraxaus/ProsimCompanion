@@ -30,6 +30,50 @@ public static class NewPlanCycleReset
     /// <summary>The plan's identity: the SimBrief request when it has one, else the route.</summary>
     public static string? PlanId(OfpData? ofp) => OfpPlanIdentity.PlanId(ofp);
 
+    /// <summary>What a plan landing means for the departure cycle. <see cref="Adopt"/> is the
+    /// first plan of a cycle that had none (EGLL 2026-11-06: the crew said "commence ground
+    /// services" before any OFP, the automation reloaded SimBrief two minutes later, and the
+    /// plan was read as a NEW LEG — the cycle was reset mid-run, its prep flag cleared, and the
+    /// beacon pushback never armed for the rest of the flight). A first plan is the cycle's
+    /// baseline, never a reset.</summary>
+    public enum NewPlanDecision
+    {
+        None,
+        Adopt,
+        Reset,
+    }
+
+    /// <summary>The full decision; <see cref="ShouldReset"/> is its Reset case.</summary>
+    public static NewPlanDecision Decide(
+        OfpData? current,
+        string? lastResetPlanId,
+        bool boardingObserved,
+        FlightDataSnapshot? data)
+    {
+        var id = PlanId(current);
+        if (id is null)
+        {
+            return NewPlanDecision.None;
+        }
+
+        if (lastResetPlanId is null)
+        {
+            return NewPlanDecision.Adopt;
+        }
+
+        if (string.Equals(id, lastResetPlanId, StringComparison.Ordinal))
+        {
+            return NewPlanDecision.None;
+        }
+
+        if (data is not { IsValid: true, OnGround: true, AnyEngineRunning: false } || data.GroundSpeedKt >= 1)
+        {
+            return NewPlanDecision.None;
+        }
+
+        return boardingObserved ? NewPlanDecision.None : NewPlanDecision.Reset;
+    }
+
     /// <summary>Whether the plan that just landed starts a new leg. <paramref name="lastResetPlanId"/>
     /// is the plan the last reset ran for (or the plan the cycle was started with), so the same
     /// plan never resets twice; <paramref name="boardingObserved"/> is true when GSX Boarding
@@ -43,18 +87,5 @@ public static class NewPlanCycleReset
         string? lastResetPlanId,
         bool boardingObserved,
         FlightDataSnapshot? data)
-    {
-        var id = PlanId(current);
-        if (id is null || string.Equals(id, lastResetPlanId, StringComparison.Ordinal))
-        {
-            return false;
-        }
-
-        if (data is not { IsValid: true, OnGround: true, AnyEngineRunning: false } || data.GroundSpeedKt >= 1)
-        {
-            return false;
-        }
-
-        return !boardingObserved;
-    }
+        => Decide(current, lastResetPlanId, boardingObserved, data) == NewPlanDecision.Reset;
 }

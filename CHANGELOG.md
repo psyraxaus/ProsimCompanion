@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.0-rc.5
+
+Pre-release for testers, 2026-11-07 (over 1.0.0-rc.4, which flew one leg EGLL→LIRF on 2026-11-06). **Not flown yet.** One live fix from that leg and the first voice packages of `docs/plans/2026-11-07-voice-vocabulary-and-ground-crew.md`.
+
+**For testers.** Say "commence ground services" before or after the OFP — either order now works and the beacon-orchestrated pushback arms once the services are done. New wordings for the ground services ("commence boarding", "begin refuelling", "ground, please start boarding"), and the pushback crew now talks on the interphone: brakes question, cleared to push, cleared to start, disconnect. Turn the ramp crew off in SayIntentions and GSX's own crew voice off in GSX to hear ours alone. The same **Export diagnostics** report as before, please.
+
+- Fixed: **the beacon-orchestrated pushback never armed when the OFP landed after "commence ground services"** (owner's flight EGLL 2026-11-06, 1.0.0-rc.4). The first plan of a cycle that had none was read as a *new leg*: the departure cycle was reset mid-run, its ground-prep flag cleared (nothing re-sets it) and a first leg flagged as a turnaround, so the pump held on "waiting for ground preparation to complete" for the rest of the flight and the departure never completed — which is what the beacon sequence arms on. The first plan is now **adopted** as the cycle's baseline (`gsx-decision` "plan baseline"), the baseline is pinned when the sequence starts and from a plan already loaded at start, and a genuine new-plan reset keeps the prep flag and the turnaround flag (`BeginNewLegCycle`) — only the arrival and the end of duty clear them. Probe `gsx-first-plan-adopted`.
+
 ## 1.0.0-rc.4
 
 Pre-release for testers, 2026-11-07 (over 1.0.0-rc.3). **Nothing in this section is flown yet** — nor is anything since rc.1. This build is the fix batch of the two-axis branch review of 2026-11-05 (`docs/reviews/2026-11-05/README.md`: four standards reports, three spec reports, two runtime models; seven fix packages P1–P7, all in this build).

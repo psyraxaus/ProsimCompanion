@@ -54,6 +54,23 @@ public sealed class NewPlanCycleResetTests
         Assert.False(NewPlanCycleReset.ShouldReset(null, null, boardingObserved: false, Parked()));
     }
 
+    // EGLL 2026-11-06 (1.0.0-rc.4): "commence ground services" before any OFP; the automation
+    // reloaded SimBrief two minutes later and the plan was read as a NEW LEG — the cycle was
+    // reset mid-run, the prep flag cleared, the beacon pushback never armed.
+    [Fact]
+    public void TheFirstPlanOfACycle_IsAdopted_NeverAReset()
+    {
+        Assert.Equal(NewPlanCycleReset.NewPlanDecision.Adopt, NewPlanCycleReset.Decide(Plan("192626761"), null, boardingObserved: false, Parked()));
+        Assert.Equal(NewPlanCycleReset.NewPlanDecision.Adopt, NewPlanCycleReset.Decide(Plan("192626761"), null, boardingObserved: true, Parked()));
+        Assert.Equal(NewPlanCycleReset.NewPlanDecision.Adopt, NewPlanCycleReset.Decide(Plan("192626761"), null, boardingObserved: false, null)); // even with no sample
+        Assert.False(NewPlanCycleReset.ShouldReset(Plan("192626761"), null, boardingObserved: false, Parked()));
+
+        // Once adopted, the same plan is nothing and a different one is the new leg.
+        Assert.Equal(NewPlanCycleReset.NewPlanDecision.None, NewPlanCycleReset.Decide(Plan("192626761"), "req:192626761", boardingObserved: false, Parked()));
+        Assert.Equal(NewPlanCycleReset.NewPlanDecision.Reset, NewPlanCycleReset.Decide(Plan("192700000"), "req:192626761", boardingObserved: false, Parked()));
+        Assert.Equal(NewPlanCycleReset.NewPlanDecision.None, NewPlanCycleReset.Decide(null, null, boardingObserved: false, Parked()));
+    }
+
     [Fact]
     public void AwayFromTheStand_NothingResets()
     {

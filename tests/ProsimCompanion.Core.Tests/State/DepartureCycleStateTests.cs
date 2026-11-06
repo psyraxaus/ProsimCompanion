@@ -63,6 +63,33 @@ public sealed class DepartureCycleStateTests
         Assert.Equal(["changed", "reset"], order);
     }
 
+    // EGLL 2026-11-06: the new-plan reset used the turnaround reset, cleared the prep flag that
+    // nobody re-sets and flagged a first leg as a turnaround — the pump held on "waiting for
+    // ground preparation" for the rest of the flight.
+    [Fact]
+    public void BeginNewLegCycle_KeepsPrepAndTheTurnaroundFlag_ResetsStartedAndComplete()
+    {
+        var cycle = new DepartureCycleState();
+        cycle.MarkStarted();
+        cycle.MarkComplete();
+        cycle.MarkPrepComplete();
+        var order = new List<string>();
+        cycle.Changed += () => order.Add("changed");
+        cycle.CycleReset += () => order.Add("reset");
+
+        cycle.BeginNewLegCycle();
+
+        Assert.False(cycle.Started);
+        Assert.False(cycle.Complete);
+        Assert.True(cycle.PrepComplete);
+        Assert.False(cycle.IsTurnaround); // a first leg stays a first leg
+        Assert.Equal(["changed", "reset"], order);
+
+        cycle.MarkTurnaround();
+        cycle.BeginNewLegCycle();
+        Assert.True(cycle.IsTurnaround); // and a turnaround stays one
+    }
+
     [Fact]
     public void Turnaround_IsStickyAcrossCycles()
     {

@@ -112,6 +112,24 @@ public sealed class DepartureCycleState
         CycleReset?.Invoke();
     }
 
+    /// <summary>A different plan at the same stand before boarding (ADR-0019 §6): a fresh
+    /// departure sequence for the new leg — but the ground preparation already done stays
+    /// done (the GPU, chocks and jetway are where they are) and whether this is a turnaround
+    /// is unchanged. EGLL 2026-11-06: the new-plan path used <see cref="BeginTurnaroundCycle"/>,
+    /// which cleared the prep flag nobody re-sets and flagged a first leg as a turnaround; the
+    /// pump then held on "waiting for ground preparation" for the rest of the flight and the
+    /// beacon pushback never armed. Fires <see cref="Changed"/> then <see cref="CycleReset"/>.</summary>
+    public void BeginNewLegCycle()
+    {
+        lock (_gate)
+        {
+            _started = false;
+            _complete = false;
+        }
+        Changed?.Invoke();
+        CycleReset?.Invoke();
+    }
+
     private void Mutate(Action<DepartureCycleState> apply, Func<DepartureCycleState, bool> when)
     {
         lock (_gate)
