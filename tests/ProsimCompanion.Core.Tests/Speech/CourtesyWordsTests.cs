@@ -67,6 +67,36 @@ public sealed class CourtesyWordsTests
         Assert.Contains(result.Text, vocabulary);
     }
 
+    // Owner request 2026-11-07: the person addressed is not part of the request.
+    [Theory]
+    [InlineData("Ground, please start boarding.", "start boarding")]
+    [InlineData("ground crew start boarding", "start boarding")]
+    [InlineData("Cabin crew, commence boarding", "commence boarding")]
+    [InlineData("let's start the fuel", "start the fuel")]
+    [InlineData("can we begin refuelling please", "begin refuelling")]
+    [InlineData("ground from cockpit", "ground from cockpit")] // a hail stays a hail
+    [InlineData("ground crew", "ground crew")]                 // the bare hail too
+    public void Interpreter_StripsTheAddress_ButKeepsAHail(string heard, string expected)
+    {
+        var interpreter = new UtteranceInterpreter(Options(new SpeechOptions()));
+        string[] vocabulary = ["start boarding", "commence boarding", "start the fuel", "begin refuelling", "ground from cockpit", "ground crew", "gear up"];
+
+        var result = interpreter.Interpret(heard, vocabulary, new InterpretContext(false, null, null));
+
+        Assert.Equal(InterpretKind.Resolved, result.Kind);
+        Assert.Equal(expected, result.Text);
+        Assert.Equal(1.0, result.Score);
+    }
+
+    [Fact]
+    public void AddressWords_StripOnlyTheFront_AndNeverToNothing()
+    {
+        Assert.Equal("start boarding", AddressWords.Strip("ground please start boarding"));
+        Assert.Equal("start boarding", AddressWords.Strip("cabin crew lets start boarding"));
+        Assert.Equal("ground", AddressWords.Strip("ground"));
+        Assert.Equal("connect ground power", AddressWords.Strip("connect ground power")); // inside a phrase: untouched
+    }
+
     [Fact]
     public void Interpreter_StillAbsorbsABareThankYouAsHallucination()
     {

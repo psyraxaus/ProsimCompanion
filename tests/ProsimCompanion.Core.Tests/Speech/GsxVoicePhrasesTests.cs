@@ -26,6 +26,54 @@ public sealed class GsxVoicePhrasesTests
         Assert.StartsWith("Copied", binding.CrewAckPhrase, StringComparison.Ordinal);
     }
 
+    // Owner request 2026-11-07: the table is a grid of verbs × service names.
+    [Theory]
+    [InlineData("request boarding", "gsx.requestBoarding")]
+    [InlineData("start boarding", "gsx.requestBoarding")]
+    [InlineData("commence boarding", "gsx.requestBoarding")]
+    [InlineData("begin the boarding", "gsx.requestBoarding")]
+    [InlineData("board the passengers", "gsx.requestBoarding")]
+    [InlineData("cabin crew start boarding", "gsx.requestBoarding")]
+    [InlineData("request refueling", "gsx.requestRefuel")]
+    [InlineData("begin refuelling", "gsx.requestRefuel")]
+    [InlineData("call the fuel truck", "gsx.requestRefuel")]
+    [InlineData("send the fuel truck", "gsx.requestRefuel")]
+    [InlineData("order fuel", "gsx.requestRefuel")]
+    [InlineData("request catering", "gsx.requestCatering")]
+    [InlineData("commence catering", "gsx.requestCatering")]
+    [InlineData("request pushback", "gsx.requestPushback")]
+    [InlineData("call the push back", "gsx.requestPushback")]
+    [InlineData("request de-icing", "gsx.requestDeice")]
+    [InlineData("start deicing", "gsx.requestDeice")]
+    [InlineData("request ground power", "gsx.requestGpu")]
+    [InlineData("send the gpu", "gsx.requestGpu")]
+    [InlineData("fuel confirmed", "gsx.confirmFuel")]
+    [InlineData("no de-icing", "gsx.declineDeice")]
+    [InlineData("next service", "gsx.forceNextService")]
+    public void TheGrid_CoversEveryOldPhrase_AndTheNewVerbs(string phrase, string command)
+    {
+        Assert.True(GsxVoicePhrases.Bindings.TryGetValue(phrase, out var binding), phrase);
+        Assert.Equal(command, binding!.Command);
+    }
+
+    [Fact]
+    public void EveryBoardingPhrase_IsACabinRelay()
+    {
+        var boarding = GsxVoicePhrases.Bindings.Where(b => b.Value.Command == "gsx.requestBoarding").ToList();
+        Assert.True(boarding.Count >= 20);
+        Assert.All(boarding, b => Assert.True(b.Value.CabinAck, b.Key));
+        Assert.All(boarding, b => Assert.Equal(GsxVoicePhrases.BoardingRelayText, b.Value.SuccessPhrase));
+        Assert.Equal(boarding.Count + GsxVoicePhrases.CancelPhrases.Count, GsxVoicePhrases.CabinHailGrammar.Count);
+    }
+
+    [Fact]
+    public void TheGrid_PutsTheCanonicalWordingsFirst()
+    {
+        var boarding = GsxVoicePhrases.Bindings.Where(b => b.Value.Command == "gsx.requestBoarding").Select(b => b.Key).Take(3).ToList();
+        Assert.Equal(["request boarding", "request the boarding", "request passenger boarding"], boarding);
+        Assert.True(GsxVoicePhrases.Bindings.Count > 100, "the grid should produce well over a hundred wordings");
+    }
+
     [Fact]
     public void GpuAck_NamesGroundPowerComingUp()
     {

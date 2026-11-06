@@ -4,6 +4,7 @@ using Moq;
 using ProsimCompanion.Core.Commands;
 using ProsimCompanion.Core.Configuration;
 using ProsimCompanion.Core.State;
+using ProsimCompanion.Speech.Arbiter;
 using ProsimCompanion.Speech.Gsx;
 using Xunit;
 
@@ -147,14 +148,14 @@ public sealed class GsxVoiceServiceTests
     [Fact]
     public void Success_SpeaksTheShortConfirmation_TaggedGsxVoice()
     {
-        Handler("gsx.requestBoarding", CommandResult.Ok("Boarding requested — awaiting GSX confirmation."));
+        Handler("gsx.requestCatering", CommandResult.Ok("Catering requested — awaiting GSX confirmation."));
         var service = CreateService();
 
-        service.TryHandle("request boarding");
+        service.TryHandle("request catering");
         WaitForDispatch(() => _arbiter.Requests.Count > 0);
 
         var spoken = Assert.Single(_arbiter.Requests);
-        Assert.Equal("Boarding requested.", spoken.Text);
+        Assert.Equal("Catering requested.", spoken.Text);
         Assert.Equal("gsx.voice", spoken.Tag);
     }
 
@@ -210,16 +211,19 @@ public sealed class GsxVoiceServiceTests
         Assert.DoesNotContain(_arbiter.Requests, r => r.Tag == "cabin.boarding.ack");
     }
 
+    // Owner request 2026-11-07: boarding is the cabin's — every boarding wording relays to the
+    // purser (it used to be "Boarding requested." to nobody in particular).
     [Fact]
-    public void PlainRequestBoarding_NeverAcksAsCabin()
+    public void PlainRequestBoarding_RelaysToTheCabin_AndThePurserAcks()
     {
         Handler("gsx.requestBoarding", CommandResult.Ok("requested"));
         var service = CreateService();
 
         service.TryHandle("request boarding");
-        WaitForDispatch(() => _arbiter.Requests.Count >= 1);
+        WaitForDispatch(() => _arbiter.Requests.Count >= 2);
 
-        Assert.DoesNotContain(_arbiter.Requests, r => r.Tag == "cabin.boarding.ack");
+        Assert.Contains(_arbiter.Requests, r => r.Tag == "gsx.voice" && r.Text == GsxVoicePhrases.BoardingRelayText);
+        Assert.Contains(_arbiter.Requests, r => r.Tag == "cabin.boarding.ack" && r.Role == SpeechRole.Purser);
     }
 
     [Fact]

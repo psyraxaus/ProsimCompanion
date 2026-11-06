@@ -4411,6 +4411,32 @@
       "notes": "See scenario-fires-and-detects. The exit clear runs in ScenarioService.StopAsync (IHostedService) AFTER the module host disposed the service (review 2026-11-05: the write lock is no longer disposed, so the clear can run); the startup clear-all waits for the ProSim connected edge (it used to run before any session existed and never retried); the ARRIVAL flight-cycle reset clears on GroundOpsSignals.FlightCycleReset (a new-plan reset keeps a Planned plan); all verify by re-reading getArmedFailures(). See scenario-turnaround-leg-planned. Unverified live."
     },
     {
+      "id": "gsx-voice-phrase-grid",
+      "issue": 0,
+      "state": "fixed-unverified",
+      "kind": "assert-absent",
+      "machine": {
+        "kind": "signature",
+        "signature": {
+          "source": "session",
+          "type": "voice.unmatched",
+          "contains": "boarding"
+        }
+      },
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "Owner request 2026-11-07 (plan docs/plans/2026-11-07-voice-vocabulary-and-ground-crew.md, V1): the GSX phrase table was an exact list of two or three wordings per service ('request boarding', 'start boarding'); 'commence boarding' or 'ground, please start boarding' earned a did-you-mean round trip or 'didn't catch that'. The table is now a grid (request | start | commence | begin | call | send | order × every name a service goes by) and the interpreter strips a leading address ('ground', 'cabin crew', 'let's', 'can we') and politeness before matching.",
+        "assert-absent (machine): a voice.unmatched whose text contains 'boarding' — any wording of a boarding request with one of the grid verbs must resolve. Likewise for 'refuel', 'fuel truck', 'catering', 'pushback', 'de-ic'. A voice.unmatched naming a service with none of the grid verbs ('boarding now?') is a wording the grid does not cover — quote it as a candidate.",
+        "assert-absent: the CMTrace 'ASR heard … -> Confirm' trail for a wording the grid holds exactly ('commence boarding', 'begin refuelling', 'ground please start boarding') — these resolve at score 1.0, no did-you-mean.",
+        "assert-present: on a boarding request the FO's line is 'Cabin crew, commence boarding.' (speech.spoken tag gsx.voice) followed by the purser's 'Boarding underway.' (tag cabin.boarding.ack) — boarding is relayed to the cabin, not reported to ground.",
+        "requires-human: the VOICE drawer's Ground tab shows a few canonical wordings per service (not a hundred lines), and every one of them works."
+      ],
+      "notes": "Built 2026-11-07. GsxVoicePhrases.Build (RequestVerbs × Services[].Names plus the hand-written specials), AddressWords.Strip used by UtteranceInterpreter as a second candidate beside the courtesy-stripped text (exact match and snap), GsxVoiceReference shows the first four phrases per command. Tests GsxVoicePhrasesTests (grid, cabin relay, canonical order) and CourtesyWordsTests (address stripping, hails untouched). Unverified live."
+    },
+    {
       "id": "gsx-first-plan-adopted",
       "issue": 213,
       "state": "fixed-unverified",

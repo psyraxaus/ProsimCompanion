@@ -29,7 +29,9 @@ internal static class GsxVoiceReference
 
         foreach (var byCommand in GsxVoicePhrases.Bindings.GroupBy(b => (b.Value.Command, b.Value.CabinAck)))
         {
-            var phrases = byCommand.Select(b => b.Key).Where(p => live.Contains(p, StringComparer.OrdinalIgnoreCase)).ToList();
+            // The grid makes a hundred wordings; the drawer shows the first few (canonical
+            // verb × canonical name come first in table order) — every one of them works.
+            var phrases = byCommand.Select(b => b.Key).Where(p => live.Contains(p, StringComparer.OrdinalIgnoreCase)).Take(4).ToList();
             if (phrases.Count == 0)
             {
                 continue;

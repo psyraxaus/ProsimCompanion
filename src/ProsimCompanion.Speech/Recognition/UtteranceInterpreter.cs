@@ -87,23 +87,39 @@ public sealed class UtteranceInterpreter
         // AFTER the hallucination check — a bare "thank you" must still be absorbed whole —
         // and never down to nothing.
         var normalized = CourtesyWords.Strip(normalizedEarly);
+        // "Ground, start boarding" is also tried as "start boarding" (owner request 2026-11-07);
+        // the unstripped form stays first so a hail ("ground from cockpit") is still itself.
+        var addressed = AddressWords.Strip(normalized);
+        string[] candidates = string.Equals(addressed, normalized, StringComparison.Ordinal) ? [normalized] : [normalized, addressed];
 
         // Exact match accepts the spoken-digit form too ("flaps 1" == "flaps one", #119):
         // whisper chooses the written form freely and the pilot said the same thing.
-        var digitsSpoken = CommandMatcher.SpeakSingleDigits(normalized);
-        foreach (var phrase in vocabulary)
+        foreach (var candidate in candidates)
         {
-            if (phrase != NumberGrammar.Sentinel
-                && CommandMatcher.Normalize(phrase) is var phraseNorm
-                && (phraseNorm.Equals(normalized, StringComparison.Ordinal)
-                    || phraseNorm.Equals(digitsSpoken, StringComparison.Ordinal)))
+            var digitsSpoken = CommandMatcher.SpeakSingleDigits(candidate);
+            foreach (var phrase in vocabulary)
             {
-                return new InterpretResult(InterpretKind.Resolved, phrase, 1.0);
+                if (phrase != NumberGrammar.Sentinel
+                    && CommandMatcher.Normalize(phrase) is var phraseNorm
+                    && (phraseNorm.Equals(candidate, StringComparison.Ordinal)
+                        || phraseNorm.Equals(digitsSpoken, StringComparison.Ordinal)))
+                {
+                    return new InterpretResult(InterpretKind.Resolved, phrase, 1.0);
+                }
             }
         }
 
-        var snap = CommandMatcher.Snap(normalized,
-            [.. vocabulary.Where(v => v != NumberGrammar.Sentinel)], options.SnappingThreshold);
+        var snappable = vocabulary.Where(v => v != NumberGrammar.Sentinel).ToList();
+        CommandMatch? snap = null;
+        foreach (var candidate in candidates)
+        {
+            var candidateSnap = CommandMatcher.Snap(candidate, snappable, options.SnappingThreshold);
+            if (candidateSnap is not null && (snap is null || candidateSnap.Score > snap.Score))
+            {
+                snap = candidateSnap;
+            }
+        }
+
         if (snap is not null)
         {
             if (!context.ItemAwaiting && snap.Score < options.ConfirmBelowScore)
