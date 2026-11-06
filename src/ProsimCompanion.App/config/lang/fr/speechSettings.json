@@ -1261,7 +1261,7 @@
           "more": "Dans les deux cas ces mots ne vont jamais au modèle de langage et ne méritent jamais un 'didn't catch that'. Avec le bavardage activé, seule une chose ayant la forme d'une question (mot interrogatif en tête, ou point d'interrogation du reconnaisseur) est envoyée au modèle."
         },
         "flyingOver": {
-          "label": "'What are we flying over?'",
+          "label": "« Qu’est-ce qu’on survole ? »",
           "hint": "Demande 'what are we flying over', 'where are we', 'what is that city on the left'. Le copilote nomme le pays, les montagnes ou la mer et les villes les plus proches avec distance et côté — aussitôt, d'après un atlas dans l'app — puis ajoute un fait ou deux à leur sujet.",
           "more": "La ligne de position vient d'un atlas hors ligne intégré (contours Natural Earth, villes GeoNames — voir le manuel pour l'attribution), jamais du modèle de langage, donc sans internet et toujours identique au même endroit. Les faits qui suivent viennent du LLM : avec 'Faits Wikipédia' désactivé, de sa propre connaissance, comme le bavardage (chiffres non vérifiés, rien sur ce vol). Aucun mot d'amorce ni longueur minimale pour ces phrases. Fonctionne avec le bavardage désactivé."
         },

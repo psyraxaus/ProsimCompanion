@@ -239,6 +239,62 @@ public sealed partial class ShippedLanguagePackGuardTests
         Assert.True(problems.Count == 0, "Texts shipped as copied English (translate them, or add the id to InvariantIds with a reason):\n" + string.Join('\n', problems));
     }
 
+    /// <summary>Per-language guard (review 2026-11-05 P7): the test above passes a text that
+    /// is English in de/es/fr/nl because ja/ko differ ("cold and dark ✓" shipped that way). A
+    /// Latin pack never keeps an English SENTENCE — four words or more with a lowercase Latin
+    /// letter — as its translation; one-word labels and loanwords ("Pushback", "Gate") may stay.
+    /// The ids below are invariant by nature or by the pack's own choice, each with its reason.</summary>
+    [Fact]
+    public void LatinPacks_KeepNoEnglishSentence()
+    {
+        var english = English;
+        var packs = LanguageFolders().Select(LoadFolder).Where(p => p.Code is "de" or "es" or "fr" or "nl").ToList();
+        var problems = new List<string>();
+        foreach (var (id, text) in english.Strings)
+        {
+            if (!NeedsTranslation(id, text) || LatinInvariantIds.Contains(id) || text.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length < 4)
+            {
+                continue;
+            }
+
+            foreach (var pack in packs)
+            {
+                if (pack.Strings.TryGetValue(id, out var own) && string.Equals(own, text, StringComparison.Ordinal))
+                {
+                    problems.Add($"{pack.Code}: {id} is still \"{text}\"");
+                }
+            }
+        }
+
+        Assert.True(problems.Count == 0, "English sentences left standing in a Latin pack (translate them, or add the id to LatinInvariantIds with a reason):\n" + string.Join('\n', problems));
+    }
+
+    /// <summary>Four-word-or-more texts the Latin packs keep in English on purpose.</summary>
+    private static readonly HashSet<string> LatinInvariantIds = new(StringComparer.Ordinal)
+    {
+        // Codes, units and placeholders only: "STD {0} · {1} MIN", "{0} / {1} PAX", " · bulk {0}".
+        "monitor.facts.std",
+        "monitor.pax",
+        "wnb.summary.loadsheet",
+        "wnb.totals.bulk",
+        // Minima abbreviations with their units (DA/MDA, baro, ft MSL).
+        "speechStatus.minima.da",
+        "speechStatus.minima.mda",
+        // Product names and their technical notes.
+        "speechSettings.providers.google.title",
+        "speechSettings.providers.windows.note",
+        "speechSettings.options.procedureSource.auto",
+        // Page titles that are the product's own terms: "EFB INIT", "Tech Log", "Weight & Balance".
+        "init.pageTitle",
+        "techLog.pageTitle",
+        "techLog.title",
+        "speechSettings.techLog.title",
+        "wnb.pageTitle",
+        // "Leg" and "Gate" are the words the German and Dutch packs chose everywhere else.
+        "day.legName",
+        "speechSettings.callouts.gates.gateTitle",
+    };
+
     /// <summary>Ids whose English text is the right text in every language. Keep this short:
     /// every entry needs the reason beside it.</summary>
     private static readonly HashSet<string> InvariantIds = new(StringComparer.Ordinal)

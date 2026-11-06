@@ -33,10 +33,8 @@ Pre-release for testers, 2026-11-07 (over 1.0.0-rc.3). **Nothing in this section
 - Agent: probe `speech-hygiene-2026-11-05`.
 - Changed: **standards sweep** (review §2.1–§2.2, P5). The five new identifiers containing "key" are renamed (owner Snyk rule 2026-10-13); `NotificationSignalSource.cs` is back to LF (a lone CR had made git treat it as binary, so an 810-line diff hid a 54-line change); the misplaced XML docs on the radios composer and the utterance router sit on the right members and the missing ones are written (gate dispatch, scenario plan, scenario commands, walkaround draw, solar position, roster service, duty-day signals, leg boundary, FMS watcher); the four silent catches are narrowed or logged (the STATUS page's clear-all logs like the GSX page's calls, the briefing follow-up swallows only the answer task's already-logged fault); dead code is gone (`AnyObservedProgress`, two identical return arms in small talk, the day-366 guard that could never fire — the bound is checked instead, a `TransitionReminderInput.Enabled` that was always true); nine constructors assign after their guards like the rest of the file; the duty-day "day ended" signal reaches every subscriber even when one throws; two identical settings-page handlers are one.
 - Changed: **shared shapes** (review §2.2, P6; refactor only — no behaviour change intended). One `JsonStateFile<T>` carries the state-file contract (lock, corrupt → `.bak`, temp-then-move) for `fo-roster-state.json`, `scenario-state.json` and `daystate.json`; one `UserConfigFileBank<T>` carries the user-config-bank contract (last-write-time reload, Config-page problems, keep-last-good) for the walkaround findings, the scenario catalogue, the FO roster, the phrase pools and the region facts, with one shared JSON text helper under the three model parsers; the interphone ring (MECH press, INT latch or grace) is one helper shared by the ground-crew upcalls and the walkaround report; the GSX departure reset the end of duty and the new plan both run is one method; the scenario decision turn (continue / return / divert, six optional dependencies) is its own `ScenarioDecisionService`, and the small-talk context (where we are, the sun, the sky, the destination, the FO) its own `SmallTalkContextSource`.
-
-
-
-
+- Agent: **verification debt** (review §2.1–§3.3, P7). Probe `pushback-suggestion-loop-survives` for #231 (the fix shipped without one); the four `checks` texts that still named `speech.recognized` now name the CMTrace "ASR heard" line, and the catalog lint reads every string of every probe for retired event names (`speech.recognized`, `speech.heard`, `speech.grammar`, `ofp-imported`, `gsx-force-next`, `gsx.simbriefReload`), not only the machine blocks. The language-pack guard gains a per-language rule: a German, Spanish, French or Dutch pack may not keep an English sentence of four words or more (the old rule passed "cold and dark ✓" because the Japanese and Korean packs differed); the texts it found are translated, the invariant ones listed with their reasons. The listening window's clock is injectable, so the "no time counted while the FO speaks" rule (#201) is tested against a fake clock instead of a 900 ms sleep, with the 60 s hard cap tested beside it; the transition reminder has a shell test (disabled, the "no DFD → silent" rule, not live). The changelog gains the fifteen sections that were never written, v0.3.0-beta.30 to v0.5.0-rc.1, backfilled from the commit log (#224).
+- Not done, and why: no shell test for `CruiseSmallTalkService` (tick → claim → deliver) or `GsxAutomationService` (new plan / end of duty / seeded restore / same request id re-imported) — both take fifteen to twenty collaborators and need a harness of their own; no replay for a restart-after-boarding Preflight → Departure beyond the synthetic one (`FlightReplayTests`), because no live recording of that case exists yet; the `fixed-unverified` probe state is left as documented, with an issue filed for the owner's decision.
 
 
 ## 1.0.0-rc.3
@@ -843,3 +841,120 @@ Fixes from a tester's diagnostics bundle (0.5.0-rc.9, EDDN, ground only). 0.5.0-
 ## 0.5.0-rc.2
 
 - Fix: gradual ground-equipment removal pulled the GPU immediately after placement at cold and dark (external power not yet on). Ground prep now logs waiting/stalled stages.
+
+## 0.5.0-rc.1
+
+Local test build, 2026-09-23 — backfilled 2026-11-07 from the commit log (#224, review 2026-11-05): no section was written when the tag was cut. Commits since v0.5.0-beta.2:
+
+- Pop-out Flight Monitor board: gate → flight → arrival on a second monitor, per-airline logo
+- Release 0.5.0-rc.1
+
+## 0.5.0-beta.2
+
+Local test build, 2026-09-22 — backfilled 2026-11-07 from the commit log (#224, review 2026-11-05): no section was written when the tag was cut. Commits since v0.5.0-beta.1:
+
+- Flight Status hero: local/destination weather cards and the gate monitor strip
+- Release 0.5.0-beta.2
+
+## 0.5.0-beta.1
+
+Local test build, 2026-09-22 — backfilled 2026-11-07 from the commit log (#224, review 2026-11-05): no section was written when the tag was cut. Commits since v0.4.0-rc.4:
+
+- Settings secrets: DPAPI-protect API keys and the LAN token in settings.json
+- Release 0.5.0-beta.1
+
+## 0.4.0-rc.4
+
+Local test build, 2026-09-21 — backfilled 2026-11-07 from the commit log (#224, review 2026-11-05): no section was written when the tag was cut. Commits since v0.4.0-rc.3:
+
+- Arrival gate: pick the destination in GSX's in-flight menu, send gate.select in the air, never once parked
+- Release 0.4.0-rc.4
+
+## 0.4.0-rc.3
+
+Local test build, 2026-09-21 — backfilled 2026-11-07 from the commit log (#224, review 2026-11-05): no section was written when the tag was cut. Commits since v0.4.0-rc.2:
+
+- Parking advisory: stop the false alarm from our own reposition; hold it while moving; persist the arrival gate; log gate.select error detail
+- Release 0.4.0-rc.3
+
+## 0.4.0-rc.2
+
+Local test build, 2026-09-20 — backfilled 2026-11-07 from the commit log (#224, review 2026-11-05): no section was written when the tag was cut. Commits since v0.4.0-rc.1:
+
+- Push-to-talk: single joystick poll thread, present devices only — fixes the 2026-09-20 heap-corruption crash
+- Release 0.4.0-rc.2
+
+## 0.4.0-rc.1
+
+Local test build, 2026-09-20 — backfilled 2026-11-07 from the commit log (#224, review 2026-11-05): no section was written when the tag was cut. Commits since v0.4.0-beta.7:
+
+- Release 0.4.0-rc.1
+
+## 0.4.0-beta.7
+
+Local test build, 2026-09-20 — backfilled 2026-11-07 from the commit log (#224, review 2026-11-05): no section was written when the tag was cut. Commits since v0.4.0-beta.6:
+
+- Web UI: centre the footer row in the safe-area-grown strip (iPad had an empty band under the labels)
+- Release 0.4.0-beta.7
+
+## 0.4.0-beta.6
+
+Local test build, 2026-09-20 — backfilled 2026-11-07 from the commit log (#224, review 2026-11-05): no section was written when the tag was cut. Commits since v0.4.0-beta.5:
+
+- Web UI: footer grows by the bottom safe-area inset (iPad labels were squeezed)
+- Release 0.4.0-beta.6
+
+## 0.4.0-beta.5
+
+Local test build, 2026-09-20 — backfilled 2026-11-07 from the commit log (#224, review 2026-11-05): no section was written when the tag was cut. Commits since v0.4.0-beta.4:
+
+- Web UI: version cache-buster on our stylesheet and script links
+- Web UI: drop the header ProSim indicator — the footer carries every connection dot
+- Docs: screenshots without the header ProSim dot
+- Release 0.4.0-beta.5
+
+## 0.4.0-beta.4
+
+Local test build, 2026-09-20 — backfilled 2026-11-07 from the commit log (#224, review 2026-11-05): no section was written when the tag was cut. Commits since v0.4.0-beta.3:
+
+- Web UI: header trim, Appearance settings page, pilot-uploaded airline logos
+- Docs: screenshots for the trimmed header and Appearance page
+- Release 0.4.0-beta.4
+
+## 0.4.0-beta.3
+
+Local test build, 2026-09-20 — backfilled 2026-11-07 from the commit log (#224, review 2026-11-05): no section was written when the tag was cut. Commits since v0.4.0-beta.2:
+
+- Callouts: A322 flap placards per handle step, VLO gear-call limits, Callouts settings section
+- Phase engine: Departure phase entered on boarding, held to the push (ADR-0012)
+- Voice services: re-probe and swap back to whisper, Reconnect button, footer ASR/TTS dots, System.Speech grammar race fix
+- Docs: fresh screenshots for 0.4.0-beta.3 (Departure step, voice-service footer dots, Reconnect button)
+- Release 0.4.0-beta.3
+
+## 0.4.0-beta.2
+
+Local test build, 2026-09-20 — backfilled 2026-11-07 from the commit log (#224, review 2026-11-05): no section was written when the tag was cut. Commits since v0.4.0-beta.1:
+
+- Web UI: restyle to the Superdesign KLM-navy design (ADR-0011)
+- Web UI: canvas shell — icon sidebar, header aircraft block, theme picker (ADR-0011)
+- Web UI: glass cards, solid buttons, and the six undesigned pages in the canvas style
+- Web UI: matched card heights and a checklist page that fills the pane
+- Web UI: INIT cards share their row height, status line pinned to the bottom
+- Docs: README, manual and roadmap for the ADR-0011 web UI; fresh screenshots
+- Release 0.4.0-beta.2
+
+## 0.4.0-beta.1
+
+Local test build, 2026-09-19 — backfilled 2026-11-07 from the commit log (#224, review 2026-11-05): no section was written when the tag was cut. Commits since v0.3.0-beta.30:
+
+- Web shell: pin header and tab strip to the dynamic viewport (iPad body scroll), safe-area insets
+- SimConnect: a wrapper that cannot load disables the subsystem instead of stopping the host
+- Settings hub (ADR-0010): one rail, URL-driven sections, Setup landing page
+- Settings: progressive disclosure — advanced fold, defaults with reset, range rows, departure presets
+- Settings: plain-words pass — one-sentence hints with a More fold, getting-started card, diagnostics folds
+- Release 0.4.0-beta.1
+
+## 0.3.0-beta.30
+
+Local test build, 2026-09-19 — backfilled 2026-11-07 from the commit log (#224, review 2026-11-05): no section was written when the tag was cut. Commits since v0.3.0-beta.30:
+

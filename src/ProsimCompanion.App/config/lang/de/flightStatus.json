@@ -238,7 +238,7 @@
     },
     "aircraftState": {
       "label": "Flugzeugzustand",
-      "pass": "cold and dark ✓",
+      "pass": "kalt und dunkel ✓",
       "unchecked": "ungeprüft (Dataref hat nie gemeldet): {0}",
       "mismatchOne": "{0} Abweichung",
       "mismatchMany": "{0} Abweichungen",

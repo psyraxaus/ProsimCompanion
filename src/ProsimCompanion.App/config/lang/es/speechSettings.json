@@ -1261,7 +1261,7 @@
           "more": "En cualquier caso esas palabras nunca van al modelo de lenguaje ni merecen un 'didn't catch that'. Con la charla activa, solo algo con forma de pregunta (palabra interrogativa delante, o un signo de interrogación del reconocedor) se envía al modelo."
         },
         "flyingOver": {
-          "label": "'What are we flying over?'",
+          "label": "«¿Qué estamos sobrevolando?»",
           "hint": "Pregunta 'what are we flying over', 'where are we', 'what is that city on the left'. El FO nombra el país, las montañas o el mar y las poblaciones más cercanas con distancia y lado — al instante, de un atlas de la app — y luego añade un dato o dos sobre ellas.",
           "more": "La línea de posición sale de un atlas sin conexión incorporado (contornos de Natural Earth, poblaciones de GeoNames — ver la atribución en el manual), nunca del modelo de lenguaje, así que no necesita internet y siempre es igual para el mismo punto. Los datos posteriores vienen del LLM: con 'Datos de Wikipedia' apagado, de su propio conocimiento, como la charla (números sin verificar, nada sobre este vuelo). Estas frases no necesitan palabra inicial ni longitud mínima. Funciona con la charla apagada."
         },

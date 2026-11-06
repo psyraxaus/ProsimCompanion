@@ -37,6 +37,13 @@ public sealed class MicOwnership : IMicOwnership
     /// <param name="speech">The arbiter's status (what is playing now): the listen window does
     /// not count time while the FO is talking (issue #201 — a radio read-back and a cabin
     /// question ate the minima confirm's fifteen seconds). Null (tests) counts wall time.</param>
+    /// <summary>The clock the listening window counts with — replaceable by tests (review
+    /// 2026-11-05: the #201 rule was tested against the wall clock with a 900 ms sleep).</summary>
+    internal Func<DateTimeOffset> Now { get; init; } = () => DateTimeOffset.UtcNow;
+
+    /// <summary>The slice wait — replaceable by tests alongside <see cref="Now"/>.</summary>
+    internal Func<TimeSpan, CancellationToken, Task> Delay { get; init; } = Task.Delay;
+
     public MicOwnership(IRecognitionWindow window, ILogger<MicOwnership> logger, ExpectedReplyStore? expectedReplies = null, Core.State.SpeechStatusStore? speech = null)
     {
         ArgumentNullException.ThrowIfNull(window);
@@ -106,7 +113,7 @@ public sealed class MicOwnership : IMicOwnership
             // The deadline moves on while the FO is speaking: the pilot cannot answer over
             // the FO's own voice, so that time is not the pilot's — up to a hard cap.
             var remaining = timeout;
-            var last = DateTimeOffset.UtcNow;
+            var last = Now();
             var hardDeadline = last + timeout + MaxSpeechFreeze;
             while (true)
             {
@@ -117,19 +124,19 @@ public sealed class MicOwnership : IMicOwnership
                     return null; // timeout — the dialogue speaks its fallback line
                 }
 
-                if (DateTimeOffset.UtcNow >= hardDeadline)
+                if (Now() >= hardDeadline)
                 {
                     _logger.LogWarning("Listening window closed by the hard cap — the FO's speech status never cleared ({Timeout} s timeout + {Cap} s)", (int)timeout.TotalSeconds, (int)MaxSpeechFreeze.TotalSeconds);
                     return null;
                 }
 
-                var done = await Task.WhenAny(heard.Task, Task.Delay(wait, cancellationToken)).ConfigureAwait(false);
+                var done = await Task.WhenAny(heard.Task, Delay(wait, cancellationToken)).ConfigureAwait(false);
                 if (done == heard.Task)
                 {
                     return await heard.Task.ConfigureAwait(false);
                 }
 
-                var now = DateTimeOffset.UtcNow;
+                var now = Now();
                 if (_speech?.Snapshot().NowPlaying is null)
                 {
                     remaining -= now - last;

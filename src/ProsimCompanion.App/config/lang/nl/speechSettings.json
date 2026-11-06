@@ -1261,7 +1261,7 @@
           "more": "Hoe dan ook gaan zulke woorden nooit naar het taalmodel en verdienen ze nooit een 'didn't catch that'. Met small talk aan wordt alleen iets dat de vorm van een vraag heeft (een vraagwoord voorop, of een vraagteken van de herkenner) naar het model gestuurd."
         },
         "flyingOver": {
-          "label": "'What are we flying over?'",
+          "label": "‘Waar vliegen we nu overheen?’",
           "hint": "Vraag 'what are we flying over', 'where are we', 'what is that city on the left'. De FO noemt het land, de bergen of zee, en de dichtstbijzijnde plaatsen met afstand en kant — meteen, uit een atlas in de app — en voegt dan een feit of twee over ze toe.",
           "more": "De positieregel komt uit een ingebouwde offline atlas (Natural Earth-contouren, GeoNames-plaatsen — zie de handleiding voor de bronvermelding), nooit uit het taalmodel, dus er is geen internet nodig en hij is altijd hetzelfde voor dezelfde plek. De feiten erna komen van de LLM: met 'Wikipedia-feiten' uit, uit zijn eigen kennis, zoals small talk (getallen ongeverifieerd, niets over deze vlucht). Voor deze zinnen is geen aanloopwoord of minimale lengte nodig. Werkt met small talk uit."
         },

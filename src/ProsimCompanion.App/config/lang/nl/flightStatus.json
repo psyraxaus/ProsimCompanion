@@ -238,7 +238,7 @@
     },
     "aircraftState": {
       "label": "Vliegtuigstatus",
-      "pass": "cold and dark ✓",
+      "pass": "koud en donker ✓",
       "unchecked": "niet gecontroleerd (dataref heeft nooit gemeld): {0}",
       "mismatchOne": "{0} afwijking",
       "mismatchMany": "{0} afwijkingen",

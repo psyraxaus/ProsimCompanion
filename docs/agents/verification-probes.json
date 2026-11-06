@@ -3482,7 +3482,7 @@
         "log"
       ],
       "checks": [
-        "Only with sop.monitoring.windLimits.enabled = true (off by default). Trigger: the pilot says 'wind check' (speech.recognized) — or 'runway condition', or a briefing ran with a DFD runway heading and a METAR wind.",
+        "Only with sop.monitoring.windLimits.enabled = true (off by default). Trigger: the pilot says 'wind check' (the CMTrace 'ASR heard' trail line — no session event carries the transcript) — or 'runway condition', or a briefing ran with a DFD runway heading and a METAR wind.",
         "assert-present ('wind check'): ONE wind.check event with the runway in use (the departure runway before the airborne edge, the landing runway after), the heading used (gateway/DFD true heading, else designator × 10), the gust-included components, the limits applied and the tone; the spoken text starts 'Runway … : Crosswind component … knots' and ends 'within limits.' / '— exceeds the … crosswind limit of … knots.' / '— exceeds the tailwind limit of … knots.'. The components must match the METAR wind in the event resolved onto headingDeg (cos/sin), gust included.",
         "assert-present ('runway condition'): ONE wind.runway-condition event naming the Landing page's selection (or 'No runway condition selected — dry limits apply').",
         "assert-present (briefing): the briefing.spoken narrative carries, right after 'Wind ddd at ss knots.', the wind-limit sentence; with the LLM on, no llm.stream takeoverReason verify-failed caused by its figures (crosswind/headwind/tailwind components and the two limits are in the allowed set).",
@@ -3516,7 +3516,7 @@
         "log"
       ],
       "checks": [
-        "Trigger: an in-flight fuel check (fuel.check with method navlog|fallback and spoken true — sop.monitoring.fuelCheck.enabled on) or the pilot's 'how long can we hold' (speech.recognized).",
+        "Trigger: an in-flight fuel check (fuel.check with method navlog|fallback and spoken true — sop.monitoring.fuelCheck.enabled on) or the pilot's 'how long can we hold' (the CMTrace 'ASR heard' line).",
         "assert-present: ONE fuel.holdingAvailableMinutes per in-flight fuel check (trigger periodic|voice|fuelLog) and per 'how long can we hold' (trigger voice), with minutes = floor((overDestinationKg − alternateKg − finalReserveKg) / burnKgPerHour × 60) and overDestinationKg = the fuel check's estimatedLandingKg (the voice answer's = FOB − flow × hours to the ETA). alternateKg / finalReserveKg are the OFP's alternate_burn / reserve (0 on a plan without them — then the minutes are optimistic and the report must say so).",
         "assert-present ('how long can we hold'): the FO's spoken line is 'We can hold for n minutes before we have to divert.' or, with divertNow true, 'No holding fuel — … Divert now.'; the Fuel page's Holding row and the Flight Status hero 'Holding' figure read the same n MIN.",
         "assert-present (fuel.decisionAdvice on, trigger = an OFP import on the ground before the flight): ONE fuel.decision event per OFP (destination/alternate outlook with FromTaf when a TAF was in the weather chain, the minima used, recommendation None|Holding, holdingMinutes, extraKg, reasons, legality); when recommendation is Holding, ONE fuel-decision-question raised with the prompt '… — recommend n minutes holding, k kilos. Take it?'; outcome accepted → fuel.extraApplied {fromKg, toKg = ceil((from+extra)/100)×100, ok true} and the refuel target / INIT FUEL RAMP shows toKg; declined or timeout → no fuel.extraApplied.",
@@ -3615,7 +3615,7 @@
       "checks": [
         "Always (company.enabled): on the flight-times tick whose offBlocksUtc first turns non-null, ONE flight.punctuality event {outUtc, scheduledOutUtc, delayMinutes, toleranceMinutes, onTime} — delayMinutes = out − OFP sched_out rounded to the minute (null and onTime null without an OFP STD), onTime = delayMinutes <= company.delayToleranceMinutes (15 by default). The log line 'Off blocks HH:mmZ against STD HH:mmZ: N min, late|on time'.",
         "assert-present (late, company.delayCodes = true): a delay-code-question event {prompt \"We're N minutes late off blocks — delay code?\", attempt 1, options [the codes]} within seconds of the punctuality event (the dialogue needs gsx.voiceControlEnabled and a free microphone); the Captain's Questions card on Ground Services / the OFP page shows the question with one button per code ('15 Boarding').",
-        "assert-present (answer): speech.recognized with the number ('delay code one five', 'fifteen', '15') or an alias from delay-codes.json ('delay boarding', 'late passengers') → the FO's 'Delay code 1 5, Boarding.' read-back, delay-code-question {outcome answered, code}, then flight.delayCode {code, title, delayMinutes, source voice|web} and the FO's 'Delay code 1 5, Boarding, noted.'. The later acars.mvt texts carry 'DL 15/HHMM'; the debrief and the Logbook row carry the code.",
+        "assert-present (answer): the CMTrace 'ASR heard' line with the number ('delay code one five', 'fifteen', '15') or an alias from delay-codes.json ('delay boarding', 'late passengers') → the FO's 'Delay code 1 5, Boarding.' read-back, delay-code-question {outcome answered, code}, then flight.delayCode {code, title, delayMinutes, source voice|web} and the FO's 'Delay code 1 5, Boarding, noted.'. The later acars.mvt texts carry 'DL 15/HHMM'; the debrief and the Logbook row carry the code.",
         "assert-present (silence): no answer in 5 minutes → delay-code-question {outcome unanswered, fallback 99}, flight.delayCode {code 99, title Other, source timeout, note 'no answer to the delay-code question'} with NO spoken line; a 'your call' / 'leave it' hands the question back and leaves it standing until the TTL.",
         "assert-absent: a delay-code-question while onTime was true or null; one while company.delayCodes was false; a second question in the same cycle (AnswerIsFinalForCycle); a flight.delayCode after a FlightCycleReset without a new punctuality event (the reset must not file 99 — the handler tells a reset from a withdrawal by the delay figure).",
         "requires-human: the FO's question comes once, after the aircraft moved, not during the pushback hail; the Logbook's 'On time' figure and the Delay column ('+22 · 15') read right after the flight."
@@ -3709,7 +3709,7 @@
         "log"
       ],
       "checks": [
-        "Only with abnormals.rtoEnabled = true (off by default). Trigger: a takeoff.rejected event {speedKt, trigger word|levers, confirmed, phase TakeoffRoll, aboveReadbackSpeed} — from the captain's 'stop' / 'reject' (speech.recognized routed to RejectedTakeoffService, dispatch precedence 5, before every other feature) or from both thrust levers brought under 0.15 above 40 kt after they were above 0.5. Log line 'TAKEOFF REJECTED at N kt by word|levers'.",
+        "Only with abnormals.rtoEnabled = true (off by default). Trigger: a takeoff.rejected event {speedKt, trigger word|levers, confirmed, phase TakeoffRoll, aboveReadbackSpeed} — from the captain's 'stop' / 'reject' (the CMTrace 'ASR heard' line, routed to RejectedTakeoffService, dispatch precedence 5, before every other feature) or from both thrust levers brought under 0.15 above 40 kt after they were above 0.5. Log line 'TAKEOFF REJECTED at N kt by word|levers'.",
         "assert-present (above 100 kt by word): the FO's 'Stop!' read-back (tag rto.readback) BEFORE the callouts and confirmed true in the event; below 100 kt no read-back, confirmed false.",
         "assert-present (the callouts, in order, each once, tags rto.*): takeoff.rto-callout {id reverseGreen} when both reversers reach max; {id decel} once IAS is 10 kt under the reject speed; {id seventyKnots} at 70 kt only when the reject speed was above 80; {id stopped, text 'Aircraft stopped — park brake.'} under 2 kt ground speed; then within 4 s (or at once on the park brake) takeoff.rto-complete {ecam [titles], offered} with {id ecamOffer} — 'ECAM — <title>. Your call, captain.' when FailureMonitor has an ECAM procedure latched, else 'No ECAM — your assessment, captain.'.",
         "assert-present (go/no-go self-check): a 'stop' after the airborne edge (InitialClimb) → takeoff.stop-refused {phase, iasKt} and the FO's 'We're flying, captain.' (tag rto.refused); no takeoff.rejected.",
@@ -4409,6 +4409,35 @@
         "requires-human: after the app closed with a scenario armed, the ProSim IOS failure list is empty."
       ],
       "notes": "See scenario-fires-and-detects. The exit clear runs in ScenarioService.StopAsync (IHostedService) AFTER the module host disposed the service (review 2026-11-05: the write lock is no longer disposed, so the clear can run); the startup clear-all waits for the ProSim connected edge (it used to run before any session existed and never retried); the ARRIVAL flight-cycle reset clears on GroundOpsSignals.FlightCycleReset (a new-plan reset keeps a Planned plan); all verify by re-reading getArmedFailures(). See scenario-turnaround-leg-planned. Unverified live."
+    },
+    {
+      "id": "pushback-suggestion-loop-survives",
+      "issue": 231,
+      "state": "fixed-unverified",
+      "kind": "assert-present",
+      "machine": {
+        "kind": "signature",
+        "signature": {
+          "source": "session",
+          "type": "pushback-suggestion",
+          "contains": "\"suggestion\""
+        },
+        "trigger": {
+          "source": "log",
+          "contains": "Pushback suggestion loop iteration failed"
+        }
+      },
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "Issue #231 (code review 2026-11-03): the 15 s loop that keeps the OFP page's pushback suggestion current caught only cancellation; any other exception out of an iteration faulted the stored task, unobserved, and the suggestion stopped until the next app start. Each iteration now runs in its own guard — Warning 'Pushback suggestion loop iteration failed — next try in 5 s' — and the loop goes on after the pause; only shutdown ends it.",
+        "assert-present: when the Warning 'Pushback suggestion loop iteration failed — next try in 5 s' appears in the log (component PushbackSuggestionService), a pushback-suggestion session event {airport, stand, runway, suggestion, confidence} follows LATER in the same session — the loop survived the failure. The trigger is rare (a parking catalogue or runway lookup throwing); untested when it never fires.",
+        "assert-absent: two or more such Warnings inside five seconds (the back-off is five seconds); the Warning at the very end of a session with no pushback-suggestion event after it while the aircraft stayed at the gate for more than a minute (the loop died after all).",
+        "requires-human: the OFP page's pushback suggestion still updates after the app logged the warning."
+      ],
+      "notes": "Review 2026-11-05 P7 (the #231 fix of 2026-11-03 shipped without a probe). PushbackSuggestionService.RunLoopAsync: a per-iteration try/catch logs at Warning and delays the back-off; the suggestion event is recorded by the evaluation path. Unverified live."
     },
     {
       "id": "speech-hygiene-2026-11-05",

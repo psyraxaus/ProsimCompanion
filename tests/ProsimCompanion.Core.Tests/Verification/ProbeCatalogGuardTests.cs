@@ -419,4 +419,68 @@ public sealed class ProbeCatalogGuardTests
 
         throw new InvalidOperationException("Repo root (ProsimCompanion.slnx) not found above the test assembly.");
     }
+
+    /// <summary>Names no code emits any more, which the prose used to name as if they were events
+    /// (review 2026-11-05 P7: four checks strings still said speech.recognized after #227
+    /// corrected the machine blocks). The machine-type lint cannot see prose; this one reads
+    /// every string of every probe. A retired name may appear only in a note that says it is
+    /// retired (the word "retired" or "no code emits" beside it).</summary>
+    private static readonly string[] RetiredEventNames =
+        ["speech.recognized", "speech.heard", "speech.grammar", "ofp-imported", "gsx-force-next", "gsx.simbriefReload"];
+
+    [Fact]
+    public void NoProbeText_NamesARetiredEventName()
+    {
+        var problems = new List<string>();
+        foreach (var probe in Probes())
+        {
+            var id = Text(probe, "id") ?? "?";
+            foreach (var text in AllStrings(probe))
+            {
+                // Whole names only: gsx.simbriefReloadMenuPages is an option, not the retired event.
+                foreach (var retired in RetiredEventNames.Where(r => System.Text.RegularExpressions.Regex.IsMatch(text, System.Text.RegularExpressions.Regex.Escape(r) + "(?![A-Za-z0-9])")))
+                {
+                    if (text.Contains("retired", StringComparison.OrdinalIgnoreCase) || text.Contains("no code emits", StringComparison.OrdinalIgnoreCase)
+                        || text.Contains("nothing emits", StringComparison.OrdinalIgnoreCase) || text.Contains("no such event", StringComparison.OrdinalIgnoreCase))
+                    {
+                        continue;
+                    }
+
+                    problems.Add($"{id}: names retired event '{retired}'");
+                }
+            }
+        }
+
+        Assert.True(problems.Count == 0, "Probe text names an event no code emits (say what the real signal is):\n" + string.Join('\n', problems));
+    }
+
+    private static IEnumerable<string> AllStrings(JsonElement element)
+    {
+        switch (element.ValueKind)
+        {
+            case JsonValueKind.String:
+                yield return element.GetString() ?? "";
+                break;
+            case JsonValueKind.Object:
+                foreach (var property in element.EnumerateObject())
+                {
+                    foreach (var s in AllStrings(property.Value))
+                    {
+                        yield return s;
+                    }
+                }
+
+                break;
+            case JsonValueKind.Array:
+                foreach (var item in element.EnumerateArray())
+                {
+                    foreach (var s in AllStrings(item))
+                    {
+                        yield return s;
+                    }
+                }
+
+                break;
+        }
+    }
 }

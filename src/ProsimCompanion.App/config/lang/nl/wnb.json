@@ -47,7 +47,7 @@
     },
     "summary": {
       "title": "Gewichtsoverzicht",
-      "zfw": "Zero fuel weight (ZFW)",
+      "zfw": "Gewicht zonder brandstof (ZFW)",
       "gw": "Gross weight (GW)",
       "live": "LIVE",
       "valid": "geldig {0}",

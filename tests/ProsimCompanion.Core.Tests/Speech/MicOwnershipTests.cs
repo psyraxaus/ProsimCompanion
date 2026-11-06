@@ -316,22 +316,54 @@ public sealed class MicOwnershipTests
         Assert.Equal(2, probe.Handled); // and resumes after the borrow ends
     }
 
-    // Issue #201: the listen window does not count time while the FO is talking.
+    // Issue #201: the listen window does not count time while the FO is talking. Driven by an
+    // injected clock (review 2026-11-05: this used to be a wall-clock test with a 900 ms sleep).
     [Fact]
     public async Task Listen_DoesNotCountTime_WhileTheFoIsSpeaking()
     {
         var status = new ProsimCompanion.Core.State.SpeechStatusStore();
-        var mic = new MicOwnership(_window, NullLogger<MicOwnership>.Instance, null, status);
+        var clock = new DateTimeOffset(2026, 11, 7, 10, 0, 0, TimeSpan.Zero);
+        var start = clock;
+        var speechStops = start.AddSeconds(9); // the FO talks for nine seconds
+        var mic = new MicOwnership(_window, NullLogger<MicOwnership>.Instance, null, status)
+        {
+            Now = () => clock,
+            Delay = (wait, _) =>
+            {
+                clock += wait;
+                if (clock >= speechStops)
+                {
+                    status.Update(s => s with { NowPlaying = null });
+                }
+
+                return Task.CompletedTask;
+            },
+        };
         status.Update(s => s with { NowPlaying = "Seat belt signs, captain?" });
 
-        var listen = mic.ListenAsync([], TimeSpan.FromMilliseconds(400), CancellationToken.None);
-        await Task.Delay(900);
-        Assert.False(listen.IsCompleted); // 900 ms of FO speech: the 400 ms window is untouched
+        Assert.Null(await mic.ListenAsync([], TimeSpan.FromSeconds(4), CancellationToken.None));
 
-        status.Update(s => s with { NowPlaying = null });
-        var sw = System.Diagnostics.Stopwatch.StartNew();
-        Assert.Null(await listen);        // now the window runs out
-        Assert.InRange(sw.ElapsedMilliseconds, 200, 3000);
+        // Nine seconds of FO speech did not count; the four-second window ran after it (the
+        // slice in which the speech stopped is counted — one 250 ms slice of tolerance).
+        Assert.InRange((clock - start).TotalSeconds, 12.5, 13.5);
+    }
+
+    [Fact]
+    public async Task Listen_HardCap_EndsAWindowTheFoNeverStopsTalkingOver()
+    {
+        var status = new ProsimCompanion.Core.State.SpeechStatusStore();
+        var clock = new DateTimeOffset(2026, 11, 7, 10, 0, 0, TimeSpan.Zero);
+        var start = clock;
+        var mic = new MicOwnership(_window, NullLogger<MicOwnership>.Instance, null, status)
+        {
+            Now = () => clock,
+            Delay = (wait, _) => { clock += wait; return Task.CompletedTask; },
+        };
+        status.Update(s => s with { NowPlaying = "…" }); // never clears
+
+        Assert.Null(await mic.ListenAsync([], TimeSpan.FromSeconds(4), CancellationToken.None));
+        Assert.True((clock - start) >= TimeSpan.FromSeconds(4), "the cap holds at least the timeout");
+        Assert.True((clock - start) <= TimeSpan.FromSeconds(4) + MicOwnership.MaxSpeechFreeze + TimeSpan.FromSeconds(1), "the cap ends the window");
     }
 
     [Fact]

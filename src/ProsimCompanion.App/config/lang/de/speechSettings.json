@@ -1261,7 +1261,7 @@
           "more": "So oder so gehen solche Worte nie ans Sprachmodell und verdienen nie ein 'didn't catch that'. Mit Small Talk an wird nur etwas, das wie eine Frage geformt ist (Fragewort vorn oder ein Fragezeichen vom Erkenner), ans Modell gesendet."
         },
         "flyingOver": {
-          "label": "'What are we flying over?'",
+          "label": "„Was überfliegen wir gerade?“",
           "hint": "Frag 'what are we flying over', 'where are we', 'what is that city on the left'. Der FO nennt das Land, die Berge oder das Meer und die nächsten Orte mit Entfernung und Seite — sofort, aus einem Atlas in der App — und fügt dann ein, zwei Fakten dazu an.",
           "more": "Die Positionszeile kommt aus einem eingebauten Offline-Atlas (Natural-Earth-Umrisse, GeoNames-Orte — zur Quellenangabe siehe das Handbuch), nie aus dem Sprachmodell, braucht also kein Internet und ist für dieselbe Stelle immer gleich. Die Fakten danach kommen vom LLM: mit 'Wikipedia-Fakten' aus, aus seinem eigenen Wissen, wie beim Small Talk (Zahlen ungeprüft, nichts über diesen Flug). Für diese Sätze ist kein Einleitungswort und keine Mindestlänge nötig. Funktioniert auch mit Small Talk aus."
         },
