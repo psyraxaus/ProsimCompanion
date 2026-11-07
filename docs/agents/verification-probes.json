@@ -4411,6 +4411,26 @@
       "notes": "See scenario-fires-and-detects. The exit clear runs in ScenarioService.StopAsync (IHostedService) AFTER the module host disposed the service (review 2026-11-05: the write lock is no longer disposed, so the clear can run); the startup clear-all waits for the ProSim connected edge (it used to run before any session existed and never retried); the ARRIVAL flight-cycle reset clears on GroundOpsSignals.FlightCycleReset (a new-plan reset keeps a Planned plan); all verify by re-reading getArmedFailures(). See scenario-turnaround-leg-planned. Unverified live."
     },
     {
+      "id": "si-comms-history-cursor",
+      "issue": 237,
+      "state": "fixed-unverified",
+      "kind": "watch",
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "Owner's flight EGLL 2026-11-07 (1.0.0-rc.5): the FO sent 'request push and start' (23:55:43Z) and 'request taxi' (00:01:07Z); SayIntentions answered both (its history has 'Push and start approved. Face South.' #100134783 and 'Taxi to holding point runway 27L via A, Link 53, B, Link 28, N1.' #100137176) and the FO read back neither — no sayintentions.atc-line for either. Cause: SayIntentions keeps ONE record per exchange, created when the pilot transmits (stamp_zulu = the pilot's time) and filled with ATC's text 2–3 s later; a getCommsHistory poll landing in that gap saw the record with no ATC text, the since_id marker moved past it, and the reply was never fetched. Nov 1 lost the push approval the same way; Oct 30 happened to catch both.",
+        "assert-present (any ATC exchange): every sayintentions.request is followed by a sayintentions.atc-line whose text is ATC's reply to it, within ~15 s (ATC speaks 2–3 s after the request; the poll fires on the COM1_RECEIVING falling edge as ATC finishes) and then by the read-back (sayintentions.readback kind readback|handoff|none) — the push approval and the taxi clearance in particular.",
+        "assert-present: sayintentions.history-poll events with trigger 'edge' while the FO works the radios on a live sim (one per ATC line that finishes on COM1, broadcasts included); on each the marker never exceeds the highest COMPLETE record and pendingId names the record still waiting for ATC's text when one is.",
+        "assert-present (log, Debug): a 'SayIntentions getCommsHistory (edge|clock): N entr(ies) since #S, marker #M, pending #P, F new ATC line(s)' line per poll — a good poll leaves a trace now.",
+        "assert-absent: an ATC line (a record whose outgoing_message is non-empty in SayIntentions' own history) with no sayintentions.atc-line in the session; the same ATC line raised twice (one atc-line per id); any atc-line for the first poll's backlog or for a new SayIntentions flight's backlog (tracker reset).",
+        "assert-absent: the since_id marker held back for more than 30 s by a pilot-only record (a copilot/FO read-back ATC never answers) — the grace releases it; clock polls faster than every 20 s while edge polls are arriving (API load).",
+        "requires-human: the FO's read-back comes as ATC finishes (not up to 4 s later); SayIntentions ATC accepts it. With MSFS down or SayIntentions not keying L:SIAI_COM1_RECEIVING the clock poll is back at foRadios.pollSeconds (no edge in 5 min) and the read-backs still come, just slower."
+      ],
+      "notes": "Built 2026-11-07 on the owner's live evidence (SI history fetched directly: both replies present; app log: neither seen; the tick loop proven alive by the 'frequency unknown' event at 00:16Z). CommEntry now carries Incoming + StampUtc and IsPendingReply (COM1, pilot text, no ATC text). AssignedFrequencyTracker.ApplyHistory returns the fresh COM1 ATC lines (each id once, a _seen set behind a held marker) and holds LastId below a pending record until it completes or the 30 s PendingGrace (8 polls without a stamp) expires; LastApplyReset marks a new-flight backlog so the monitor seeds instead of speaking. SayIntentionsFrequencyMonitor subscribes L:SIAI_COM1_RECEIVING (the radio-clear gate's L:var) through ISimVars and polls at once on its falling edge (Com1ReceivingEdge, pure); HistoryInterval relaxes the clock poll to 20 s while an edge was seen in the last 5 min, else foRadios.pollSeconds. No new option: the edge poll is the behaviour, the existing pollSeconds is the fallback clock. Unverified live."
+    },
+    {
       "id": "crew-lines-2026-11",
       "issue": 0,
       "state": "fixed-unverified",

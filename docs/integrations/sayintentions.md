@@ -149,6 +149,21 @@ legacy departure gate are inert) and answers every ATC COM1 line the frequency m
   its stamp; the copilot answered in 3 s. The monitor polls every `pollSeconds` (4, floor 3)
   while the switch is on, at the gate too; sayAs is silent on the SI side (owner heard the FO
   once, in the FO voice, with `foSpeaksTransmission` on).
+- **One record per exchange, filled late (2026-11-07, owner's EGLL flight):** SayIntentions
+  creates the `comm_history` record when the pilot transmits (`stamp_zulu` = the pilot's time,
+  `incoming_message` = the pilot's words, `outgoing_message` empty) and writes ATC's reply into
+  the SAME record 2–3 s later (the reply mp3's own stamp). A poll landing in that gap and a
+  `since_id` moved past the record lost the push approval and the taxi clearance for good
+  (`#100134783`, `#100137176`; Nov 1 lost the push approval the same way). Rules now:
+  `CommEntry.IsPendingReply` (COM1 + pilot text + no ATC text) holds the tracker's `since_id`
+  marker below the record until it completes or 30 s pass (a pilot read-back ATC never
+  answers looks identical); records behind a held marker are re-fetched and handed out once.
+  The history is polled on the falling edge of `L:SIAI_COM1_RECEIVING` ("ATC just finished a
+  line") with the clock poll relaxed to 20 s while edges arrive; no edge for 5 min (MSFS down,
+  SI not keying the L:var) and the clock is back at `pollSeconds`. SAPI offers no push feed —
+  REST only, nothing in flight.json carries ATC text — so the edge is the best trigger there is.
+  Trail: Debug line per poll, `sayintentions.history-poll` {trigger, entries, sinceId, marker,
+  pendingId, newLines} on edge polls and non-empty ones. Probe `si-comms-history-cursor`.
 - Pilot-initiated calls (clearance, push, taxi, takeoff requests) stay the voice requests above.
   "I have the radios" parks the FO (the captain answers ATC himself); "you have the radios"
   wakes it. Unverified live: ATC accepting every sayAs read-back, the arrival check-in shapes,

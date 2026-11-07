@@ -37,6 +37,14 @@ public sealed class SayIntentionsFrequencyMonitor : Core.Hosting.IStartupModule,
     private static readonly TimeSpan HistoryPollInterval = TimeSpan.FromSeconds(20);
     private static readonly TimeSpan CorrectFrequencyPollInterval = TimeSpan.FromSeconds(30);
 
+    /// <summary>With the FO on the radios the history is polled on the falling edge of
+    /// <c>L:SIAI_COM1_RECEIVING</c> (<see cref="Com1ReceivingEdge"/>, 2026-11-07) and the clock
+    /// poll drops to this safety interval — while edges keep coming. No edge for
+    /// <see cref="EdgeHealth"/> (MSFS down, SayIntentions not keying the L:var) and the clock
+    /// poll is back at <c>foRadios.pollSeconds</c>.</summary>
+    internal static readonly TimeSpan EdgeSafetyInterval = TimeSpan.FromSeconds(20);
+    internal static readonly TimeSpan EdgeHealth = TimeSpan.FromMinutes(5);
+
     /// <summary>With no successful history poll for this long the assignment may be stale (a
     /// hand-off we never saw) — treated as unknown.</summary>
     private static readonly TimeSpan HistoryFreshness = TimeSpan.FromSeconds(90);
@@ -58,6 +66,13 @@ public sealed class SayIntentionsFrequencyMonitor : Core.Hosting.IStartupModule,
     private IDataRefSubscription<double>? _com1Active;
     private Timer? _timer;
     private int _ticking;
+
+    // Edge-triggered history poll (2026-11-07): optional so the monitor builds without a sim.
+    private readonly ISimVars? _simVars;
+    private readonly Com1ReceivingEdge _edge = new();
+    private IDataRefSubscription<double>? _com1Receiving;
+    private int _pollNow;
+    private DateTimeOffset _lastEdgeUtc = DateTimeOffset.MinValue;
     private DateTimeOffset _lastHistoryPollUtc = DateTimeOffset.MinValue;
     private DateTimeOffset _lastHistoryOkUtc = DateTimeOffset.MinValue;
     private DateTimeOffset _lastCorrectPollUtc = DateTimeOffset.MinValue;
@@ -74,9 +89,11 @@ public sealed class SayIntentionsFrequencyMonitor : Core.Hosting.IStartupModule,
     private long _lastAtcLineId;
 
     /// <summary>One ATC → pilot transmission on COM1 from the comms history, with its hand-off
-    /// when the text carries one. Raised on the monitor's tick thread for every entry newer
-    /// than the last poll — never for the backlog of the first poll. The comms hand-over
-    /// (issue #171) reads taxi clearances and announces hand-offs from it.</summary>
+    /// when the text carries one. Raised on the monitor's tick thread once per entry as its
+    /// ATC text arrives (a record created for the pilot's call and filled in by ATC a few
+    /// seconds later is raised when filled, 2026-11-07) — never for the backlog of the first
+    /// poll or of a new SayIntentions flight. The comms hand-over (issue #171) reads taxi
+    /// clearances and announces hand-offs from it.</summary>
     internal event Action<AtcTransmission>? AtcTransmissionObserved;
 
     /// <summary>The frequency ATC last assigned, as the tracker knows it (null = unknown).</summary>
@@ -90,7 +107,8 @@ public sealed class SayIntentionsFrequencyMonitor : Core.Hosting.IStartupModule,
         JsonlEventLog eventLog,
         ILogger<SayIntentionsFrequencyMonitor> logger,
         Core.Radios.RadioStore? radioStore = null,
-        Core.Aircraft.Ofp.OfpStore? ofp = null)
+        Core.Aircraft.Ofp.OfpStore? ofp = null,
+        ISimVars? simVars = null)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(dataRefs);
@@ -107,12 +125,29 @@ public sealed class SayIntentionsFrequencyMonitor : Core.Hosting.IStartupModule,
         _logger = logger;
         _radioStore = radioStore;
         _ofp = ofp;
+        _simVars = simVars;
     }
 
     public void Start()
     {
         _com1Active = _dataRefs.Subscribe(ProsimDataRefNames.RadioCom1Active);
         _timer = new Timer(_ => _ = TickAsync(), null, TickMs, TickMs);
+        if (_simVars is null)
+        {
+            return;
+        }
+
+        try
+        {
+            // The same L:var the radio-clear gate reads; the sim creates an unknown L:var as 0,
+            // so without SayIntentions it never moves and the clock poll carries on alone.
+            _com1Receiving = _simVars.Subscribe(SayIntentionsLvarNames.Com1Receiving);
+            _com1Receiving.ValueChanged += OnCom1ReceivingChanged;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "SayIntentions COM1_RECEIVING edge unavailable — history polls stay on the clock");
+        }
     }
 
     public void Dispose()
@@ -120,6 +155,38 @@ public sealed class SayIntentionsFrequencyMonitor : Core.Hosting.IStartupModule,
         _timer?.Dispose();
         _shutdown.Cancel();
         _com1Active?.Dispose();
+        if (_com1Receiving is not null)
+        {
+            _com1Receiving.ValueChanged -= OnCom1ReceivingChanged;
+            _com1Receiving.Dispose();
+        }
+    }
+
+    /// <summary>ATC stopped talking on COM1: its line is in the comms history by now — poll
+    /// at once instead of waiting for the clock (the FO answers as ATC finishes, and the poll
+    /// never lands in the seconds before the reply's text reaches the record).</summary>
+    private void OnCom1ReceivingChanged(object? sender, EventArgs e)
+    {
+        var sub = _com1Receiving;
+        if (sub is null)
+        {
+            return;
+        }
+
+        if (sub.IsStale)
+        {
+            _edge.Reset();
+            return;
+        }
+
+        if (!_edge.Step(sub.Value))
+        {
+            return;
+        }
+
+        _lastEdgeUtc = DateTimeOffset.UtcNow;
+        Interlocked.Exchange(ref _pollNow, 1);
+        _ = TickAsync();
     }
 
     /// <summary>Pushback to taxi-in: the window in which the crew is working ATC. At the
@@ -194,13 +261,12 @@ public sealed class SayIntentionsFrequencyMonitor : Core.Hosting.IStartupModule,
             }
 
             var now = DateTimeOffset.UtcNow;
-            var historyInterval = foRadios
-                ? TimeSpan.FromSeconds(Math.Clamp(options.FoRadios.PollSeconds, 3, 20))
-                : HistoryPollInterval;
-            if (now - _lastHistoryPollUtc >= historyInterval)
+            var edgePoll = Interlocked.Exchange(ref _pollNow, 0) == 1;
+            var historyInterval = HistoryInterval(foRadios, options.FoRadios.PollSeconds, now - _lastEdgeUtc);
+            if (edgePoll || now - _lastHistoryPollUtc >= historyInterval)
             {
                 _lastHistoryPollUtc = now;
-                await PollHistoryAsync(apiKey, _shutdown.Token).ConfigureAwait(false);
+                await PollHistoryAsync(apiKey, edgePoll ? "edge" : "clock", _shutdown.Token).ConfigureAwait(false);
             }
 
             if (_tracker.NeedsCorrectFrequency && now - _lastCorrectPollUtc >= CorrectFrequencyPollInterval)
@@ -335,12 +401,27 @@ public sealed class SayIntentionsFrequencyMonitor : Core.Hosting.IStartupModule,
         });
     }
 
-    private async Task PollHistoryAsync(string apiKey, CancellationToken cancellationToken)
+    /// <summary>The clock interval between history polls: 20 s off the FO-radios switch; on it
+    /// the configured seconds, relaxed to <see cref="EdgeSafetyInterval"/> while the
+    /// COM1_RECEIVING edge is delivering polls of its own. Pure for tests.</summary>
+    internal static TimeSpan HistoryInterval(bool foRadios, int pollSeconds, TimeSpan sinceLastEdge)
+    {
+        if (!foRadios)
+        {
+            return HistoryPollInterval;
+        }
+
+        var configured = TimeSpan.FromSeconds(Math.Clamp(pollSeconds, 3, 20));
+        return sinceLastEdge <= EdgeHealth && configured < EdgeSafetyInterval ? EdgeSafetyInterval : configured;
+    }
+
+    private async Task PollHistoryAsync(string apiKey, string trigger, CancellationToken cancellationToken)
     {
         try
         {
-            var since = _tracker.LastId > 0
-                ? "&since_id=" + _tracker.LastId.ToString(CultureInfo.InvariantCulture)
+            var sinceId = _tracker.LastId;
+            var since = sinceId > 0
+                ? "&since_id=" + sinceId.ToString(CultureInfo.InvariantCulture)
                 : "";
             using var response = await Http.GetAsync(
                 $"{ApiBase}/getCommsHistory?api_key={Uri.EscapeDataString(apiKey)}{since}",
@@ -353,8 +434,7 @@ public sealed class SayIntentionsFrequencyMonitor : Core.Hosting.IStartupModule,
 
             var body = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
             var (flightId, entries) = CommHistory.Parse(body);
-            var sinceId = _tracker.LastId;
-            _tracker.ApplyHistory(flightId, entries);
+            var fresh = _tracker.ApplyHistory(flightId, entries);
             _lastHistoryOkUtc = DateTimeOffset.UtcNow;
             if (_historyFailures > 0)
             {
@@ -362,13 +442,32 @@ public sealed class SayIntentionsFrequencyMonitor : Core.Hosting.IStartupModule,
                 _historyFailures = 0;
             }
 
+            // A good poll used to leave no trace at all (EGLL 2026-11-07: two lost clearances and
+            // nothing to read) — every poll is a Debug line, every eventful one a session event.
+            _logger.LogDebug(
+                "SayIntentions getCommsHistory ({Trigger}): {Count} entr(ies) since #{Since}, marker #{Marker}, pending #{Pending}, {Fresh} new ATC line(s)",
+                trigger, entries.Count, sinceId, _tracker.LastId, _tracker.PendingId ?? 0, fresh.Count);
+            if (trigger == "edge" || entries.Count > 0)
+            {
+                _eventLog.Record("sayintentions.history-poll", new
+                {
+                    trigger,
+                    entries = entries.Count,
+                    sinceId,
+                    marker = _tracker.LastId,
+                    pendingId = _tracker.PendingId,
+                    newLines = fresh.Count,
+                    seeded = _historySeeded,
+                });
+            }
+
             PublishLastAtcLine(entries);
 
             // The first poll of a session returns the flight's whole backlog — seed only.
-            // A new SayIntentions flight resets the tracker's id, which re-seeds.
-            if (_voiceWanted && _historySeeded && _tracker.LastId > sinceId)
+            // A new SayIntentions flight resets the tracker, which re-seeds.
+            if (_voiceWanted && _historySeeded && !_tracker.LastApplyReset && fresh.Count > 0)
             {
-                RaiseTransmissions(entries, sinceId);
+                RaiseTransmissions(fresh);
             }
 
             _historySeeded = true;
@@ -423,9 +522,9 @@ public sealed class SayIntentionsFrequencyMonitor : Core.Hosting.IStartupModule,
         _radioStore.Update(s => s with { LastAtcLine = text, LastAtcAtUtc = seen });
     }
 
-    /// <summary>Hands every new COM1 ATC transmission (id above <paramref name="sinceId"/>, in
-    /// id order) to <see cref="AtcTransmissionObserved"/>; a handler fault never stops the poll.</summary>
-    private void RaiseTransmissions(IReadOnlyList<CommEntry> entries, long sinceId)
+    /// <summary>Hands every new COM1 ATC transmission (the tracker's fresh list, in id order)
+    /// to <see cref="AtcTransmissionObserved"/>; a handler fault never stops the poll.</summary>
+    private void RaiseTransmissions(IReadOnlyList<CommEntry> fresh)
     {
         var handler = AtcTransmissionObserved;
         if (handler is null)
@@ -433,17 +532,11 @@ public sealed class SayIntentionsFrequencyMonitor : Core.Hosting.IStartupModule,
             return;
         }
 
-        foreach (var entry in entries.Where(e => e.Id > sinceId).OrderBy(e => e.Id))
+        foreach (var entry in fresh)
         {
-            if (!entry.Channel.Equals("COM1", StringComparison.OrdinalIgnoreCase))
+            if (entry.AtcText is not { } text)
             {
-                continue;
-            }
-
-            var text = string.IsNullOrWhiteSpace(entry.OutgoingEnglish) ? entry.Outgoing : entry.OutgoingEnglish;
-            if (string.IsNullOrWhiteSpace(text))
-            {
-                continue; // pilot → ATC, or an empty line
+                continue; // pilot → ATC, or an empty line (the tracker hands out neither)
             }
 
             var handoff = HandoffParser.Parse(entry.Outgoing) ?? HandoffParser.Parse(entry.OutgoingEnglish);

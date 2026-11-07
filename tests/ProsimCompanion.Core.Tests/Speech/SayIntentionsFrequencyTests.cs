@@ -201,6 +201,167 @@ public sealed class SayIntentionsFrequencyTests
         Assert.Null(tracker.Current);
         Assert.True(tracker.NeedsCorrectFrequency);
         Assert.Equal(5, tracker.LastId);
+        Assert.True(tracker.LastApplyReset);
+    }
+
+    // ---- the pending reply (EGLL 2026-11-07: push approval and taxi clearance both lost) ----
+
+    private static readonly DateTimeOffset Now = new(2026, 11, 6, 23, 55, 46, TimeSpan.Zero);
+
+    /// <summary>SayIntentions' one record per exchange, as the pilot's call creates it.</summary>
+    private static CommEntry Pending(long id, string incoming, DateTimeOffset? stamp = null)
+        => new(id, "COM1", null, null, "Heathrow Ground", incoming, stamp ?? Now.AddSeconds(-1));
+
+    /// <summary>The same record once ATC's reply has landed in it.</summary>
+    private static CommEntry Answered(long id, string incoming, string outgoing, DateTimeOffset? stamp = null)
+        => new(id, "COM1", outgoing, "Speedbird-five-four-eight, " + outgoing, "Heathrow Ground", incoming, stamp ?? Now.AddSeconds(-1));
+
+    [Fact]
+    public void CommHistory_ReadsThePilotsMessageAndTheStamp_BlankIncomingIsNull()
+    {
+        const string body = """
+            {"flight_id":884189196,"comm_history":[
+              {"id":100134783,"channel":"COM1","station_name":"Heathrow Ground","stamp_zulu":"2026-11-06T23:55:45Z",
+               "incoming_message":"Ground, stand 511, request push and start.","outgoing_message":"","outgoing_message_english":null},
+              {"id":100122709,"channel":"COM1","station_name":"Heathrow Ground","stamp_zulu":"2026-11-06T23:28:30Z",
+               "incoming_message":"","outgoing_message":"All aircraft be advised, information Uniform is now current. QNH 1023."}
+            ]}
+            """;
+
+        var (_, entries) = CommHistory.Parse(body);
+
+        Assert.Equal("Ground, stand 511, request push and start.", entries[0].Incoming);
+        Assert.Equal(new DateTimeOffset(2026, 11, 6, 23, 55, 45, TimeSpan.Zero), entries[0].StampUtc);
+        Assert.True(entries[0].IsPendingReply);
+        Assert.Null(entries[0].AtcText);
+        Assert.Null(entries[1].Incoming);
+        Assert.False(entries[1].IsPendingReply);
+        Assert.Equal("All aircraft be advised, information Uniform is now current. QNH 1023.", entries[1].AtcText);
+    }
+
+    [Fact]
+    public void Tracker_HoldsTheMarkerWhileATCsReplyIsPending_AndHandsTheReplyOutOnce()
+    {
+        var tracker = new AssignedFrequencyTracker();
+        tracker.ApplyHistory(1, [Atc(100, "All aircraft, information Uniform is now current.")], Now.AddMinutes(-20));
+        Assert.Equal(100, tracker.LastId);
+
+        // The poll that lands in the gap: the pilot's record exists, ATC's text does not yet.
+        var fresh = tracker.ApplyHistory(1, [Pending(110, "request push and start")], Now);
+        Assert.Empty(fresh);
+        Assert.Equal(100, tracker.LastId); // since_id stays below the record
+        Assert.Equal(110, tracker.PendingId);
+
+        // Next poll: the same record, filled in.
+        fresh = tracker.ApplyHistory(1, [Answered(110, "request push and start", "Push and start approved. Face South.")], Now.AddSeconds(4));
+        Assert.Single(fresh);
+        Assert.Equal(110, fresh[0].Id);
+        Assert.Equal(110, tracker.LastId);
+        Assert.Null(tracker.PendingId);
+
+        // And never again, however often the body repeats it.
+        Assert.Empty(tracker.ApplyHistory(1, [Answered(110, "request push and start", "Push and start approved. Face South.")], Now.AddSeconds(8)));
+    }
+
+    [Fact]
+    public void Tracker_ALineBehindAPendingRecord_IsHandedOutOnce_AndTheMarkerWaits()
+    {
+        var tracker = new AssignedFrequencyTracker();
+        tracker.ApplyHistory(1, [Atc(100, "QNH 1023.")], Now.AddMinutes(-20));
+
+        var fresh = tracker.ApplyHistory(1,
+            [Pending(110, "request taxi"), Atc(120, "All aircraft, information Victor is now current.")], Now);
+        Assert.Single(fresh);
+        Assert.Equal(120, fresh[0].Id);
+        Assert.Equal(100, tracker.LastId); // still held by #110
+
+        // The broadcast comes back with every poll while #110 is pending — not handed out again.
+        fresh = tracker.ApplyHistory(1,
+            [Pending(110, "request taxi"), Atc(120, "All aircraft, information Victor is now current.")], Now.AddSeconds(4));
+        Assert.Empty(fresh);
+
+        fresh = tracker.ApplyHistory(1,
+            [Answered(110, "request taxi", "Taxi to holding point runway 27L via A."), Atc(120, "All aircraft, information Victor is now current.")], Now.AddSeconds(8));
+        Assert.Single(fresh);
+        Assert.Equal(110, fresh[0].Id);
+        Assert.Equal(120, tracker.LastId);
+    }
+
+    [Fact]
+    public void Tracker_APilotReadbackATCNeverAnswers_ReleasesTheMarkerAfterTheGrace()
+    {
+        var tracker = new AssignedFrequencyTracker();
+        tracker.ApplyHistory(1, [Atc(100, "Contact Tower on 118.505.")], Now.AddMinutes(-20));
+
+        // The copilot's "Contacting Tower" is a pilot-only record for good.
+        var stamp = Now;
+        Assert.Empty(tracker.ApplyHistory(1, [Pending(110, "Contacting Tower on 118.505.", stamp)], Now));
+        Assert.Equal(100, tracker.LastId);
+
+        Assert.Empty(tracker.ApplyHistory(1, [Pending(110, "Contacting Tower on 118.505.", stamp)], Now + AssignedFrequencyTracker.PendingGrace));
+        Assert.Equal(100, tracker.LastId); // exactly the grace: still held
+
+        Assert.Empty(tracker.ApplyHistory(1, [Pending(110, "Contacting Tower on 118.505.", stamp)], Now + AssignedFrequencyTracker.PendingGrace + TimeSpan.FromSeconds(2)));
+        Assert.Equal(110, tracker.LastId); // given up: the marker moves on, nothing is spoken
+        Assert.Null(tracker.PendingId);
+    }
+
+    [Fact]
+    public void Tracker_APendingRecordWithoutAStamp_IsGivenUpByPollCount()
+    {
+        var tracker = new AssignedFrequencyTracker();
+        var pending = new CommEntry(110, "COM1", null, null, "Ground", "request taxi", StampUtc: null);
+
+        for (var poll = 0; poll < AssignedFrequencyTracker.PendingGracePolls; poll++)
+        {
+            tracker.ApplyHistory(1, [pending], Now);
+            Assert.Equal(0, tracker.LastId);
+        }
+
+        tracker.ApplyHistory(1, [pending], Now);
+        Assert.Equal(110, tracker.LastId);
+    }
+
+    [Fact]
+    public void Tracker_TheFirstPollsBacklog_IsReturned_ForTheCallerToSeedOn()
+    {
+        var tracker = new AssignedFrequencyTracker();
+
+        var fresh = tracker.ApplyHistory(1,
+            [Atc(10, "Push and start approved."), Atc(20, "Contact Tower on 118.505."), Atc(30, "jetway is operating", channel: "INTERCOM3")], Now);
+
+        Assert.Equal(new long[] { 10, 20 }, fresh.Select(e => e.Id));
+        Assert.False(tracker.LastApplyReset);
+        Assert.Equal(118_505, tracker.Current!.Khz);
+    }
+
+    [Fact]
+    public void Com1ReceivingEdge_FiresOnTheFallingEdgeOnly_NeverOnTheFirstSample()
+    {
+        var edge = new Com1ReceivingEdge();
+
+        Assert.False(edge.Step(1)); // first sample mid-sentence
+        Assert.False(edge.Step(1));
+        Assert.True(edge.Step(0));  // ATC finished
+        Assert.False(edge.Step(0));
+        Assert.False(edge.Step(1)); // ATC starts again
+        Assert.True(edge.Step(0));
+
+        edge.Reset();
+        Assert.False(edge.Step(0)); // after a stale spell the next sample is a first sample
+    }
+
+    [Theory]
+    [InlineData(false, 4, 1, 20)]   // FO radios off: the 20 s clock, edge or not
+    [InlineData(true, 4, 1, 20)]    // FO radios on, edges healthy: the clock relaxes to the safety interval
+    [InlineData(true, 4, 600, 4)]   // no edge for ten minutes: back to the configured poll
+    [InlineData(true, 1, 600, 3)]   // the floor
+    [InlineData(true, 30, 1, 20)]   // the cap
+    public void HistoryInterval_RelaxesToTheSafetyInterval_WhileEdgesAreHealthy(bool foRadios, int pollSeconds, int sinceEdgeSeconds, int expectedSeconds)
+    {
+        var interval = SayIntentionsFrequencyMonitor.HistoryInterval(foRadios, pollSeconds, TimeSpan.FromSeconds(sinceEdgeSeconds));
+
+        Assert.Equal(TimeSpan.FromSeconds(expectedSeconds), interval);
     }
 
     // ---- the timing ----
