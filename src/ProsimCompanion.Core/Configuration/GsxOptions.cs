@@ -597,6 +597,18 @@ public sealed class GsxOptions : IOptionSection, IOptionNormalize
     [OptionField(FieldKind.Bool, "gsxSettings.pushback.callAtReady", DependsOn = "BeaconPushbackSequenceEnabled")]
     public bool CallPushbackOnBeacon { get; set; } = true;
 
+    /// <summary>Before the sequence calls the GSX pushback, the FO asks ATC for push and start
+    /// on COM1 (SayIntentions) and waits for the approval; the direction ATC names ("Face
+    /// South") becomes this flight's pushback choice for GSX's menu (owner request 2026-11-07).
+    /// Inert without SayIntentions on and a filed flight — the push is then called as before.</summary>
+    [OptionField(FieldKind.Bool, "gsxSettings.pushback.requestClearance", DependsOn = "CallPushbackOnBeacon")]
+    public bool RequestPushClearanceOnBeacon { get; set; } = true;
+
+    /// <summary>How long the sequence waits for ATC's approval before it calls the pushback
+    /// anyway — a silent ATC must never leave the aircraft at the gate with the beacon on.</summary>
+    [OptionField(FieldKind.Number, "gsxSettings.pushback.clearanceWait", Suffix = "s", Min = "15", DependsOn = "RequestPushClearanceOnBeacon")]
+    public int PushClearanceWaitSec { get; set; } = 120;
+
     /// <summary>Answer GSX's "Confirm good engine start" entry on the Interrupt-pushback menu
     /// automatically once an engine runs with the park brake set (issue #106). Off leaves that
     /// menu to the pilot — the tug waits until you answer it yourself. Had no switch until the

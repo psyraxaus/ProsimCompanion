@@ -156,7 +156,9 @@
       "title": "Pushback",
       "beacon": { "label": "Beacon-orchestrated pushback sequence", "hint": "Beacon on runs the pushback sequence.", "more": "Wait for the APU, close the doors, retract the jetway, clear the equipment, then push back." },
       "callAtReady": { "label": "Call pushback at ready-for-push", "hint": "Call the pushback when everything is ready.", "more": "Off: the sequence prepares everything and leaves the call to you." },
-      "confirmEngineStart": { "label": "Confirm good engine start", "hint": "Answer GSX's 'Confirm good engine start' for you once an engine runs with the park brake set.", "more": "Off: GSX's Interrupt-pushback menu waits until you answer it yourself. The tug stays connected until then." }
+      "confirmEngineStart": { "label": "Confirm good engine start", "hint": "Answer GSX's 'Confirm good engine start' for you once an engine runs with the park brake set.", "more": "Off: GSX's Interrupt-pushback menu waits until you answer it yourself. The tug stays connected until then." },
+      "requestClearance": { "label": "Ask ATC for push and start first", "hint": "Before the pushback is called, the FO asks ATC for push and start on COM1 and waits for the approval.", "more": "Needs SayIntentions on with a filed flight; without it the push is called as before. The direction ATC names ('face south') becomes this flight's pushback choice for GSX's menu. A clearance you already asked for by voice is honoured." },
+      "clearanceWait": { "label": "Push clearance wait", "hint": "How long to wait for ATC's approval before calling the pushback anyway." }
     },
     "beaconDelays": {
       "title": "Beacon Sequence Delays",

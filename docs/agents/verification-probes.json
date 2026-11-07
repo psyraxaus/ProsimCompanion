@@ -4411,6 +4411,26 @@
       "notes": "See scenario-fires-and-detects. The exit clear runs in ScenarioService.StopAsync (IHostedService) AFTER the module host disposed the service (review 2026-11-05: the write lock is no longer disposed, so the clear can run); the startup clear-all waits for the ProSim connected edge (it used to run before any session existed and never retried); the ARRIVAL flight-cycle reset clears on GroundOpsSignals.FlightCycleReset (a new-plan reset keeps a Planned plan); all verify by re-reading getArmedFailures(). See scenario-turnaround-leg-planned. Unverified live."
     },
     {
+      "id": "gsx-beacon-push-clearance",
+      "issue": 0,
+      "state": "fixed-unverified",
+      "kind": "watch",
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "Owner request 2026-11-07: with the beacon-orchestrated pushback the FO asks ATC for push and start BEFORE the GSX pushback is called (gsx.requestPushClearanceOnBeacon, default on; gsx.pushClearanceWaitSec 120), and the direction ATC names ('Face South') is handed to GSX's pushback-direction menu as this flight's choice.",
+        "assert-present (beacon sequence ran, SayIntentions on): gsx-decision rows in this order — 'pushback sequence: clearing ground equipment — ready for push' → 'pushback sequence: ready for push — requesting push and start from ATC (waiting up to N s)' → 'push clearance: request push and start transmitted to ATC' → sayintentions.request {message ending 'request push and start'} → sayintentions.atc-line with ATC's approval → sayintentions.push-clearance {state: Approved, text, facingDeg} → 'pushback sequence: ATC approved push and start — calling pushback' → 'pushback sequence: calling pushback' → the GSX Departure/pushback service Requested. The GSX call never precedes the approval (or the timeout line).",
+        "assert-present (ATC named a direction): pushback-choice / gsx-question 'pushback direction menu' rows that pick the line facing ATC's direction with source 'atc' (reason 'ATC: \"…\" — facing south'), no 'asked the pilot' question for that push; the FO's 'Pushback — which way?' is NOT asked.",
+        "assert-present (captain asked by voice first): sayintentions.push-clearance {state: Requested} from the voice request, then the sequence's 'push and start already requested by the pilot — waiting …' (no second sayintentions.request); or with the approval already in: 'push and start already approved by ATC — calling pushback'.",
+        "assert-absent: two 'request push and start' transmissions in one departure; a pushback call while sayintentions.push-clearance is Requested/Held and the wait has not run out; 'no push approval from ATC in time — calling pushback anyway' on a flight where ATC did approve (that line is the timeout path — if it fires, check si-comms-history-cursor first: the approval may have been lost by the poll).",
+        "assert-absent (SayIntentions off / no flight / no key): any 'requesting push and start' decision — the sequence calls the pushback at ready-for-push exactly as before (RequestClearance false when the radio is unavailable).",
+        "requires-human: the FO's request comes once the equipment is clear and the beacon is on; ATC's approval is read back; the tug pushes the way ATC said; a hold ('expect a five minute delay') is waited through ('ATC holds the push — waiting for the approval' once) and the push follows the later approval."
+      ],
+      "notes": "Built 2026-11-07. Core: IPushClearanceRadio {Available, Current, RequestPushAndStartAsync}, PushClearanceParser (approval / hold / facing — live shapes 'Push and start approved. Face South.' / 'Face North-West.'), PushClearanceTracker (None → Requested → Approved|Held; an approval without a request counts; a second request after approval changes nothing). Speech: PushClearanceRadio (IStartupModule; SayIntentionsService.TransmitRequestByPhraseAsync('request push and start') + RequestTransmitted event for voice requests; AtcTransmissionObserved → tracker; approval with a direction → PushbackChoiceStore.Choose(PushbackChoice.Facing(deg, 'atc', …)); reset on GroundOpsSignals.FlightCycleReset; event sayintentions.push-clearance). Gsx: PushbackSequencer step AwaitingPushClearance + action RequestPushClearance (Inputs RequestClearance / Clearance / ClearanceWaitSec; approval or timeout → back to ReadyForPush with the clearance settled → CallPushback next tick; hold noted once; beacon off pauses); gatherer + applier take the optional radio; RequestPushClearanceEffect. Options on the GSX → Pushback page with texts in all seven packs. Tests PushClearanceTests, PushbackSequenceClearanceTests. Unverified live."
+    },
+    {
       "id": "si-comms-history-cursor",
       "issue": 237,
       "state": "fixed-unverified",

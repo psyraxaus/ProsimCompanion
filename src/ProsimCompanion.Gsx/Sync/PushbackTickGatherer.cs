@@ -64,6 +64,10 @@ public sealed class PushbackTickGatherer : IDisposable
     private readonly IDataRefSubscription<double> _pushbackStatus;
     private readonly IDataRefSubscription<double> _bypassPin;
 
+    // The ATC radio for the push clearance (2026-11-07): optional — without it the sequence
+    // calls the pushback as before.
+    private readonly Core.Radios.IPushClearanceRadio? _clearanceRadio;
+
     public PushbackTickGatherer(
         IGsxRemoteApi api,
         IGsxServiceLifecycleView lifecycle,
@@ -73,8 +77,10 @@ public sealed class PushbackTickGatherer : IDisposable
         IOptionsMonitor<GsxOptions> options,
         LoadsheetStore loadsheets,
         IFlightPhaseSource flight,
-        IGroundFactsSource groundFacts)
+        IGroundFactsSource groundFacts,
+        Core.Radios.IPushClearanceRadio? clearanceRadio = null)
     {
+        _clearanceRadio = clearanceRadio;
         ArgumentNullException.ThrowIfNull(api);
         ArgumentNullException.ThrowIfNull(lifecycle);
         ArgumentNullException.ThrowIfNull(automation);
@@ -150,7 +156,10 @@ public sealed class PushbackTickGatherer : IDisposable
                 ApuRunning: data?.ApuRunning == true,
                 AnyDoorOpen: _ground.AnyDoorOpen,
                 CallPushback: options.CallPushbackOnBeacon,
-                PushbackCallable: pushbackCallable),
+                PushbackCallable: pushbackCallable,
+                RequestClearance: options.RequestPushClearanceOnBeacon && _clearanceRadio is { Available: true },
+                Clearance: _clearanceRadio?.Current.State ?? Core.Radios.PushClearanceState.None,
+                ClearanceWaitSec: options.PushClearanceWaitSec),
             Delays: new PushbackSequencer.Delays(
                 options.SeqDoorsCloseDelayMinSec, options.SeqDoorsCloseDelayMaxSec,
                 options.SeqJetwayRetractDelayMinSec, options.SeqJetwayRetractDelayMaxSec,

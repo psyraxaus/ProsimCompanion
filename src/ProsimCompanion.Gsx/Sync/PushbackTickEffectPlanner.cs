@@ -130,6 +130,9 @@ internal static class PushbackTickEffectPlanner
                 case PushbackAction.RemoveGroundEquipment:
                     effects.Add(new RemoveGroundEquipmentEffect());
                     break;
+                case PushbackAction.RequestPushClearance:
+                    effects.Add(new RequestPushClearanceEffect());
+                    break;
                 case PushbackAction.CallPushback:
                     effects.Add(new CallPushbackEffect());
                     break;

@@ -176,6 +176,11 @@ public static class SpeechServiceCollectionExtensions
         services.AddStartupModule<SayIntentions.SayIntentionsFrequencyMonitor>();
         // The FO works the radios (owner request 2026-10-25): read-backs, hand-off tune, check-in.
         services.AddStartupModule<SayIntentions.FoRadiosService>();
+        // The push-and-start clearance for the beacon-orchestrated pushback (owner request
+        // 2026-11-07): the GSX sequence asks ATC through this Core seam before it calls the tug.
+        services.AddStartupModule<SayIntentions.PushClearanceRadio>();
+        services.AddSingleton<Core.Radios.IPushClearanceRadio>(
+            p => p.GetRequiredService<SayIntentions.PushClearanceRadio>());
         // PTT relay (2026-10-10): a ProSim push-to-talk switch keys the SI control LVAR.
         services.AddStartupModule<SayIntentions.SayIntentionsPttRelay>();
         // Weather/CPDLC pulls are on-demand only (web Weather page) — no bootstrap Start,

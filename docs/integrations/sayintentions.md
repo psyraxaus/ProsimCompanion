@@ -164,6 +164,17 @@ legacy departure gate are inert) and answers every ATC COM1 line the frequency m
   REST only, nothing in flight.json carries ATC text — so the edge is the best trigger there is.
   Trail: Debug line per poll, `sayintentions.history-poll` {trigger, entries, sinceId, marker,
   pendingId, newLines} on edge polls and non-empty ones. Probe `si-comms-history-cursor`.
+- **Push clearance for the beacon sequence (owner request 2026-11-07):** `PushClearanceRadio`
+  implements Core `IPushClearanceRadio` — the GSX pushback sequencer asks ATC for push and start
+  (the catalog's "request push and start", exactly as the voice request goes) at ready-for-push
+  and waits for the approval (`gsx.pushClearanceWaitSec`, 120 s) before it calls the tug.
+  `PushClearanceParser` reads the approval ("Push and start approved. Face South." /
+  "Face North-West."), a hold ("hold position, expect a five minute delay") and the facing;
+  `PushClearanceTracker` is the pure state (an approval without a request counts — the captain
+  may have asked by voice; `SayIntentionsService.RequestTransmitted` notes voice requests so the
+  sequence never asks twice). ATC's facing → `PushbackChoiceStore.Choose(Facing(deg, "atc"))`,
+  so GSX's direction menu is answered with ATC's words. Events `sayintentions.push-clearance`
+  {state, text, facingDeg}. Probe `gsx-beacon-push-clearance`. Unverified live.
 - Pilot-initiated calls (clearance, push, taxi, takeoff requests) stay the voice requests above.
   "I have the radios" parks the FO (the captain answers ATC himself); "you have the radios"
   wakes it. Unverified live: ATC accepting every sayAs read-back, the arrival check-in shapes,

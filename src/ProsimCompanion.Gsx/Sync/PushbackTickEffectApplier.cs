@@ -25,6 +25,7 @@ public sealed class PushbackTickEffectApplier : IPushbackTickEffectApplier
     private readonly GsxDiagnosticsStore _diagnostics;
     private readonly GroundOpsSignals _signals;
     private readonly ILogger<GsxPushbackSequenceService> _logger;
+    private readonly Core.Radios.IPushClearanceRadio? _clearanceRadio;
     private int _confirming;
 
     public PushbackTickEffectApplier(
@@ -33,7 +34,8 @@ public sealed class PushbackTickEffectApplier : IPushbackTickEffectApplier
         PushbackTickLatches latches,
         GsxDiagnosticsStore diagnostics,
         GroundOpsSignals signals,
-        ILogger<GsxPushbackSequenceService> logger)
+        ILogger<GsxPushbackSequenceService> logger,
+        Core.Radios.IPushClearanceRadio? clearanceRadio = null)
     {
         ArgumentNullException.ThrowIfNull(ground);
         ArgumentNullException.ThrowIfNull(slot);
@@ -47,6 +49,7 @@ public sealed class PushbackTickEffectApplier : IPushbackTickEffectApplier
         _diagnostics = diagnostics;
         _signals = signals;
         _logger = logger;
+        _clearanceRadio = clearanceRadio;
     }
 
     void IPushbackTickEffectApplier.Apply(PushbackTickEffect effect) => Apply(effect);
@@ -90,6 +93,9 @@ public sealed class PushbackTickEffectApplier : IPushbackTickEffectApplier
             case CallPushbackEffect:
                 _ = Guard(CallPushbackAsync, "call pushback");
                 break;
+            case RequestPushClearanceEffect:
+                _ = Guard(RequestPushClearanceAsync, "request push clearance");
+                break;
             case RunDepartureJetwayStepEffect:
                 _ = _ground.RunDepartureJetwayStep();
                 break;
@@ -120,6 +126,23 @@ public sealed class PushbackTickEffectApplier : IPushbackTickEffectApplier
         {
             _logger.LogError(ex, "Pushback sequence action {Action} failed", name);
         }
+    }
+
+    /// <summary>The FO's "request push and start" to ATC (2026-11-07). The sequencer times the
+    /// wait for the approval itself; a radio that could not send is a decision-log line and the
+    /// sequence pushes at the timeout as it would for a silent ATC.</summary>
+    private async Task RequestPushClearanceAsync()
+    {
+        if (_clearanceRadio is null)
+        {
+            RecordDecision("push clearance", "no ATC radio — pushback goes ahead without a clearance");
+            return;
+        }
+
+        var sent = await _clearanceRadio.RequestPushAndStartAsync().ConfigureAwait(false);
+        RecordDecision("push clearance", sent
+            ? "request push and start transmitted to ATC"
+            : "request could not be transmitted — waiting out the clearance timeout");
     }
 
     /// <summary>Retry-once (campaign #77): pushback was the only sender with NO retry — a

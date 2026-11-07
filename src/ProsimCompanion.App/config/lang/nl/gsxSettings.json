@@ -156,7 +156,9 @@
       "title": "Pushback",
       "beacon": { "label": "Beacon-gestuurde pushbacksequentie", "hint": "Beacon aan start de pushbacksequentie.", "more": "Wachten op de APU, de deuren sluiten, de aviobrug intrekken, het materieel weghalen, dan terugduwen." },
       "callAtReady": { "label": "Pushback oproepen bij klaar-voor-push", "hint": "De pushback oproepen als alles klaar is.", "more": "Uit: de sequentie bereidt alles voor en laat de oproep aan jou." },
-      "confirmEngineStart": { "label": "Goede motorstart bevestigen", "hint": "GSX's 'Confirm good engine start' voor je beantwoorden zodra een motor draait met de parkeerrem gezet.", "more": "Uit: GSX's Interrupt-pushback-menu wacht tot je het zelf beantwoordt. De trekker blijft tot dan aangekoppeld." }
+      "confirmEngineStart": { "label": "Goede motorstart bevestigen", "hint": "GSX's 'Confirm good engine start' voor je beantwoorden zodra een motor draait met de parkeerrem gezet.", "more": "Uit: GSX's Interrupt-pushback-menu wacht tot je het zelf beantwoordt. De trekker blijft tot dan aangekoppeld." },
+      "requestClearance": { "label": "Eerst ATC om push and start vragen", "hint": "Voor de pushback wordt geroepen vraagt de FO ATC op COM1 om push and start en wacht op de goedkeuring.", "more": "Vereist SayIntentions aan met een ingediende vlucht; zonder wordt de push geroepen als voorheen. De richting die ATC noemt ('face south') wordt de pushbackkeuze van deze vlucht voor het GSX-menu. Een al per stem gevraagde klaring wordt gerespecteerd." },
+      "clearanceWait": { "label": "Wachttijd push-klaring", "hint": "Hoe lang op de goedkeuring van ATC wordt gewacht voordat de pushback toch wordt geroepen." }
     },
     "beaconDelays": {
       "title": "Vertragingen van de beacon-sequentie",

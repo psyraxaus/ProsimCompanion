@@ -1237,6 +1237,10 @@ The owner's EGLL leg on rc.4 (2026-11-06) and the plan
       pilot's comms-history record with ATC's text 2–3 s late and `since_id` skipped it; the
       tracker holds the marker below a pending record and the monitor polls on the falling
       edge of `L:SIAI_COM1_RECEIVING` (probe `si-comms-history-cursor`).
+- [x] rc.6: the beacon-orchestrated pushback asks ATC for push and start before it calls the
+      GSX tug and hands ATC's direction to the pushback menu (Core `IPushClearanceRadio`,
+      Speech `PushClearanceRadio`, sequencer step `AwaitingPushClearance`; probe
+      `gsx-beacon-push-clearance`).
 
 ## Open items (after the code review, 2026-11-03)
 

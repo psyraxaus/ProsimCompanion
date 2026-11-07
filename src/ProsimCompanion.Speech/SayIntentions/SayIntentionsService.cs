@@ -282,6 +282,67 @@ public sealed class SayIntentionsService : IVoiceFeature, Core.Hosting.IStartupM
         return true;
     }
 
+    /// <summary>Every request that went out on COM1 (voice or the beacon sequence), after sayAs —
+    /// the push-clearance radio notes "requested" from it.</summary>
+    internal event Action<AtcRequestDefinition>? RequestTransmitted;
+
+    /// <summary>True when a request can go out now: pillar on, a flight filed, a key at hand.</summary>
+    internal bool CanTransmitRequests
+    {
+        get
+        {
+            var options = _options.CurrentValue;
+            if (!options.Enabled)
+            {
+                return false;
+            }
+
+            FlightContext flight;
+            lock (_gate)
+            {
+                flight = _flight;
+            }
+
+            return flight.IsActive && ResolveApiKey(flight, options) is not null;
+        }
+    }
+
+    /// <summary>Transmits the catalog request one of whose phrases is <paramref name="phrase"/>
+    /// exactly as a spoken request would go — acknowledgement, radio-clear gate, the FO's
+    /// voice, sayAs. False when there is no such request, no active flight or no key. The
+    /// beacon-orchestrated pushback asks for push and start through this (2026-11-07).</summary>
+    internal async Task<bool> TransmitRequestByPhraseAsync(string phrase)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(phrase);
+        var options = _options.CurrentValue;
+        var text = CommandMatcher.Normalize(phrase);
+        var request = _requests.FirstOrDefault(r =>
+            r.Phrases.Any(p => CommandMatcher.Normalize(p).Equals(text, StringComparison.Ordinal)));
+        if (request is null || !options.Enabled)
+        {
+            return false;
+        }
+
+        FlightContext flight;
+        lock (_gate)
+        {
+            flight = _flight;
+        }
+
+        if (!flight.IsActive || ResolveApiKey(flight, options) is null)
+        {
+            return false;
+        }
+
+        _ = _arbiter.EnqueueAsync(new SpeechRequest(
+            PickAcknowledgement(request.Station),
+            SpeechPriority.Normal,
+            Ttl: TimeSpan.FromSeconds(20),
+            Tag: "sayintentions.ack"));
+        await TransmitRequestAsync(request, flight, options).ConfigureAwait(false);
+        return true;
+    }
+
     /// <summary>"I have the radios" / "you have the radios": the pilot flips the owner.</summary>
     private bool TryHandleOverride(string normalized, SayIntentionsOptions options)
     {
@@ -393,6 +454,15 @@ public sealed class SayIntentionsService : IVoiceFeature, Core.Hosting.IStartupM
             }
 
             await SayAsAsync(apiKey, message).ConfigureAwait(false);
+            try
+            {
+                RequestTransmitted?.Invoke(request);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "A request-transmitted listener failed");
+            }
+
             _eventLog.Record("sayintentions.request", new
             {
                 station = request.Station,

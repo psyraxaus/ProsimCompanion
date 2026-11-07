@@ -156,7 +156,9 @@
       "title": "Pushback",
       "beacon": { "label": "Séquence de pushback orchestrée par le beacon", "hint": "Beacon allumé lance la séquence de pushback.", "more": "Attendre l'APU, fermer les portes, rétracter la passerelle, dégager les équipements, puis repousser." },
       "callAtReady": { "label": "Appeler le pushback une fois prêt", "hint": "Appeler le pushback quand tout est prêt.", "more": "Désactivé : la séquence prépare tout et te laisse l'appel." },
-      "confirmEngineStart": { "label": "Confirmer le bon démarrage moteur", "hint": "Répondre au 'Confirm good engine start' de GSX pour toi dès qu'un moteur tourne avec le frein de parc serré.", "more": "Désactivé : le menu Interrupt-pushback de GSX attend que tu y répondes toi-même. Le tracteur reste attelé jusque-là." }
+      "confirmEngineStart": { "label": "Confirmer le bon démarrage moteur", "hint": "Répondre au 'Confirm good engine start' de GSX pour toi dès qu'un moteur tourne avec le frein de parc serré.", "more": "Désactivé : le menu Interrupt-pushback de GSX attend que tu y répondes toi-même. Le tracteur reste attelé jusque-là." },
+      "requestClearance": { "label": "Demander d'abord le push and start à l'ATC", "hint": "Avant l'appel du pushback, l'OPL demande le push and start à l'ATC sur COM1 et attend l'approbation.", "more": "Nécessite SayIntentions actif avec un vol déposé ; sans lui le push est appelé comme avant. La direction nommée par l'ATC (« face south ») devient le choix de pushback de ce vol pour le menu GSX. Une clairance déjà demandée à la voix est respectée." },
+      "clearanceWait": { "label": "Attente de la clairance de push", "hint": "Combien de temps attendre l'approbation de l'ATC avant d'appeler le pushback malgré tout." }
     },
     "beaconDelays": {
       "title": "Délais de la séquence beacon",

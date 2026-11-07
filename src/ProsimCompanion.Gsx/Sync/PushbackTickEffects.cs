@@ -33,6 +33,9 @@ internal sealed record RemoveGroundEquipmentEffect : PushbackTickEffect;
 /// <summary>Call GSX Pushback through the trigger slot (retry-once, campaign #77).</summary>
 internal sealed record CallPushbackEffect : PushbackTickEffect;
 
+/// <summary>The FO asks ATC for push and start on COM1 before the pushback call (2026-11-07).</summary>
+internal sealed record RequestPushClearanceEffect : PushbackTickEffect;
+
 /// <summary>The departure-phase jetway/stairs connect step (#9).</summary>
 internal sealed record RunDepartureJetwayStepEffect : PushbackTickEffect;
 

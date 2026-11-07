@@ -1,8 +1,8 @@
+using ProsimCompanion.Core.Radios;
+
 namespace ProsimCompanion.Gsx.Automation;
 
-/// <summary>Steps of the beacon-orchestrated departure sequence (the predecessor's proven
-/// order): beacon on → wait for APU → close doors → retract jetway/stairs → clear ground
-/// equipment → call pushback.</summary>
+/// <summary>Where the beacon-orchestrated pushback sequence stands.</summary>
 public enum PushbackSequenceStep
 {
     Idle,
@@ -11,6 +11,10 @@ public enum PushbackSequenceStep
     JetwayStep,
     GpuStep,
     ReadyForPush,
+
+    /// <summary>Everything is ready; the FO has asked ATC for push and start and the sequence
+    /// waits for the approval (or its timeout) before it calls the GSX pushback (2026-11-07).</summary>
+    AwaitingPushClearance,
     PushbackCalled,
 }
 
@@ -21,11 +25,12 @@ public enum PushbackAction
     CloseDoors,
     RetractJetwayStairs,
     RemoveGroundEquipment,
+
+    /// <summary>Transmit "request push and start" to ATC (the FO on COM1).</summary>
+    RequestPushClearance,
     CallPushback,
 }
 
-/// <summary>One tick's outcome: the action to execute (at most one per tick) and an optional
-/// human-readable transition to decision-log.</summary>
 public readonly record struct PushbackTickResult(PushbackAction Action, string? Transition);
 
 /// <summary>
@@ -33,6 +38,11 @@ public readonly record struct PushbackTickResult(PushbackAction Action, string? 
 /// <see cref="Tick"/> once per second with live inputs and executes the returned action.
 /// Beacon off (or APU stopping) pauses mid-sequence exactly like the predecessor; each
 /// delayed step gets a randomized crew-realism delay from the injected picker.
+/// <para>Since 2026-11-07 (owner request) the sequence asks ATC for push and start before it
+/// calls the GSX pushback when the radio is there: ready-for-push → request → approval (or
+/// the timeout) → pushback. A clearance the captain already obtained by voice is honoured
+/// (state Approved on arrival skips the request); a hold ("expect a five minute delay") is
+/// waited through; a silent ATC never blocks the push past the timeout.</para>
 /// </summary>
 public sealed class PushbackSequencer
 {
@@ -40,6 +50,8 @@ public sealed class PushbackSequencer
     private int _remainingTicks;
     private bool _readyAnnounced;
     private bool _waitingAnnounced;
+    private bool _holdAnnounced;
+    private bool _clearanceSettled;
 
     /// <param name="pickDelaySeconds">Returns a delay in seconds within [min, max] — inject a
     /// seeded picker in tests.</param>
@@ -59,13 +71,20 @@ public sealed class PushbackSequencer
     /// <param name="AnyDoorOpen">Any entry/cargo door open in ProSim.</param>
     /// <param name="CallPushback">Option: call the GSX Pushback service at ready-for-push.</param>
     /// <param name="PushbackCallable">The GSX Pushback service exists and is callable.</param>
+    /// <param name="RequestClearance">Option on AND the push-clearance radio is available —
+    /// ask ATC before the pushback call.</param>
+    /// <param name="Clearance">The push clearance as the radio knows it this cycle.</param>
+    /// <param name="ClearanceWaitSec">How long to wait for ATC's approval before pushing anyway.</param>
     public readonly record struct Inputs(
         bool Armed,
         bool BeaconOn,
         bool ApuRunning,
         bool AnyDoorOpen,
         bool CallPushback,
-        bool PushbackCallable);
+        bool PushbackCallable,
+        bool RequestClearance = false,
+        PushClearanceState Clearance = PushClearanceState.None,
+        int ClearanceWaitSec = 120);
 
     /// <summary>Delay bounds for the three timed steps, in seconds.</summary>
     public readonly record struct Delays(
@@ -153,6 +172,22 @@ public sealed class PushbackSequencer
                     _readyAnnounced = true;
                     return new(PushbackAction.None, "ready for push — pushback call left to the pilot (gsx.callPushbackOnBeacon off)");
                 }
+                if (inputs.RequestClearance && !_clearanceSettled)
+                {
+                    // ATC first (owner request 2026-11-07). An approval already in hand — the
+                    // captain asked by voice — is honoured without a second call.
+                    if (inputs.Clearance == PushClearanceState.Approved)
+                    {
+                        _clearanceSettled = true;
+                        return new(PushbackAction.None, "push and start already approved by ATC — calling pushback");
+                    }
+
+                    Step = PushbackSequenceStep.AwaitingPushClearance;
+                    _remainingTicks = Math.Max(15, inputs.ClearanceWaitSec);
+                    return inputs.Clearance == PushClearanceState.Requested
+                        ? new(PushbackAction.None, $"push and start already requested by the pilot — waiting up to {_remainingTicks}s for ATC")
+                        : new(PushbackAction.RequestPushClearance, $"ready for push — requesting push and start from ATC (waiting up to {_remainingTicks}s)");
+                }
                 if (inputs.PushbackCallable)
                 {
                     Step = PushbackSequenceStep.PushbackCalled;
@@ -168,6 +203,30 @@ public sealed class PushbackSequencer
                 }
                 return default;
 
+            case PushbackSequenceStep.AwaitingPushClearance:
+                if (!inputs.BeaconOn)
+                {
+                    return default; // pause; the clearance keeps
+                }
+                if (inputs.Clearance == PushClearanceState.Approved)
+                {
+                    _clearanceSettled = true;
+                    Step = PushbackSequenceStep.ReadyForPush;
+                    return new(PushbackAction.None, "ATC approved push and start — calling pushback");
+                }
+                if (inputs.Clearance == PushClearanceState.Held && !_holdAnnounced)
+                {
+                    _holdAnnounced = true;
+                    return new(PushbackAction.None, "ATC holds the push — waiting for the approval");
+                }
+                if (--_remainingTicks > 0)
+                {
+                    return default;
+                }
+                _clearanceSettled = true;
+                Step = PushbackSequenceStep.ReadyForPush;
+                return new(PushbackAction.None, "no push approval from ATC in time — calling pushback anyway");
+
             default: // PushbackCalled — GSX's own flow owns it from here
                 return default;
         }
@@ -180,6 +239,8 @@ public sealed class PushbackSequencer
         _remainingTicks = 0;
         _readyAnnounced = false;
         _waitingAnnounced = false;
+        _holdAnnounced = false;
+        _clearanceSettled = false;
     }
 
     private static bool CanAdvance(Inputs inputs) => inputs.BeaconOn && inputs.ApuRunning;

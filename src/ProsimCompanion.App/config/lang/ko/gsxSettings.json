@@ -156,7 +156,9 @@
       "title": "푸시백",
       "beacon": { "label": "비컨 연동 푸시백 시퀀스", "hint": "비컨 켜짐이 푸시백 시퀀스를 실행합니다.", "more": "APU를 기다리고, 도어를 닫고, 탑승교를 철수하고, 장비를 치운 뒤 푸시백합니다." },
       "callAtReady": { "label": "푸시 준비 완료 시 푸시백 호출", "hint": "모든 준비가 끝나면 푸시백을 호출합니다.", "more": "꺼짐: 시퀀스가 모든 준비를 하고 호출은 당신에게 맡깁니다." },
-      "confirmEngineStart": { "label": "엔진 시동 정상 확인", "hint": "주차 브레이크가 설정된 상태로 엔진이 돌면 GSX의 'Confirm good engine start'에 대신 답합니다.", "more": "꺼짐: GSX의 Interrupt-pushback 메뉴는 당신이 직접 답할 때까지 기다립니다. 그때까지 토잉카는 연결된 채로 있습니다." }
+      "confirmEngineStart": { "label": "엔진 시동 정상 확인", "hint": "주차 브레이크가 설정된 상태로 엔진이 돌면 GSX의 'Confirm good engine start'에 대신 답합니다.", "more": "꺼짐: GSX의 Interrupt-pushback 메뉴는 당신이 직접 답할 때까지 기다립니다. 그때까지 토잉카는 연결된 채로 있습니다." },
+      "requestClearance": { "label": "먼저 ATC에 푸시 앤 스타트 요청", "hint": "푸시백을 부르기 전에 FO가 COM1로 ATC에 푸시 앤 스타트를 요청하고 승인을 기다립니다.", "more": "SayIntentions가 켜져 있고 비행이 제출되어야 합니다. 없으면 이전처럼 푸시를 부릅니다. ATC가 말한 방향('face south')이 이 비행의 GSX 메뉴 푸시백 선택이 됩니다. 이미 음성으로 요청한 허가는 그대로 인정됩니다." },
+      "clearanceWait": { "label": "푸시 허가 대기", "hint": "ATC 승인을 얼마나 기다린 뒤 그래도 푸시백을 부를지." }
     },
     "beaconDelays": {
       "title": "비컨 시퀀스 지연",

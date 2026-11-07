@@ -156,7 +156,9 @@
       "title": "Pushback",
       "beacon": { "label": "Secuencia de pushback orquestada por el beacon", "hint": "Beacon encendido ejecuta la secuencia de pushback.", "more": "Esperar a la APU, cerrar las puertas, retraer la pasarela, retirar los equipos y luego empujar." },
       "callAtReady": { "label": "Llamar al pushback al estar listo para empujar", "hint": "Llamar al pushback cuando todo está listo.", "more": "Apagado: la secuencia lo prepara todo y te deja la llamada a ti." },
-      "confirmEngineStart": { "label": "Confirmar buen arranque de motor", "hint": "Responder al 'Confirm good engine start' de GSX por ti cuando un motor gira con el freno de aparcamiento puesto.", "more": "Apagado: el menú Interrupt-pushback de GSX espera hasta que lo respondas tú. El tractor sigue enganchado hasta entonces." }
+      "confirmEngineStart": { "label": "Confirmar buen arranque de motor", "hint": "Responder al 'Confirm good engine start' de GSX por ti cuando un motor gira con el freno de aparcamiento puesto.", "more": "Apagado: el menú Interrupt-pushback de GSX espera hasta que lo respondas tú. El tractor sigue enganchado hasta entonces." },
+      "requestClearance": { "label": "Pedir primero push and start a ATC", "hint": "Antes de llamar al pushback, el FO pide push and start a ATC en COM1 y espera la aprobación.", "more": "Necesita SayIntentions activo con un vuelo presentado; sin él el push se llama como antes. La dirección que nombra ATC ('face south') pasa a ser la elección de pushback de este vuelo para el menú de GSX. Una autorización ya pedida por voz se respeta." },
+      "clearanceWait": { "label": "Espera de la autorización de push", "hint": "Cuánto esperar la aprobación de ATC antes de llamar al pushback de todos modos." }
     },
     "beaconDelays": {
       "title": "Retardos de la secuencia de beacon",

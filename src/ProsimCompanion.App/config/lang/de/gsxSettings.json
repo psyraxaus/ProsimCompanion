@@ -156,7 +156,9 @@
       "title": "Pushback",
       "beacon": { "label": "Beacon-gesteuerte Pushback-Sequenz", "hint": "Beacon ein startet die Pushback-Sequenz.", "more": "Auf die APU warten, die Türen schließen, die Brücke einfahren, die Geräte entfernen, dann zurückschieben." },
       "callAtReady": { "label": "Pushback bei Push-Bereitschaft rufen", "hint": "Den Pushback rufen, wenn alles bereit ist.", "more": "Aus: die Sequenz bereitet alles vor und überlässt dir den Ruf." },
-      "confirmEngineStart": { "label": "Guten Triebwerksstart bestätigen", "hint": "GSXs 'Confirm good engine start' für dich beantworten, sobald ein Triebwerk mit gesetzter Parkbremse läuft.", "more": "Aus: GSXs Interrupt-pushback-Menü wartet, bis du es selbst beantwortest. Der Schlepper bleibt bis dahin angekoppelt." }
+      "confirmEngineStart": { "label": "Guten Triebwerksstart bestätigen", "hint": "GSXs 'Confirm good engine start' für dich beantworten, sobald ein Triebwerk mit gesetzter Parkbremse läuft.", "more": "Aus: GSXs Interrupt-pushback-Menü wartet, bis du es selbst beantwortest. Der Schlepper bleibt bis dahin angekoppelt." },
+      "requestClearance": { "label": "Erst ATC um Push and Start bitten", "hint": "Vor dem Pushback-Aufruf bittet der FO ATC auf COM1 um Push and Start und wartet auf die Freigabe.", "more": "Braucht SayIntentions mit angemeldetem Flug; ohne wird der Push wie bisher gerufen. Die von ATC genannte Richtung ('face south') wird die Pushback-Wahl dieses Flugs für das GSX-Menü. Eine schon per Stimme erbetene Freigabe wird übernommen." },
+      "clearanceWait": { "label": "Wartezeit auf die Push-Freigabe", "hint": "Wie lange auf die ATC-Freigabe gewartet wird, bevor der Pushback trotzdem gerufen wird." }
     },
     "beaconDelays": {
       "title": "Verzögerungen der Beacon-Sequenz",
