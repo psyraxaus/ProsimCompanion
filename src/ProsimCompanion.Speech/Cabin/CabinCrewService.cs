@@ -559,7 +559,7 @@ public sealed class CabinCrewService : Core.Hosting.IStartupModule, IDisposable,
         {
             try
             {
-                await _playback.PlayChimeAsync("cabin", _shutdown.Token).ConfigureAwait(false);
+                await _playback.PlayChimeAsync("cabin", _shutdown.Token, "cabin call").ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {

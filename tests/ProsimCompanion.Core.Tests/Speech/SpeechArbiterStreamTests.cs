@@ -68,7 +68,7 @@ public sealed class SpeechArbiterStreamTests : IDisposable
             }
         }
 
-        public Task PlayChimeAsync(string chimeId, CancellationToken cancellationToken) => Task.CompletedTask;
+        public Task PlayChimeAsync(string chimeId, CancellationToken cancellationToken, string? reason = null) => Task.CompletedTask;
 
         public string[] Snapshot()
         {

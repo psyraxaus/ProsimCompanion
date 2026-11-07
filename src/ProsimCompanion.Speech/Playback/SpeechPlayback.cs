@@ -22,8 +22,11 @@ public interface ISpeechPlayback
 
     /// <summary>Plays a short programmatic cue chime by id ("cabin" interphone ding-dong,
     /// "company"/"acars" data beep). Unknown ids and any failure are a quiet no-op — a chime
-    /// never breaks speech. The intercom filter is never applied (a chime is not voice).</summary>
-    Task PlayChimeAsync(string chimeId, CancellationToken cancellationToken);
+    /// never breaks speech. The intercom filter is never applied (a chime is not voice).
+    /// <paramref name="reason"/> names the caller for the trail: every chime is an Information
+    /// line and an <c>audio.chime</c> session event (owner 2026-11-07: a stray ding-dong in the
+    /// headset with nothing in the log to match it to).</summary>
+    Task PlayChimeAsync(string chimeId, CancellationToken cancellationToken, string? reason = null);
 }
 
 /// <summary>
@@ -36,14 +39,16 @@ public sealed class SpeechPlayback : ISpeechPlayback
 {
     private readonly IOptionsMonitor<SpeechOptions> _options;
     private readonly ILogger<SpeechPlayback> _logger;
+    private readonly Core.EventLog.JsonlEventLog? _eventLog;
 
-    public SpeechPlayback(IOptionsMonitor<SpeechOptions> options, ILogger<SpeechPlayback> logger)
+    public SpeechPlayback(IOptionsMonitor<SpeechOptions> options, ILogger<SpeechPlayback> logger, Core.EventLog.JsonlEventLog? eventLog = null)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(logger);
 
         _options = options;
         _logger = logger;
+        _eventLog = eventLog;
     }
 
     public Task PlayAsync(byte[] wavBytes, CancellationToken cancellationToken, bool? overrideIntercomFilter = null)
@@ -53,12 +58,22 @@ public sealed class SpeechPlayback : ISpeechPlayback
             overrideIntercomFilter ?? _options.CurrentValue.IntercomFilter,
             cancellationToken);
 
-    public Task PlayChimeAsync(string chimeId, CancellationToken cancellationToken)
+    public Task PlayChimeAsync(string chimeId, CancellationToken cancellationToken, string? reason = null)
     {
         var wav = ChimeSynth.Build(chimeId);
-        return wav is null
-            ? Task.CompletedTask
-            : PlayCoreAsync(wav, applyIntercomFilter: false, cancellationToken);
+        if (wav is null)
+        {
+            return Task.CompletedTask;
+        }
+
+        // The one place every programmatic tone goes through: name it, so a chime heard in the
+        // headset can always be matched to its cause — or ruled out as not ours.
+        var why = string.IsNullOrWhiteSpace(reason) ? "unnamed" : reason.Trim();
+        var device = _options.CurrentValue.OutputDevice;
+        _logger.LogInformation("Chime {Chime} played ({Reason}) on output {Device}",
+            chimeId, why, string.IsNullOrWhiteSpace(device) ? "default" : device);
+        _eventLog?.Record("audio.chime", new { chime = chimeId, reason = why, device });
+        return PlayCoreAsync(wav, applyIntercomFilter: false, cancellationToken);
     }
 
     private async Task PlayCoreAsync(byte[] wavBytes, bool applyIntercomFilter, CancellationToken cancellationToken)

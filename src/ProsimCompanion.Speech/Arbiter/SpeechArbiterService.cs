@@ -431,7 +431,7 @@ public sealed class SpeechArbiterService : ISpeechArbiter, ISpeechControl, IDisp
         {
             try
             {
-                await _playback.PlayChimeAsync(request.Chime!, token).ConfigureAwait(false);
+                await _playback.PlayChimeAsync(request.Chime!, token, request.Tag ?? "speech").ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {

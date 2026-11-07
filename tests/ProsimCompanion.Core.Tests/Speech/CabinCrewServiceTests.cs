@@ -50,7 +50,7 @@ public sealed class CabinCrewServiceTests : IDisposable
         var options = new Mock<IOptionsMonitor<CabinOptions>>();
         options.SetupGet(o => o.CurrentValue).Returns(() => _options);
         var playback = new Mock<ISpeechPlayback>();
-        playback.Setup(p => p.PlayChimeAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+        playback.Setup(p => p.PlayChimeAsync(It.IsAny<string>(), It.IsAny<CancellationToken>(), It.IsAny<string?>())).Returns(Task.CompletedTask);
         _signals.CabinSecured += () => _secured++;
 
         _service = new CabinCrewService(

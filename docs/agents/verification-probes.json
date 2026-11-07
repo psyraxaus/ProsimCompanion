@@ -4411,6 +4411,23 @@
       "notes": "See scenario-fires-and-detects. The exit clear runs in ScenarioService.StopAsync (IHostedService) AFTER the module host disposed the service (review 2026-11-05: the write lock is no longer disposed, so the clear can run); the startup clear-all waits for the ProSim connected edge (it used to run before any session existed and never retried); the ARRIVAL flight-cycle reset clears on GroundOpsSignals.FlightCycleReset (a new-plan reset keeps a Planned plan); all verify by re-reading getArmedFailures(). See scenario-turnaround-leg-planned. Unverified live."
     },
     {
+      "id": "audio-chime-trail",
+      "issue": 0,
+      "state": "fixed-unverified",
+      "kind": "watch",
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "Owner 2026-11-07: a stray ding-dong in the headset 'like the app launch sound' with nothing in the log to match it to. The app plays exactly two programmatic tones through SpeechPlayback.PlayChimeAsync — 'cabin' (the interphone ding-dong E5→C5, also the startup ding) and 'company'/'acars' (the C6 double beep); nothing else in the app makes a sound but TTS speech. Every chime is now an Information log line 'Chime {Chime} played ({Reason}) on output {Device}' and a session event audio.chime {chime, reason, device}. Reasons: 'cabin ding: startup', 'cabin ding: final loadsheet' (CabinDingService), 'cabin call' (the purser's calls, CabinCrewService), and the SpeechRequest tag for a chime riding ahead of an utterance (cabin.boarding.ack, company.*).",
+        "assert-present: one audio.chime {chime: cabin, reason: 'cabin ding: startup'} at app start when cabin.dingOnStartup is on; one audio.chime {reason: 'cabin call'} per cabin.calling; one {reason: 'cabin ding: final loadsheet'} per final loadsheet going Sent (resends ding again, by design).",
+        "assert-absent: a chime the owner heard with NO audio.chime event within ±2 s — then the sound is not this app's (candidates on the rig: ProSim's own chimes from the MECH / CAB call datarefs we press — those are ground.calling / cabin.calling events —, SayIntentions, GSX, Windows device-connect sounds when the vJoy relay acquires its device: 'vJoy relay ready' log lines).",
+        "requires-human: when the stray sound plays, note the time; the match (or its absence) in audio.chime / ground.calling / cabin.calling / 'vJoy relay ready' decides where it comes from."
+      ],
+      "notes": "Built 2026-11-07. ISpeechPlayback.PlayChimeAsync(chimeId, ct, reason) — the single choke point; SpeechPlayback takes an optional JsonlEventLog. The voice-provider checks (voice lists, the Kokoro health probe, TtsPrewarmService) are HTTP-only and never touch the output device. Unverified live."
+    },
+    {
       "id": "gsx-beacon-push-clearance",
       "issue": 0,
       "state": "fixed-unverified",

@@ -79,8 +79,7 @@ public sealed class CabinDingService : IHostedService, IDisposable
         {
             try
             {
-                await _playback.PlayChimeAsync("cabin", _shutdown.Token).ConfigureAwait(false);
-                _logger.LogDebug("Cabin ding played ({Reason})", reason);
+                await _playback.PlayChimeAsync("cabin", _shutdown.Token, "cabin ding: " + reason).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {
