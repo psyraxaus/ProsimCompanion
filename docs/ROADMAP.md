@@ -1212,7 +1212,7 @@ model) proposed seven fix packages; all seven are in rc.4, on `fix/branch-review
       recording of a restart after boarding; the owner's decision on the `fixed-unverified`
       probe state; the whole batch is **unflown**.
 
-## Phase 16 — Voice package and the first-plan pushback fix (1.0.0-rc.5)
+## Phase 16 — Voice package and the first-plan pushback fix (1.0.0-rc.5 – rc.6)
 
 The owner's EGLL leg on rc.4 (2026-11-06) and the plan
 `docs/plans/2026-11-07-voice-vocabulary-and-ground-crew.md`, all on `fix/branch-review-2026-11-05`:
@@ -1232,6 +1232,11 @@ The owner's EGLL leg on rc.4 (2026-11-06) and the plan
       `crew-lines-2026-11`).
 - [ ] Rig steps (owner): ramp crew off in SayIntentions, GSX's own crew audio off; confirm
       `VEHICLE_PUSHBACK_STATE` 11 means "push complete" from the decision log. **Unflown.**
+
+- [x] rc.6: the FO reads ATC back after its own calls again (#237) — SayIntentions fills the
+      pilot's comms-history record with ATC's text 2–3 s late and `since_id` skipped it; the
+      tracker holds the marker below a pending record and the monitor polls on the falling
+      edge of `L:SIAI_COM1_RECEIVING` (probe `si-comms-history-cursor`).
 
 ## Open items (after the code review, 2026-11-03)
 

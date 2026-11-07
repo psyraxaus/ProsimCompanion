@@ -1,6 +1,10 @@
 # Changelog
 
-## Unreleased
+## 1.0.0-rc.6
+
+Pre-release for testers, 2026-11-07 (over 1.0.0-rc.5, which flew the owner's EGLL leg the same day). **Not flown yet.** One live fix from that leg.
+
+**For testers.** Call for push and taxi by voice as before; the FO should now read ATC back as ATC finishes speaking, every time. Logs page → **Export diagnostics** after the flight, please.
 
 - Fixed: **the FO did not read ATC back after a call it made itself** (#237, owner's flight EGLL 2026-11-07, 1.0.0-rc.5: "Push and start approved" and the taxi clearance both unanswered; the push approval was lost the same way on 2026-11-01). SayIntentions keeps one history record per exchange — made when the pilot transmits, filled with ATC's words two to three seconds later. A poll that landed in that gap saw the record without ATC's text, moved the "read up to here" marker past it, and never asked for it again. The marker now waits below a record that is still missing ATC's text (for up to 30 s — a read-back ATC never answers releases it), lines behind it are handed out once, and the history is polled **the moment ATC stops talking** (the falling edge of SayIntentions' `L:SIAI_COM1_RECEIVING`, the same variable the radio-clear gate reads) instead of on a 4 s clock — the FO answers as ATC finishes, the poll never lands in the gap, and the clock poll relaxes to every 20 s while the edges keep coming. Every poll is a Debug line and every eventful one a `sayintentions.history-poll` session event, so a silent FO leaves a trail. Probe `si-comms-history-cursor`.
 
