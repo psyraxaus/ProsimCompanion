@@ -155,11 +155,30 @@
     "pushback": {
       "title": "Pushback",
       "beacon": { "label": "Beacon-gestuurde pushbacksequentie", "hint": "Beacon aan start de pushbacksequentie.", "more": "Wachten op de APU, de deuren sluiten, de aviobrug intrekken, het materieel weghalen, dan terugduwen." },
-      "callAtReady": { "label": "Pushback oproepen bij klaar-voor-push", "hint": "De pushback oproepen als alles klaar is.", "more": "Uit: de sequentie bereidt alles voor en laat de oproep aan jou." },
+      "stepDoors": { "label": "Deuren sluiten", "hint": "Stap 1. Elke open deur sluiten." },
+      "stepJetway": { "label": "Slurf of trappen wegnemen", "hint": "Stap 2. De slurf intrekken of de trappen weghalen." },
+      "stepEquipment": { "label": "Grondmaterieel weghalen", "hint": "Stap 3. Grondstroom, wielblokken en klimaatlucht weghalen." },
+      "callAtReady": { "label": "Pushback roepen", "hint": "Stap 5. De GSX-pushback roepen als alles klaar is.", "more": "Uit: de oproep wacht op jouw woord. Zeg 'request pushback' tegen de First Officer of 'ready for pushback' tegen de grond, druk op een Stream Deck-toets of gebruik het menu van GSX. Een vroeg gedaan verzoek blijft staan tot de reeks klaar is." },
       "confirmEngineStart": { "label": "Goede motorstart bevestigen", "hint": "GSX's 'Confirm good engine start' voor je beantwoorden zodra een motor draait met de parkeerrem gezet.", "more": "Uit: GSX's Interrupt-pushback-menu wacht tot je het zelf beantwoordt. De trekker blijft tot dan aangekoppeld." },
-      "requestClearance": { "label": "Eerst ATC om push and start vragen", "hint": "Voor de pushback wordt geroepen vraagt de FO ATC op COM1 om push and start en wacht op de goedkeuring.", "more": "Vereist SayIntentions aan met een ingediende vlucht; zonder wordt de push geroepen als voorheen. De richting die ATC noemt ('face south') wordt de pushbackkeuze van deze vlucht voor het GSX-menu. Een al per stem gevraagde klaring wordt gerespecteerd." },
+      "requestClearance": { "label": "ATC om push and start vragen", "hint": "Stap 4. De FO vraagt ATC op COM1 om push and start en wacht op de goedkeuring.", "more": "Vereist SayIntentions met een ingediende vlucht; zonder wordt deze stap overgeslagen. De richting die ATC noemt ('face south') wordt de pushbackkeuze van deze vlucht voor het GSX-menu. Een klaring die je al met je stem vroeg, wordt overgenomen. Werkt ook met 'Pushback roepen' uit." },
       "clearanceWait": { "label": "Wachttijd push-klaring", "hint": "Hoe lang op de goedkeuring van ATC wordt gewacht voordat de pushback toch wordt geroepen." }
     },
+    "pushbackSteps": {
+      "title": "Stappen van de beaconreeks",
+      "hint": "Elke stap heeft een eigen schakelaar. Een uitgeschakelde stap wordt overgeslagen en blijft bij jou."
+    },
+    "voices": {
+      "title": "Stemmen van de gronddiensten",
+      "hint": "De stemmen dempen die over GSX-gronddiensten spreken",
+      "master": { "label": "Stemmen van de gronddiensten", "hint": "Eén schakelaar voor elke stem die uit zichzelf over een gronddienst spreekt.", "more": "Uit: de oproepen van de grondploeg, de pushbackploeg, de instap- en uitstapmeldingen van de purser en de GSX-meldingen van de First Officer zwijgen. De automatisering loopt door. Vragen die jouw antwoord nodig hebben, worden nog gesteld, en antwoorden op je eigen spraakverzoeken worden nog gesproken." },
+      "voiceControl": { "label": "Spraakverzoeken voor gronddiensten", "hint": "Diensten met je stem aanvragen: 'request boarding', 'cockpit to ground', 'request pushback'.", "more": "Uit: er wordt niet naar de gronddienstzinnen geluisterd, en de First Officer stelt geen vraag hardop — antwoord op de statuspagina of in het menu van GSX." },
+      "parkingConflict": { "label": "Melding parkeerpositie", "hint": "De First Officer meldt het als GSX de parkeerpositie niet herkent." },
+      "droppedCall": { "label": "Melding gemiste oproep", "hint": "De First Officer meldt het als de grond een dienstoproep niet heeft opgepakt." }
+    },
+    "voicesGround": { "title": "Grondploeg", "hint": "Oproepen van de grondploeg via de interphone", "moreBefore": "Tekst, interphone en walkaround:", "moreLink": "Crew & Company → Grondploeg" },
+    "voicesCabin": { "title": "Cabinepersoneel", "hint": "De gronddienstmeldingen van de purser", "moreBefore": "Alle instellingen van het cabinepersoneel:", "moreLink": "Crew & Company → Cabinepersoneel" },
+    "voicesFo": { "title": "Meldingen van de First Officer", "hint": "Wat de First Officer je ongevraagd over GSX vertelt" },
+    "voicesQuestions": { "title": "Vragen", "hint": "Deze hebben jouw antwoord nodig, dus de hoofdschakelaar stopt ze niet. Uit: het menu van GSX wacht op jou." },
     "beaconDelays": {
       "title": "Vertragingen van de beacon-sequentie",
       "hint": "Willekeurige wachttijden tussen de stappen, voor realisme",

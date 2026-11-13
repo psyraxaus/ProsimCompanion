@@ -159,7 +159,10 @@ public sealed class PushbackTickGatherer : IDisposable
                 PushbackCallable: pushbackCallable,
                 RequestClearance: options.RequestPushClearanceOnBeacon && _clearanceRadio is { Available: true },
                 Clearance: _clearanceRadio?.Current.State ?? Core.Radios.PushClearanceState.None,
-                ClearanceWaitSec: options.PushClearanceWaitSec),
+                ClearanceWaitSec: options.PushClearanceWaitSec,
+                CloseDoors: options.SeqCloseDoors,
+                RetractJetway: options.SeqRetractJetway,
+                RemoveEquipment: options.SeqRemoveEquipment),
             Delays: new PushbackSequencer.Delays(
                 options.SeqDoorsCloseDelayMinSec, options.SeqDoorsCloseDelayMaxSec,
                 options.SeqJetwayRetractDelayMinSec, options.SeqJetwayRetractDelayMaxSec,

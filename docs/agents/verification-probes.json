@@ -4448,6 +4448,46 @@
       "notes": "Built 2026-11-07. Core: IPushClearanceRadio {Available, Current, RequestPushAndStartAsync}, PushClearanceParser (approval / hold / facing — live shapes 'Push and start approved. Face South.' / 'Face North-West.'), PushClearanceTracker (None → Requested → Approved|Held; an approval without a request counts; a second request after approval changes nothing). Speech: PushClearanceRadio (IStartupModule; SayIntentionsService.TransmitRequestByPhraseAsync('request push and start') + RequestTransmitted event for voice requests; AtcTransmissionObserved → tracker; approval with a direction → PushbackChoiceStore.Choose(PushbackChoice.Facing(deg, 'atc', …)); reset on GroundOpsSignals.FlightCycleReset; event sayintentions.push-clearance). Gsx: PushbackSequencer step AwaitingPushClearance + action RequestPushClearance (Inputs RequestClearance / Clearance / ClearanceWaitSec; approval or timeout → back to ReadyForPush with the clearance settled → CallPushback next tick; hold noted once; beacon off pauses); gatherer + applier take the optional radio; RequestPushClearanceEffect. Options on the GSX → Pushback page with texts in all seven packs. Tests PushClearanceTests, PushbackSequenceClearanceTests. Unverified live."
     },
     {
+      "id": "gsx-beacon-step-switches",
+      "issue": 0,
+      "state": "fixed-unverified",
+      "kind": "watch",
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "Owner request 2026-11-14 (flight with gsx.callPushbackOnBeacon off: the FO asked ATC only because the captain told it to, and the GSX menu was the only way to start the push): every step of the beacon-orchestrated pushback has its own switch (gsx.seqCloseDoors, gsx.seqRetractJetway, gsx.seqRemoveEquipment, gsx.requestPushClearanceOnBeacon, gsx.callPushbackOnBeacon), the ATC request no longer needs the pushback call, and with the automatic call off the pilot's own request calls the tug.",
+        "assert-present (callPushbackOnBeacon off, SayIntentions on): gsx-decision rows 'pushback sequence: … ready for push' → 'ready for push — requesting push and start from ATC (waiting up to N s)' → 'ATC approved push and start — the pushback call stays with the pilot' → 'ready for push — pushback call left to the pilot (gsx.callPushbackOnBeacon off): say 'request pushback' or use the GSX menu' (once).",
+        "assert-present (the captain then says 'request pushback' to the FO, or 'ready for pushback' to ground, or presses the gsx.requestPushback key): 'pushback sequence: pushback requested by the pilot — the tug is called at ready-for-push' (once per segment) → 'pushback sequence: calling pushback — requested by the pilot' → the GSX Departure service Requested. The command answers success ('Pushback requested …'), never preconditionFailed, while gsx.beaconPushbackSequenceEnabled is on.",
+        "assert-present (a request made BEFORE the sequence is ready): the 'requested by the pilot' row first, the door / jetway / equipment rows after it, then 'calling pushback — requested by the pilot' — the request is kept, the tug is never called before ready-for-push.",
+        "assert-present (a step switched off): its action row is absent and the log says so — 'doors left to the pilot; …', 'jetway/stairs left to the pilot; …', 'ground equipment left to the pilot — ready for push', or 'APU running — no further preparation step is switched on — ready for push' with all three off. No delay is spent on a skipped step.",
+        "assert-absent: a GSX Departure/pushback service Requested with callPushbackOnBeacon off and no 'requested by the pilot' row (and no GSX-menu request by hand); a 'closing doors' / 'retracting jetway/stairs' / 'clearing ground equipment' row for a step whose switch is off; 'calling pushback' before 'ready for push'.",
+        "assert-absent (beacon sequence off): 'requested by the pilot' — the command answers 'The beacon pushback sequence is disabled … request pushback from the GSX menu.'",
+        "requires-human: with the call off the tug comes on the captain's word and not before; the pushback crew's 'Copied — stand by for the tug.' is now followed by a tug."
+      ],
+      "notes": "Built 2026-11-14. PushbackSequencer.Inputs gain CloseDoors / RetractJetway / RemoveEquipment / PushbackRequested; Advance() picks the next step whose switch is on (a skipped step costs no delay); the clearance block runs before the call-mode check; WillCall = CallPushback || PushbackRequested. PushbackTickLatches.RequestPushback / PushbackRequested (cleared by ResetForSegment); GsxPushbackSequenceService joins the latch to the gathered inputs; GsxServiceControl.RequestPushback latches instead of refusing (AlreadySatisfied when the service is pending or completed; NotCallable only with the beacon sequence off). PushbackCrewService 'ready for pushback' also runs gsx.requestPushback. Options on GSX → Pushback → Beacon Sequence Steps, texts in all seven packs. Tests PushbackSequencerTests (step switches, pilot request), GsxServiceControlTests. Unverified live."
+    },
+    {
+      "id": "gsx-ground-voices-master",
+      "issue": 0,
+      "state": "fixed-unverified",
+      "kind": "watch",
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "Owner report 2026-11-14: 'I can't seem to turn off our voices for the GSX messaging.' One switch (gsx.groundVoicesEnabled, Ground Services → Voices) silences every voice that speaks on its own about a ground service; the page lists each line's own switch, and three lines that had none got one (gsx.announceParkingConflict, gsx.announceDroppedCalls, cabin.cabinEmptyReport). gsx.voiceControlEnabled has a control now.",
+        "assert-absent (gsx.groundVoicesEnabled off, a full turnaround flown): speech.spoken with tag ground.upcall.* (ground power, chocks, fuelling in progress, refuelling complete, catering, de-icing), ground.pushback.* (the pushback crew), cabin.boarding-complete, the cabin-empty tag, the FO's parking-conflict and dropped-call advisories, the cold-and-dark mismatch read-out; no ground.pushback.crew and no cabin.empty session events; no MECH call press for an upcall.",
+        "assert-present (gsx.groundVoicesEnabled off): the GSX automation unchanged — every gsx-decision row of the departure and pushback as on a normal flight; the captain's questions still asked ('Tail left or tail right?', a split gate) and the FO's replies to the captain's own requests ('Refueling requested.') still spoken; the purser's cabin secure / cabin ready reports still spoken (they are not ground-service lines).",
+        "assert-present (master on, one line off): only that line absent — gsx.announceDroppedCalls off: a dropped call still writes its gsx-decision / Status row but no fo.dropped-call-advisory session event and no advisory; gsx.announceParkingConflict off: no fo.parking-conflict-advisory; cabin.cabinEmptyReport off: no cabin.empty.",
+        "assert-present (an on-demand cold-and-dark re-check with the master off): the FO still answers — the pilot asked.",
+        "requires-human: the Voices section is found from the settings search with 'mute', 'silence' or 'voices'; every switch there shows the same value as its twin on the Crew & Company pages after Save."
+      ],
+      "notes": "Built 2026-11-14. GsxOptions.GroundVoicesEnabled (default on) read by GroundCrewUpcallService (tick + de-ice), PushbackCrewService.Enabled, CabinCrewService (boarding complete, cabin empty), ParkingConflictAdvisoryService, DroppedCallAdvisoryService (each takes an optional IOptionsMonitor<GsxOptions>; absent = on) and AircraftStateCheckService (AnnounceMismatches). New options AnnounceParkingConflict, AnnounceDroppedCalls (GsxOptions), CabinEmptyReport (CabinOptions); VoiceControlEnabled gets its [OptionField]. Web: GsxSettings section 'voices' (rail item settings.nav.gsx.voices) over three drafts (gsx, groundCrew, cabin); the Pushback Crew card has its title; 'Enabled' labels replaced by 'Ground crew voices' / 'Pushback crew voice'. Texts in all seven packs. Unverified live."
+    },
+    {
       "id": "si-comms-history-cursor",
       "issue": 237,
       "state": "fixed-unverified",

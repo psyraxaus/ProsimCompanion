@@ -20,7 +20,7 @@ public sealed partial class SettingsPagesRenderTests
         var data = new TheoryData<string, string>();
         foreach (var fixture in new[] { "defaults", "configured" })
         {
-            foreach (var section in new[] { "doors", "equipment", "departure", "refuel", "pushback", "arrival", "operators", "questions", "connection" })
+            foreach (var section in new[] { "doors", "equipment", "departure", "refuel", "pushback", "arrival", "operators", "questions", "voices", "connection" })
             {
                 data.Add(section, fixture);
             }
@@ -54,7 +54,11 @@ public sealed partial class SettingsPagesRenderTests
             Deice = { AutoRequest = configured ? GsxDeiceOptions.AutoRequestAsk : GsxDeiceOptions.AutoRequestOff, OatThresholdC = configured ? 12 : 3 },
             PcaMode = configured ? "onlyJetway" : "",
             AutoPca = configured,
+            GroundVoicesEnabled = !configured,
         });
+        // The Voices section shows the crew pages' own switches (2026-11-14).
+        Options(services, new GroundCrewOptions { Enabled = !configured });
+        Options(services, new CabinOptions { Enabled = !configured });
         AddProfileMirror(services);
         services.AddSingleton<SwitchCatalogStore>();
 

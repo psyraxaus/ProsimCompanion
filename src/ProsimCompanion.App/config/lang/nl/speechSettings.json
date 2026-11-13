@@ -407,10 +407,14 @@
     "groundCrew": {
       "title": "Grondcrew",
       "hint": "Roep de grondcrew op en hoor hun oproepen",
+      "enabled": { "label": "Stemmen van de grondploeg", "hint": "De grondploeg beantwoordt je oproep en roept de cockpit." },
+      "allVoicesBefore": "Alle stemmen van de gronddiensten in één lijst:",
+      "allVoicesLink": "Gronddiensten → Stemmen",
       "pushbackCrew": {
         "title": "Pushbackploeg",
         "hint": "De platformmedewerker begeleidt de pushback over de interfoon",
         "enabled": {
+          "label": "Stem van de pushbackploeg",
           "hint": "Brug weg en deuren gecontroleerd, trekker aangekoppeld met het verzoek om de remmen, pushback vrij met de richting van deze vlucht, motorstart vrij, pushback voltooid, goede start bevestigd, pin eruit en vrij.",
           "more": "Eén regel per stap van de GSX-pushback, elk eenmaal. Gesproken met de grondstem en de interfoonklank; MECH-oproep, INT geselecteerd of de wachttijd gelden zoals bij de oproepen. Zet de platformploeg in SayIntentions en de eigen ploegaudio van GSX uit zodat maar één ploeg spreekt."
         },
@@ -511,6 +515,7 @@
       }
     },
     "cabin": {
+      "cabinEmpty": { "label": "Melding cabine leeg", "hint": "De purser meldt 'Cabin's empty, captain' als het uitstappen klaar is." },
       "boardingComplete": {
         "label": "Melding instappen voltooid",
         "hint": "Als het instappen klaar is en de laatste deur sluit: 'boarding complete, N on board, doors closed'. De melding cabine veilig volgt met haar eigen timer."

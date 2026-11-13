@@ -155,11 +155,30 @@
     "pushback": {
       "title": "Pushback",
       "beacon": { "label": "Beacon-orchestrated pushback sequence", "hint": "Beacon on runs the pushback sequence.", "more": "Wait for the APU, close the doors, retract the jetway, clear the equipment, then push back." },
-      "callAtReady": { "label": "Call pushback at ready-for-push", "hint": "Call the pushback when everything is ready.", "more": "Off: the sequence prepares everything and leaves the call to you." },
+      "stepDoors": { "label": "Close the doors", "hint": "Step 1. Close every open door." },
+      "stepJetway": { "label": "Retract the jetway or stairs", "hint": "Step 2. Retract the jetway or remove the stairs." },
+      "stepEquipment": { "label": "Clear the ground equipment", "hint": "Step 3. Remove ground power, chocks and conditioned air." },
+      "callAtReady": { "label": "Call the pushback", "hint": "Step 5. Call the GSX pushback when everything is ready.", "more": "Off: the call waits for your word. Say 'request pushback' to the First Officer or 'ready for pushback' to ground, press a Stream Deck key, or use GSX's own menu. A request made early is kept until the sequence is ready." },
       "confirmEngineStart": { "label": "Confirm good engine start", "hint": "Answer GSX's 'Confirm good engine start' for you once an engine runs with the park brake set.", "more": "Off: GSX's Interrupt-pushback menu waits until you answer it yourself. The tug stays connected until then." },
-      "requestClearance": { "label": "Ask ATC for push and start first", "hint": "Before the pushback is called, the FO asks ATC for push and start on COM1 and waits for the approval.", "more": "Needs SayIntentions on with a filed flight; without it the push is called as before. The direction ATC names ('face south') becomes this flight's pushback choice for GSX's menu. A clearance you already asked for by voice is honoured." },
+      "requestClearance": { "label": "Ask ATC for push and start", "hint": "Step 4. The FO asks ATC for push and start on COM1 and waits for the approval.", "more": "Needs SayIntentions on with a filed flight; without it this step is skipped. The direction ATC names ('face south') becomes this flight's pushback choice for GSX's menu. A clearance you already asked for by voice is honoured. Works also with 'Call the pushback' off." },
       "clearanceWait": { "label": "Push clearance wait", "hint": "How long to wait for ATC's approval before calling the pushback anyway." }
     },
+    "pushbackSteps": {
+      "title": "Beacon Sequence Steps",
+      "hint": "Each step has its own switch. A step that is off is skipped and stays with you."
+    },
+    "voices": {
+      "title": "Ground Service Voices",
+      "hint": "Mute or silence the voices that speak about GSX ground services",
+      "master": { "label": "Ground service voices", "hint": "One switch for every voice that speaks on its own about a ground service.", "more": "Off silences the ground crew's calls, the pushback crew, the purser's boarding and deboarding reports and the First Officer's GSX advisories. The automation runs on. Questions that need your answer are still asked, and replies to your own voice requests are still spoken." },
+      "voiceControl": { "label": "Voice requests for ground services", "hint": "Ask for services by voice: 'request boarding', 'cockpit to ground', 'request pushback'.", "more": "Off: the ground-service phrases are not listened for, and the First Officer asks no question aloud — answer on the Status page or GSX's own menu." },
+      "parkingConflict": { "label": "Parking position advisory", "hint": "The First Officer tells you when GSX does not recognise the parking position." },
+      "droppedCall": { "label": "Dropped call advisory", "hint": "The First Officer tells you when ground did not pick up a service call." }
+    },
+    "voicesGround": { "title": "Ground Crew", "hint": "Calls from the ground crew on the interphone", "moreBefore": "Wording, interphone and walkaround settings:", "moreLink": "Crew & Company → Ground Crew" },
+    "voicesCabin": { "title": "Cabin Crew", "hint": "The purser's ground-service reports", "moreBefore": "All cabin crew settings:", "moreLink": "Crew & Company → Cabin Crew" },
+    "voicesFo": { "title": "First Officer Advisories", "hint": "What the First Officer tells you about GSX without being asked" },
+    "voicesQuestions": { "title": "Questions", "hint": "These need your answer, so the master switch does not stop them. Off: GSX's own menu waits for you." },
     "beaconDelays": {
       "title": "Beacon Sequence Delays",
       "hint": "Random waits between the steps, for realism",

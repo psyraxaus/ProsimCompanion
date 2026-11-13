@@ -323,6 +323,10 @@ else if (CurrentSection == "voices")
 }
 else if (CurrentSection == "groundCrew")
 {
+    @* Every ground-service voice also sits in one list under Ground Services → Voices (2026-11-14). *@
+    <div class="field-hint" style="max-width:640px; margin-bottom:10px;">
+        @T["speechSettings.groundCrew.allVoicesBefore"] <a href="settings/gsx/voices">@T["speechSettings.groundCrew.allVoicesLink"]</a>
+    </div>
     <Section Title="@T["speechSettings.groundCrew.title"]" Hint="@T["speechSettings.groundCrew.hint"]">
         <OptionField Draft="_groundCrew" For="o => o.Enabled" />
         <OptionField Draft="_groundCrew" For="o => o.RequireIntChannel" />
@@ -345,7 +349,7 @@ else if (CurrentSection == "groundCrew")
     </Section>
 
     @* The pushback crew (owner request 2026-11-07, plan V2). *@
-    <Section Title="" Hint="">
+    <Section Title="@T["speechSettings.groundCrew.pushbackCrew.title"]" Hint="@T["speechSettings.groundCrew.pushbackCrew.hint"]">
         <OptionField Draft="_groundCrew" For="o => o.PushbackCrew.Enabled" />
         <OptionField Draft="_groundCrew" For="o => o.PushbackCrew.BrakesCheck" />
         <OptionField Draft="_groundCrew" For="o => o.PushbackCrew.EngineStartClearance" />
@@ -397,6 +401,7 @@ else if (CurrentSection == "cabin")
         <OptionField Draft="_cabin" For="o => o.CabinReady" />
         <OptionField Draft="_cabin" For="o => o.CabinReadyBelowAltFt" />
         <OptionField Draft="_cabin" For="o => o.BoardingCompleteReport" />
+        <OptionField Draft="_cabin" For="o => o.CabinEmptyReport" />
         <OptionField Draft="_cabin" For="o => o.FoAcknowledge" />
         <OptionField Draft="_cabin" For="o => o.RequireCabChannel" />
         <AdvancedFields>

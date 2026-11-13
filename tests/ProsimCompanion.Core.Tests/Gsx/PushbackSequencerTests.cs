@@ -143,6 +143,121 @@ public sealed class PushbackSequencerTests
         Assert.Equal(PushbackAction.CallPushback, sequencer.Tick(Ready(), Delays).Action);
     }
 
+    // ---- Step switches + the pilot's own pushback request (owner request 2026-11-14) ----
+
+    private static void RunToDoorsDelay(PushbackSequencer sequencer, PushbackSequencer.Inputs inputs)
+    {
+        _ = sequencer.Tick(inputs, Delays); // Idle → WaitingForApu
+        _ = sequencer.Tick(inputs, Delays); // APU running → first enabled step
+    }
+
+    [Fact]
+    public void AStepSwitchedOff_IsSkipped_WithoutItsDelay()
+    {
+        var sequencer = NewSequencer();
+        var inputs = Ready() with { CloseDoors = false };
+        RunToDoorsDelay(sequencer, inputs);
+
+        // Doors are off: the sequence went straight to the jetway step.
+        Assert.Equal(PushbackSequenceStep.JetwayStep, sequencer.Step);
+        Assert.Equal(PushbackAction.RetractJetwayStairs, TickUntilAction(sequencer, inputs));
+        Assert.Equal(PushbackAction.RemoveGroundEquipment, TickUntilAction(sequencer, inputs));
+        Assert.Equal(PushbackAction.CallPushback, TickUntilAction(sequencer, inputs));
+    }
+
+    [Fact]
+    public void JetwayAndEquipmentOff_DoorsCloseThenReadyForPush()
+    {
+        var sequencer = NewSequencer();
+        var inputs = Ready() with { RetractJetway = false, RemoveEquipment = false };
+        RunToDoorsDelay(sequencer, inputs);
+
+        Assert.Equal(PushbackAction.CloseDoors, TickUntilAction(sequencer, inputs));
+        Assert.Equal(PushbackSequenceStep.ReadyForPush, sequencer.Step);
+        Assert.Equal(PushbackAction.CallPushback, sequencer.Tick(inputs, Delays).Action);
+    }
+
+    [Fact]
+    public void EveryPreparationStepOff_TheApuStillGates_ThenStraightToThePush()
+    {
+        var sequencer = NewSequencer();
+        var inputs = Ready() with { CloseDoors = false, RetractJetway = false, RemoveEquipment = false };
+        _ = sequencer.Tick(inputs with { ApuRunning = false }, Delays);
+        Assert.Equal(PushbackAction.None, sequencer.Tick(inputs with { ApuRunning = false }, Delays).Action);
+        Assert.Equal(PushbackSequenceStep.WaitingForApu, sequencer.Step);
+
+        var ready = sequencer.Tick(inputs, Delays);
+        Assert.Equal(PushbackSequenceStep.ReadyForPush, sequencer.Step);
+        Assert.Contains("ready for push", ready.Transition, StringComparison.Ordinal);
+        Assert.Equal(PushbackAction.CallPushback, sequencer.Tick(inputs, Delays).Action);
+    }
+
+    [Fact]
+    public void AStepSwitchedOffDuringItsDelay_DoesNotAct()
+    {
+        var sequencer = NewSequencer();
+        RunToDoorsDelay(sequencer, Ready());
+        Assert.Equal(PushbackSequenceStep.DoorsStep, sequencer.Step);
+
+        var off = Ready() with { CloseDoors = false };
+        var first = sequencer.Tick(off, Delays);
+        var second = sequencer.Tick(off, Delays);
+        Assert.Equal(PushbackAction.None, first.Action);
+        Assert.Equal(PushbackAction.None, second.Action);
+        Assert.Equal(PushbackSequenceStep.JetwayStep, sequencer.Step);
+    }
+
+    [Fact]
+    public void CallPushbackOff_ThePilotsRequest_CallsTheTugAtReadyForPush()
+    {
+        var sequencer = NewSequencer();
+        var manual = Ready(callPushback: false);
+        RunToDoorsDelay(sequencer, manual);
+        _ = TickUntilAction(sequencer, manual); // doors
+        _ = TickUntilAction(sequencer, manual); // jetway
+        _ = TickUntilAction(sequencer, manual); // gpu
+        Assert.Contains("request pushback", sequencer.Tick(manual, Delays).Transition, StringComparison.Ordinal);
+        Assert.Equal(PushbackAction.None, sequencer.Tick(manual, Delays).Action);
+
+        var call = sequencer.Tick(manual with { PushbackRequested = true }, Delays);
+
+        Assert.Equal(PushbackAction.CallPushback, call.Action);
+        Assert.Contains("requested by the pilot", call.Transition, StringComparison.Ordinal);
+        Assert.Equal(PushbackSequenceStep.PushbackCalled, sequencer.Step);
+    }
+
+    [Fact]
+    public void CallPushbackOff_ARequestMadeEarly_IsKeptUntilTheSequenceIsReady()
+    {
+        var sequencer = NewSequencer();
+        var early = Ready(callPushback: false) with { PushbackRequested = true };
+        RunToDoorsDelay(sequencer, early);
+
+        Assert.Equal(PushbackAction.CloseDoors, TickUntilAction(sequencer, early));
+        Assert.Equal(PushbackAction.RetractJetwayStairs, TickUntilAction(sequencer, early));
+        Assert.Equal(PushbackAction.RemoveGroundEquipment, TickUntilAction(sequencer, early));
+        Assert.Equal(PushbackAction.CallPushback, sequencer.Tick(early, Delays).Action);
+    }
+
+    [Fact]
+    public void CallPushbackOff_TheFoStillAsksAtc_AndThePushWaitsForThePilot()
+    {
+        var sequencer = NewSequencer();
+        var manual = Ready(callPushback: false) with { RequestClearance = true };
+        RunToDoorsDelay(sequencer, manual);
+        _ = TickUntilAction(sequencer, manual); // doors
+        _ = TickUntilAction(sequencer, manual); // jetway
+        _ = TickUntilAction(sequencer, manual); // gpu
+
+        Assert.Equal(PushbackAction.RequestPushClearance, sequencer.Tick(manual, Delays).Action);
+        var approved = sequencer.Tick(manual with { Clearance = ProsimCompanion.Core.Radios.PushClearanceState.Approved }, Delays);
+        Assert.Contains("stays with the pilot", approved.Transition, StringComparison.Ordinal);
+
+        var settled = manual with { Clearance = ProsimCompanion.Core.Radios.PushClearanceState.Approved };
+        Assert.Equal(PushbackAction.None, sequencer.Tick(settled, Delays).Action); // announced, waiting
+        Assert.Equal(PushbackAction.CallPushback, sequencer.Tick(settled with { PushbackRequested = true }, Delays).Action);
+    }
+
     [Fact]
     public void Reset_ReturnsToIdle()
     {

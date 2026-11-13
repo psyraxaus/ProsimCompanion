@@ -407,10 +407,14 @@
     "groundCrew": {
       "title": "Personnel au sol",
       "hint": "Appelle le personnel au sol et entends ses appels",
+      "enabled": { "label": "Voix de l'équipe au sol", "hint": "L'équipe au sol répond à ton appel et appelle le poste de pilotage." },
+      "allVoicesBefore": "Toutes les voix des services au sol dans une liste :",
+      "allVoicesLink": "Services au sol → Voix",
       "pushbackCrew": {
         "title": "Équipe de repoussage",
         "hint": "L'agent de piste commente le repoussage à l'interphone",
         "enabled": {
+          "label": "Voix de l'équipe de pushback",
           "hint": "Passerelle retirée et portes vérifiées, tracteur connecté avec la demande des freins, repoussage autorisé avec la direction de ce vol, démarrage autorisé, repoussage terminé, bon démarrage confirmé, pion retiré et libre.",
           "more": "Une phrase par étape du repoussage GSX, chacune une fois. Dite avec la voix sol et le timbre de l'interphone ; l'appel MECH, INT sélectionné ou le délai s'appliquent comme pour les appels. Coupez l'équipe de piste dans SayIntentions et l'audio d'équipe de GSX pour qu'une seule équipe parle."
         },
@@ -511,6 +515,7 @@
       }
     },
     "cabin": {
+      "cabinEmpty": { "label": "Compte rendu cabine vide", "hint": "Le chef de cabine annonce 'Cabin's empty, captain' quand le débarquement est terminé." },
       "boardingComplete": {
         "label": "Rapport embarquement terminé",
         "hint": "Quand l'embarquement est terminé et que la dernière porte se ferme : 'boarding complete, N on board, doors closed'. Le rapport cabine sécurisée suit avec son propre délai."

@@ -155,11 +155,30 @@
     "pushback": {
       "title": "Pushback",
       "beacon": { "label": "Beacon-gesteuerte Pushback-Sequenz", "hint": "Beacon ein startet die Pushback-Sequenz.", "more": "Auf die APU warten, die Türen schließen, die Brücke einfahren, die Geräte entfernen, dann zurückschieben." },
-      "callAtReady": { "label": "Pushback bei Push-Bereitschaft rufen", "hint": "Den Pushback rufen, wenn alles bereit ist.", "more": "Aus: die Sequenz bereitet alles vor und überlässt dir den Ruf." },
+      "stepDoors": { "label": "Türen schließen", "hint": "Schritt 1. Jede offene Tür schließen." },
+      "stepJetway": { "label": "Brücke oder Treppen einfahren", "hint": "Schritt 2. Die Brücke einfahren oder die Treppen entfernen." },
+      "stepEquipment": { "label": "Bodengeräte entfernen", "hint": "Schritt 3. Bodenstrom, Bremsklötze und Klimaluft entfernen." },
+      "callAtReady": { "label": "Pushback rufen", "hint": "Schritt 5. Den GSX-Pushback rufen, wenn alles bereit ist.", "more": "Aus: der Ruf wartet auf dein Wort. Sag 'request pushback' zum First Officer oder 'ready for pushback' zum Boden, drück eine Stream-Deck-Taste oder nutze GSXs eigenes Menü. Eine früh gestellte Anforderung bleibt bestehen, bis die Sequenz bereit ist." },
       "confirmEngineStart": { "label": "Guten Triebwerksstart bestätigen", "hint": "GSXs 'Confirm good engine start' für dich beantworten, sobald ein Triebwerk mit gesetzter Parkbremse läuft.", "more": "Aus: GSXs Interrupt-pushback-Menü wartet, bis du es selbst beantwortest. Der Schlepper bleibt bis dahin angekoppelt." },
-      "requestClearance": { "label": "Erst ATC um Push and Start bitten", "hint": "Vor dem Pushback-Aufruf bittet der FO ATC auf COM1 um Push and Start und wartet auf die Freigabe.", "more": "Braucht SayIntentions mit angemeldetem Flug; ohne wird der Push wie bisher gerufen. Die von ATC genannte Richtung ('face south') wird die Pushback-Wahl dieses Flugs für das GSX-Menü. Eine schon per Stimme erbetene Freigabe wird übernommen." },
+      "requestClearance": { "label": "ATC um Push and Start bitten", "hint": "Schritt 4. Der FO bittet ATC auf COM1 um Push and Start und wartet auf die Freigabe.", "more": "Braucht SayIntentions mit angemeldetem Flug; ohne wird dieser Schritt übersprungen. Die von ATC genannte Richtung ('face south') wird die Pushback-Wahl dieses Flugs für das GSX-Menü. Eine schon per Stimme erbetene Freigabe wird übernommen. Funktioniert auch mit 'Pushback rufen' aus." },
       "clearanceWait": { "label": "Wartezeit auf die Push-Freigabe", "hint": "Wie lange auf die ATC-Freigabe gewartet wird, bevor der Pushback trotzdem gerufen wird." }
     },
+    "pushbackSteps": {
+      "title": "Schritte der Beacon-Sequenz",
+      "hint": "Jeder Schritt hat seinen eigenen Schalter. Ein ausgeschalteter Schritt wird übersprungen und bleibt bei dir."
+    },
+    "voices": {
+      "title": "Stimmen der Bodendienste",
+      "hint": "Die Stimmen stummschalten, die über GSX-Bodendienste sprechen",
+      "master": { "label": "Stimmen der Bodendienste", "hint": "Ein Schalter für jede Stimme, die von sich aus über einen Bodendienst spricht.", "more": "Aus: die Rufe der Bodencrew, die Pushback-Crew, die Boarding- und Deboarding-Meldungen des Pursers und die GSX-Hinweise des First Officers schweigen. Die Automatik läuft weiter. Fragen, die deine Antwort brauchen, werden weiter gestellt, und Antworten auf deine eigenen Sprachanforderungen werden weiter gesprochen." },
+      "voiceControl": { "label": "Sprachanforderungen für Bodendienste", "hint": "Dienste per Stimme anfordern: 'request boarding', 'cockpit to ground', 'request pushback'.", "more": "Aus: auf die Bodendienst-Phrasen wird nicht gehört, und der First Officer stellt keine Frage laut — antworte auf der Statusseite oder in GSXs eigenem Menü." },
+      "parkingConflict": { "label": "Hinweis zur Parkposition", "hint": "Der First Officer sagt dir, wenn GSX die Parkposition nicht erkennt." },
+      "droppedCall": { "label": "Hinweis auf verlorenen Ruf", "hint": "Der First Officer sagt dir, wenn der Boden einen Dienstruf nicht angenommen hat." }
+    },
+    "voicesGround": { "title": "Bodencrew", "hint": "Rufe der Bodencrew über die Interphone", "moreBefore": "Wortlaut, Interphone und Walkaround:", "moreLink": "Crew & Company → Bodencrew" },
+    "voicesCabin": { "title": "Kabinencrew", "hint": "Die Bodendienst-Meldungen des Pursers", "moreBefore": "Alle Einstellungen der Kabinencrew:", "moreLink": "Crew & Company → Kabinencrew" },
+    "voicesFo": { "title": "Hinweise des First Officers", "hint": "Was dir der First Officer ungefragt über GSX sagt" },
+    "voicesQuestions": { "title": "Fragen", "hint": "Diese brauchen deine Antwort, deshalb stoppt der Hauptschalter sie nicht. Aus: GSXs eigenes Menü wartet auf dich." },
     "beaconDelays": {
       "title": "Verzögerungen der Beacon-Sequenz",
       "hint": "Zufällige Wartezeiten zwischen den Schritten, für Realismus",

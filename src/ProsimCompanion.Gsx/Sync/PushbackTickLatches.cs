@@ -49,6 +49,33 @@ public sealed class PushbackTickLatches
     private bool _engineStartConfirmed;
     private int _confirmAttempts;
     private int _confirmCooldown;
+    private bool _pushbackRequested;
+
+    /// <summary>The pilot asked for the pushback this segment ("request pushback" by voice, the
+    /// <c>gsx.requestPushback</c> command — 2026-11-14): the beacon sequence calls the tug at
+    /// ready-for-push even with its automatic call off. Kept until the segment resets, so a
+    /// request made before the beacon is honoured when the sequence gets there.</summary>
+    public bool PushbackRequested
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return _pushbackRequested;
+            }
+        }
+    }
+
+    /// <summary>Latches the pilot's request; false when it was latched already.</summary>
+    public bool RequestPushback()
+    {
+        lock (_gate)
+        {
+            var first = !_pushbackRequested;
+            _pushbackRequested = true;
+            return first;
+        }
+    }
 
     internal PushbackLatchSnapshot Snapshot()
     {
@@ -113,6 +140,7 @@ public sealed class PushbackTickLatches
             _engineStartConfirmed = false;
             _confirmAttempts = 0;
             _confirmCooldown = 0;
+            _pushbackRequested = false;
         }
     }
 

@@ -125,7 +125,41 @@ public sealed class GsxServiceControlTests
             _departure.Object,
             _groundPower.Object,
             _retraction.Object,
-            NullLogger<GsxServiceControl>.Instance);
+            NullLogger<GsxServiceControl>.Instance,
+            _pushbackLatches);
+    }
+
+    // Null = the control was built without the beacon sequence's latches (the old shape).
+    private ProsimCompanion.Gsx.Sync.PushbackTickLatches? _pushbackLatches;
+
+    [Fact]
+    public async Task Pushback_IsHandedToTheBeaconSequence_LatchedOnce_NeverTriggeredDirectly()
+    {
+        _pushbackLatches = new ProsimCompanion.Gsx.Sync.PushbackTickLatches();
+        var control = CreateControl();
+        SeedService("Pushback", "available");
+
+        var first = await control.TryCallAsync(GsxServiceAction.RequestPushback);
+        var second = await control.TryCallAsync(GsxServiceAction.RequestPushback);
+
+        Assert.Equal(GsxServiceCallStatus.Called, first.Status);
+        Assert.Equal(GsxServiceCallStatus.Called, second.Status);
+        Assert.True(_pushbackLatches.PushbackRequested);
+        Assert.Single(_diagnostics.Snapshot().RecentDecisions, d => d.Reason.Contains("requested by the pilot", StringComparison.Ordinal));
+        _dispatcher.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task Pushback_WithTheBeaconSequenceOff_PointsAtTheGsxMenu()
+    {
+        _pushbackLatches = new ProsimCompanion.Gsx.Sync.PushbackTickLatches();
+        _options.BeaconPushbackSequenceEnabled = false;
+        var control = CreateControl();
+
+        var outcome = await control.TryCallAsync(GsxServiceAction.RequestPushback);
+
+        Assert.Equal(GsxServiceCallStatus.NotCallable, outcome.Status);
+        Assert.False(_pushbackLatches.PushbackRequested);
     }
 
     /// <summary>Loads an OFP with the given block fuel — the "plan" every fuel decision reads.</summary>

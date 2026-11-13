@@ -61,7 +61,6 @@ public sealed class OptionFieldCompletenessTests
         ["HumanizeOptions.ThinkPauseChance"] = "no control yet",
         ["HumanizeOptions.ThinkPauseMinMs"] = "no control yet",
         ["HumanizeOptions.ThinkPauseMaxMs"] = "no control yet",
-        ["GsxOptions.VoiceControlEnabled"] = "no control yet",
         ["GsxOptions.AnchorDepartureGate"] = "no control yet",
         ["FlightDataOptions.SimbriefFetchAttempts"] = "no control yet",
         ["ProsimOptions.MomentaryPressHoldMs"] = "no control yet",

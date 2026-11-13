@@ -11,7 +11,8 @@ public sealed class GroundCrewOptions : IOptionSection
 {
     public static string SectionName => "groundCrew";
 
-    [OptionField(FieldKind.Bool, "speechSettings.common.enabled")]
+    // Labelled "Ground crew voices" since 2026-11-14 — a bare "Enabled" could not be found.
+    [OptionField(FieldKind.Bool, "speechSettings.groundCrew.enabled")]
     public bool Enabled { get; set; } = true;
 
     /// <summary>
@@ -151,7 +152,7 @@ public sealed class WalkaroundOptions
 /// </summary>
 public sealed class PushbackCrewOptions
 {
-    [OptionField(FieldKind.Bool, "speechSettings.groundCrew.pushbackCrew.enabled", Label = "speechSettings.common.enabled")]
+    [OptionField(FieldKind.Bool, "speechSettings.groundCrew.pushbackCrew.enabled", DependsOn = "../Enabled")]
     public bool Enabled { get; set; } = true;
 
     /// <summary>Ask "release parking brake" when the tug connects and wait for the captain's

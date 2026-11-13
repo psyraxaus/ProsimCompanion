@@ -407,10 +407,14 @@
     "groundCrew": {
       "title": "지상 승무원",
       "hint": "지상 승무원을 호출하고 그들의 호출을 듣습니다",
+      "enabled": { "label": "지상 크루 음성", "hint": "지상 크루가 호출에 응답하고 조종실을 호출합니다." },
+      "allVoicesBefore": "모든 지상 서비스 음성을 하나의 목록으로:",
+      "allVoicesLink": "지상 서비스 → 음성",
       "pushbackCrew": {
         "title": "푸시백 지상요원",
         "hint": "램프 요원이 인터폰으로 푸시백을 안내합니다",
         "enabled": {
+          "label": "푸시백 크루 음성",
           "hint": "브리지 분리와 도어 확인, 토잉카 연결과 브레이크 해제 요청, 이 비행의 방향이 담긴 푸시백 허가, 엔진 시동 허가, 푸시백 완료, 정상 시동 확인, 핀 제거와 해방.",
           "more": "GSX 푸시백의 단계마다 한 줄씩, 각각 한 번. 지상 음성과 인터폰 음색으로 말합니다. MECH 콜, INT 선택 또는 대기 시간은 업콜과 같습니다. SayIntentions의 램프 요원과 GSX 자체 요원 음성을 꺼서 한 요원만 말하게 하세요."
         },
@@ -511,6 +515,7 @@
       }
     },
     "cabin": {
+      "cabinEmpty": { "label": "객실 비움 보고", "hint": "하기가 끝나면 사무장이 'Cabin's empty, captain'이라고 보고합니다." },
       "boardingComplete": {
         "label": "탑승 완료 보고",
         "hint": "탑승이 완료되고 마지막 도어가 닫히면: 'boarding complete, N on board, doors closed'. 객실 안전 보고는 별도 타이머로 이어집니다."

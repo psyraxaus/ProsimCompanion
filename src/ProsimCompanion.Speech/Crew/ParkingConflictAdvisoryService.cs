@@ -38,8 +38,10 @@ public sealed class ParkingConflictAdvisoryService : Core.Hosting.IStartupModule
         ISpeechArbiter arbiter,
         JsonlEventLog eventLog,
         ILogger<ParkingConflictAdvisoryService> logger,
-        SpokenAdvisories? advisories = null)
+        SpokenAdvisories? advisories = null,
+        Microsoft.Extensions.Options.IOptionsMonitor<Core.Configuration.GsxOptions>? gsxOptions = null)
     {
+        _gsxOptions = gsxOptions;
         ArgumentNullException.ThrowIfNull(diagnostics);
         ArgumentNullException.ThrowIfNull(flightState);
         ArgumentNullException.ThrowIfNull(arbiter);
@@ -149,8 +151,18 @@ public sealed class ParkingConflictAdvisoryService : Core.Hosting.IStartupModule
         }
     }
 
+    // The ground-voices master and this advisory's own switch (2026-11-14 — it had none);
+    // absent options (tests) speak as before.
+    private readonly Microsoft.Extensions.Options.IOptionsMonitor<Core.Configuration.GsxOptions>? _gsxOptions;
+
     private void Speak(GsxParkingConflictView conflict)
     {
+        if (_gsxOptions?.CurrentValue is { } gsx && !(gsx.GroundVoicesEnabled && gsx.AnnounceParkingConflict))
+        {
+            _logger.LogDebug("Parking conflict advisory not spoken — switched off (gsx.groundVoicesEnabled / gsx.announceParkingConflict)");
+            return;
+        }
+
         var text = conflict.MenuUnreachable ? MenuUnreachableAdvisory : ComposeAdvisory(conflict.GsxFacility);
         lock (_gate)
         {

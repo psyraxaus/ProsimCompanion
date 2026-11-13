@@ -407,10 +407,14 @@
     "groundCrew": {
       "title": "Ground Crew",
       "hint": "Hail the ground crew and hear their calls",
+      "enabled": { "label": "Ground crew voices", "hint": "The ground crew answers your hail and calls the flight deck." },
+      "allVoicesBefore": "Every ground-service voice in one list:",
+      "allVoicesLink": "Ground Services → Voices",
       "pushbackCrew": {
         "title": "Pushback Crew",
         "hint": "The ramp agent talks the push through on the interphone",
         "enabled": {
+          "label": "Pushback crew voice",
           "hint": "Bridge off and doors checked, tug connected with the brakes request, cleared to push with this flight's direction, clear to start engines, push complete, good start confirmed, pin out and clear.",
           "more": "One line per step of the GSX push, each once. Spoken in the ground voice with the intercom timbre; MECH call, INT selected or the grace apply as for the upcalls. Turn the ramp crew off in SayIntentions and GSX's own crew audio off so only one crew speaks."
         },
@@ -511,6 +515,7 @@
       }
     },
     "cabin": {
+      "cabinEmpty": { "label": "Cabin empty report", "hint": "The purser reports 'Cabin's empty, captain' when deboarding is complete." },
       "boardingComplete": {
         "label": "Boarding complete report",
         "hint": "Once boarding has completed and the last door closes: 'boarding complete, N on board, doors closed'. The cabin-secure report follows on its own timer."

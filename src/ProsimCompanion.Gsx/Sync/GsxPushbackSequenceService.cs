@@ -75,8 +75,10 @@ public sealed class GsxPushbackSequenceService : IDisposable
                 sequenceWasReset = true;
             }
 
+            // The pilot's own "request pushback" (2026-11-14) is a host latch like the others:
+            // it joins the gathered inputs here and lives until the segment resets.
             PushbackTickResult? tick = reading.SequenceRuns
-                ? _sequencer.Tick(reading.SequenceInputs, reading.Delays)
+                ? _sequencer.Tick(reading.SequenceInputs with { PushbackRequested = _latches.PushbackRequested }, reading.Delays)
                 : null;
 
             foreach (var effect in PushbackTickEffectPlanner.Plan(reading, latches, sequenceWasReset, tick))

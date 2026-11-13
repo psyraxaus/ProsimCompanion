@@ -155,11 +155,30 @@
     "pushback": {
       "title": "푸시백",
       "beacon": { "label": "비컨 연동 푸시백 시퀀스", "hint": "비컨 켜짐이 푸시백 시퀀스를 실행합니다.", "more": "APU를 기다리고, 도어를 닫고, 탑승교를 철수하고, 장비를 치운 뒤 푸시백합니다." },
-      "callAtReady": { "label": "푸시 준비 완료 시 푸시백 호출", "hint": "모든 준비가 끝나면 푸시백을 호출합니다.", "more": "꺼짐: 시퀀스가 모든 준비를 하고 호출은 당신에게 맡깁니다." },
+      "stepDoors": { "label": "도어 닫기", "hint": "1단계. 열린 도어를 모두 닫습니다." },
+      "stepJetway": { "label": "제트웨이 또는 계단 분리", "hint": "2단계. 제트웨이를 접거나 계단을 제거합니다." },
+      "stepEquipment": { "label": "지상 장비 제거", "hint": "3단계. 지상 전원, 고임목, 공조를 제거합니다." },
+      "callAtReady": { "label": "푸시백 호출", "hint": "5단계. 모든 준비가 끝나면 GSX 푸시백을 호출합니다.", "more": "끔: 호출은 사용자의 말을 기다립니다. First Officer에게 'request pushback', 지상에 'ready for pushback'이라고 말하거나, Stream Deck 키를 누르거나, GSX 메뉴를 사용하세요. 일찍 한 요청은 시퀀스가 준비될 때까지 유지됩니다." },
       "confirmEngineStart": { "label": "엔진 시동 정상 확인", "hint": "주차 브레이크가 설정된 상태로 엔진이 돌면 GSX의 'Confirm good engine start'에 대신 답합니다.", "more": "꺼짐: GSX의 Interrupt-pushback 메뉴는 당신이 직접 답할 때까지 기다립니다. 그때까지 토잉카는 연결된 채로 있습니다." },
-      "requestClearance": { "label": "먼저 ATC에 푸시 앤 스타트 요청", "hint": "푸시백을 부르기 전에 FO가 COM1로 ATC에 푸시 앤 스타트를 요청하고 승인을 기다립니다.", "more": "SayIntentions가 켜져 있고 비행이 제출되어야 합니다. 없으면 이전처럼 푸시를 부릅니다. ATC가 말한 방향('face south')이 이 비행의 GSX 메뉴 푸시백 선택이 됩니다. 이미 음성으로 요청한 허가는 그대로 인정됩니다." },
+      "requestClearance": { "label": "ATC에 push and start 요청", "hint": "4단계. FO가 COM1에서 ATC에 push and start를 요청하고 승인을 기다립니다.", "more": "SayIntentions가 켜져 있고 비행이 등록되어 있어야 합니다. 없으면 이 단계는 건너뜁니다. ATC가 말한 방향('face south')이 이 비행의 GSX 메뉴 푸시백 선택이 됩니다. 이미 음성으로 요청한 허가는 그대로 인정됩니다. '푸시백 호출'이 꺼져 있어도 작동합니다." },
       "clearanceWait": { "label": "푸시 허가 대기", "hint": "ATC 승인을 얼마나 기다린 뒤 그래도 푸시백을 부를지." }
     },
+    "pushbackSteps": {
+      "title": "비콘 시퀀스 단계",
+      "hint": "각 단계에는 자체 스위치가 있습니다. 꺼진 단계는 건너뛰며 사용자가 직접 합니다."
+    },
+    "voices": {
+      "title": "지상 서비스 음성",
+      "hint": "GSX 지상 서비스에 대해 말하는 음성을 음소거합니다",
+      "master": { "label": "지상 서비스 음성", "hint": "지상 서비스에 대해 스스로 말하는 모든 음성을 위한 하나의 스위치입니다.", "more": "끔: 지상 크루의 호출, 푸시백 크루, 사무장의 탑승·하기 보고, First Officer의 GSX 안내가 조용해집니다. 자동화는 계속됩니다. 답이 필요한 질문은 계속 묻고, 사용자의 음성 요청에 대한 응답도 계속 말합니다." },
+      "voiceControl": { "label": "지상 서비스 음성 요청", "hint": "음성으로 서비스를 요청합니다: 'request boarding', 'cockpit to ground', 'request pushback'.", "more": "끔: 지상 서비스 문구를 듣지 않으며 First Officer가 질문을 소리 내어 하지 않습니다. 상태 페이지나 GSX 메뉴에서 답하세요." },
+      "parkingConflict": { "label": "주기 위치 안내", "hint": "GSX가 주기 위치를 인식하지 못하면 First Officer가 알려 줍니다." },
+      "droppedCall": { "label": "호출 누락 안내", "hint": "지상이 서비스 호출을 받지 못하면 First Officer가 알려 줍니다." }
+    },
+    "voicesGround": { "title": "지상 크루", "hint": "인터폰으로 오는 지상 크루의 호출", "moreBefore": "문구, 인터폰, 외부 점검 설정:", "moreLink": "Crew & Company → 지상 크루" },
+    "voicesCabin": { "title": "객실 승무원", "hint": "사무장의 지상 서비스 보고", "moreBefore": "객실 승무원의 모든 설정:", "moreLink": "Crew & Company → 객실 승무원" },
+    "voicesFo": { "title": "First Officer 안내", "hint": "First Officer가 묻지 않아도 GSX에 대해 알려 주는 내용" },
+    "voicesQuestions": { "title": "질문", "hint": "답이 필요하므로 마스터 스위치로 멈추지 않습니다. 끔: GSX 메뉴가 사용자를 기다립니다." },
     "beaconDelays": {
       "title": "비컨 시퀀스 지연",
       "hint": "사실감을 위한 단계 사이의 무작위 대기",

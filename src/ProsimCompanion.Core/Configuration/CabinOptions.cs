@@ -42,6 +42,11 @@ public sealed class CabinOptions : IOptionSection
     [OptionField(FieldKind.Bool, "speechSettings.cabin.boardingComplete", DependsOn = "Enabled")]
     public bool BoardingCompleteReport { get; set; } = true;
 
+    /// <summary>The purser's "Cabin's empty, captain." when GSX deboarding completes (issue
+    /// #214). Had no switch of its own before 2026-11-14.</summary>
+    [OptionField(FieldKind.Bool, "speechSettings.cabin.cabinEmpty", DependsOn = "Enabled")]
+    public bool CabinEmptyReport { get; set; } = true;
+
     /// <summary>The FO gives a short verbatim acknowledgement after each report.</summary>
     [OptionField(FieldKind.Bool, "speechSettings.cabin.foAck", DependsOn = "Enabled")]
     public bool FoAcknowledge { get; set; } = true;

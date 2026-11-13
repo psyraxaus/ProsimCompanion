@@ -53,6 +53,7 @@ public sealed class GsxServiceControl : IGsxServiceControl, IDisposable
     private readonly IGroundPowerEquipment _groundPower;
     private readonly IGsxJetwayRetraction _jetwayRetraction;
     private readonly ILogger<GsxServiceControl> _logger;
+    private readonly PushbackTickLatches? _pushbackLatches;
     private readonly IDataRefSubscription<double> _jetwayLvar;
     private readonly IDataRefSubscription<double> _fuelTotal;
     private readonly IDataRefSubscription<double> _plannedFuel;
@@ -76,8 +77,10 @@ public sealed class GsxServiceControl : IGsxServiceControl, IDisposable
         IGsxDepartureStarter departure,
         IGroundPowerEquipment groundPower,
         IGsxJetwayRetraction jetwayRetraction,
-        ILogger<GsxServiceControl> logger)
+        ILogger<GsxServiceControl> logger,
+        PushbackTickLatches? pushbackLatches = null)
     {
+        _pushbackLatches = pushbackLatches;
         ArgumentNullException.ThrowIfNull(departure);
         ArgumentNullException.ThrowIfNull(groundPower);
         ArgumentNullException.ThrowIfNull(jetwayRetraction);
@@ -152,17 +155,37 @@ public sealed class GsxServiceControl : IGsxServiceControl, IDisposable
         CancellationToken cancellationToken)
     {
         // Pushback is beacon-orchestrated by design — never triggered directly (it would race
-        // the door/jetway/equipment sequence, or push with the jetway still attached).
+        // the door/jetway/equipment sequence, or push with the jetway still attached). Since
+        // 2026-11-14 the request is not refused but handed to that sequence: it is latched and
+        // the sequence calls the tug at ready-for-push, also with its automatic call off
+        // (owner's flight: beacon on, auto-call off, and the GSX menu was the only way to push).
         if (action == GsxServiceAction.RequestPushback)
         {
+            if (!_options.CurrentValue.BeaconPushbackSequenceEnabled || _pushbackLatches is null)
+            {
+                return new(
+                    GsxServiceCallStatus.NotCallable,
+                    "The beacon pushback sequence is disabled (gsx.beaconPushbackSequenceEnabled) "
+                    + "— request pushback from the GSX menu.");
+            }
+
+            if (_lifecycle.IsPending(PushbackTickGatherer.PushbackServiceId)
+                || _lifecycle.IsCompleted(PushbackTickGatherer.PushbackServiceId))
+            {
+                return new(GsxServiceCallStatus.AlreadySatisfied, "Pushback is already called.");
+            }
+
+            if (_pushbackLatches.RequestPushback())
+            {
+                const string Reason = "pushback requested by the pilot — the tug is called at ready-for-push";
+                _logger.LogInformation("GSX {Action}: {Reason}", "pushback sequence", Reason);
+                _diagnostics.RecordDecision(new GsxDecisionView(DateTimeOffset.UtcNow, "pushback sequence", Reason));
+            }
+
             return new(
-                GsxServiceCallStatus.NotCallable,
-                _options.CurrentValue.BeaconPushbackSequenceEnabled
-                    ? "Pushback is beacon-orchestrated: complete the departure services and switch "
-                      + "the beacon on — the sequence closes doors, retracts the jetway, clears "
-                      + "ground equipment, then calls pushback."
-                    : "The beacon pushback sequence is disabled (gsx.beaconPushbackSequenceEnabled) "
-                      + "— request pushback from the GSX menu.");
+                GsxServiceCallStatus.Called,
+                "Pushback requested — the beacon sequence calls the tug as soon as it is ready "
+                + "(departure services complete, beacon on, APU running, its steps done).");
         }
 
         // Session gate (ADR-0006 / issue #50): the automatic pillars already hold outside the

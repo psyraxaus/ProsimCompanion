@@ -18,6 +18,7 @@ public sealed class DroppedCallAdvisoryService : Core.Hosting.IStartupModule, ID
     private readonly JsonlEventLog _eventLog;
     private readonly ILogger<DroppedCallAdvisoryService> _logger;
     private readonly SpokenAdvisories? _advisories;
+    private readonly Microsoft.Extensions.Options.IOptionsMonitor<Core.Configuration.GsxOptions>? _gsxOptions;
     private readonly object _gate = new();
     private DateTimeOffset? _lastSpoken;
     private IDisposable? _subscription;
@@ -27,8 +28,10 @@ public sealed class DroppedCallAdvisoryService : Core.Hosting.IStartupModule, ID
         ISpeechArbiter arbiter,
         JsonlEventLog eventLog,
         ILogger<DroppedCallAdvisoryService> logger,
-        SpokenAdvisories? advisories = null)
+        SpokenAdvisories? advisories = null,
+        Microsoft.Extensions.Options.IOptionsMonitor<Core.Configuration.GsxOptions>? gsxOptions = null)
     {
+        _gsxOptions = gsxOptions;
         ArgumentNullException.ThrowIfNull(diagnostics);
         ArgumentNullException.ThrowIfNull(arbiter);
         ArgumentNullException.ThrowIfNull(eventLog);
@@ -97,6 +100,14 @@ public sealed class DroppedCallAdvisoryService : Core.Hosting.IStartupModule, ID
                 }
 
                 _lastSpoken = dropped.Timestamp;
+            }
+
+            // The ground-voices master and this advisory's own switch (2026-11-14 — it had
+            // none); the dropped call stays in the decision log and on the Status page.
+            if (_gsxOptions?.CurrentValue is { } gsx && !(gsx.GroundVoicesEnabled && gsx.AnnounceDroppedCalls))
+            {
+                _logger.LogDebug("Dropped-call advisory not spoken — switched off (gsx.groundVoicesEnabled / gsx.announceDroppedCalls)");
+                return;
             }
 
             var text = ComposeAdvisory(dropped.ServiceId, dropped.OpenMenu);

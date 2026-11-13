@@ -407,10 +407,14 @@
     "groundCrew": {
       "title": "Personal de tierra",
       "hint": "Llama al personal de tierra y escucha sus llamadas",
+      "enabled": { "label": "Voces del personal de tierra", "hint": "El personal de tierra responde a tu llamada y llama a la cabina de vuelo." },
+      "allVoicesBefore": "Todas las voces de los servicios de tierra en una lista:",
+      "allVoicesLink": "Servicios de tierra → Voces",
       "pushbackCrew": {
         "title": "Equipo de pushback",
         "hint": "El agente de rampa acompaña el pushback por el interfono",
         "enabled": {
+          "label": "Voz del equipo de pushback",
           "hint": "Pasarela retirada y puertas comprobadas, tractor conectado con la petición de frenos, pushback autorizado con la dirección de este vuelo, arranque de motores autorizado, pushback terminado, buen arranque confirmado, pin fuera y libre.",
           "more": "Una frase por paso del pushback de GSX, cada una una vez. Hablada con la voz de tierra y el timbre del interfono; la llamada MECH, INT seleccionado o la espera se aplican como en las llamadas. Apague el equipo de rampa en SayIntentions y el audio del equipo de GSX para que hable un solo equipo."
         },
@@ -511,6 +515,7 @@
       }
     },
     "cabin": {
+      "cabinEmpty": { "label": "Informe de cabina vacía", "hint": "El sobrecargo informa 'Cabin's empty, captain' cuando termina el desembarque." },
       "boardingComplete": {
         "label": "Informe de embarque completo",
         "hint": "Cuando el embarque ha terminado y se cierra la última puerta: 'boarding complete, N on board, doors closed'. El informe de cabina asegurada sigue con su propio temporizador."

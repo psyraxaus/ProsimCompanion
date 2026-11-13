@@ -36,6 +36,11 @@ public sealed class GroundCrewUpcallService : Core.Hosting.IStartupModule, IDisp
     private readonly OfpStore? _ofp;
     private readonly CancellationTokenSource _shutdown = new();
 
+    // The ground-voices master (gsx.groundVoicesEnabled, 2026-11-14); absent (tests) = on.
+    private readonly IOptionsMonitor<GsxOptions>? _gsxOptions;
+
+    private bool GroundVoicesOn => _gsxOptions?.CurrentValue.GroundVoicesEnabled != false;
+
     private IDataRefSubscription<bool>? _groundPower;
     private IDataRefSubscription<bool>? _chocks;
     private IDataRefSubscription<double>? _fuelTotal;
@@ -55,8 +60,10 @@ public sealed class GroundCrewUpcallService : Core.Hosting.IStartupModule, IDisp
         JsonlEventLog eventLog,
         ILogger<GroundCrewUpcallService> logger,
         IEfbInitOverrides? initOverrides = null,
-        OfpStore? ofp = null)
+        OfpStore? ofp = null,
+        IOptionsMonitor<GsxOptions>? gsxOptions = null)
     {
+        _gsxOptions = gsxOptions;
         ArgumentNullException.ThrowIfNull(dataRefs);
         ArgumentNullException.ThrowIfNull(diagnostics);
         ArgumentNullException.ThrowIfNull(signals);
@@ -121,7 +128,7 @@ public sealed class GroundCrewUpcallService : Core.Hosting.IStartupModule, IDisp
         {
             var options = _options.CurrentValue;
             // Flight-live gate (issue #114): ProSim pushes plausible data with no MSFS session.
-            if (!options.Enabled || _busy || !_flight.IsLive
+            if (!options.Enabled || !GroundVoicesOn || _busy || !_flight.IsLive
                 || _groundPower is not { } groundPower
                 || _chocks is not { } chocks
                 || _fuelTotal is not { } fuelTotal)
@@ -184,7 +191,7 @@ public sealed class GroundCrewUpcallService : Core.Hosting.IStartupModule, IDisp
         try
         {
             var options = _options.CurrentValue;
-            if (!options.Enabled || !options.CallOnDeiceComplete || !_flight.IsLive)
+            if (!options.Enabled || !GroundVoicesOn || !options.CallOnDeiceComplete || !_flight.IsLive)
             {
                 return;
             }

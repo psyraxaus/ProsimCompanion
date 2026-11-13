@@ -104,8 +104,10 @@ public sealed class CabinCrewService : Core.Hosting.IStartupModule, IDisposable,
         IOptionsMonitor<SpeechOptions>? speechOptions = null,
         IMicOwnership? mic = null,
         CabinCruiseQueryDialogue? cruiseQuery = null,
-        ILegBoundaryEvents? legBoundary = null)
+        ILegBoundaryEvents? legBoundary = null,
+        IOptionsMonitor<GsxOptions>? gsxOptions = null)
     {
+        _gsxOptions = gsxOptions;
         ArgumentNullException.ThrowIfNull(dataRefs);
         ArgumentNullException.ThrowIfNull(flightData);
         ArgumentNullException.ThrowIfNull(flight);
@@ -233,9 +235,16 @@ public sealed class CabinCrewService : Core.Hosting.IStartupModule, IDisposable,
 
     private void OnFlightCycleReset(FlightCycleResetKind _) => Interlocked.Exchange(ref _boardingCompleted, 0);
 
+    // The ground-voices master (gsx.groundVoicesEnabled, 2026-11-14) covers the purser's two
+    // ground-service reports — boarding complete and the empty cabin; absent (tests) = on.
+    private readonly IOptionsMonitor<GsxOptions>? _gsxOptions;
+
+    private bool GroundVoicesOn => _gsxOptions?.CurrentValue.GroundVoicesEnabled != false;
+
     private void OnArrivalCompleted()
     {
-        if (!_options.CurrentValue.Enabled || _reads.Length == 0)
+        var cabin = _options.CurrentValue;
+        if (!cabin.Enabled || !cabin.CabinEmptyReport || !GroundVoicesOn || _reads.Length == 0)
         {
             return;
         }
@@ -418,6 +427,13 @@ public sealed class CabinCrewService : Core.Hosting.IStartupModule, IDisposable,
             {
                 SetSecureState(CabinSecureState.Secure);
                 _signals?.RaiseCabinSecured(); // the outbound "cabin secure" (#151)
+            }
+
+            // Judged and latched by the core as usual, so it is not re-offered every tick.
+            if (action == CabinAction.BoardingCompleteReport && !GroundVoicesOn)
+            {
+                _logger.LogDebug("Boarding-complete report not spoken — ground service voices are off (gsx.groundVoicesEnabled)");
+                return;
             }
 
             _busy = true;

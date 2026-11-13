@@ -155,11 +155,30 @@
     "pushback": {
       "title": "Pushback",
       "beacon": { "label": "Secuencia de pushback orquestada por el beacon", "hint": "Beacon encendido ejecuta la secuencia de pushback.", "more": "Esperar a la APU, cerrar las puertas, retraer la pasarela, retirar los equipos y luego empujar." },
-      "callAtReady": { "label": "Llamar al pushback al estar listo para empujar", "hint": "Llamar al pushback cuando todo está listo.", "more": "Apagado: la secuencia lo prepara todo y te deja la llamada a ti." },
+      "stepDoors": { "label": "Cerrar las puertas", "hint": "Paso 1. Cerrar todas las puertas abiertas." },
+      "stepJetway": { "label": "Retirar la pasarela o las escaleras", "hint": "Paso 2. Retirar la pasarela o quitar las escaleras." },
+      "stepEquipment": { "label": "Retirar el equipo de tierra", "hint": "Paso 3. Quitar la energía de tierra, los calzos y el aire acondicionado." },
+      "callAtReady": { "label": "Llamar al pushback", "hint": "Paso 5. Llamar al pushback de GSX cuando todo está listo.", "more": "Desactivado: la llamada espera tu palabra. Di 'request pushback' al First Officer o 'ready for pushback' a tierra, pulsa una tecla del Stream Deck o usa el menú de GSX. Una petición hecha antes se conserva hasta que la secuencia está lista." },
       "confirmEngineStart": { "label": "Confirmar buen arranque de motor", "hint": "Responder al 'Confirm good engine start' de GSX por ti cuando un motor gira con el freno de aparcamiento puesto.", "more": "Apagado: el menú Interrupt-pushback de GSX espera hasta que lo respondas tú. El tractor sigue enganchado hasta entonces." },
-      "requestClearance": { "label": "Pedir primero push and start a ATC", "hint": "Antes de llamar al pushback, el FO pide push and start a ATC en COM1 y espera la aprobación.", "more": "Necesita SayIntentions activo con un vuelo presentado; sin él el push se llama como antes. La dirección que nombra ATC ('face south') pasa a ser la elección de pushback de este vuelo para el menú de GSX. Una autorización ya pedida por voz se respeta." },
+      "requestClearance": { "label": "Pedir push and start a ATC", "hint": "Paso 4. El FO pide push and start a ATC en COM1 y espera la aprobación.", "more": "Necesita SayIntentions activo con un vuelo registrado; sin él este paso se omite. La dirección que indica ATC ('face south') pasa a ser la elección de pushback de este vuelo para el menú de GSX. Una autorización que ya pediste por voz se respeta. Funciona también con 'Llamar al pushback' desactivado." },
       "clearanceWait": { "label": "Espera de la autorización de push", "hint": "Cuánto esperar la aprobación de ATC antes de llamar al pushback de todos modos." }
     },
+    "pushbackSteps": {
+      "title": "Pasos de la secuencia de beacon",
+      "hint": "Cada paso tiene su propio interruptor. Un paso desactivado se omite y queda en tus manos."
+    },
+    "voices": {
+      "title": "Voces de los servicios de tierra",
+      "hint": "Silenciar las voces que hablan de los servicios de tierra de GSX",
+      "master": { "label": "Voces de los servicios de tierra", "hint": "Un interruptor para todas las voces que hablan por sí solas de un servicio de tierra.", "more": "Desactivado: se silencian las llamadas del personal de tierra, el equipo de pushback, los informes de embarque y desembarque del sobrecargo y los avisos de GSX del First Officer. La automatización sigue. Las preguntas que necesitan tu respuesta se siguen haciendo y las respuestas a tus propias peticiones de voz se siguen diciendo." },
+      "voiceControl": { "label": "Peticiones de voz para servicios de tierra", "hint": "Pedir servicios por voz: 'request boarding', 'cockpit to ground', 'request pushback'.", "more": "Desactivado: no se escuchan las frases de servicios de tierra y el First Officer no hace preguntas en voz alta — responde en la página de estado o en el menú de GSX." },
+      "parkingConflict": { "label": "Aviso de posición de estacionamiento", "hint": "El First Officer te avisa cuando GSX no reconoce la posición de estacionamiento." },
+      "droppedCall": { "label": "Aviso de llamada perdida", "hint": "El First Officer te avisa cuando tierra no atendió una llamada de servicio." }
+    },
+    "voicesGround": { "title": "Personal de tierra", "hint": "Llamadas del personal de tierra por el interfono", "moreBefore": "Texto, interfono y walkaround:", "moreLink": "Crew & Company → Personal de tierra" },
+    "voicesCabin": { "title": "Tripulación de cabina", "hint": "Los informes de servicios de tierra del sobrecargo", "moreBefore": "Todos los ajustes de la tripulación de cabina:", "moreLink": "Crew & Company → Tripulación de cabina" },
+    "voicesFo": { "title": "Avisos del First Officer", "hint": "Lo que el First Officer te dice sobre GSX sin que lo pidas" },
+    "voicesQuestions": { "title": "Preguntas", "hint": "Necesitan tu respuesta, por eso el interruptor principal no las detiene. Desactivado: el menú de GSX te espera." },
     "beaconDelays": {
       "title": "Retardos de la secuencia de beacon",
       "hint": "Esperas aleatorias entre los pasos, por realismo",

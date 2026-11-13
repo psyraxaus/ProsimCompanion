@@ -356,7 +356,9 @@ public sealed class AircraftStateCheckService : IAircraftStateCheckControl, IDis
 
             var context = new AircraftStateCheckContext(
                 Enabled: options.AircraftStateCheckEnabled,
-                AnnounceMismatches: options.AircraftStateCheckAnnounce,
+                // The ground-voices master (2026-11-14) silences the unprompted read-out; the
+                // on-demand re-check still answers the pilot who asked.
+                AnnounceMismatches: options.AircraftStateCheckAnnounce && options.GroundVoicesEnabled,
                 HasBeenAirborne: _flightState.Snapshot().HasBeenAirborneThisSession,
                 TurnaroundDetected: _resyncState.TurnaroundDetected
                     || _resyncState.LoadsheetPrelimEdition > 0

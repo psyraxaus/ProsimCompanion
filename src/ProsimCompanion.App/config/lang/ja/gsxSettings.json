@@ -155,11 +155,30 @@
     "pushback": {
       "title": "プッシュバック",
       "beacon": { "label": "ビーコン連動プッシュバックシーケンス", "hint": "ビーコンオンでプッシュバックシーケンスを実行します。", "more": "APU を待ち、ドアを閉め、ブリッジを格納し、機材を撤去し、それからプッシュバックします。" },
-      "callAtReady": { "label": "プッシュ準備完了でプッシュバックを呼ぶ", "hint": "すべて準備ができたらプッシュバックを呼びます。", "more": "オフ: シーケンスはすべてを準備し、呼び出しはあなたに任せます。" },
+      "stepDoors": { "label": "ドアを閉める", "hint": "ステップ 1。開いているドアをすべて閉めます。" },
+      "stepJetway": { "label": "ジェットウェイまたはステアを外す", "hint": "ステップ 2。ジェットウェイを収納、またはステアを外します。" },
+      "stepEquipment": { "label": "地上機材を外す", "hint": "ステップ 3。地上電源、チョーク、空調を外します。" },
+      "callAtReady": { "label": "プッシュバックを呼ぶ", "hint": "ステップ 5。すべての準備ができたら GSX のプッシュバックを呼びます。", "more": "オフ：呼び出しはあなたの指示を待ちます。First Officer に 'request pushback'、地上に 'ready for pushback' と言うか、Stream Deck のキーを押すか、GSX のメニューを使います。早めに出した要求は、シーケンスの準備ができるまで保持されます。" },
       "confirmEngineStart": { "label": "エンジン始動良好を確認", "hint": "パーキングブレーキをセットした状態でエンジンが回ると、GSX の 'Confirm good engine start' に代わって答えます。", "more": "オフ: GSX の Interrupt-pushback メニューはあなたが答えるまで待ちます。それまでトーイングカーは接続されたままです。" },
-      "requestClearance": { "label": "先にATCへプッシュ＆スタートを要求", "hint": "プッシュバックを呼ぶ前に、FOがCOM1でATCにプッシュ＆スタートを要求し、承認を待ちます。", "more": "SayIntentionsが有効でフライトが提出されている必要があります。なければ従来どおりプッシュを呼びます。ATCが告げた方向（'face south'）がこのフライトのGSXメニュー用プッシュバック選択になります。すでに音声で要求した許可は尊重されます。" },
+      "requestClearance": { "label": "ATC に push and start を要求", "hint": "ステップ 4。FO が COM1 で ATC に push and start を要求し、承認を待ちます。", "more": "SayIntentions がオンでフライトが登録されている必要があります。ない場合、このステップは省略されます。ATC が指示した方向（'face south'）が、このフライトの GSX メニューでのプッシュバック選択になります。すでに音声で要求した許可はそのまま使われます。「プッシュバックを呼ぶ」がオフでも動作します。" },
       "clearanceWait": { "label": "プッシュ許可の待ち時間", "hint": "ATCの承認を待つ時間。過ぎればプッシュバックをそのまま呼びます。" }
     },
+    "pushbackSteps": {
+      "title": "ビーコンシーケンスのステップ",
+      "hint": "各ステップに専用のスイッチがあります。オフのステップは省略され、あなたの操作に任されます。"
+    },
+    "voices": {
+      "title": "地上サービスの音声",
+      "hint": "GSX 地上サービスについて話す音声をミュート（消音）します",
+      "master": { "label": "地上サービスの音声", "hint": "地上サービスについて自発的に話すすべての音声を 1 つのスイッチで切り替えます。", "more": "オフ：地上クルーのコール、プッシュバッククルー、パーサーの搭乗・降機報告、First Officer の GSX アドバイザリーが無音になります。自動化は続きます。回答が必要な質問は引き続き行われ、あなたの音声要求への返答も引き続き話されます。" },
+      "voiceControl": { "label": "地上サービスの音声要求", "hint": "音声でサービスを要求します：'request boarding'、'cockpit to ground'、'request pushback'。", "more": "オフ：地上サービスのフレーズは聞き取られず、First Officer は質問を声に出しません。ステータスページまたは GSX のメニューで回答してください。" },
+      "parkingConflict": { "label": "駐機位置のアドバイザリー", "hint": "GSX が駐機位置を認識しないとき、First Officer が知らせます。" },
+      "droppedCall": { "label": "コール不達のアドバイザリー", "hint": "地上がサービスコールを受け取らなかったとき、First Officer が知らせます。" }
+    },
+    "voicesGround": { "title": "地上クルー", "hint": "インターホンでの地上クルーからのコール", "moreBefore": "文言、インターホン、ウォークアラウンドの設定：", "moreLink": "Crew & Company → 地上クルー" },
+    "voicesCabin": { "title": "客室乗務員", "hint": "パーサーの地上サービス報告", "moreBefore": "客室乗務員のすべての設定：", "moreLink": "Crew & Company → 客室乗務員" },
+    "voicesFo": { "title": "First Officer のアドバイザリー", "hint": "First Officer が GSX について自発的に伝える内容" },
+    "voicesQuestions": { "title": "質問", "hint": "回答が必要なため、マスタースイッチでは止まりません。オフ：GSX のメニューがあなたを待ちます。" },
     "beaconDelays": {
       "title": "ビーコンシーケンスの遅延",
       "hint": "リアリティのための、ステップ間のランダムな待ち時間",

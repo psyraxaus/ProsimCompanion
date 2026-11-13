@@ -173,8 +173,28 @@ public sealed class GsxOptions : IOptionSection, IOptionNormalize
 
     /// <summary>Voice phrases for GSX ground services ("request boarding", "cockpit to
     /// ground", …) routed through the same named commands the web UI and Stream Deck use.
-    /// On by default; the speech pillar itself must also be running.</summary>
+    /// On by default; the speech pillar itself must also be running. Had no switch until the
+    /// 2026-11-14 voices pass (the VOICE drawer already pointed at one).</summary>
+    [OptionField(FieldKind.Bool, "gsxSettings.voices.voiceControl")]
     public bool VoiceControlEnabled { get; set; } = true;
+
+    /// <summary>The one switch for every voice that speaks on its own about a ground service
+    /// (owner report 2026-11-14: "I can't seem to turn off our voices for the GSX messaging"):
+    /// the ground crew's upcalls, the pushback crew, the purser's boarding and deboarding
+    /// reports and the FO's GSX advisories. Off silences them all; the automation runs on, and
+    /// the questions that need an answer (pushback direction, a split gate) are still asked.</summary>
+    [OptionField(FieldKind.Bool, "gsxSettings.voices.master")]
+    public bool GroundVoicesEnabled { get; set; } = true;
+
+    /// <summary>The FO's "GSX doesn't recognise our parking position" / "GSX has not found our
+    /// stand yet" advisories. Had no switch before 2026-11-14.</summary>
+    [OptionField(FieldKind.Bool, "gsxSettings.voices.parkingConflict", DependsOn = "GroundVoicesEnabled")]
+    public bool AnnounceParkingConflict { get; set; } = true;
+
+    /// <summary>The FO's "ground did not pick up the {service} call" advisory. Had no switch
+    /// before 2026-11-14; the decision log and the Status page show the dropped call regardless.</summary>
+    [OptionField(FieldKind.Bool, "gsxSettings.voices.droppedCall", DependsOn = "GroundVoicesEnabled")]
+    public bool AnnounceDroppedCalls { get; set; } = true;
 
     // ---- Question answering ----
 
@@ -592,17 +612,35 @@ public sealed class GsxOptions : IOptionSection, IOptionNormalize
     [OptionField(FieldKind.Bool, "gsxSettings.pushback.beacon")]
     public bool BeaconPushbackSequenceEnabled { get; set; } = true;
 
-    /// <summary>Call the GSX Pushback service automatically when the sequence reaches
-    /// ready-for-push (off = the sequence prepares everything and leaves the call to you).</summary>
-    [OptionField(FieldKind.Bool, "gsxSettings.pushback.callAtReady", DependsOn = "BeaconPushbackSequenceEnabled")]
-    public bool CallPushbackOnBeacon { get; set; } = true;
+    // The sequence's steps, each with its own switch (owner request 2026-11-14: "make the
+    // phases toggleable"). A step that is off is skipped — no delay, no action — and stays
+    // with the pilot.
 
-    /// <summary>Before the sequence calls the GSX pushback, the FO asks ATC for push and start
+    /// <summary>Step 1: the sequence closes every open door.</summary>
+    [OptionField(FieldKind.Bool, "gsxSettings.pushback.stepDoors", DependsOn = "BeaconPushbackSequenceEnabled")]
+    public bool SeqCloseDoors { get; set; } = true;
+
+    /// <summary>Step 2: the sequence retracts the jetway / removes the stairs.</summary>
+    [OptionField(FieldKind.Bool, "gsxSettings.pushback.stepJetway", DependsOn = "BeaconPushbackSequenceEnabled")]
+    public bool SeqRetractJetway { get; set; } = true;
+
+    /// <summary>Step 3: the sequence clears the ground equipment (GPU, chocks, PCA).</summary>
+    [OptionField(FieldKind.Bool, "gsxSettings.pushback.stepEquipment", DependsOn = "BeaconPushbackSequenceEnabled")]
+    public bool SeqRemoveEquipment { get; set; } = true;
+
+    /// <summary>Step 4: before the pushback, the FO asks ATC for push and start
     /// on COM1 (SayIntentions) and waits for the approval; the direction ATC names ("Face
     /// South") becomes this flight's pushback choice for GSX's menu (owner request 2026-11-07).
-    /// Inert without SayIntentions on and a filed flight — the push is then called as before.</summary>
-    [OptionField(FieldKind.Bool, "gsxSettings.pushback.requestClearance", DependsOn = "CallPushbackOnBeacon")]
+    /// Inert without SayIntentions on and a filed flight. Its own step since 2026-11-14: it no
+    /// longer needs <see cref="CallPushbackOnBeacon"/>.</summary>
+    [OptionField(FieldKind.Bool, "gsxSettings.pushback.requestClearance", DependsOn = "BeaconPushbackSequenceEnabled")]
     public bool RequestPushClearanceOnBeacon { get; set; } = true;
+
+    /// <summary>Step 5: call the GSX Pushback service automatically when the sequence reaches
+    /// ready-for-push. Off = the call waits for your word: "request pushback" (to the FO or to
+    /// ground), a Stream Deck key (<c>gsx.requestPushback</c>) or GSX's own menu.</summary>
+    [OptionField(FieldKind.Bool, "gsxSettings.pushback.callAtReady", DependsOn = "BeaconPushbackSequenceEnabled")]
+    public bool CallPushbackOnBeacon { get; set; } = true;
 
     /// <summary>How long the sequence waits for ATC's approval before it calls the pushback
     /// anyway — a silent ATC must never leave the aircraft at the gate with the beacon on.</summary>

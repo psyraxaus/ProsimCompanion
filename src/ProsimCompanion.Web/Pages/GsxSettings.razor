@@ -9,6 +9,8 @@
 @using ProsimCompanion.Web.Settings
 @inherits SettingsPageBase
 @inject IOptionsMonitor<GsxOptions> GsxMonitor
+@inject IOptionsMonitor<GroundCrewOptions> GroundCrewMonitor
+@inject IOptionsMonitor<CabinOptions> CabinMonitor
 @inject ProfileGsxMirror ProfileMirror
 @inject SwitchCatalogStore SwitchList
 @inject IStringLocalizer T
@@ -225,10 +227,17 @@ else if (CurrentSection == "pushback")
     </Section>
     <Section Title="@T["gsxSettings.pushback.title"]">
         <OptionField Draft="_gsx" For="o => o.BeaconPushbackSequenceEnabled" />
-        <OptionField Draft="_gsx" For="o => o.CallPushbackOnBeacon" />
+        <OptionField Draft="_gsx" For="o => o.ConfirmEngineStart" />
+    </Section>
+
+    @* The sequence's steps in the order they run, one switch each (owner request 2026-11-14). *@
+    <Section Title="@T["gsxSettings.pushbackSteps.title"]" Hint="@T["gsxSettings.pushbackSteps.hint"]">
+        <OptionField Draft="_gsx" For="o => o.SeqCloseDoors" />
+        <OptionField Draft="_gsx" For="o => o.SeqRetractJetway" />
+        <OptionField Draft="_gsx" For="o => o.SeqRemoveEquipment" />
         <OptionField Draft="_gsx" For="o => o.RequestPushClearanceOnBeacon" />
         <OptionField Draft="_gsx" For="o => o.PushClearanceWaitSec" />
-        <OptionField Draft="_gsx" For="o => o.ConfirmEngineStart" />
+        <OptionField Draft="_gsx" For="o => o.CallPushbackOnBeacon" />
     </Section>
 
     <Section Title="@T["gsxSettings.beaconDelays.title"]" Hint="@T["gsxSettings.beaconDelays.hint"]">
@@ -341,6 +350,47 @@ else if (CurrentSection == "questions")
         <OptionField Draft="_gsx" For="o => o.Deice.AskWhen" />
         <OptionField Draft="_gsx" For="o => o.Deice.QuestionTimeoutMinutes" />
         <OptionField Draft="_gsx" For="o => o.Deice.PacksProcedure" />
+    </Section>
+}
+else if (CurrentSection == "voices")
+{
+    @* Every voice that speaks about a ground service, in one list (owner report 2026-11-14:
+       "I can't seem to turn off our voices for the GSX messaging"). The crew switches are the
+       SAME options the Crew & Company pages edit — shown here too, never a second setting. *@
+    var voicesOff = !_gsx.Value.GroundVoicesEnabled;
+    <Section Title="@T["gsxSettings.voices.title"]" Hint="@T["gsxSettings.voices.hint"]">
+        <OptionField Draft="_gsx" For="o => o.GroundVoicesEnabled" />
+        <OptionField Draft="_gsx" For="o => o.VoiceControlEnabled" />
+    </Section>
+    <Section Title="@T["gsxSettings.voicesGround.title"]" Hint="@T["gsxSettings.voicesGround.hint"]">
+        <OptionField Draft="_groundCrew" For="o => o.Enabled" Disabled="voicesOff" />
+        <OptionField Draft="_groundCrew" For="o => o.CallOnGroundPower" Disabled="voicesOff" />
+        <OptionField Draft="_groundCrew" For="o => o.CallOnChocks" Disabled="voicesOff" />
+        <OptionField Draft="_groundCrew" For="o => o.CallOnRefuelStarted" Disabled="voicesOff" />
+        <OptionField Draft="_groundCrew" For="o => o.CallOnRefuelComplete" Disabled="voicesOff" />
+        <OptionField Draft="_groundCrew" For="o => o.CallOnCateringComplete" Disabled="voicesOff" />
+        <OptionField Draft="_groundCrew" For="o => o.CallOnDeiceComplete" Disabled="voicesOff" />
+        <OptionField Draft="_groundCrew" For="o => o.PushbackCrew.Enabled" Disabled="voicesOff" />
+        <div class="field-hint" style="max-width:640px;">
+            @T["gsxSettings.voicesGround.moreBefore"] <a href="settings/speech/groundCrew">@T["gsxSettings.voicesGround.moreLink"]</a>
+        </div>
+    </Section>
+    <Section Title="@T["gsxSettings.voicesCabin.title"]" Hint="@T["gsxSettings.voicesCabin.hint"]">
+        <OptionField Draft="_cabin" For="o => o.BoardingCompleteReport" Disabled="voicesOff" />
+        <OptionField Draft="_cabin" For="o => o.CabinEmptyReport" Disabled="voicesOff" />
+        <div class="field-hint" style="max-width:640px;">
+            @T["gsxSettings.voicesCabin.moreBefore"] <a href="settings/speech/cabin">@T["gsxSettings.voicesCabin.moreLink"]</a>
+        </div>
+    </Section>
+    <Section Title="@T["gsxSettings.voicesFo.title"]" Hint="@T["gsxSettings.voicesFo.hint"]">
+        <OptionField Draft="_gsx" For="o => o.AircraftStateCheckAnnounce" Disabled="voicesOff" />
+        <OptionField Draft="_gsx" For="o => o.AnnounceParkingConflict" />
+        <OptionField Draft="_gsx" For="o => o.AnnounceDroppedCalls" />
+    </Section>
+    <Section Title="@T["gsxSettings.voicesQuestions.title"]" Hint="@T["gsxSettings.voicesQuestions.hint"]">
+        <OptionField Draft="_gsx" For="o => o.PushbackAskWhenUnsure" />
+        <OptionField Draft="_gsx" For="o => o.AskPilotOnAmbiguousGate" />
+        <OptionField Draft="_gsx" For="o => o.TurnaroundAskFirst" />
     </Section>
 }
 else if (CurrentSection == "connection")
@@ -520,10 +570,15 @@ else if (CurrentSection == "connection")
     }
 
     private OptionsDraft<GsxOptions> _gsx = default!;
+    private OptionsDraft<GroundCrewOptions> _groundCrew = default!;
+    private OptionsDraft<CabinOptions> _cabin = default!;
 
     protected override void OnInitialized()
     {
         _gsx = Draft(GsxMonitor);
+        // The Voices section shows the crew pages' own switches (2026-11-14).
+        _groundCrew = Draft(GroundCrewMonitor);
+        _cabin = Draft(CabinMonitor);
         // The switch list swaps from the shipped CSV to ProSim's own on connect; the picker
         // re-renders with it like every other live card.
         Watch(SwitchList, snapshot => _switches = snapshot);

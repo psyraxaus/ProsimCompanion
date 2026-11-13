@@ -49,8 +49,12 @@ public sealed class PushbackCrewService : Core.Hosting.IStartupModule, IVoiceFea
         JsonlEventLog eventLog,
         ILogger<PushbackCrewService> logger,
         IAcpChannel? acp = null,
-        IProsimDataRefs? dataRefs = null)
+        IProsimDataRefs? dataRefs = null,
+        IOptionsMonitor<GsxOptions>? gsxOptions = null,
+        Core.Commands.CommandRegistry? commands = null)
     {
+        _gsxOptions = gsxOptions;
+        _commands = commands;
         ArgumentNullException.ThrowIfNull(signals);
         ArgumentNullException.ThrowIfNull(arbiter);
         ArgumentNullException.ThrowIfNull(options);
@@ -87,7 +91,8 @@ public sealed class PushbackCrewService : Core.Hosting.IStartupModule, IVoiceFea
         get
         {
             var options = _options.CurrentValue;
-            return options.Enabled && options.PushbackCrew.Enabled;
+            return options.Enabled && options.PushbackCrew.Enabled
+                && _gsxOptions?.CurrentValue.GroundVoicesEnabled != false;
         }
     }
 
@@ -122,6 +127,7 @@ public sealed class PushbackCrewService : Core.Hosting.IStartupModule, IVoiceFea
         if (PushbackCrewCore.ReadyPhrases.Any(p => string.Equals(p, text, StringComparison.OrdinalIgnoreCase)))
         {
             Speak(PushbackCrewCore.OnReady(options), options, heard: text);
+            RequestPushback();
             return true;
         }
 
@@ -184,6 +190,38 @@ public sealed class PushbackCrewService : Core.Hosting.IStartupModule, IVoiceFea
         {
             _logger.LogDebug(ex, "Pushback crew stage {Stage} failed", stage);
         }
+    }
+
+    private readonly IOptionsMonitor<GsxOptions>? _gsxOptions;
+    private readonly Core.Commands.CommandRegistry? _commands;
+
+    /// <summary>"Ready for pushback" is also the request (2026-11-14, owner's flight: the crew
+    /// answered "stand by for the tug" and no tug was ever called): the same named command the
+    /// FO's "request pushback" and a Stream Deck key run — the beacon sequence calls the tug at
+    /// ready-for-push, also with its automatic call off. A refusal is only logged; the crew's
+    /// acknowledgement is already spoken.</summary>
+    private void RequestPushback()
+    {
+        if (_commands is null)
+        {
+            return;
+        }
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                var result = await _commands
+                    .ExecuteAsync<Core.Commands.EmptyCommandRequest, Core.Commands.CommandResult>(
+                        "gsx.requestPushback", new Core.Commands.EmptyCommandRequest(), source: "hail")
+                    .ConfigureAwait(false);
+                _logger.LogInformation("Pushback crew: 'ready for pushback' handed to the beacon sequence — {Outcome}", result.Outcome);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "Pushback crew: the pushback request could not be handed over");
+            }
+        });
     }
 
     private string? Direction()

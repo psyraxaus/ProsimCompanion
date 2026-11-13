@@ -69,6 +69,8 @@ public static class SettingsNav
         ("arrival", "Arrival"),
         ("operators", "Operators & Hubs"),
         ("questions", "GSX Questions"),
+        // Every ground-service voice in one list (2026-11-14).
+        ("voices", "Voices"),
         ("connection", "Connection & Timeouts"));
 
     // The Voice First Officer page (one route, settings/speech/{section}) is three rail groups

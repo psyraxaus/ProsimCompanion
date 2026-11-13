@@ -407,10 +407,14 @@
     "groundCrew": {
       "title": "Bodencrew",
       "hint": "Die Bodencrew anrufen und ihre Rufe hören",
+      "enabled": { "label": "Stimmen der Bodencrew", "hint": "Die Bodencrew antwortet auf deinen Ruf und ruft das Cockpit." },
+      "allVoicesBefore": "Alle Stimmen der Bodendienste in einer Liste:",
+      "allVoicesLink": "Bodendienste → Stimmen",
       "pushbackCrew": {
         "title": "Pushback-Crew",
         "hint": "Der Rampenagent begleitet den Pushback über die Interphone",
         "enabled": {
+          "label": "Stimme der Pushback-Crew",
           "hint": "Brücke weg und Türen geprüft, Schlepper verbunden mit der Bitte um die Bremsen, Pushback frei mit der Richtung dieses Flugs, Triebwerksstart frei, Pushback beendet, guter Start bestätigt, Pin raus und frei.",
           "more": "Eine Zeile pro Schritt des GSX-Pushbacks, jede einmal. Gesprochen mit der Bodenstimme und dem Interphone-Klang; MECH-Ruf, INT gewählt oder die Wartezeit gelten wie bei den Anrufen. Schalten Sie die Rampencrew in SayIntentions und das Crew-Audio von GSX aus, damit nur eine Crew spricht."
         },
@@ -511,6 +515,7 @@
       }
     },
     "cabin": {
+      "cabinEmpty": { "label": "Meldung Kabine leer", "hint": "Der Purser meldet 'Cabin's empty, captain', wenn das Deboarding abgeschlossen ist." },
       "boardingComplete": {
         "label": "Meldung Boarding abgeschlossen",
         "hint": "Wenn das Boarding abgeschlossen ist und die letzte Tür schließt: 'boarding complete, N on board, doors closed'. Die Meldung Kabine gesichert folgt mit ihrem eigenen Timer."

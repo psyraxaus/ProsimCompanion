@@ -43,6 +43,12 @@ public readonly record struct PushbackTickResult(PushbackAction Action, string? 
 /// the timeout) → pushback. A clearance the captain already obtained by voice is honoured
 /// (state Approved on arrival skips the request); a hold ("expect a five minute delay") is
 /// waited through; a silent ATC never blocks the push past the timeout.</para>
+/// <para>Since 2026-11-14 (owner request: "make the phases toggleable") every step has its own
+/// switch — close doors, retract jetway/stairs, clear ground equipment, ask ATC, call the
+/// pushback. A step that is off is skipped without its delay; the ATC request no longer hangs
+/// under the pushback call; and with the automatic call off the pilot's own request
+/// (<see cref="Inputs.PushbackRequested"/>: "request pushback" by voice, a Stream Deck key)
+/// calls the tug as soon as the sequence is ready — said early, it is kept until then.</para>
 /// </summary>
 public sealed class PushbackSequencer
 {
@@ -75,6 +81,11 @@ public sealed class PushbackSequencer
     /// ask ATC before the pushback call.</param>
     /// <param name="Clearance">The push clearance as the radio knows it this cycle.</param>
     /// <param name="ClearanceWaitSec">How long to wait for ATC's approval before pushing anyway.</param>
+    /// <param name="CloseDoors">Option: the sequence closes the doors (off = step skipped).</param>
+    /// <param name="RetractJetway">Option: the sequence retracts the jetway/stairs.</param>
+    /// <param name="RemoveEquipment">Option: the sequence clears the ground equipment.</param>
+    /// <param name="PushbackRequested">The pilot asked for the pushback this cycle (voice or
+    /// command) — calls the tug at ready-for-push even with <paramref name="CallPushback"/> off.</param>
     public readonly record struct Inputs(
         bool Armed,
         bool BeaconOn,
@@ -84,7 +95,11 @@ public sealed class PushbackSequencer
         bool PushbackCallable,
         bool RequestClearance = false,
         PushClearanceState Clearance = PushClearanceState.None,
-        int ClearanceWaitSec = 120);
+        int ClearanceWaitSec = 120,
+        bool CloseDoors = true,
+        bool RetractJetway = true,
+        bool RemoveEquipment = true,
+        bool PushbackRequested = false);
 
     /// <summary>Delay bounds for the three timed steps, in seconds.</summary>
     public readonly record struct Delays(
@@ -111,8 +126,7 @@ public sealed class PushbackSequencer
                 }
                 if (inputs.ApuRunning)
                 {
-                    var delay = StartDelay(delays.DoorsMin, delays.DoorsMax);
-                    return new(PushbackAction.None, $"APU running — closing doors in {delay}s");
+                    return new(PushbackAction.None, "APU running — " + Advance(PushbackSequenceStep.WaitingForApu, inputs, delays));
                 }
                 return default;
 
@@ -126,10 +140,12 @@ public sealed class PushbackSequencer
                     return default;
                 }
                 {
-                    var delay = StartDelay(delays.JetwayMin, delays.JetwayMax, PushbackSequenceStep.JetwayStep);
-                    return inputs.AnyDoorOpen
-                        ? new(PushbackAction.CloseDoors, $"closing doors; jetway/stairs retract in {delay}s")
-                        : new(PushbackAction.None, $"doors already closed; jetway/stairs retract in {delay}s");
+                    // A step switched off while its delay ran is skipped like one off from the start.
+                    var act = inputs.CloseDoors && inputs.AnyDoorOpen;
+                    var done = !inputs.CloseDoors ? "doors left to the pilot" : act ? "closing doors" : "doors already closed";
+                    return new(
+                        act ? PushbackAction.CloseDoors : PushbackAction.None,
+                        $"{done}; {Advance(PushbackSequenceStep.DoorsStep, inputs, delays)}");
                 }
 
             case PushbackSequenceStep.JetwayStep:
@@ -142,8 +158,10 @@ public sealed class PushbackSequencer
                     return default;
                 }
                 {
-                    var delay = StartDelay(delays.GpuMin, delays.GpuMax, PushbackSequenceStep.GpuStep);
-                    return new(PushbackAction.RetractJetwayStairs, $"retracting jetway/stairs; ground equipment clears in {delay}s");
+                    var done = inputs.RetractJetway ? "retracting jetway/stairs" : "jetway/stairs left to the pilot";
+                    return new(
+                        inputs.RetractJetway ? PushbackAction.RetractJetwayStairs : PushbackAction.None,
+                        $"{done}; {Advance(PushbackSequenceStep.JetwayStep, inputs, delays)}");
                 }
 
             case PushbackSequenceStep.GpuStep:
@@ -156,30 +174,25 @@ public sealed class PushbackSequencer
                     return default;
                 }
                 Step = PushbackSequenceStep.ReadyForPush;
-                return new(PushbackAction.RemoveGroundEquipment, "clearing ground equipment — ready for push");
+                return inputs.RemoveEquipment
+                    ? new(PushbackAction.RemoveGroundEquipment, "clearing ground equipment — ready for push")
+                    : new(PushbackAction.None, "ground equipment left to the pilot — ready for push");
 
             case PushbackSequenceStep.ReadyForPush:
                 if (!inputs.BeaconOn)
                 {
                     return default; // pause until the beacon comes back
                 }
-                if (!inputs.CallPushback)
-                {
-                    if (_readyAnnounced)
-                    {
-                        return default;
-                    }
-                    _readyAnnounced = true;
-                    return new(PushbackAction.None, "ready for push — pushback call left to the pilot (gsx.callPushbackOnBeacon off)");
-                }
                 if (inputs.RequestClearance && !_clearanceSettled)
                 {
-                    // ATC first (owner request 2026-11-07). An approval already in hand — the
-                    // captain asked by voice — is honoured without a second call.
+                    // ATC first (owner request 2026-11-07) — its own switch since 2026-11-14, so
+                    // the FO asks also when the pushback call itself stays with the pilot. An
+                    // approval already in hand — the captain asked by voice — is honoured
+                    // without a second call.
                     if (inputs.Clearance == PushClearanceState.Approved)
                     {
                         _clearanceSettled = true;
-                        return new(PushbackAction.None, "push and start already approved by ATC — calling pushback");
+                        return new(PushbackAction.None, "push and start already approved by ATC" + Next(inputs));
                     }
 
                     Step = PushbackSequenceStep.AwaitingPushClearance;
@@ -188,10 +201,19 @@ public sealed class PushbackSequencer
                         ? new(PushbackAction.None, $"push and start already requested by the pilot — waiting up to {_remainingTicks}s for ATC")
                         : new(PushbackAction.RequestPushClearance, $"ready for push — requesting push and start from ATC (waiting up to {_remainingTicks}s)");
                 }
+                if (!WillCall(inputs))
+                {
+                    if (_readyAnnounced)
+                    {
+                        return default;
+                    }
+                    _readyAnnounced = true;
+                    return new(PushbackAction.None, "ready for push — pushback call left to the pilot (gsx.callPushbackOnBeacon off): say 'request pushback' or use the GSX menu");
+                }
                 if (inputs.PushbackCallable)
                 {
                     Step = PushbackSequenceStep.PushbackCalled;
-                    return new(PushbackAction.CallPushback, "calling pushback");
+                    return new(PushbackAction.CallPushback, inputs.CallPushback ? "calling pushback" : "calling pushback — requested by the pilot");
                 }
                 if (!_waitingAnnounced)
                 {
@@ -212,7 +234,7 @@ public sealed class PushbackSequencer
                 {
                     _clearanceSettled = true;
                     Step = PushbackSequenceStep.ReadyForPush;
-                    return new(PushbackAction.None, "ATC approved push and start — calling pushback");
+                    return new(PushbackAction.None, "ATC approved push and start" + Next(inputs));
                 }
                 if (inputs.Clearance == PushClearanceState.Held && !_holdAnnounced)
                 {
@@ -225,7 +247,8 @@ public sealed class PushbackSequencer
                 }
                 _clearanceSettled = true;
                 Step = PushbackSequenceStep.ReadyForPush;
-                return new(PushbackAction.None, "no push approval from ATC in time — calling pushback anyway");
+                return new(PushbackAction.None, "no push approval from ATC in time"
+                    + (WillCall(inputs) ? " — calling pushback anyway" : " — the pushback call stays with the pilot"));
 
             default: // PushbackCalled — GSX's own flow owns it from here
                 return default;
@@ -245,13 +268,40 @@ public sealed class PushbackSequencer
 
     private static bool CanAdvance(Inputs inputs) => inputs.BeaconOn && inputs.ApuRunning;
 
-    private int StartDelay(int minSec, int maxSec, PushbackSequenceStep? next = null)
+    private static bool WillCall(Inputs inputs) => inputs.CallPushback || inputs.PushbackRequested;
+
+    /// <summary>What follows a settled clearance, for the decision log.</summary>
+    private static string Next(Inputs inputs)
+        => WillCall(inputs) ? " — calling pushback" : " — the pushback call stays with the pilot";
+
+    /// <summary>Moves from <paramref name="from"/> to the next timed step whose switch is on
+    /// (starting its crew-realism delay), or straight to ready-for-push when none is left —
+    /// a skipped step costs no delay. Returns the decision-log clause for what comes next.</summary>
+    private string Advance(PushbackSequenceStep from, Inputs inputs, Delays delays)
     {
-        Step = next ?? Step switch
+        if (from < PushbackSequenceStep.DoorsStep && inputs.CloseDoors)
         {
-            PushbackSequenceStep.WaitingForApu => PushbackSequenceStep.DoorsStep,
-            _ => Step,
-        };
+            return $"closing doors in {StartDelay(delays.DoorsMin, delays.DoorsMax, PushbackSequenceStep.DoorsStep)}s";
+        }
+
+        if (from < PushbackSequenceStep.JetwayStep && inputs.RetractJetway)
+        {
+            return $"jetway/stairs retract in {StartDelay(delays.JetwayMin, delays.JetwayMax, PushbackSequenceStep.JetwayStep)}s";
+        }
+
+        if (from < PushbackSequenceStep.GpuStep && inputs.RemoveEquipment)
+        {
+            return $"ground equipment clears in {StartDelay(delays.GpuMin, delays.GpuMax, PushbackSequenceStep.GpuStep)}s";
+        }
+
+        Step = PushbackSequenceStep.ReadyForPush;
+        _remainingTicks = 0;
+        return "no further preparation step is switched on — ready for push";
+    }
+
+    private int StartDelay(int minSec, int maxSec, PushbackSequenceStep next)
+    {
+        Step = next;
         var lo = Math.Max(1, minSec);
         var hi = Math.Max(lo, maxSec);
         var delay = _pickDelaySeconds(lo, hi);
