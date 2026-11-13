@@ -32,6 +32,10 @@ public interface IPushbackGroundActions
     /// <summary>Picks "Confirm good engine start" on GSX's "Interrupt pushback?" menu
     /// (issue #106).</summary>
     Task<GsxIntentResult> ConfirmGoodEngineStartAsync(CancellationToken cancellationToken);
+
+    /// <summary>Clears GSX's "aircraft held by the tug" flag (<c>L:FSDT_VAR_Frozen</c> → 0) —
+    /// the steering release of 2026-11-14 (see <see cref="GsxLvarNames.Frozen"/>).</summary>
+    Task ReleaseGsxHoldAsync();
 }
 
 /// <summary>The adapter that fills <see cref="IPushbackGroundActions"/> with the real door,
@@ -51,13 +55,17 @@ public sealed class GsxPushbackGroundActions : IPushbackGroundActions
     private readonly GsxJetwayStairsService _jetwayStairs;
     private readonly GsxGroundEquipmentService _groundEquipment;
     private readonly GsxMenuIntentExecutor _menuExecutor;
+    private readonly Core.Aircraft.ISimVars _simVars;
 
     public GsxPushbackGroundActions(
         GsxDoorService doors,
         GsxJetwayStairsService jetwayStairs,
         GsxGroundEquipmentService groundEquipment,
-        GsxMenuIntentExecutor menuExecutor)
+        GsxMenuIntentExecutor menuExecutor,
+        Core.Aircraft.ISimVars simVars)
     {
+        ArgumentNullException.ThrowIfNull(simVars);
+        _simVars = simVars;
         ArgumentNullException.ThrowIfNull(doors);
         ArgumentNullException.ThrowIfNull(jetwayStairs);
         ArgumentNullException.ThrowIfNull(groundEquipment);
@@ -92,4 +100,7 @@ public sealed class GsxPushbackGroundActions : IPushbackGroundActions
     /// <inheritdoc />
     public Task<GsxIntentResult> ConfirmGoodEngineStartAsync(CancellationToken cancellationToken)
         => _menuExecutor.ExecuteAsync(ConfirmGoodEngineStart, cancellationToken);
+
+    public Task ReleaseGsxHoldAsync()
+        => _simVars.WriteAsync(GsxLvarNames.Frozen.Name, 0);
 }

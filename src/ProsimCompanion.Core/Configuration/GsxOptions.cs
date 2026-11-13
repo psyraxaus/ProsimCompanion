@@ -654,6 +654,13 @@ public sealed class GsxOptions : IOptionSection, IOptionNormalize
     [OptionField(FieldKind.Bool, "gsxSettings.pushback.confirmEngineStart")]
     public bool ConfirmEngineStart { get; set; } = true;
 
+    /// <summary>After the tug has gone, clear GSX's "aircraft held" flag (<c>L:FSDT_VAR_Frozen</c>)
+    /// when GSX left it set — ProSim keeps the nose wheel steering disconnected (NW STRG DISC,
+    /// dead tiller) while it reads 1. Owner's rig 2026-11-14, GSX Pro 4.0.23. Works with or
+    /// without the beacon sequence; off leaves the flag to GSX.</summary>
+    [OptionField(FieldKind.Bool, "gsxSettings.pushback.releaseSteering")]
+    public bool ReleaseSteeringAfterPushback { get; set; } = true;
+
     /// <summary>Randomized delay bounds (seconds) before the doors close.</summary>
     [OptionField(FieldKind.Range, "gsxSettings.beaconDelays.doorsClose", RangeEnd = nameof(SeqDoorsCloseDelayMaxSec), Suffix = "s", Min = "0", DependsOn = "BeaconPushbackSequenceEnabled")]
     public int SeqDoorsCloseDelayMinSec { get; set; } = 10;

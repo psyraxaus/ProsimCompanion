@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Nose-wheel-steering probe (2026-11-14): after a GSX 4.0.23 pushback ProSim's
+       groundservice.pushback stays 0 ("pushback in progress") and NW STRG DISC never clears.
+       ProSim only mirrors the simulator, so this console reads the MSFS pushback / freeze /
+       steering variables on the sim PC and offers the candidate release actions one key at a
+       time. NOT part of the solution build; never shipped. Run on the sim PC with MSFS up:
+         NwsProbe.exe            (prints every change; number keys run the actions; Q quits) -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <PlatformTarget>x64</PlatformTarget>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="Microsoft.FlightSimulator.SimConnect">
+      <HintPath>..\..\libs\SimConnect\Microsoft.FlightSimulator.SimConnect.dll</HintPath>
+    </Reference>
+    <None Include="..\..\libs\SimConnect\SimConnect.dll" Link="SimConnect.dll" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

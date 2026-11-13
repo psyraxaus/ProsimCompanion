@@ -160,6 +160,7 @@
       "stepEquipment": { "label": "地上機材を外す", "hint": "ステップ 3。地上電源、チョーク、空調を外します。" },
       "callAtReady": { "label": "プッシュバックを呼ぶ", "hint": "ステップ 5。すべての準備ができたら GSX のプッシュバックを呼びます。", "more": "オフ：呼び出しはあなたの指示を待ちます。First Officer に 'request pushback'、地上に 'ready for pushback' と言うか、Stream Deck のキーを押すか、GSX のメニューを使います。早めに出した要求は、シーケンスの準備ができるまで保持されます。" },
       "confirmEngineStart": { "label": "エンジン始動良好を確認", "hint": "パーキングブレーキをセットした状態でエンジンが回ると、GSX の 'Confirm good engine start' に代わって答えます。", "more": "オフ: GSX の Interrupt-pushback メニューはあなたが答えるまで待ちます。それまでトーイングカーは接続されたままです。" },
+      "releaseSteering": { "label": "プッシュバック後にステアリングを解放", "hint": "タグが離れた後、GSX が「機体保持中」フラグを立てたままにした場合に、それを解除します。", "more": "フラグが立っている間、ProSim はノーズホイールステアリングを切り離したままにします。NW STRG DISC が消えず、ティラーが効きません。GSX Pro 4.0.23 で確認されました。アプリはバイパスピンが抜かれタグが離れてから 8 秒待ち、進行中のプッシュバックには決して触れません。オフ：フラグは GSX に任せます。" },
       "requestClearance": { "label": "ATC に push and start を要求", "hint": "ステップ 4。FO が COM1 で ATC に push and start を要求し、承認を待ちます。", "more": "SayIntentions がオンでフライトが登録されている必要があります。ない場合、このステップは省略されます。ATC が指示した方向（'face south'）が、このフライトの GSX メニューでのプッシュバック選択になります。すでに音声で要求した許可はそのまま使われます。「プッシュバックを呼ぶ」がオフでも動作します。" },
       "clearanceWait": { "label": "プッシュ許可の待ち時間", "hint": "ATCの承認を待つ時間。過ぎればプッシュバックをそのまま呼びます。" }
     },

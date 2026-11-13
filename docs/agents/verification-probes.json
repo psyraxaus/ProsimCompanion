@@ -4488,6 +4488,25 @@
       "notes": "Built 2026-11-14. GsxOptions.GroundVoicesEnabled (default on) read by GroundCrewUpcallService (tick + de-ice), PushbackCrewService.Enabled, CabinCrewService (boarding complete, cabin empty), ParkingConflictAdvisoryService, DroppedCallAdvisoryService (each takes an optional IOptionsMonitor<GsxOptions>; absent = on) and AircraftStateCheckService (AnnounceMismatches). New options AnnounceParkingConflict, AnnounceDroppedCalls (GsxOptions), CabinEmptyReport (CabinOptions); VoiceControlEnabled gets its [OptionField]. Web: GsxSettings section 'voices' (rail item settings.nav.gsx.voices) over three drafts (gsx, groundCrew, cabin); the Pushback Crew card has its title; 'Enabled' labels replaced by 'Ground crew voices' / 'Pushback crew voice'. Texts in all seven packs. Unverified live."
     },
     {
+      "id": "gsx-steering-release-after-push",
+      "issue": 0,
+      "state": "fixed-unverified",
+      "kind": "watch",
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "Owner's rig 2026-11-14 (GSX Pro 4.0.23, ProSim 1.76b5): after a GSX pushback NW STRG DISC stayed on and the tiller was dead for the whole taxi. Proven live with tools/NwsProbe: GSX left L:FSDT_VAR_Frozen at 1 after the tug had gone (pin out, vehicle state 1, every MSFS pushback / freeze variable clean); ProSim mirrors that LVAR into groundservice.pushback (0 = push in progress, steering disconnected), and writes to the dataref itself do not stick. Writing the LVAR to 0 returned groundservice.pushback to 3 at once. The pushback tick now clears the stale flag (gsx.releaseSteeringAfterPushback, default on).",
+        "assert-present (a GSX pushback flown, GSX leaves the flag set): gsx-decision 'pushback tug: bypass pin removed' → about 8 s after the tug is in state 14 / 4 / 1 with the pin out: 'pushback tug: GSX left the aircraft marked held (L:FSDT_VAR_Frozen = 1) 8s after the tug had gone — clearing it so the nose wheel steering reconnects' → within a few seconds the flight-sample pbRaw goes 0 → 3 (pb false) and stays 3 through the taxi.",
+        "assert-absent: the 'clearing it' decision while the tug holds the aircraft — between 'bypass pin inserted' and 'bypass pin removed', or in vehicle states 2, 3, 5–13; more than 3 'clearing it' decisions in one flight segment (the fourth is 'GSX set the held flag again after 3 clears — leaving it', once); flight-sample pbRaw = 0 in TaxiOut later than ~15 s after the pin came out.",
+        "assert-present (a GSX that clears its own flag — the pre-4.0.23 behaviour, pbRaw back to 3 before the pin is out): NO 'clearing it' decision at all; the rule never fires on a healthy push.",
+        "assert-absent (gsx.releaseSteeringAfterPushback off): any 'clearing it' decision.",
+        "requires-human: after the hand signal the NW STRG DISC memo goes out by itself and the tiller steers; the phase engine leaves PushbackAndStart for TaxiOut as the aircraft rolls (pb false)."
+      ],
+      "notes": "Built 2026-11-14. Evidence: sessions 2026-11-01 (pbRaw 0 → 3 at 04:17:18Z, 33 s before 'bypass pin removed' — GSX cleared it) against 2026-11-06 / 07 / 13 (pbRaw stuck 0 for the rest of the session); Couatl.log 'GSX Pro version 4.0.23', '[PushBack] feedUserPos: ACTIVE' with no matching end line; NwsProbe log 2026-11-14 10:22–10:24 local ('L:FSDT_VAR_Frozen 1 -> 0' on key F, GEAR STEER ANGLE moving right after). GsxLvarNames.Frozen; SimWriteGate allows exactly L:FSDT_VAR_Frozen; PushbackTickCore.EvaluateSteeringRelease (pure: option, on ground, flag set, pin out, vehicle state 0/1/4/14, 8 s grace, 3 per segment); PushbackTickEffectPlanner.PlanSteeringRelease (runs with the automation off too); PushbackTickLatches FrozenStaleTicks / FrozenReleases; IPushbackGroundActions.ReleaseGsxHoldAsync. Option on GSX → Pushback, texts in all seven packs. Tests PushbackSteeringReleaseTests. Unverified on a full flight (the write itself is verified live)."
+    },
+    {
       "id": "si-comms-history-cursor",
       "issue": 237,
       "state": "fixed-unverified",

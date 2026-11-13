@@ -51,6 +51,13 @@ internal sealed record DecrementConfirmCooldownEffect : PushbackTickEffect;
 /// <summary>Attempt the "Confirm good engine start" menu pick (issue #106).</summary>
 internal sealed record ConfirmEngineStartEffect : PushbackTickEffect;
 
+/// <summary>Remember how long GSX's held flag has stood with the tug gone.</summary>
+internal sealed record SetFrozenStaleTicksEffect(int Ticks) : PushbackTickEffect;
+
+/// <summary>Clear GSX's held flag (<c>L:FSDT_VAR_Frozen</c> → 0) so ProSim reconnects the nose
+/// wheel steering (2026-11-14, GSX Pro 4.0.23).</summary>
+internal sealed record ReleaseSteeringEffect : PushbackTickEffect;
+
 /// <summary>Remember the <c>PUSHBACK_STATUS</c> value just read.</summary>
 internal sealed record SetLastPushbackStatusEffect(double Value) : PushbackTickEffect;
 

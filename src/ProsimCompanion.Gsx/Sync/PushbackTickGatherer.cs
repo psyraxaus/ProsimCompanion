@@ -30,7 +30,10 @@ internal sealed record PushbackTickReading(
     PushbackSequencer.Inputs SequenceInputs,
     PushbackSequencer.Delays Delays,
     bool ConfirmEngineStartOption,
-    EngineStartEvidence? Engines)
+    EngineStartEvidence? Engines,
+    double GsxFrozen = 0,
+    bool ReleaseSteeringOption = false,
+    bool OnGround = false)
 {
     /// <summary>The beacon sequence ticks only with the automation and the sequence switched
     /// on and GSX ready.</summary>
@@ -63,6 +66,7 @@ public sealed class PushbackTickGatherer : IDisposable
     private readonly IDataRefSubscription<double> _vehicleState;
     private readonly IDataRefSubscription<double> _pushbackStatus;
     private readonly IDataRefSubscription<double> _bypassPin;
+    private readonly IDataRefSubscription<double> _frozen;
 
     // The ATC radio for the push clearance (2026-11-07): optional — without it the sequence
     // calls the pushback as before.
@@ -102,6 +106,7 @@ public sealed class PushbackTickGatherer : IDisposable
         _vehicleState = simVars.Subscribe(GsxLvarNames.VehiclePushbackState);
         _pushbackStatus = simVars.Subscribe(GsxLvarNames.PushbackStatus);
         _bypassPin = simVars.Subscribe(GsxLvarNames.BypassPin);
+        _frozen = simVars.Subscribe(GsxLvarNames.Frozen);
     }
 
     public void Dispose()
@@ -109,6 +114,7 @@ public sealed class PushbackTickGatherer : IDisposable
         _vehicleState.Dispose();
         _pushbackStatus.Dispose();
         _bypassPin.Dispose();
+        _frozen.Dispose();
     }
 
     /// <summary>Samples every input for one tick.</summary>
@@ -168,6 +174,10 @@ public sealed class PushbackTickGatherer : IDisposable
                 options.SeqJetwayRetractDelayMinSec, options.SeqJetwayRetractDelayMaxSec,
                 options.SeqGpuDisconnectDelayMinSec, options.SeqGpuDisconnectDelayMaxSec),
             ConfirmEngineStartOption: options.ConfirmEngineStart,
-            Engines: data is null ? null : new EngineStartEvidence(data.AnyEngineRunning, data.EngineStarting, data.ParkBrakeSet));
+            Engines: data is null ? null : new EngineStartEvidence(data.AnyEngineRunning, data.EngineStarting, data.ParkBrakeSet),
+            // Steering release (2026-11-14): never on a held-over LVAR value, never airborne.
+            GsxFrozen: _frozen.IsStale ? 0 : _frozen.Value,
+            ReleaseSteeringOption: options.ReleaseSteeringAfterPushback,
+            OnGround: data?.OnGround == true);
     }
 }

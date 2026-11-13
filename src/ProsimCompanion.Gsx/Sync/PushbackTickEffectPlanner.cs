@@ -110,6 +110,8 @@ internal static class PushbackTickEffectPlanner
             effects.Add(new TickGradualRemovalEffect());
         }
 
+        PlanSteeringRelease(effects, reading, latches, resetDue);
+
         if (sequenceTick is { } tick)
         {
             if (tick.Transition is not null)
@@ -216,6 +218,43 @@ internal static class PushbackTickEffectPlanner
         }
 
         effects.Add(new ConfirmEngineStartEffect());
+    }
+
+    /// <summary>The steering release (2026-11-14): the pure rule decides, this turns its answer
+    /// into effects. Runs with the automation off too — the option is its only switch, because
+    /// a push the pilot called from GSX's own menu leaves the same stale flag.</summary>
+    private static void PlanSteeringRelease(
+        List<PushbackTickEffect> effects, PushbackTickReading reading, PushbackLatchSnapshot latches, bool resetDue)
+    {
+        var verdict = PushbackTickCore.EvaluateSteeringRelease(
+            reading.ReleaseSteeringOption,
+            reading.OnGround,
+            reading.GsxFrozen,
+            reading.BypassPin,
+            reading.VehicleState,
+            resetDue ? 0 : latches.FrozenStaleTicks,
+            resetDue ? 0 : latches.FrozenReleases);
+
+        if (verdict.Release)
+        {
+            effects.Add(new PushbackDecisionEffect(
+                "pushback tug",
+                $"GSX left the aircraft marked held (L:FSDT_VAR_Frozen = 1) {PushbackTickCore.SteeringReleaseGraceTicks}s after the tug had gone — clearing it so the nose wheel steering reconnects"));
+            effects.Add(new ReleaseSteeringEffect());
+            return;
+        }
+
+        if (verdict.GiveUp)
+        {
+            effects.Add(new PushbackDecisionEffect(
+                "pushback tug",
+                $"GSX set the held flag again after {PushbackTickCore.SteeringReleaseMaxPerSegment} clears — leaving it (NW STRG DISC may stay; check GSX)"));
+        }
+
+        if (verdict.StaleTicks != latches.FrozenStaleTicks)
+        {
+            effects.Add(new SetFrozenStaleTicksEffect(verdict.StaleTicks));
+        }
     }
 
     /// <summary><c>PUSHBACK_STATUS</c> 3/4 = tug connected (docs/integrations/gsx.md).</summary>

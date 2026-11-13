@@ -24,6 +24,10 @@ public static class SimWriteGate
     /// stop. Keyed from a ProSim PTT switch by the SayIntentions PTT relay.</summary>
     private static readonly string[] AllowedExact =
     [
+        // GSX's "aircraft held by the tug" flag, cleared (0 only, by the pushback tick's
+        // steering-release rule) when GSX leaves it set after the tug has gone — 2026-11-14,
+        // GSX 4.0.23: ProSim kept the nose wheel steering disconnected for the whole taxi.
+        "L:FSDT_VAR_Frozen",
         "L:SIAI_CONTROL_PTT_COM",
         "L:SIAI_CONTROL_PTT_COM1",
         "L:SIAI_CONTROL_PTT_COM2",

@@ -73,6 +73,17 @@ public static class GsxLvarNames
     public static readonly SimVarRef<double> VehiclePushbackState = new("L:FSDT_GSX_VEHICLE_PUSHBACK_STATE", "number", DataRefTier.Normal, 0.0);
     public static readonly SimVarRef<double> BypassPin = new("L:FSDT_GSX_BYPASS_PIN", "number", DataRefTier.Normal, 0.0);
 
+    /// <summary>GSX's "the aircraft is held by us" flag: 1 while the tug has the aircraft.
+    /// ProSim's own GSX pushback support mirrors it into <c>groundservice.pushback</c> (0 = push
+    /// in progress, nose wheel steering disconnected, NW STRG DISC). Proven on the rig
+    /// 2026-11-14 (GSX Pro 4.0.23, ProSim 1.76b5, probe <c>tools/NwsProbe</c>): GSX left it at 1
+    /// after the tug had gone — pin out, vehicle state back to 1, every MSFS pushback / freeze
+    /// variable clean — so ProSim kept the steering disconnected for the whole taxi; writing 0
+    /// returned <c>groundservice.pushback</c> to 3 at once and the tiller steered. Writes to the
+    /// ProSim dataref itself do not stick (it is recomputed from this LVAR). Note the prefix:
+    /// FSDT_VAR_, not FSDT_GSX_.</summary>
+    public static readonly SimVarRef<double> Frozen = new("L:FSDT_VAR_Frozen", "number", DataRefTier.Normal, 0.0);
+
     // Deicing fluid type readout for the ground-ops signal relay.
     public static readonly SimVarRef<double> DeicingType = new("L:FSDT_GSX_DEICING_TYPE", "number", DataRefTier.Infrequent, 0.0);
 

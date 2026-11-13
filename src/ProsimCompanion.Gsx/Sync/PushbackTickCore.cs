@@ -64,6 +64,53 @@ internal static class PushbackTickCore
             && departureComplete
             && phase is GsxAutomationPhase.Preparation or GsxAutomationPhase.PushBack;
 
+    /// <summary>How long GSX's held flag must stand with the tug gone before it is cleared — long
+    /// enough that GSX's own release (the normal case) always comes first.</summary>
+    internal const int SteeringReleaseGraceTicks = 8;
+
+    /// <summary>At most this many clears per flight segment; a GSX that keeps re-setting the
+    /// flag is left alone after that (and the decision log says so).</summary>
+    internal const int SteeringReleaseMaxPerSegment = 3;
+
+    /// <summary>What the steering-release rule wants this tick.</summary>
+    internal readonly record struct SteeringRelease(int StaleTicks, bool Release, bool GiveUp);
+
+    /// <summary>
+    /// The steering-release rule (2026-11-14, GSX Pro 4.0.23 on the owner's rig): GSX marks the
+    /// aircraft held (<c>L:FSDT_VAR_Frozen</c> = 1) for the push and ProSim disconnects the nose
+    /// wheel steering while it reads 1 — but GSX left it at 1 after the tug had gone, so the
+    /// tiller was dead for the whole taxi. The flag is STALE when the aircraft is on the ground,
+    /// the bypass pin is out and the tug is in a state where it holds nothing: 0 / 1 (idle),
+    /// 14 (clear, hand signal) or 4 (driving away). Every state of an actual push (2, 3 and
+    /// 5–13) and an inserted pin keep the count at zero, so a push in progress is never touched.
+    /// Stale for <see cref="SteeringReleaseGraceTicks"/> seconds → clear it once; capped per
+    /// segment. Independent of the beacon sequence and of who called the push.
+    /// </summary>
+    internal static SteeringRelease EvaluateSteeringRelease(
+        bool optionOn, bool onGround, double frozen, double bypassPin, int vehicleState, int staleTicks, int releasesThisSegment)
+    {
+        var stale = optionOn && onGround && frozen > 0.5 && bypassPin < 0.5
+            && vehicleState is 0 or 1 or 4 or 14;
+        if (!stale)
+        {
+            return new(0, false, false);
+        }
+
+        var ticks = staleTicks + 1;
+        if (ticks < SteeringReleaseGraceTicks)
+        {
+            return new(ticks, false, false);
+        }
+
+        if (releasesThisSegment >= SteeringReleaseMaxPerSegment)
+        {
+            // Said once, on the tick the grace runs out; the count then parks above it.
+            return new(SteeringReleaseGraceTicks + 1, false, ticks == SteeringReleaseGraceTicks);
+        }
+
+        return new(0, true, false);
+    }
+
     internal static HookIntents Evaluate(HookState state, HookInputs inputs)
     {
         // Predecessor OnPushChange rule: PUSHBACK_STATUS going nonzero while Boarding is

@@ -105,6 +105,14 @@ public sealed class PushbackTickEffectApplier : IPushbackTickEffectApplier
             case TickGradualRemovalEffect:
                 _ = _ground.TickGradualRemovalAsync();
                 break;
+            case SetFrozenStaleTicksEffect stale:
+                _latches.SetFrozenStaleTicks(stale.Ticks);
+                break;
+            case ReleaseSteeringEffect:
+                // Counted before the write goes out, so a slow write is never sent twice.
+                _latches.CountFrozenRelease();
+                _ = Guard(_ground.ReleaseGsxHoldAsync, "release steering");
+                break;
             case DecrementConfirmCooldownEffect:
                 _latches.DecrementConfirmCooldown();
                 break;

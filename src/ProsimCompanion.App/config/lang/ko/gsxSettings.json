@@ -160,6 +160,7 @@
       "stepEquipment": { "label": "지상 장비 제거", "hint": "3단계. 지상 전원, 고임목, 공조를 제거합니다." },
       "callAtReady": { "label": "푸시백 호출", "hint": "5단계. 모든 준비가 끝나면 GSX 푸시백을 호출합니다.", "more": "끔: 호출은 사용자의 말을 기다립니다. First Officer에게 'request pushback', 지상에 'ready for pushback'이라고 말하거나, Stream Deck 키를 누르거나, GSX 메뉴를 사용하세요. 일찍 한 요청은 시퀀스가 준비될 때까지 유지됩니다." },
       "confirmEngineStart": { "label": "엔진 시동 정상 확인", "hint": "주차 브레이크가 설정된 상태로 엔진이 돌면 GSX의 'Confirm good engine start'에 대신 답합니다.", "more": "꺼짐: GSX의 Interrupt-pushback 메뉴는 당신이 직접 답할 때까지 기다립니다. 그때까지 토잉카는 연결된 채로 있습니다." },
+      "releaseSteering": { "label": "푸시백 후 스티어링 해제", "hint": "터그가 떠난 뒤 GSX가 '항공기 고정' 플래그를 켠 채로 두면 이를 해제합니다.", "more": "플래그가 켜져 있으면 ProSim은 노즈 휠 스티어링을 분리된 상태로 둡니다. NW STRG DISC가 계속 표시되고 틸러가 작동하지 않습니다. GSX Pro 4.0.23에서 확인되었습니다. 앱은 바이패스 핀이 빠지고 터그가 물러난 뒤 8초를 기다리며, 진행 중인 푸시백은 절대 건드리지 않습니다. 끔: 플래그는 GSX에 맡깁니다." },
       "requestClearance": { "label": "ATC에 push and start 요청", "hint": "4단계. FO가 COM1에서 ATC에 push and start를 요청하고 승인을 기다립니다.", "more": "SayIntentions가 켜져 있고 비행이 등록되어 있어야 합니다. 없으면 이 단계는 건너뜁니다. ATC가 말한 방향('face south')이 이 비행의 GSX 메뉴 푸시백 선택이 됩니다. 이미 음성으로 요청한 허가는 그대로 인정됩니다. '푸시백 호출'이 꺼져 있어도 작동합니다." },
       "clearanceWait": { "label": "푸시 허가 대기", "hint": "ATC 승인을 얼마나 기다린 뒤 그래도 푸시백을 부를지." }
     },

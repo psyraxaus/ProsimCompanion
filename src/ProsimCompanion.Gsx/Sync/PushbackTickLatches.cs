@@ -20,7 +20,9 @@ internal sealed record PushbackLatchSnapshot(
     PushbackTickCore.HookState HookState,
     bool EngineStartConfirmed,
     int ConfirmAttempts,
-    int ConfirmCooldown)
+    int ConfirmCooldown,
+    int FrozenStaleTicks = 0,
+    int FrozenReleases = 0)
 {
     internal static PushbackLatchSnapshot Initial { get; } = new(
         LastResetPhase: GsxAutomationPhase.SessionStart,
@@ -50,6 +52,8 @@ public sealed class PushbackTickLatches
     private int _confirmAttempts;
     private int _confirmCooldown;
     private bool _pushbackRequested;
+    private int _frozenStaleTicks;
+    private int _frozenReleases;
 
     /// <summary>The pilot asked for the pushback this segment ("request pushback" by voice, the
     /// <c>gsx.requestPushback</c> command — 2026-11-14): the beacon sequence calls the tug at
@@ -83,7 +87,26 @@ public sealed class PushbackTickLatches
         {
             return new PushbackLatchSnapshot(
                 _lastResetPhase, _lastVehicleState, _lastBypassPin, _lastPushbackStatus, _hookState,
-                _engineStartConfirmed, _confirmAttempts, _confirmCooldown);
+                _engineStartConfirmed, _confirmAttempts, _confirmCooldown, _frozenStaleTicks, _frozenReleases);
+        }
+    }
+
+    /// <summary>Seconds GSX's held flag has stood with the tug gone (steering release, 2026-11-14).</summary>
+    public void SetFrozenStaleTicks(int ticks)
+    {
+        lock (_gate)
+        {
+            _frozenStaleTicks = ticks;
+        }
+    }
+
+    /// <summary>Counts one clear of GSX's held flag this segment.</summary>
+    public void CountFrozenRelease()
+    {
+        lock (_gate)
+        {
+            _frozenReleases++;
+            _frozenStaleTicks = 0;
         }
     }
 
@@ -141,6 +164,8 @@ public sealed class PushbackTickLatches
             _confirmAttempts = 0;
             _confirmCooldown = 0;
             _pushbackRequested = false;
+            _frozenStaleTicks = 0;
+            _frozenReleases = 0;
         }
     }
 
