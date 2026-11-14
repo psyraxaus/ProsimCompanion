@@ -16,22 +16,27 @@ public sealed class SimSessionSignals
     private bool _paused = true;
     private string? _simVersion;
     private bool _isMsfs2024;
+    private bool _simQuit;
 
     public void SetConnected(string simVersion, bool isMsfs2024)
     {
         lock (_gate)
         {
             _connected = true;
+            _simQuit = false;
             _simVersion = simVersion;
             _isMsfs2024 = isMsfs2024;
         }
     }
 
-    public void SetDisconnected()
+    /// <param name="simQuit">True when MSFS announced that it is closing; false when the link
+    /// was merely lost (issue #246) — the session monitor holds a live session across that.</param>
+    public void SetDisconnected(bool simQuit = false)
     {
         lock (_gate)
         {
             _connected = false;
+            _simQuit = simQuit;
             _simRunning = false;
             _paused = true;
         }
@@ -53,11 +58,11 @@ public sealed class SimSessionSignals
         }
     }
 
-    public (bool Connected, bool SimRunning, bool Paused, string? SimVersion, bool IsMsfs2024) Read()
+    public (bool Connected, bool SimRunning, bool Paused, string? SimVersion, bool IsMsfs2024, bool SimQuit) Read()
     {
         lock (_gate)
         {
-            return (_connected, _simRunning, _paused, _simVersion, _isMsfs2024);
+            return (_connected, _simRunning, _paused, _simVersion, _isMsfs2024, _simQuit);
         }
     }
 }

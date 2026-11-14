@@ -48,6 +48,30 @@ Phases: `Unknown` (no connection / no camera data — session-gated automation h
 - **Exit** happens immediately when the camera leaves the session values or the `Sim` state
   stops. A pause does **not** end the session (CFIT's `IsSessionStopped` likewise ignored
   plain pause).
+- **A lost link is not an exit** (issue #246, 2026-11-15). On the owner's rig the app's
+  SimConnect link dropped for 5 s at engine shutdown with MSFS running (EGLL, 08:53:42 local;
+  the same on 2026-11-14 17:34:39 in the descent). The session read
+  `InSession → Unknown → NotInSession → InSession` and the phase engine reset
+  Shutdown → Unknown → Preflight on the `NotInSession` tick, which lost the turnaround. Now:
+  - a live session (`InSession` / `Walkaround`) is **held** while the link is down, for up to
+    `LinkLossHoldTicks` (60 ticks = 30 s; the link retries every 5 s). The store keeps the
+    snapshot from before the drop, so no session-end teardown runs. Session event
+    `sim-link-hold` {state: held | kept | ended}.
+  - after the reconnect the held session waits `ReconnectSettleTicks` (6 ticks = 3 s) for the
+    `Sim` event and the camera before it believes an exit (menu camera, sim stopped).
+  - MSFS's own quit message (`OnRecvQuit` → `SimSessionInputs.SimQuit`) ends the session at
+    once — the one disconnect that is known to end the flight.
+  - the entry debounce **from `Unknown`** reads `Unknown`, not `NotInSession`:
+    `NotInSession` means the sim was *seen* outside a flight. A link that was down longer
+    than the hold therefore comes back `Unknown → InSession` and the phase engine keeps its
+    phase.
+- **One thread for SimConnect** (same issue). Both drops fell within 12 ms of tracking-LVAR
+  writes issued from a thread-pool thread while the pump thread sat in `ReceiveMessage`.
+  Every SimConnect call (define, clear, write, facility request) now runs on the pump thread
+  through `SimPumpDispatcher`. That the cross-thread calls caused the drops is inferred from
+  the timing; the exception was not logged at the time. A lost link is now a Warning with its
+  HRESULT ("SimConnect link to MSFS lost …"); "MSFS is not running" is written only when no
+  session was open.
 - **Walkaround** = `IS AVATAR` == 1, or camera 29–31. Ambiguity (avatar and aircraft flags
   both set — a transitional state the predecessor waited out) maps to Walkaround: ground
   automation stays held, which is the safe direction.

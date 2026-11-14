@@ -64,7 +64,9 @@ public sealed class SimSessionEvaluatorTests
     public void Entry_RequiresConsecutiveReadyTicks()
     {
         var evaluator = new SimSessionEvaluator();
-        Assert.Equal(SimSessionPhase.NotInSession, evaluator.ProcessTick(Inputs()));
+        // Until 2026-11-15 the first ready tick read NotInSession. From Unknown it now stays
+        // Unknown: NotInSession means the sim was seen outside a flight (issue #246).
+        Assert.Equal(SimSessionPhase.Unknown, evaluator.ProcessTick(Inputs()));
         Assert.Equal(SimSessionPhase.InSession, evaluator.ProcessTick(Inputs()));
     }
 
@@ -104,14 +106,125 @@ public sealed class SimSessionEvaluatorTests
         Assert.Equal(SimSessionPhase.NotInSession, evaluator.ProcessTick(Inputs(simRunning: false)));
     }
 
+    // ---- issue #246: a lost SimConnect link is not the end of the flight ---------------------
+
     [Fact]
-    public void Disconnect_ResetsToUnknown_AndReentryIsDebounced()
+    public void LinkLostAtTheStand_AsOnTheFlightOf20261115_KeepsTheSession()
+    {
+        // EGLL 2026-11-15 08:53:42 local: the link dropped at engine shutdown with MSFS
+        // running and was back 5 s later. The session read InSession -> Unknown ->
+        // NotInSession -> InSession, and the NotInSession tick reset Shutdown to Preflight.
+        var evaluator = new SimSessionEvaluator();
+        EnterSession(evaluator, Inputs());
+
+        var seen = new List<SimSessionPhase>();
+        for (var tick = 0; tick < 10; tick++)                       // 5 s without the link
+        {
+            seen.Add(evaluator.ProcessTick(Inputs(connected: false, simRunning: false, paused: true, camera: null)));
+            Assert.True(evaluator.HoldingAcrossLinkLoss);
+        }
+
+        seen.Add(evaluator.ProcessTick(Inputs(camera: null)));       // connected, camera not yet delivered
+        seen.Add(evaluator.ProcessTick(Inputs()));                   // camera 2, sim running
+        seen.Add(evaluator.ProcessTick(Inputs()));
+
+        Assert.All(seen, phase => Assert.Equal(SimSessionPhase.InSession, phase));
+        Assert.False(evaluator.HoldingAcrossLinkLoss);
+    }
+
+    [Fact]
+    public void LinkLost_OnTheWalkaround_KeepsTheWalkaround()
+    {
+        var evaluator = new SimSessionEvaluator();
+        EnterSession(evaluator, Inputs(camera: WalkaroundCamera, isAvatar: true));
+
+        Assert.Equal(SimSessionPhase.Walkaround, evaluator.ProcessTick(Inputs(connected: false, camera: null)));
+        Assert.Equal(SimSessionPhase.Walkaround, evaluator.ProcessTick(Inputs(camera: WalkaroundCamera, isAvatar: true)));
+    }
+
+    [Fact]
+    public void LinkLost_LongerThanTheHold_IsUnknown_AndTheWayBackNeverSaysNotInSession()
     {
         var evaluator = new SimSessionEvaluator();
         EnterSession(evaluator, Inputs());
-        Assert.Equal(SimSessionPhase.Unknown, evaluator.ProcessTick(Inputs(connected: false)));
-        Assert.Equal(SimSessionPhase.NotInSession, evaluator.ProcessTick(Inputs()));
+
+        for (var tick = 0; tick < SimSessionEvaluator.LinkLossHoldTicks; tick++)
+        {
+            Assert.Equal(SimSessionPhase.InSession, evaluator.ProcessTick(Inputs(connected: false, camera: null)));
+        }
+
+        Assert.Equal(SimSessionPhase.Unknown, evaluator.ProcessTick(Inputs(connected: false, camera: null)));
+        Assert.False(evaluator.HoldingAcrossLinkLoss);
+
+        // The flight is still there when the link returns: the debounce tick is "not known
+        // yet", not "outside a flight" — the phase engine resets the flight on NotInSession.
+        Assert.Equal(SimSessionPhase.Unknown, evaluator.ProcessTick(Inputs()));
         Assert.Equal(SimSessionPhase.InSession, evaluator.ProcessTick(Inputs()));
+    }
+
+    [Fact]
+    public void MsfsSaysItQuits_EndsTheSessionAtOnce_NoHold()
+    {
+        var evaluator = new SimSessionEvaluator();
+        EnterSession(evaluator, Inputs());
+
+        Assert.Equal(
+            SimSessionPhase.Unknown,
+            evaluator.ProcessTick(new SimSessionInputs(false, false, true, null, null, SimQuit: true)));
+        Assert.False(evaluator.HoldingAcrossLinkLoss);
+    }
+
+    [Fact]
+    public void LinkBack_AtTheMainMenu_EndsTheSession_AfterTheSettle()
+    {
+        // The pilot left the flight while the link was down: the exit is real, and is
+        // believed once the settle after the reconnect has passed.
+        var evaluator = new SimSessionEvaluator();
+        EnterSession(evaluator, Inputs());
+        evaluator.ProcessTick(Inputs(connected: false, camera: null));
+
+        for (var tick = 0; tick < SimSessionEvaluator.ReconnectSettleTicks; tick++)
+        {
+            Assert.Equal(SimSessionPhase.InSession, evaluator.ProcessTick(Inputs(camera: WorldMapCamera)));
+        }
+
+        Assert.Equal(SimSessionPhase.NotInSession, evaluator.ProcessTick(Inputs(camera: WorldMapCamera)));
+        Assert.False(evaluator.HoldingAcrossLinkLoss);
+    }
+
+    [Fact]
+    public void LinkBack_SimRunningEventLate_IsNotAnExit()
+    {
+        // "Sim" is sent on subscribe, but nothing promises it lands before the first tick.
+        var evaluator = new SimSessionEvaluator();
+        EnterSession(evaluator, Inputs());
+        evaluator.ProcessTick(Inputs(connected: false, camera: null));
+
+        Assert.Equal(SimSessionPhase.InSession, evaluator.ProcessTick(Inputs(simRunning: false)));
+        Assert.Equal(SimSessionPhase.InSession, evaluator.ProcessTick(Inputs(simRunning: false)));
+        Assert.Equal(SimSessionPhase.InSession, evaluator.ProcessTick(Inputs()));
+        Assert.False(evaluator.HoldingAcrossLinkLoss);
+    }
+
+    [Fact]
+    public void WithTheLinkUp_AnExitIsStillImmediate_AfterAnEarlierHold()
+    {
+        var evaluator = new SimSessionEvaluator();
+        EnterSession(evaluator, Inputs());
+        evaluator.ProcessTick(Inputs(connected: false, camera: null));
+        evaluator.ProcessTick(Inputs());                             // link back, session kept
+
+        Assert.Equal(SimSessionPhase.NotInSession, evaluator.ProcessTick(Inputs(camera: WorldMapCamera)));
+    }
+
+    [Fact]
+    public void Disconnected_OutsideASession_IsUnknown_WithNothingToHold()
+    {
+        var evaluator = new SimSessionEvaluator();
+        EnterSession(evaluator, Inputs(camera: WorldMapCamera));     // at the menu
+
+        Assert.Equal(SimSessionPhase.Unknown, evaluator.ProcessTick(Inputs(connected: false, camera: null)));
+        Assert.False(evaluator.HoldingAcrossLinkLoss);
     }
 
     [Fact]

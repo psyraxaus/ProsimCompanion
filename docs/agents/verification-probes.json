@@ -5644,6 +5644,35 @@
         "requires-human: after 'Discard this day' the Duty Day page shows 'No duty day' and the next OFP starts a fresh day at leg 1; the departure services wait for a new plan or 'commence ground services', as after an end of duty."
       ],
       "notes": "Built 2026-11-14 (issue #239; the owner has not chosen a design — this is the conservative one). Core: DayAbandonRules (pure; StaleAfter 12 h, StaleAge), CompanyDayEngine.AbandonDay (drops the legs without on-blocks, closes the day, leaves 'no day'), DayStateFile.LastSavedUtc (the file's last-write time — the state carries no save stamp) and Clear, IDayControl.DiscardDay, command day.discard (DayCommandHandlers). Speech: CompanyDayService.Start checks the loaded day before resuming; the abandon path reuses the end-of-duty steps of TryEndDay (offer withdrawn, logbook day record when a leg was completed, DutyDaySignals.DayEnded with source abandoned-stale / abandoned-pilot) without the debrief and the summary file; at app start the signal is raised by DayAbandonSignalModule after the Core subscribers started. Web: 'Discard this day' beside 'End duty day', two presses. Unverified live. Known edges: a day in a Turnaround last saved more than 12 h ago is also abandoned at start (before, the idle backstop closed it with a spoken debrief on the first tick); the flight-state snapshot ignores the signal until it has decided its own restore (its own age limit, 18 h by default, is its fence); copying or restoring daystate.json changes its last-write time."
+    },
+    {
+      "id": "sim-link-drop-session-hold",
+      "issue": 246,
+      "state": "fixed-unverified",
+      "kind": "watch",
+      "machine": {
+        "kind": "signature",
+        "signature": {
+          "source": "session",
+          "type": "sim-link-hold",
+          "contains": "\"state\"",
+          "minCount": 1
+        }
+      },
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "Owner's flight LOWW-EGLL 2026-11-15 on 1.0.0-rc.7 (log times local): 08:53:42.087 'Flight phase TaxiIn -> Shutdown', 08:53:42.099 'MSFS is not running; SimConnect will keep retrying quietly' with MSFS running, 08:53:42.363 'MSFS session InSession -> Unknown', 08:53:47.142 'Connected to \"SunRise\" 12.2', 08:53:47.862 'MSFS session Unknown -> NotInSession', 08:53:48.094 'Flight phase Shutdown -> Unknown [\"session-ended\"…]', 08:53:49.595 'Unknown -> Preflight'; GSX automation went back to Preparation and the arrival services never ran. The same drop on 2026-11-14 17:34:39.136 (Descent -> Unknown). Both within 12 ms of tracking-LVAR writes.",
+        "watch: each 'sim-link-hold' {state, phase}. 'held' = the SimConnect link was lost inside a flight session and the session phase was kept; it is followed by 'kept' (the link came back and the flight was still there) or 'ended' (MSFS at the menu after the reconnect, or the link down for more than 30 s). Report the times and the gap between 'held' and its outcome.",
+        "assert-absent between a 'sim-link-hold' {state: held} and its {state: kept}: a 'phase-changed' with rule 'session-ended'; a 'gsx-automation-phase' SessionStart; the log lines 'MSFS session InSession -> Unknown', 'MSFS session Unknown -> NotInSession' and 'Ground preparation sequence reset (\"sim session ended\")'.",
+        "assert-absent in every session after the fix: the log line 'MSFS session Unknown -> NotInSession' directly followed (within 2 s) by 'NotInSession -> InSession' — the entry debounce now reads Unknown until the session is entered; and a 'phase-changed' with rule 'session-ended' within 10 s after a log line 'Connected to …'.",
+        "watch (the cause of the drop, unproven): the Warning 'SimConnect link to MSFS lost (HRESULT 0x…, MSFS did not say it was closing) — reconnecting in 5 s'. Report the HRESULT and the three log lines before it. After the fix every SimConnect call runs on the pump thread, so a sighting means the cross-thread calls were not the cause (or not the only one). 'MSFS is not running; SimConnect will keep retrying quietly' is now written only when no session was open.",
+        "assert-present with MSFS really closed by the pilot: 'MSFS is shutting down; SimConnect disconnected' and no 'sim-link-hold' — a quit message ends the session at once.",
+        "requires-human: after a 'kept' outcome at the stand the pill stays ARRIVAL / TURNAROUND and deboarding runs as on a flight without the drop."
+      ],
+      "notes": "Built 2026-11-15 (issue #246; the owner suspected ProSim's 'Reset FMS after landing or failure', switched on in that flight — the FMS was cleared at 08:46:23, seven minutes before the fault, and is not the cause). Sim: SimSessionEvaluator holds a live session across a lost link (LinkLossHoldTicks 60 = 30 s; ReconnectSettleTicks 6 = 3 s for the 'Sim' event and the camera after the reconnect; SimSessionInputs.SimQuit ends the hold at once; the entry debounce from Unknown reads Unknown, not NotInSession), SimSessionService keeps the last snapshot while holding and records 'sim-link-hold', SimSessionSignals.SetDisconnected(simQuit). SimPumpDispatcher: every SimConnect call (register, unregister, write, facility request) runs on the pump thread; a write waiting when the session ends is answered 'not connected' as before. SimConnectService logs a lost link as a Warning with the HRESULT. Tests SimSessionEvaluatorTests (issue #246 block), SimPumpDispatcherTests; recording loww-egll-2026-11-15-1.0.0-rc7 replays to Shutdown with no reset. Not done: the cause of the drop is inferred from timing, not from an exception text; SimConnectService itself has no unit test (native SimConnect); while a session is held the SimVars are stale and a SimVar write is queued or refused; a link down for more than 30 s still ends the session for the store's subscribers (ground prep reset), though the phase engine no longer resets on the way back; with 'Reset FMS after landing' on, the FMS clear in the landing roll is recorded accepted:false and its effect on a second leg is not examined."
     }
   ]
 }

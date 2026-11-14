@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.0.0-rc.8
+
+Fix build, 2026-11-15, from the owner's flight LOWW–EGLL on 1.0.0-rc.7 the same day. **Not flown yet.**
+
+- Fixed: **the flight went back to PREFLIGHT at the stand and the turnaround was lost** (#246; six seconds after engine shutdown at EGLL the pill read PREFLIGHT, the ground services started over at "Preparation" and deboarding never ran). The app's link to MSFS (SimConnect) dropped for five seconds at the moment the engines were shut down; MSFS itself kept running. When the link came back, the app took the first half second of the reconnect for "the pilot has left the flight" and reset everything. The same drop had happened in the descent on 2026-11-14. ProSim's "Reset FMS after landing or failure", switched on in that flight, was not the cause: the FMS was cleared seven minutes earlier and nothing went wrong then. Three changes:
+  - **A lost link no longer ends the flight.** The session is held for up to 30 seconds while the link is down and carries on when it is back; nothing is reset. Leaving the flight for the menu, or closing MSFS, ends it as before. A link down for longer than 30 seconds no longer resets the flight phase either when it returns to the same flight.
+  - **The app talks to MSFS on one thread.** Both drops came within 12 milliseconds of the app writing its tracking values to MSFS from a second thread; every such call now waits its turn on the one thread that owns the link. That this was the cause is inferred from the timing, not proven.
+  - **The log says what happened.** A lost link is now the warning "SimConnect link to MSFS lost" with the Windows error code, where it used to say "MSFS is not running". Session event `sim-link-hold` (held, then kept or ended).
+- Changed: just after the app connects, the session state reads "unknown" for half a second where it used to read "not in session" (MAIN MENU on the Diagnostics SIM page).
+- Probe `sim-link-drop-session-hold`; the flight is a checked-in replay (`loww-egll-2026-11-15-1.0.0-rc7`), which ends at Shutdown with no reset. Not done: the app's SimConnect link itself has no automatic test (it needs MSFS); while the link is down the values read from MSFS are stale.
+
 ## 1.0.0-rc.7
 
 Pre-release build, 2026-11-15. No change in behaviour over the last 1.0.0-rc.6 build: the version number alone is new. Several different builds carried the name 1.0.0-rc.6 on the owner's sim PC (the one that flew EGLL–LOWW on 2026-11-14, and the builds with the fixes from that flight), so a diagnostics bundle could not say which one it came from. This build holds everything listed under 1.0.0-rc.6 below. 1.0.0-rc.6 was never published. The fixes from the 2026-11-14 flight are **not flown yet**.

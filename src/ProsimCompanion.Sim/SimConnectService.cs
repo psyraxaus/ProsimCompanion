@@ -28,8 +28,17 @@ public sealed class SimConnectService : BackgroundService, ISimVarBackend
     private readonly Dictionary<string, RegisteredVar> _registered = new(StringComparer.OrdinalIgnoreCase);
     private SimConnect? _simConnect;
     private EventWaitHandle? _messageSignal;
+    private readonly SimPumpDispatcher _pump;
     private uint _nextDefinitionId = 1;
     private volatile bool _connected;
+
+    /// <summary>Counts SimConnect sessions; a registration belongs to the session that made
+    /// it, so a var is defined once per session whoever asks first (pump thread only).</summary>
+    private int _session;
+
+    /// <summary>MSFS said it is closing (quit message) — the one disconnect that is known to
+    /// end the flight; any other loss of the link is held across (issue #246).</summary>
+    private volatile bool _simQuit;
     private uint _lastFacilitySendId;
     private uint _lastFacilityRequestId;
 
@@ -50,6 +59,7 @@ public sealed class SimConnectService : BackgroundService, ISimVarBackend
         _sessionSignals = sessionSignals;
         _logger = logger;
         _facilities = facilities;
+        _pump = new SimPumpDispatcher(ex => _logger.LogError(ex, "A queued SimConnect call failed"));
     }
 
     /// <summary>Definition/request id namespace — SimConnect wants enum types.</summary>
@@ -83,9 +93,22 @@ public sealed class SimConnectService : BackgroundService, ISimVarBackend
             {
                 RunSession(stoppingToken, ref loggedWaiting);
             }
-            catch (COMException)
+            catch (COMException ex) when (_connected)
+            {
+                // The session was open and the pump failed without a quit message: the link
+                // is lost, MSFS is not known to be gone. Until 2026-11-15 this was logged as
+                // "MSFS is not running" with the exception dropped, which hid the cause of
+                // issue #246 (a five-second drop at engine shutdown with MSFS running).
+                _logger.LogWarning(
+                    ex,
+                    "SimConnect link to MSFS lost (HRESULT 0x{HResult:X8}, MSFS did not say it was closing) — reconnecting in {Seconds} s",
+                    ex.HResult,
+                    RetryInterval.TotalSeconds);
+            }
+            catch (COMException ex)
             {
                 // Simulator not running (or connection refused) — quiet retry.
+                _logger.LogDebug("SimConnect open failed (HRESULT 0x{HResult:X8})", ex.HResult);
                 if (!loggedWaiting)
                 {
                     loggedWaiting = true;
@@ -132,6 +155,7 @@ public sealed class SimConnectService : BackgroundService, ISimVarBackend
 
     void ISimVarBackend.EnsureRegistered(string simVarName, string unit, int intervalMs)
     {
+        RegisteredVar entry;
         lock (_gate)
         {
             if (_registered.ContainsKey(simVarName))
@@ -139,85 +163,133 @@ public sealed class SimConnectService : BackgroundService, ISimVarBackend
                 return;
             }
 
-            var entry = new RegisteredVar(_nextDefinitionId++, simVarName, unit, intervalMs);
+            entry = new RegisteredVar(_nextDefinitionId++, simVarName, unit, intervalMs);
             _registered[simVarName] = entry;
-
-            if (_connected && _simConnect is not null)
-            {
-                RegisterWithSim(entry);
-            }
         }
+
+        // No session: OnRecvOpen registers every known var when one opens.
+        _pump.Post(() => RegisterWithSim(entry));
     }
 
     Task ISimVarBackend.WriteValueAsync(string simVarName, double value, CancellationToken cancellationToken)
     {
-        // SetDataOnSimObject needs an existing data definition; writes register on demand at a
-        // relaxed cadence (the write echo arrives through the subscription stream regardless).
-        return Task.Run(() =>
+        if (cancellationToken.IsCancellationRequested)
         {
-            cancellationToken.ThrowIfCancellationRequested();
+            return Task.FromCanceled(cancellationToken);
+        }
 
-            RegisteredVar entry;
-            SimConnect? simConnect;
-            lock (_gate)
+        // The write runs on the pump thread (issue #246); the continuation must not, or the
+        // caller's next step would hold up the message pump.
+        var done = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var posted = _pump.Post(
+            () =>
             {
-                if (!_registered.TryGetValue(simVarName, out entry!))
+                try
                 {
-                    entry = new RegisteredVar(_nextDefinitionId++, simVarName, "number", 2000);
-                    _registered[simVarName] = entry;
-                    if (_connected && _simConnect is not null)
-                    {
-                        RegisterWithSim(entry);
-                    }
+                    WriteOnPump(simVarName, value);
+                    done.TrySetResult();
                 }
+                catch (Exception ex)
+                {
+                    done.TrySetException(ex);
+                }
+            },
+            reason => done.TrySetException(reason));
 
-                simConnect = _connected ? _simConnect : null;
-            }
+        if (!posted)
+        {
+            done.TrySetException(NotConnected());
+        }
 
-            if (simConnect is null)
+        return done.Task;
+    }
+
+    /// <summary>The message callers already handle as "queue the write until MSFS connects".</summary>
+    private static InvalidOperationException NotConnected()
+        => new("MSFS is not connected — the SimVar write cannot be delivered.");
+
+    /// <summary>SetDataOnSimObject needs an existing data definition; writes register on demand
+    /// at a relaxed cadence (the write echo arrives through the subscription stream
+    /// regardless). Pump thread only.</summary>
+    private void WriteOnPump(string simVarName, double value)
+    {
+        if (!_connected || _simConnect is not { } simConnect)
+        {
+            throw NotConnected();
+        }
+
+        RegisteredVar entry;
+        lock (_gate)
+        {
+            if (!_registered.TryGetValue(simVarName, out entry!))
             {
-                throw new InvalidOperationException("MSFS is not connected — the SimVar write cannot be delivered.");
+                entry = new RegisteredVar(_nextDefinitionId++, simVarName, "number", 2000);
+                _registered[simVarName] = entry;
             }
+        }
 
-            simConnect.SetDataOnSimObject(
-                (DefinitionId)entry.Id,
-                SimConnect.SIMCONNECT_OBJECT_ID_USER,
-                SIMCONNECT_DATA_SET_FLAG.DEFAULT,
-                new DoubleValue { Value = value });
-            _logger.LogDebug("Wrote {Value} to SimVar {SimVar}", value, simVarName);
-        }, cancellationToken);
+        RegisterWithSim(entry);
+        simConnect.SetDataOnSimObject(
+            (DefinitionId)entry.Id,
+            SimConnect.SIMCONNECT_OBJECT_ID_USER,
+            SIMCONNECT_DATA_SET_FLAG.DEFAULT,
+            new DoubleValue { Value = value });
+        _logger.LogDebug("Wrote {Value} to SimVar {SimVar}", value, simVarName);
     }
 
     void ISimVarBackend.Unregister(string simVarName)
     {
+        RegisteredVar? entry;
         lock (_gate)
         {
-            if (!_registered.Remove(simVarName, out var entry))
+            if (!_registered.Remove(simVarName, out entry))
             {
                 return;
             }
-
-            if (_connected && _simConnect is not null)
-            {
-                try
-                {
-                    _simConnect.ClearDataDefinition((DefinitionId)entry.Id);
-                }
-                catch (COMException ex)
-                {
-                    _logger.LogWarning(ex, "Failed to clear SimConnect definition for {SimVar}", simVarName);
-                }
-            }
         }
+
+        _pump.Post(() =>
+        {
+            if (!_connected || _simConnect is not { } simConnect || entry.RegisteredSession != _session)
+            {
+                return; // never defined in this session — nothing to clear
+            }
+
+            try
+            {
+                simConnect.ClearDataDefinition((DefinitionId)entry.Id);
+            }
+            catch (COMException ex)
+            {
+                _logger.LogWarning(ex, "Failed to clear SimConnect definition for {SimVar}", simVarName);
+            }
+        });
     }
 
     /// <summary>Connects and pumps messages until the sim quits or shutdown is requested.
     /// Throws COMException when the simulator is unavailable.</summary>
     private void RunSession(CancellationToken stoppingToken, ref bool loggedWaiting)
     {
-        _messageSignal = new EventWaitHandle(false, EventResetMode.AutoReset);
-        var simConnect = new SimConnect(AppName, IntPtr.Zero, 0, _messageSignal, 0);
+        _session++;
+        _simQuit = false;
+        var signal = new EventWaitHandle(false, EventResetMode.AutoReset);
+        _messageSignal = signal;
+        var simConnect = new SimConnect(AppName, IntPtr.Zero, 0, signal, 0);
         _simConnect = simConnect;
+
+        // From here every SimConnect call of the session runs on this thread: other threads
+        // post their call and wake the wait below (issue #246).
+        _pump.Attach(() =>
+        {
+            try
+            {
+                signal.Set();
+            }
+            catch (ObjectDisposedException)
+            {
+                // The session ended between the post and the wake; Detach answers the caller.
+            }
+        });
 
         simConnect.OnRecvOpen += OnRecvOpen;
         simConnect.OnRecvQuit += OnRecvQuit;
@@ -232,10 +304,14 @@ public sealed class SimConnectService : BackgroundService, ISimVarBackend
         // Pump until quit/disconnect. ReceiveMessage dispatches the events above on this thread.
         while (!stoppingToken.IsCancellationRequested && _simConnect is not null)
         {
-            if (_messageSignal.WaitOne(PumpWaitTimeout))
+            // The signal is SimConnect's "message waiting" and our own "work posted"; a
+            // ReceiveMessage with nothing waiting returns at once.
+            if (signal.WaitOne(PumpWaitTimeout))
             {
                 _simConnect?.ReceiveMessage();
             }
+
+            _pump.Drain();
         }
     }
 
@@ -269,12 +345,15 @@ public sealed class SimConnectService : BackgroundService, ISimVarBackend
             _logger.LogWarning(ex, "System-event subscription failed; sim-session detection degraded");
         }
 
+        RegisteredVar[] known;
         lock (_gate)
         {
-            foreach (var entry in _registered.Values)
-            {
-                RegisterWithSim(entry);
-            }
+            known = [.. _registered.Values];
+        }
+
+        foreach (var entry in known)
+        {
+            RegisterWithSim(entry);
         }
 
         _simVars.AttachBackend(this);
@@ -312,30 +391,40 @@ public sealed class SimConnectService : BackgroundService, ISimVarBackend
         }
     }
 
-    /// <summary>Sends one airport facility request (from any thread, under the gate).</summary>
+    /// <summary>Sends one airport facility request, from any thread: the send itself runs on
+    /// the pump thread (issue #246). True means "accepted for sending"; a send that then fails
+    /// fails the pending lookup through <see cref="Facilities.AirportFacilityService.OnFailed"/>
+    /// instead of leaving it to time out.</summary>
     private bool RequestAirportFacility(string icao, uint requestId)
     {
-        lock (_gate)
+        if (!_connected)
         {
-            if (!_connected || _simConnect is null)
-            {
-                return false;
-            }
-
-            try
-            {
-                _simConnect.RequestFacilityData(DefinitionId.AirportFacilities, (RequestId)requestId, icao, "");
-                _lastFacilitySendId = _simConnect.GetLastSentPacketID();
-                _lastFacilityRequestId = requestId;
-                _logger.LogDebug("Requested facility data for {Icao} (request {RequestId}, send {SendId})", icao, requestId, _lastFacilitySendId);
-                return true;
-            }
-            catch (COMException ex)
-            {
-                _logger.LogWarning(ex, "Facility request for {Icao} could not be sent", icao);
-                return false;
-            }
+            return false;
         }
+
+        return _pump.Post(
+            () =>
+            {
+                if (!_connected || _simConnect is not { } simConnect)
+                {
+                    _facilities?.OnFailed(requestId, "MSFS is not connected");
+                    return;
+                }
+
+                try
+                {
+                    simConnect.RequestFacilityData(DefinitionId.AirportFacilities, (RequestId)requestId, icao, "");
+                    _lastFacilitySendId = simConnect.GetLastSentPacketID();
+                    _lastFacilityRequestId = requestId;
+                    _logger.LogDebug("Requested facility data for {Icao} (request {RequestId}, send {SendId})", icao, requestId, _lastFacilitySendId);
+                }
+                catch (COMException ex)
+                {
+                    _logger.LogWarning(ex, "Facility request for {Icao} could not be sent", icao);
+                    _facilities?.OnFailed(requestId, "the request could not be sent");
+                }
+            },
+            _ => _facilities?.OnFailed(requestId, "the SimConnect session ended"));
     }
 
     private void OnRecvFacilityData(SimConnect sender, SIMCONNECT_RECV_FACILITY_DATA data)
@@ -372,6 +461,7 @@ public sealed class SimConnectService : BackgroundService, ISimVarBackend
     private void OnRecvQuit(SimConnect sender, SIMCONNECT_RECV data)
     {
         _logger.LogInformation("MSFS is shutting down; SimConnect disconnected");
+        _simQuit = true;
         // Signal the pump loop to end the session; the outer loop retries.
         _simConnect = null;
     }
@@ -415,11 +505,28 @@ public sealed class SimConnectService : BackgroundService, ISimVarBackend
         }
     }
 
+    /// <summary>Defines and requests one var in the current session. Pump thread only; a var
+    /// already defined in this session, or one unregistered since it was asked for, is left
+    /// alone — two posts for the same var (a subscribe racing the session opening) must not
+    /// add the field to its definition twice.</summary>
     private void RegisterWithSim(RegisteredVar entry)
     {
+        if (!_connected || _simConnect is null || entry.RegisteredSession == _session)
+        {
+            return;
+        }
+
+        lock (_gate)
+        {
+            if (!_registered.TryGetValue(entry.Name, out var current) || !ReferenceEquals(current, entry))
+            {
+                return;
+            }
+        }
+
         try
         {
-            _simConnect!.AddToDataDefinition(
+            _simConnect.AddToDataDefinition(
                 (DefinitionId)entry.Id,
                 entry.Name,
                 entry.Unit,
@@ -439,6 +546,7 @@ public sealed class SimConnectService : BackgroundService, ISimVarBackend
                 0,
                 0,
                 0);
+            entry.RegisteredSession = _session;
             _logger.LogDebug(
                 "Registered SimVar {SimVar} ({Unit}) at {Period}",
                 entry.Name,
@@ -466,6 +574,7 @@ public sealed class SimConnectService : BackgroundService, ISimVarBackend
         catch (Exception ex) when (ex is FileNotFoundException or BadImageFormatException or TypeLoadException)
         {
             _connected = false;
+            _pump.Detach(NotConnected());
             _simVars.DetachBackend();
             _sessionSignals.SetDisconnected();
             _facilities?.Detach();
@@ -477,8 +586,12 @@ public sealed class SimConnectService : BackgroundService, ISimVarBackend
     {
         var wasConnected = _connected;
         _connected = false;
+
+        // Waiting writes are answered "not connected" (their callers queue them for the next
+        // session); the facility lookups among them are failed before the service detaches.
+        _pump.Detach(NotConnected());
         _simVars.DetachBackend();
-        _sessionSignals.SetDisconnected();
+        _sessionSignals.SetDisconnected(_simQuit);
         _facilities?.Detach();
 
         var simConnect = _simConnect;
@@ -510,5 +623,10 @@ public sealed class SimConnectService : BackgroundService, ISimVarBackend
         public double Value;
     }
 
-    private sealed record RegisteredVar(uint Id, string Name, string Unit, int IntervalMs);
+    private sealed record RegisteredVar(uint Id, string Name, string Unit, int IntervalMs)
+    {
+        /// <summary>The <see cref="_session"/> this var was last defined in; 0 = never. Read
+        /// and written on the pump thread only.</summary>
+        public int RegisteredSession { get; set; }
+    }
 }
