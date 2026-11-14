@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.0-rc.7
+
+Pre-release build, 2026-11-15. No change in behaviour over the last 1.0.0-rc.6 build: the version number alone is new. Several different builds carried the name 1.0.0-rc.6 on the owner's sim PC (the one that flew EGLL–LOWW on 2026-11-14, and the builds with the fixes from that flight), so a diagnostics bundle could not say which one it came from. This build holds everything listed under 1.0.0-rc.6 below. 1.0.0-rc.6 was never published. The fixes from the 2026-11-14 flight are **not flown yet**.
+
 ## 1.0.0-rc.6
 
 Pre-release for testers, 2026-11-07 (over 1.0.0-rc.5, which flew the owner's EGLL leg the same day). **Not flown yet.** One live fix from that leg.
