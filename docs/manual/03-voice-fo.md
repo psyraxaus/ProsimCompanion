@@ -168,6 +168,17 @@ the FO says them the same way. On the radio the FO follows the phraseology you p
 Settings → Voice First Officer → SayIntentions → **Phraseology** (ICAO, FAA or UK CAP 413);
 cockpit talk does not change with it.
 
+**How abbreviations are said.** Some abbreviations are said as a word — ECAM, SID, STAR,
+ATIS, ADIRS, TOGA, TCAS, METAR, NOTAM — and some letter by letter — APU, FMS, ATC, MCDU,
+ILS, QNH. The list is `%LOCALAPPDATA%\ProsimCompanion\config\pronunciations.json`. Under
+`words`, the right side is the spelling the voice reads (`"ECAM": "ee-cam"`); under `letters`
+is every abbreviation that is spelled out. Voice engines do not read a spelling the same
+way: if a word sounds wrong on yours, change its spelling and restart the app. You only
+need to list what you change — your entries are added to the built-in ones — and an empty
+spelling (`"SID": ""`) leaves that abbreviation exactly as written. Only the capital form
+of a whole word is changed, so write abbreviations in capitals in your own checklist and
+phrase files (`ECAM status`, not `E CAM status`).
+
 **Flight numbers.** A flight number is said with the airline's radio callsign — BA124 is
 *"Speedbird one two four"*. The list is
 `%LOCALAPPDATA%\ProsimCompanion\config\airline-callsigns.json`; add your airline or correct a

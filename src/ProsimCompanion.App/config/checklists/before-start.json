@@ -16,7 +16,7 @@
       "confirmCallout": "Signs, on"
     },
     {
-      "behavior": "verify", "say": "A D I R S", "system": "adirs", "expectedResponse": "NAV", "acceptedPhrases": [ "nav", "set" ],
+      "behavior": "verify", "say": "ADIRS", "system": "adirs", "expectedResponse": "NAV", "acceptedPhrases": [ "nav", "set" ],
       "verify": {
         "logic": "and",
         "conditions": [

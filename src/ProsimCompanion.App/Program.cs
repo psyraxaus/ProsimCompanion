@@ -116,6 +116,14 @@ public static class Program
                     "User config at {Root}: {Seeded} seeded, {Updated} default(s) refreshed, {Kept} user-edited kept, {Current} current",
                     UserConfigPaths.Root, seedResult.Seeded, seedResult.Updated,
                     seedResult.KeptEdited, seedResult.Current);
+
+                // How the voices say abbreviations (2026-11-14: "ECAM", not "E C A M") — the
+                // pilot's pronunciations.json over the built-in table. After the seeding
+                // (the file must exist) and before the host builds (the TTS prewarm keys its
+                // cache on the spoken text).
+                ProsimCompanion.Core.Speech.Phraseology.UsePronunciations(
+                    ProsimCompanion.Core.Speech.PronunciationTable.LoadUserFile(
+                        importLoggerFactory.CreateLogger("Pronunciations")));
             }
 
             var web = BuildWebHost(args, settingsPath, settingsFile, levels, logBuffer, wireTrace);

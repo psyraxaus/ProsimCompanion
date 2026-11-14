@@ -174,24 +174,28 @@ public static partial class Phraseology
 
     // ------------------------------------------------------------------ pass 2: abbreviations
 
+    // The letter-spelled and word-spoken abbreviations ("I L S", "ee-cam") live in the
+    // pronunciation table since 2026-11-14 (owner request: "ECAM, not E C A M"); the rules
+    // below are the expansions and respellings that are not a plain abbreviation.
+    private static volatile PronunciationTable _pronunciations = PronunciationTable.Defaults;
+
+    /// <summary>The table in use — <see cref="PronunciationTable.Defaults"/> until the
+    /// composition root hands over the pilot's file at startup.</summary>
+    public static PronunciationTable Pronunciations => _pronunciations;
+
+    /// <summary>Replaces the table (startup, after the user config is seeded and before any
+    /// line is spoken or prewarmed — the TTS cache text depends on it).</summary>
+    public static void UsePronunciations(PronunciationTable table)
+    {
+        ArgumentNullException.ThrowIfNull(table);
+        _pronunciations = table;
+    }
+
     private static readonly (Regex Rx, string Replacement)[] Abbreviations =
     [
-        (Rx(@"\bILS\b"), "I L S"),
-        (Rx(@"\bRVR\b"), "R V R"),
-        (Rx(@"\bQNH\b"), "Q N H"),
-        (Rx(@"\bQFE\b"), "Q F E"),
-        (Rx(@"\bVOR\b"), "V O R"),
-        (Rx(@"\bDME\b"), "D M E"),
-        (Rx(@"\bNDB\b"), "N D B"),
-        (Rx(@"\bADF\b"), "A D F"),
         (Rx(@"\bLOC\b"), "localizer"),
-        (Rx(@"\bATIS\b"), "A T I S"),
-        (Rx(@"\bMSA\b"), "M S A"),
         (Rx(@"\bMSL\b"), "mean sea level"),
         (Rx(@"\bAGL\b"), "above ground level"),
-        (Rx(@"\bMDA\b"), "M D A"),
-        (Rx(@"\bECAM\b"), "E CAM"),
-        (Rx(@"\bMCDU\b"), "M C D U"),
         // V-speeds (owner report 2026-10-31, LKPR→EGLL): the taxi checklist's "V1, V R, V2"
         // came out as "vone" / "vee-two-ish" — kokoro reads a letter glued to a digit as one
         // syllable. Spelled the way pilots say them; "Vee R" keeps the R a letter. The
@@ -201,10 +205,6 @@ public static partial class Phraseology
         (Rx(@"\bV\s?R\b"), "Vee R"),
         (Rx(@"\bVAPP\b"), "Vee app"),
         (Rx(@"\bVREF\b"), "Vee ref"),
-        (Rx(@"\bVLS\b"), "V L S"),
-        (Rx(@"\bVFE\b"), "V F E"),
-        (Rx(@"\bVMO\b"), "V M O"),
-        (Rx(@"\bMMO\b"), "M M O"),
         // kokoro reads "winds" as the verb /waɪndz/ (issue #69). "windz" is the most
         // phonetically explicit respelling that still reads as one word — "wind z" risks the
         // synthesizer spelling out a letter zed. Chosen without an audition; may need an
@@ -237,6 +237,10 @@ public static partial class Phraseology
         s = NumberWithLetter().Replace(s, m =>
             (m.Groups[1].Value.Length == 3 ? Digits(m.Groups[1].Value) : NumberWords.Number(m.Groups[1].Value))
             + " " + NatoPhonetics.Word(m.Groups[2].Value[0]));
+
+        // Abbreviations by the pronunciation table (2026-11-14): "ECAM" → "ee-cam", "SID" →
+        // "sid", "APU" → "A P U" — the pilot's file over the shipped defaults.
+        s = _pronunciations.Apply(s);
 
         foreach (var (rx, replacement) in Abbreviations)
         {

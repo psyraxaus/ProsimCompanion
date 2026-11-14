@@ -73,6 +73,7 @@
           "hint": "1.0 is normal, 2.0 is twice as slow."
         }
       },
+      "pronunciationsFile": "How abbreviations are said (ECAM as a word, APU as letters) is the list pronunciations.json in %LOCALAPPDATA%\\ProsimCompanion\\config. Change a spelling there if a word sounds wrong on your voice, then restart the app.",
       "playback": {
         "title": "Playback",
         "outputDevice": {
@@ -731,6 +732,7 @@
         "hint": "Minutes after the scheduled departure that still count as on time. Airlines use 15."
       },
       "delayCodesFile": "The code list is delay-codes.json in %LOCALAPPDATA%\\ProsimCompanion\\config — add your airline's codes and the words you say for them.",
+      "airlineCallsignsFile": "Flight numbers are said with the airline's radio callsign (BA124 = Speedbird one two four). The list is airline-callsigns.json in %LOCALAPPDATA%\\ProsimCompanion\\config — add or correct your airline there.",
       "persist": {
         "label": "Save the spoken loadsheet",
         "hint": "Written beside the session log as *.loadsheet.txt, with the raw EFB loadsheet."

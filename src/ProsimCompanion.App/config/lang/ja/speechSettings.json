@@ -73,6 +73,7 @@
           "hint": "1.0 が標準、2.0 は 2 倍遅くなります。"
         }
       },
+      "pronunciationsFile": "略語の読み方（ECAM は単語として、APU は一文字ずつ）は %LOCALAPPDATA%\\ProsimCompanion\\config の pronunciations.json にあります。音声で聞こえ方がおかしい場合はそこで綴りを変え、アプリを再起動してください。",
       "playback": {
         "title": "再生",
         "outputDevice": {
@@ -731,6 +732,7 @@
         "hint": "予定出発時刻の何分後までを定時とみなすか。航空会社は15を使います。"
       },
       "delayCodesFile": "コード一覧は %LOCALAPPDATA%\\ProsimCompanion\\config の delay-codes.json です。自社のコードと、それを言うときの言葉を追加してください。",
+      "airlineCallsignsFile": "便名は航空会社の無線コールサインで読みます（BA124 = Speedbird one two four）。一覧は %LOCALAPPDATA%\\ProsimCompanion\\config の airline-callsigns.json です。自分の航空会社を追加・修正できます。",
       "persist": {
         "label": "読み上げたロードシートを保存",
         "hint": "セッションログの隣に *.loadsheet.txt として、生の EFB ロードシートと一緒に書かれます。"

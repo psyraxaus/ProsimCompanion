@@ -89,6 +89,8 @@
     <Content Include="config\delay-codes.json" CopyToOutputDirectory="PreserveNewest" />
     <!-- Airline radio callsigns for spoken flight numbers (user-editable; OpenFlights data, ODbL - see THIRD_PARTY.md). -->
     <Content Include="config\airline-callsigns.json" CopyToOutputDirectory="PreserveNewest" />
+    <!-- How the voices say abbreviations: said as a word or letter by letter (user-editable). -->
+    <Content Include="config\pronunciations.json" CopyToOutputDirectory="PreserveNewest" />
     <!-- File-driven voice commands (Prosim2FO-compatible; user-editable, hot-reloaded). -->
     <Content Include="config\commands.json" CopyToOutputDirectory="PreserveNewest" />
     <!-- Acknowledgement phrase pools (Prosim2FO format; user-editable, hot-reloaded — the

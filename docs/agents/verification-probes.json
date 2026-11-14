@@ -5367,6 +5367,25 @@
         "requires-human: the ear check — fuel, loadsheet tonnes ('sixty two point three tonnes'), passengers, the briefing's V-speeds and transition altitude, a wind read-out and a clock time all sound like a crew member said them, on the voice engine in use (Kokoro / ElevenLabs / Google)."
       ],
       "notes": "Built 2026-11-14 (owner decisions: fuel to the nearest 100; tonnes stay tonnes; radio phraseology selectable ICAO / FAA / UK CAP 413 on the existing sayIntentions.phraseology setting, radio lines only; airline callsigns from a shipped list). Core: NumberWords (Cardinal, Number, Decimal, Clock, RadioAltitude, GroupForm), RadioPhraseology, the new number rules and the leftover-number net in Phraseology.Normalize, AirlineCallsigns over %LOCALAPPDATA%\\ProsimCompanion\\config\\airline-callsigns.json (seeded; derived from OpenFlights, ODbL — THIRD_PARTY.md). Speech: SpokenValueFormatting.FuelQuantity writes words; RadioSpeech.Spoken(transmit, style, callsign); CompanyDayService speaks the flight number and the clock. The TTS cache text of every line with a figure changed, so those lines synthesise once more on first use. FAA group form is from JO 7110.65 2-4-20 as remembered (faa.gov refused the fetch on the build day) — check against the document if a US pilot reports it. Unverified live."
+    },
+    {
+      "id": "speech-abbreviations-table",
+      "issue": 0,
+      "state": "fixed-unverified",
+      "kind": "watch",
+      "sources": [
+        "session",
+        "log",
+        "human"
+      ],
+      "checks": [
+        "Owner 2026-11-14: the FO said 'E, C, A, M', 'S, I, D' and 'S, T, A, R' letter by letter. One table (PronunciationTable: the pilot's pronunciations.json over the built-in defaults) now decides how an abbreviation is said — as a word by a respelling ('ECAM' -> 'ee-cam', 'SID' -> 'sid', 'STAR' -> 'star', 'ATIS' -> 'ay-tis', 'ADIRS' -> 'ay-dirs', TOGA, TCAS, METAR, NOTAM, ACARS, RNAV, CAT) or letter by letter ('APU' -> 'A P U', FMS, ATC, MCDU, ILS, QNH, GPU, OFP, ZFW, MEL, PA …).",
+        "assert-present: one log line 'Pronunciations loaded: N said as words, M said as letters' at startup (or '… not found — the built-in pronunciations stand' on an install that could not seed the file).",
+        "assert-absent: on any speech.spoken event, the 'spoken' field contains a capital abbreviation from the table as written (ECAM, SID, STAR, ATIS, ADIRS, APU, FMS, ATC …) or the old 'E CAM' — every one must be its respelling or its spaced letters. A capital abbreviation in 'spoken' that is NOT in the table is a candidate for the table: list them (text + spoken) for the owner.",
+        "assert-absent: an abnormal's ECAM shorthand title in a spoken line ('The ENG 1 FIRE has cleared', 'HYD B RSVR LO LVL') — a cleared fault is named by its announce line.",
+        "requires-human: the ear check, per voice engine in use — 'ee-cam', 'sid', 'star', 'ay-tis', 'ay-dirs', 'toe-ga', 'tee-cas', 'mee-tar', 'no-tam' each sound like the word a crew says. A wrong one is corrected in pronunciations.json (app restart) and reported so the default can change."
+      ],
+      "notes": "Built 2026-11-14 (owner picked the user-editable file over a fixed list). Core/Speech/PronunciationTable (+ LoadUserFile, called from Program.cs after the config seeding and before the host builds); Phraseology.UsePronunciations / the table pass in Normalize; the old case-insensitive ILS/QNH/ATIS/ECAM/MCDU … rules moved into the defaults and are case-sensitive now. Shipped checklists write 'ECAM' and 'ADIRS' again (were 'E CAM', 'A D I R S' — a user-edited copy keeps its spelling and is still said as the word). FailureMonitor.SpokenFaultName replaces the spoken title. Hints naming pronunciations.json and airline-callsigns.json on Settings -> Voice First Officer (General -> playback, Company) in all seven packs. The respellings were chosen without an audition on any engine. Unverified live."
     }
   ]
 }

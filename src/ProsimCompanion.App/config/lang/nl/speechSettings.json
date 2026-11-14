@@ -73,6 +73,7 @@
           "hint": "1.0 is normaal, 2.0 is twee keer zo langzaam."
         }
       },
+      "pronunciationsFile": "Hoe afkortingen worden uitgesproken (ECAM als woord, APU letter voor letter) staat in de lijst pronunciations.json in %LOCALAPPDATA%\\ProsimCompanion\\config. Pas daar een spelling aan als een woord verkeerd klinkt met jouw stem en herstart de app.",
       "playback": {
         "title": "Weergave",
         "outputDevice": {
@@ -731,6 +732,7 @@
         "hint": "Minuten na het geplande vertrek die nog als op tijd tellen. Luchtvaartmaatschappijen gebruiken 15."
       },
       "delayCodesFile": "De codelijst is delay-codes.json in %LOCALAPPDATA%\\ProsimCompanion\\config — voeg de codes van je maatschappij toe en de woorden die je ervoor zegt.",
+      "airlineCallsignsFile": "Vluchtnummers worden gezegd met de radioroepnaam van de maatschappij (BA124 = Speedbird one two four). De lijst is airline-callsigns.json in %LOCALAPPDATA%\\ProsimCompanion\\config — voeg daar je maatschappij toe of corrigeer haar.",
       "persist": {
         "label": "Gesproken loadsheet opslaan",
         "hint": "Naast het sessielogboek geschreven als *.loadsheet.txt, met de ruwe EFB-loadsheet."

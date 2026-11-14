@@ -25,7 +25,7 @@ public sealed class PhraseologyTests
     [InlineData("LOC capture", "localizer capture")]
     [InlineData("descend 3000 ft", "descend three thousand feet")]
     [InlineData("250 kts", "two five zero knots")]
-    [InlineData("check ECAM", "check E CAM")]
+    [InlineData("check ECAM", "check ee-cam")]
     [InlineData("cleared FL level", "cleared flight level level")]         // bare FL
     // V-speeds (owner report 2026-10-31): "V1" came out of kokoro as "vone".
     [InlineData("V1, V R, V2, Flex Temp", "Vee one, Vee R, Vee two, Flex Temp")]
@@ -42,7 +42,7 @@ public sealed class PhraseologyTests
     [InlineData("taxiways A, B and C closed", "taxiways Alpha, Bravo and Charlie closed")]
     [InlineData("taxiway NA closed", "taxiway November Alpha closed")]
     [InlineData("TWY G5 CLSD", "taxiway Golf five CLSD")]                                  // NOTAM shorthand
-    [InlineData("RWY 04R closed by NOTAM", "runway zero four right closed by NOTAM")]
+    [InlineData("RWY 04R closed by NOTAM", "runway zero four right closed by no-tam")]
     [InlineData("holding point N1", "holding point November one")]                          // a real name, not the engine
     [InlineData("taxi via Z, T, A to holding point runway 24", "taxi via Zulu, Tango, Alpha to holding point runway two four")]
     [InlineData("taxi via B2 and C, hold short of A3", "taxi via Bravo two and Charlie, hold short of Alpha three")]
@@ -55,10 +55,10 @@ public sealed class PhraseologyTests
     [InlineData("exit at A4", "exit at Alpha four")]
     [InlineData("closed taxiway B2 ahead", "closed taxiway Bravo two ahead")]
     // Left alone: an article, a type, the V-speeds and engine parameters, prose after "on"/"at".
-    [InlineData("a runway closed by NOTAM", "a runway closed by NOTAM")]
+    [InlineData("a runway closed by NOTAM", "a runway closed by no-tam")]
     [InlineData("rotate at V R, climb at V2", "rotate at Vee R, climb at Vee two")]
     [InlineData("N1 at 85 percent, N2 stable", "N1 at eighty five percent, N2 stable")]
-    [InlineData("an A320 on ND and IR", "an A320 on ND and IR")]
+    [InlineData("an A320 on ND and IR", "an A320 on N D and IR")]
     [InlineData("level at FL", "level at flight level")]
     [InlineData("via LAM transition", "via LAM transition")]
     [InlineData("set at Q N H, fly the I L S", "set at Q N H, fly the I L S")]                 // letter-spelled abbreviations
@@ -77,7 +77,7 @@ public sealed class PhraseologyTests
     [InlineData("climbing through 2,500 feet", "climbing through two thousand five hundred feet")]
     [InlineData("Destination visibility now 800 metres, below 1500 metres.", "Destination visibility now eight hundred metres, below one thousand five hundred metres.")]
     [InlineData("Touchdown at minus 180 feet per minute.", "Touchdown at minus one hundred eighty feet per minute.")]
-    [InlineData("OAT -2", "OAT minus two")]
+    [InlineData("OAT -2", "O A T minus two")]
     [InlineData("We're 22 minutes late off blocks", "We're twenty two minutes late off blocks")]
     [InlineData("Initial track 163 degrees.", "Initial track one six three degrees.")]
     [InlineData("Wind at destination 270 at 8 knots", "Wind at destination two seven zero at eight knots")]
@@ -95,7 +95,7 @@ public sealed class PhraseologyTests
     [InlineData("heading 060, 5000 feet", "heading zero six zero, five thousand feet")]
     [InlineData("an A320 at 1.5 percent", "an A320 at one point five percent")]
     [InlineData("Negative — speed 230, flaps two limit is 215.", "Negative — speed two three zero, flaps two limit is two one five.")]
-    [InlineData("V one: FMS 140, performance 142", "V one: FMS one four zero, performance one four two")]
+    [InlineData("V one: FMS 140, performance 142", "V one: F M S one four zero, performance one four two")]
     [InlineData("Crosswind component 36 knots, gusting 41, headwind 0 — exceeds the wet-runway crosswind limit of 33 knots.", "Crosswind component three six knots, gusting four one, headwind zero — exceeds the wet-runway crosswind limit of three three knots.")]
     [InlineData("Delay code 1 5, Boarding, noted.", "Delay code one five, Boarding, noted.")]
     [InlineData("about 30 miles north of Turin", "about thirty miles north of Turin")]

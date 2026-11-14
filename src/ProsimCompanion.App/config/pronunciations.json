@@ -1,0 +1,29 @@
+{
+  "//": "How the First Officer and the other voices say abbreviations. 'words' are said as a word: the right side is a spelling your voice engine reads correctly - change it if a word sounds wrong on your engine (Kokoro, ElevenLabs, Google and Windows do not read the same spelling the same way). 'letters' are said letter by letter (APU = A P U). Only the CAPITAL form of a whole word is changed: STAR is the arrival, star is a star. To leave an abbreviation exactly as written, give it an empty spelling: \"SID\": \"\". Your entries are added to the built-in list, so you only need the ones you change. Restart the app after you edit this file.",
+  "words": {
+    "ECAM": "ee-cam",
+    "SID": "sid",
+    "STAR": "star",
+    "ATIS": "ay-tis",
+    "ADIRS": "ay-dirs",
+    "TOGA": "toe-ga",
+    "TCAS": "tee-cas",
+    "METAR": "mee-tar",
+    "NOTAM": "no-tam",
+    "ACARS": "ay-cars",
+    "RNAV": "ar-nav",
+    "SIGMET": "sig-met",
+    "TAF": "taff",
+    "CAT": "cat",
+    "MAC": "mac",
+    "PAX": "pax",
+    "NAV": "nav"
+  },
+  "letters": [
+    "ILS", "RVR", "QNH", "QFE", "VOR", "DME", "NDB", "ADF", "MSA", "MDA", "MCDU",
+    "VLS", "VFE", "VMO", "MMO",
+    "APU", "FMS", "FMGC", "FCU", "PFD", "ND", "ATC", "GPU", "GPS", "GLS", "LDA", "OFP", "FOB",
+    "ZFW", "TOW", "LMC", "CG", "ETA", "UTC", "OAT", "IAS", "MEL", "QRH", "PA", "PTU", "RTO",
+    "SRS", "RA", "TA", "VHF", "FO", "GSX", "EGPWS", "CPDLC"
+  ]
+}

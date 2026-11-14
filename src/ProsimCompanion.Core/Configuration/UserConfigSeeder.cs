@@ -44,6 +44,7 @@ public static class UserConfigSeeder
         "atc-requests.json",
         "delay-codes.json", // IATA delay codes the FO offers at a late off-blocks (issue #185)
         "airline-callsigns.json", // airline radio callsigns for spoken flight numbers (2026-11-14; OpenFlights, ODbL)
+        "pronunciations.json", // abbreviations said as a word or as letters (2026-11-14)
         "commands.json",
         "phrases.json",
         "region-facts.json",

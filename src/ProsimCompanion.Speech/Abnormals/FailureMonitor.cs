@@ -567,7 +567,7 @@ public sealed class FailureMonitor : IEcamDialogueIo, Core.State.IAbnormalDialog
                     }
 
                     var announcement = reason == "cleared"
-                        ? $"The {definition.Title} has cleared. Resuming normal duties."
+                        ? $"The {SpokenFaultName(definition.Title, definition.Announce)} has cleared. Resuming normal duties."
                         : "ECAM cancelled. Resuming normal duties.";
                     await ((IEcamDialogueIo)this)
                         .SpeakAsync(announcement, CancellationToken.None).ConfigureAwait(false);
@@ -866,6 +866,22 @@ public sealed class FailureMonitor : IEcamDialogueIo, Core.State.IAbnormalDialog
     /// fly-by-wire not in normal law, dead generators, unaligned IRs — and the FO opened the
     /// "F/CTL ALTN LAW" dialogue five seconds into every cold-and-dark session on 2026-08-29.
     /// An author who really wants a cold-and-dark abnormal lists the phase explicitly.</summary>
+    /// <summary>The fault's name as it is SAID: the announce line without its "ECAM," lead
+    /// and its full stop ("ECAM, hydraulic, blue reservoir low level." → "hydraulic, blue
+    /// reservoir low level"). The title is the ECAM's own shorthand ("HYD B RSVR LO LVL") and
+    /// was read out as written until 2026-11-14; it is the fallback only when a definition
+    /// has no announce line.</summary>
+    internal static string SpokenFaultName(string title, string? announce)
+    {
+        var name = (announce ?? "").Trim().TrimEnd('.', '!').Trim();
+        if (name.StartsWith("ECAM", StringComparison.OrdinalIgnoreCase))
+        {
+            name = name[4..].TrimStart(',', ' ');
+        }
+
+        return name.Length > 0 ? name : title;
+    }
+
     private static bool PhaseArmed(AbnormalDefinition definition, FlightPhase phase)
         => definition.Phases.Count == 0
             ? phase is not (FlightPhase.Unknown or FlightPhase.ColdAndDark)

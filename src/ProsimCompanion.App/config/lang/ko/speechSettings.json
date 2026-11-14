@@ -73,6 +73,7 @@
           "hint": "1.0이 보통, 2.0은 두 배 느림."
         }
       },
+      "pronunciationsFile": "약어를 읽는 방식(ECAM은 단어로, APU는 글자별로)은 %LOCALAPPDATA%\\ProsimCompanion\\config 의 pronunciations.json 목록에 있습니다. 음성에서 이상하게 들리면 그곳의 철자를 바꾸고 앱을 다시 시작하세요.",
       "playback": {
         "title": "재생",
         "outputDevice": {
@@ -731,6 +732,7 @@
         "hint": "예정 출발 후 정시로 간주하는 분. 항공사는 15를 씁니다."
       },
       "delayCodesFile": "코드 목록은 %LOCALAPPDATA%\\ProsimCompanion\\config 의 delay-codes.json 입니다. 항공사의 코드와 말할 단어를 추가하세요.",
+      "airlineCallsignsFile": "편명은 항공사의 무선 호출부호로 읽습니다(BA124 = Speedbird one two four). 목록은 %LOCALAPPDATA%\\ProsimCompanion\\config 의 airline-callsigns.json입니다. 그곳에서 항공사를 추가하거나 수정하세요.",
       "persist": {
         "label": "말한 로드시트 저장",
         "hint": "세션 로그 옆에 *.loadsheet.txt로, 원본 EFB 로드시트와 함께 기록됩니다."

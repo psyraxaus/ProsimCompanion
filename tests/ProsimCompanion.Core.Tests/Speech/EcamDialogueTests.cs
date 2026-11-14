@@ -665,7 +665,7 @@ public sealed class EcamDialogueTests
         monitor.ProcessTick(T0.AddSeconds(3));
 
         Assert.True(
-            await WaitForSpokenAsync(arbiter, "The ENG 1 FIRE has cleared. Resuming normal duties."),
+            await WaitForSpokenAsync(arbiter, "The engine 1 fire has cleared. Resuming normal duties."),
             "cleared announcement never spoken");
         Assert.False(mic.IsBorrowed);
     }

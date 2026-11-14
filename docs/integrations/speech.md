@@ -169,6 +169,22 @@ chains — "local only" hard mode must exist.
   `uk` ("flight level one hundred") — and only the FO-voice text changes, never the text
   sent to sayAs. Altitudes are "two thousand five hundred" / "one zero thousand" in all three
   (Annex 10 Vol II, AIM 4-2-9, CAP 413 agree). Cockpit talk has one style.
+- **Abbreviations go through one table** (2026-11-14, owner request: "ECAM, not E C A M";
+  SID and STAR were spelled by the engine). `Core/Speech/PronunciationTable`: `Words`
+  (capital abbreviation → a respelling the engine reads as the word: "ECAM" → "ee-cam") and
+  `Letters` ("APU" → "A P U"). `Phraseology.Normalize` applies it after the number rules and
+  before the remaining expansions; the old `ILS`/`QNH`/`ATIS`/`ECAM`/`MCDU` … rules moved
+  into its defaults. Matching is **case-sensitive on the capital form** (the old rules
+  ignored case; "star" must stay a star), whole word, optional plural "s"; a word entry also
+  matches its letter-spelled form ("A T I S", and the old "E CAM"), so hand-spelled files
+  and model-written text say the word. The pilot's `pronunciations.json` (seeded) is laid
+  over the defaults by `PronunciationTable.LoadUserFile` in `Program.cs` right after the
+  seeding — before the host builds, because the TTS prewarm keys its cache on the spoken
+  text; the table is a static on `Phraseology` (`UsePronunciations`) since `Normalize` is
+  static and called from everywhere. No hot reload. **The respellings are guesses until
+  heard**: kokoro, ElevenLabs, Google and the Windows voices each read "ee-cam" their own
+  way — that is why the file exists. Never speak an abnormal's `title` (ECAM shorthand,
+  "HYD B RSVR LO LVL"); use `FailureMonitor.SpokenFaultName` (the announce line).
 - **Airline callsigns** (2026-11-14): `Core/Speech/AirlineCallsigns` over the seeded
   `airline-callsigns.json` (OpenFlights, ODbL — THIRD_PARTY.md), ICAO code first, then IATA,
   loaded on first use; an unlisted airline is spelled. With SayIntentions running the radio

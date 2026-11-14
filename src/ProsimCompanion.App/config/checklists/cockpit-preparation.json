@@ -21,7 +21,7 @@
     },
     {
       "behavior": "verify",
-      "say": "A D I R S", "system": "adirs",
+      "say": "ADIRS", "system": "adirs",
       "expectedResponse": "NAV",
       "acceptedPhrases": [ "nav", "set" ],
       "comment": "Compound: all three IR mode selectors in NAV (1). For 'any one in NAV', change logic to 'or'.",
