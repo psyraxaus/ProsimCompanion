@@ -93,6 +93,7 @@ public sealed class CompanyDayService : IVoiceFeature, ISessionFinalizationStep,
     private readonly object _gate = new();
     private readonly CompanyDayEngine _engine = new();
     private DateTimeOffset? _coldAndDarkSinceUtc;
+    private DutyDayEnded? _pendingDayEnded;
     private Timer? _timer;
     private bool _started;
 
@@ -206,6 +207,8 @@ public sealed class CompanyDayService : IVoiceFeature, ISessionFinalizationStep,
         string? resumedDayId = null;
         int legIndex = 0, legCount = 0;
         int? phantomDropped = null;
+        AbandonedDay? abandoned = null;
+        var nowUtc = DateTimeOffset.UtcNow;
         lock (_gate)
         {
             if (_started)
@@ -215,7 +218,16 @@ public sealed class CompanyDayService : IVoiceFeature, ISessionFinalizationStep,
 
             _started = true;
             ConfigureFdp();
-            _engine.Resume(_stateFile.Load());
+            var loaded = _stateFile.Load();
+            _engine.Resume(loaded);
+            // Issue #239: an open day last saved more than DayAbandonRules.StaleAfter ago in
+            // real time is the remains of a flight that was given up, not the day in progress —
+            // it is closed as abandoned here and never resumed. A younger day resumes as before.
+            if (DayAbandonRules.StaleAge(loaded, _stateFile.LastSavedUtc(), nowUtc) is { } staleAge)
+            {
+                abandoned = AbandonLocked(StaleDiscardReason, nowUtc, staleAge);
+            }
+
             phantomDropped = _engine.DropPhantomLeg();
             _flight.PhaseChanged += OnPhaseChanged;
             _ofp.Changed += OnOfpChanged;
@@ -244,6 +256,12 @@ public sealed class CompanyDayService : IVoiceFeature, ISessionFinalizationStep,
         }
 
         _store.Update(snapshot);
+        if (abandoned is not null)
+        {
+            // The signal waits for its subscribers (RaisePendingDayEnded): they start after this.
+            FinishAbandon(abandoned, nowUtc, deferSignal: true);
+        }
+
         if (phantomDropped is { } dropped)
         {
             _logger.LogWarning(
@@ -725,23 +743,8 @@ public sealed class CompanyDayService : IVoiceFeature, ISessionFinalizationStep,
         _store.Update(snapshot);
 
         // A standing offer is answered by the act itself (the button, the voice command).
-        try
-        {
-            _offer.Withdraw();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogDebug(ex, "End-of-duty offer withdraw failed");
-        }
-
-        try
-        {
-            _logbook.RecordDay(_composer.BuildRecord(ended, nowUtc));
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "Day logbook record failed");
-        }
+        WithdrawOffer();
+        RecordDayInLogbook(ended, nowUtc);
 
         try
         {
@@ -758,16 +761,169 @@ public sealed class CompanyDayService : IVoiceFeature, ISessionFinalizationStep,
 
         // The other pillars let go of the old leg (issue #218): the snapshot, the departure
         // cycle, the roster pin. Raised last, after the day's own records are final.
+        RaiseDayEnded(new DutyDayEnded(ended.DayId, source, nowUtc));
+
+        _logger.LogInformation("Duty day {DayId} ended ({Source})", ended.DayId, source);
+        return true;
+    }
+
+    // The three steps an end of duty and an abandoned day share (issue #239) — one place each.
+
+    private void WithdrawOffer()
+    {
         try
         {
-            _dutySignals.RaiseDayEnded(new DutyDayEnded(ended.DayId, source, nowUtc));
+            _offer.Withdraw();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "End-of-duty offer withdraw failed");
+        }
+    }
+
+    private void RecordDayInLogbook(DayState closed, DateTimeOffset nowUtc)
+    {
+        try
+        {
+            _logbook.RecordDay(_composer.BuildRecord(closed, nowUtc));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Day logbook record failed");
+        }
+    }
+
+    private void RaiseDayEnded(DutyDayEnded ended)
+    {
+        try
+        {
+            _dutySignals.RaiseDayEnded(ended);
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "A duty-day-ended subscriber failed");
         }
+    }
 
-        _logger.LogInformation("Duty day {DayId} ended ({Source})", ended.DayId, source);
+    // ---- an abandoned day (issue #239) ----
+
+    /// <summary>The <see cref="DutyDayEnded.Source"/> prefix of an abandoned day; the reason
+    /// ("stale", "pilot") follows it.</summary>
+    public const string AbandonedSourcePrefix = "abandoned-";
+
+    /// <summary>What <see cref="AbandonLocked"/> took out of the engine, for the steps that run
+    /// outside the lock.</summary>
+    private sealed record AbandonedDay(DayState Day, string State, double? AgeHours, string Reason, DaySnapshot Snapshot);
+
+    /// <summary>Discards the open day as abandoned, by the pilot ("Discard this day" on the Duty
+    /// Day page, the <c>day.discard</c> command): the same path a stale day takes at app start.
+    /// False when no day is open.</summary>
+    public bool TryDiscardDay(string reason) => TryDiscardDay(reason, DateTimeOffset.UtcNow);
+
+    public bool TryDiscardDay(string reason, DateTimeOffset nowUtc)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(reason);
+        AbandonedDay? abandoned;
+        lock (_gate)
+        {
+            abandoned = AbandonLocked(reason, nowUtc, knownAge: null);
+        }
+
+        if (abandoned is null)
+        {
+            return false;
+        }
+
+        FinishAbandon(abandoned, nowUtc, deferSignal: false);
+        return true;
+    }
+
+    /// <summary>
+    /// The engine and file part of abandoning a day; call under <c>_gate</c>. The day leaves
+    /// the engine ("no day" — what a hand-emptied daystate.json gave), the state file is
+    /// removed so the next start is clean, and <c>day.abandoned</c> is recorded. Nothing is
+    /// spoken and no summary is written: there was no end of duty to debrief.
+    /// </summary>
+    private AbandonedDay? AbandonLocked(string reason, DateTimeOffset nowUtc, TimeSpan? knownAge)
+    {
+        if (_engine.Day is not { IsOpen: true } open)
+        {
+            return null;
+        }
+
+        var state = open.State.ToString();
+        var age = knownAge ?? (_stateFile.LastSavedUtc() is { } saved ? nowUtc - saved : (TimeSpan?)null);
+        double? ageHours = age is { } a ? Math.Round(Math.Max(0, a.TotalHours), 1) : null;
+        var day = _engine.AbandonDay()!;
+        _stateFile.Clear();
+        _eventLog.Record("day.abandoned", new { dayId = day.DayId, ageHours, state, legs = day.LegsCompleted, reason });
+        return new AbandonedDay(day, state, ageHours, reason, _engine.BuildSnapshot(nowUtc));
+    }
+
+    /// <summary>
+    /// The rest of the abandon path, outside the lock — the end-of-duty steps
+    /// (<see cref="TryEndDay(string, DateTimeOffset)"/>) without the debrief: the offer is
+    /// withdrawn, the legs completed before are recorded in the logbook as the day they were
+    /// (none completed = nothing recorded; the unfinished leg was removed from the state and is
+    /// never a flown leg), and <see cref="DutyDaySignals.DayEnded"/> lets the other pillars go
+    /// of the old leg. At app start the signal waits (<paramref name="deferSignal"/>) until
+    /// its subscribers exist — <see cref="RaisePendingDayEnded"/>.
+    /// </summary>
+    private void FinishAbandon(AbandonedDay abandoned, DateTimeOffset nowUtc, bool deferSignal)
+    {
+        _store.Update(abandoned.Snapshot);
+        WithdrawOffer();
+        var legs = abandoned.Day.LegsCompleted;
+        if (legs > 0)
+        {
+            RecordDayInLogbook(abandoned.Day, nowUtc);
+        }
+
+        _logger.LogInformation(
+            "Duty day {DayId} discarded as abandoned ({Reason}): last saved {AgeHours} h ago, it was {State}; {Legs} completed leg(s) {Recorded}, the unfinished leg is not recorded, no debrief",
+            abandoned.Day.DayId,
+            abandoned.Reason,
+            abandoned.AgeHours?.ToString("F1", System.Globalization.CultureInfo.InvariantCulture) ?? "?",
+            abandoned.State,
+            legs,
+            legs > 0 ? "recorded in the logbook" : "— nothing recorded");
+
+        var ended = new DutyDayEnded(abandoned.Day.DayId, AbandonedSourcePrefix + abandoned.Reason, nowUtc);
+        if (deferSignal)
+        {
+            lock (_gate)
+            {
+                _pendingDayEnded = ended;
+            }
+
+            return;
+        }
+
+        RaiseDayEnded(ended);
+    }
+
+    /// <summary>
+    /// Raises the <see cref="DutyDaySignals.DayEnded"/> of a day abandoned at app start. This
+    /// service starts as a hosted service, before the startup modules that subscribe to the
+    /// signal (the leg boundary, the flight-state snapshot) exist, so a signal raised inside
+    /// <see cref="Start"/> would reach nobody; <see cref="DayAbandonSignalModule"/> calls this
+    /// once they do. False when nothing waits.
+    /// </summary>
+    public bool RaisePendingDayEnded()
+    {
+        DutyDayEnded? pending;
+        lock (_gate)
+        {
+            pending = _pendingDayEnded;
+            _pendingDayEnded = null;
+        }
+
+        if (pending is null)
+        {
+            return false;
+        }
+
+        RaiseDayEnded(pending);
         return true;
     }
 
@@ -954,6 +1110,14 @@ public sealed class CompanyDayService : IVoiceFeature, ISessionFinalizationStep,
     void IDayControl.StartDay() => TryStartDay("web");
 
     void IDayControl.EndDay() => TryEndDay("web");
+
+    bool IDayControl.DiscardDay() => TryDiscardDay(PilotDiscardReason);
+
+    /// <summary>The <c>day.abandoned</c> reason of the pilot's own discard.</summary>
+    public const string PilotDiscardReason = "pilot";
+
+    /// <summary>The <c>day.abandoned</c> reason of a day found stale at app start.</summary>
+    public const string StaleDiscardReason = "stale";
 
     // ---- helpers ----
 

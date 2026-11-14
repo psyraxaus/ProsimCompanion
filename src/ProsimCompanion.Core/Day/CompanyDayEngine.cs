@@ -314,6 +314,29 @@ public sealed class CompanyDayEngine
         return day;
     }
 
+    /// <summary>
+    /// Closes the open day as ABANDONED (issue #239) and forgets it: the day is not the day in
+    /// progress any more and nothing of it is resumed — the engine is back at "no day", the
+    /// state a hand-emptied <c>daystate.json</c> gave. The legs without an actual on-blocks
+    /// (the unfinished sector, and the sectors of a planned rotation never begun) are removed
+    /// from the returned state, so the logbook day record built from it holds flown legs only
+    /// and its duty ends at the last on-blocks (<see cref="DayMath.DutyMinutes"/> for a closed
+    /// day). Null when no day is open.
+    /// </summary>
+    public DayState? AbandonDay()
+    {
+        if (Day is not { IsOpen: true } day)
+        {
+            return null;
+        }
+
+        day.Legs.RemoveAll(l => string.IsNullOrEmpty(l.ActualOnUtc));
+        day.CurrentLegIndex = day.Legs.Count == 0 ? 0 : day.Legs.Max(l => l.Index);
+        day.State = DayPhase.Ended;
+        Day = null;
+        return day;
+    }
+
     /// <summary>The derived view for the given moment; null when no day exists.</summary>
     public DayView? BuildView(DateTimeOffset nowUtc)
         => Day is null ? null : DayMath.BuildView(Day, nowUtc);

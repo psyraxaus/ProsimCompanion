@@ -121,6 +121,16 @@
                         <button type="button" class="btn primary" disabled="@(_control is null)" @onclick="EndDay">
                             @T["day.end"]
                         </button>
+                        @* Issue #239: a flight that was given up leaves the day open with no end.
+                           Discard is not End: no debrief, the unfinished leg is not logged.
+                           Two presses (the Logbook's delete rule): the first arms it for 5 s. *@
+                        <button type="button" class="btn danger day-discard" disabled="@(_control is null)" title="@T["day.discardHint"]" @onclick="DiscardDay">
+                            @(_discardArmed ? T["day.discardConfirm"].Value : T["day.discard"].Value)
+                        </button>
+                        @if (_discardArmed)
+                        {
+                            <span class="ops-note day-discard-note">@T["day.discardArmedNote"]</span>
+                        }
                     }
                     else
                     {
@@ -210,8 +220,46 @@
 
     private void EndDay()
     {
+        Disarm();
         _control?.EndDay();
         RefreshNow();
+    }
+
+    private bool _discardArmed;
+    private System.Threading.Timer? _discardDisarmTimer;
+
+    /// <summary>Two-press confirmation (issue #239): the first press shows the confirm text and
+    /// disarms itself after 5 s; the second discards the day as abandoned.</summary>
+    private void DiscardDay()
+    {
+        if (!_discardArmed)
+        {
+            _discardArmed = true;
+            _discardDisarmTimer?.Dispose();
+            _discardDisarmTimer = new System.Threading.Timer(_ => _ = InvokeAsync(() =>
+            {
+                _discardArmed = false;
+                StateHasChanged();
+            }), null, 5000, Timeout.Infinite);
+            return;
+        }
+
+        Disarm();
+        _control?.DiscardDay();
+        RefreshNow();
+    }
+
+    private void Disarm()
+    {
+        _discardDisarmTimer?.Dispose();
+        _discardDisarmTimer = null;
+        _discardArmed = false;
+    }
+
+    public override void Dispose()
+    {
+        _discardDisarmTimer?.Dispose();
+        base.Dispose();
     }
 
     private void RefreshNow()

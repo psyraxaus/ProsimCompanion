@@ -44,6 +44,12 @@ public sealed record DiagnosticsBundleRequest(
     /// <summary>The RECENT ring (newest first, as the store hands it out), written oldest-first
     /// as <c>diagnostics-events.jsonl</c> when present.</summary>
     public IReadOnlyList<Ecam.DiagEvent>? DiagnosticsEvents { get; init; }
+
+    /// <summary>ProSim's live failure list on disk (<see cref="Scenarios.ProsimFailureListFile"/>,
+    /// issue #197), copied as <c>prosim-failures.json</c> when the file exists: the scenario
+    /// catalogue's names can only be mapped against the rig's own list. Null or absent = left
+    /// out, never an error.</summary>
+    public string? FailureListPath { get; init; }
 }
 
 /// <summary>One file inside the bundle, as listed in manifest.json.</summary>
@@ -81,7 +87,8 @@ public sealed partial class DiagnosticsBundleBuilder
     public const long DefaultMaxTotalBytes = 200L * 1024 * 1024;
 
     /// <summary>Manifest schema version — bump when the layout changes. Version 1 stays: the
-    /// two diagnostics files are additive and optional, and the reducer tolerates their absence.</summary>
+    /// two diagnostics files and the ProSim failure list are additive and optional, and the
+    /// reducer tolerates their absence.</summary>
     public const int BundleVersion = 1;
 
     /// <summary>The ECAM snapshot file inside the bundle folder.</summary>
@@ -89,6 +96,9 @@ public sealed partial class DiagnosticsBundleBuilder
 
     /// <summary>The RECENT ring inside the bundle folder, one event per line.</summary>
     public const string EventsFileName = "diagnostics-events.jsonl";
+
+    /// <summary>ProSim's live failure list inside the bundle folder (issue #197).</summary>
+    public const string FailureListFileName = Scenarios.ProsimFailureListFile.FileName;
 
     private static readonly JsonSerializerOptions ManifestJson = new()
     {
@@ -154,6 +164,16 @@ public sealed partial class DiagnosticsBundleBuilder
                 var lines = string.Join('\n', Ecam.EcamJson.EventLines(events));
                 files.Add(await WriteTextAsync(
                     zip, $"{folder}/{EventsFileName}", lines.Length == 0 ? "" : lines + "\n", ct).ConfigureAwait(false));
+            }
+
+            if (!string.IsNullOrWhiteSpace(request.FailureListPath) && File.Exists(request.FailureListPath))
+            {
+                var entry = await CopyFileAsync(
+                    zip, request.FailureListPath, $"{folder}/{FailureListFileName}", ct).ConfigureAwait(false);
+                if (entry is not null)
+                {
+                    files.Add(entry);
+                }
             }
 
             var manifest = new BundleManifest(

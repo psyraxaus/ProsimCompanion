@@ -66,6 +66,7 @@ public static class DiagnosticsEndpoints
         ConnectionStatusStore status,
         DiagnosticsStore diagnostics,
         DiagEventLog diagnosticEvents,
+        ProsimCompanion.Core.Scenarios.ProsimFailureListFile failureList,
         ILogger<DiagnosticsBundleBuilder> logger,
         CancellationToken ct)
     {
@@ -87,6 +88,8 @@ public static class DiagnosticsEndpoints
             DependencyLines = DependencyLines(status),
             DiagnosticsSnapshot = diagnostics.Snapshot(),
             DiagnosticsEvents = diagnosticEvents.Snapshot(),
+            // ProSim's live failure list, when scenario mode has read it (issue #197).
+            FailureListPath = failureList.Path,
         };
 
         string zipPath;

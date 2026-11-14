@@ -29,6 +29,15 @@ public interface IFailureInjector
     /// <summary>ProSim's supported failure names (<c>getFailures()</c>); empty when not connected.</summary>
     Task<IReadOnlyList<string>> ListAsync(CancellationToken cancellationToken = default);
 
+    /// <summary>ProSim's supported failures with what the SDK says about each (description,
+    /// domain, group, class) — for <see cref="ProsimFailureListFile"/> (issue #197); empty when
+    /// not connected. The default knows the names only.</summary>
+    async Task<IReadOnlyList<ProsimFailureInfo>> DescribeAsync(CancellationToken cancellationToken = default)
+    {
+        var names = await ListAsync(cancellationToken).ConfigureAwait(false);
+        return [.. names.Select(name => new ProsimFailureInfo(name))];
+    }
+
     /// <summary>Arms one failure through the gate. Returns the handle, or null when the gate
     /// refused (not in the catalogue, not in the live list) or ProSim is unreachable.</summary>
     Task<string?> ArmAsync(string failureName, FailureArmCondition? condition, CancellationToken cancellationToken = default);

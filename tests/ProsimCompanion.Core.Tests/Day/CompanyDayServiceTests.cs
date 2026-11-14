@@ -431,7 +431,7 @@ public sealed class CompanyDayServiceTests : IDisposable
         // Deboarding completes 20 min after on-blocks: the clock restarts there (EHAM 2026-11-01
         // was 88 min from shutdown to the new plan against the old 90-minute edge-reset clock).
         _service.HandleDeboarded(T0.AddMinutes(110));
-        Assert.Contains(ReadEvents(), e => e.Contains("\"day.idle.started\"", StringComparison.Ordinal));
+        Assert.Contains(ReadEvents("day.idle.started"), e => e.Contains("\"day.idle.started\"", StringComparison.Ordinal));
 
         // Phase edges inside the turnaround (the Preflight after deboarding, a ColdAndDark) and
         // a restart (a fresh service over the same state file) do NOT touch the clock.
@@ -483,7 +483,7 @@ public sealed class CompanyDayServiceTests : IDisposable
         _service.ProcessTick(T0.AddMinutes(180));
         Assert.True(_offer.Asking.QuestionStands);
         Assert.Equal(CompanyDayService.EndOfDutyPrompt, _offer.Asking.Question!.Prompt);
-        Assert.Contains(ReadEvents(), e => e.Contains("\"day.end-offer.raised\"", StringComparison.Ordinal));
+        Assert.Contains(ReadEvents("day.end-offer.raised"), e => e.Contains("\"day.end-offer.raised\"", StringComparison.Ordinal));
 
         // Yes (the dialogue's accept) ends the day as "offer".
         Assert.True(_offer.Accept("voice"));
@@ -592,6 +592,28 @@ public sealed class CompanyDayServiceTests : IDisposable
             {
                 lines.Add(line);
             }
+        }
+
+        return lines;
+    }
+
+    /// <summary>The event log writes through a background channel, so a line recorded a moment
+    /// ago may not be in the file yet: reads until a line of <paramref name="awaitedType"/> is
+    /// there, or two seconds pass. Reading once, straight after the call that recorded it, made
+    /// the idle-clock and the offer test fail now and then in a full run.</summary>
+    private IReadOnlyList<string> ReadEvents(string awaitedType)
+    {
+        var needle = $"\"{awaitedType}\"";
+        IReadOnlyList<string> lines = [];
+        for (var attempt = 0; attempt < 40; attempt++)
+        {
+            lines = ReadEvents();
+            if (lines.Any(l => l.Contains(needle, StringComparison.Ordinal)))
+            {
+                break;
+            }
+
+            Thread.Sleep(50);
         }
 
         return lines;
@@ -820,6 +842,144 @@ public sealed class CompanyDayServiceTests : IDisposable
         var leg = _store.Snapshot().Legs.Single(l => l.Index == 1);
         Assert.Equal("EGCC", leg.To);      // the plan stands — a mismatch stays a detectable deviation
         Assert.Equal("BA123", leg.FlightNo);
+    }
+
+    // ---- an abandoned day (issue #239) ----
+
+    private string StatePath => _options.Path!;
+
+    /// <summary>Puts the state file's last write <paramref name="age"/> back in real time —
+    /// the day's "last save" is the file's last-write time.</summary>
+    private void AgeTheStateFile(TimeSpan age) => File.SetLastWriteTimeUtc(StatePath, DateTime.UtcNow - age);
+
+    /// <summary>The owner's sim PC, 2026-11-14 07:53:36: "Company day service started (OnLeg)"
+    /// on day-20261107-194915, one week old — a flight given up part-way. The owner stopped the
+    /// app and emptied daystate.json by hand. Now the start does it: not resumed, no leg in
+    /// the logbook, no debrief, the file gone, the other pillars told.</summary>
+    [Fact]
+    public void Start_AnOpenDayLastSavedAWeekAgo_IsAbandoned_NotResumed()
+    {
+        _service.TryStartDay("test", T0);
+        _service.HandlePhase(FlightPhase.PushbackAndStart, T0.AddMinutes(20)); // off blocks, never landed
+        _arbiter.Requests.Clear();
+        AgeTheStateFile(TimeSpan.FromDays(7));
+
+        using var restarted = Create();
+        restarted.Start();
+
+        Assert.Null(_store.Snapshot().View);                      // no day, as after a hand-emptied file
+        Assert.False(File.Exists(StatePath));                     // the next start is clean
+        _logbook.Verify(l => l.RecordDay(It.IsAny<LogbookDay>()), Times.Never); // nothing was completed
+        Assert.DoesNotContain(_arbiter.Requests, r => r.Text.StartsWith("That's the duty day complete.", StringComparison.Ordinal));
+        Assert.DoesNotContain(_arbiter.Requests, r => r.Text.StartsWith("Continuing the duty day", StringComparison.Ordinal));
+        Assert.Empty(Directory.GetFiles(_sessionsDir, "*.summary.txt"));
+
+        var line = Assert.Single(ReadEvents("day.abandoned"), e => e.Contains("\"day.abandoned\"", StringComparison.Ordinal));
+        Assert.Contains("\"reason\":\"stale\"", line, StringComparison.Ordinal);
+        Assert.Contains("\"state\":\"OnLeg\"", line, StringComparison.Ordinal);
+        Assert.Contains("\"legs\":0", line, StringComparison.Ordinal);
+        Assert.Contains("\"ageHours\":168", line, StringComparison.Ordinal);
+        Assert.DoesNotContain(ReadEvents(), e => e.Contains("\"day.resumed\"", StringComparison.Ordinal));
+
+        // The duty-day-ended signal waits until its subscribers exist (they start after this
+        // service), then goes out once.
+        Assert.Empty(_ended);
+        Assert.True(restarted.RaisePendingDayEnded());
+        var ended = Assert.Single(_ended);
+        Assert.Equal("abandoned-stale", ended.Source);
+        Assert.False(restarted.RaisePendingDayEnded());
+
+        // And a third start finds nothing at all.
+        using var third = Create();
+        third.Start();
+        Assert.Null(_store.Snapshot().View);
+    }
+
+    /// <summary>The 2026-11-14 flight had three restarts within three hours, each resumed. A
+    /// day inside the limit resumes exactly as before.</summary>
+    [Theory]
+    [InlineData(0)]
+    [InlineData(3)]
+    [InlineData(11.5)]
+    public void Start_AnOpenDayInsideTheLimit_ResumesAsBefore(double hoursOld)
+    {
+        _service.TryStartDay("test", T0);
+        _service.HandlePhase(FlightPhase.PushbackAndStart, T0.AddMinutes(20));
+        AgeTheStateFile(TimeSpan.FromHours(hoursOld));
+
+        using var restarted = Create();
+        restarted.Start();
+
+        var view = _store.Snapshot().View;
+        Assert.NotNull(view);
+        Assert.True(view.Active);
+        Assert.Equal("OnLeg", view.State);
+        Assert.True(File.Exists(StatePath));
+        Assert.False(restarted.RaisePendingDayEnded());
+        Assert.Empty(_ended);
+        Assert.Contains(ReadEvents("day.resumed"), e => e.Contains("\"day.resumed\"", StringComparison.Ordinal));
+        Assert.DoesNotContain(ReadEvents(), e => e.Contains("\"day.abandoned\"", StringComparison.Ordinal));
+    }
+
+    /// <summary>Legs completed before the given-up one stay what they were: the day is recorded
+    /// in the logbook with them, the unfinished leg is not a flown leg, and nothing is spoken.</summary>
+    [Fact]
+    public void Start_AStaleDayWithACompletedLeg_RecordsTheDayWithThatLegOnly()
+    {
+        LogbookDay? recorded = null;
+        _logbook.Setup(l => l.RecordDay(It.IsAny<LogbookDay>())).Callback<LogbookDay>(d => recorded = d);
+        _service.TryStartDay("test", T0);
+        CompleteLegOne(T0.AddMinutes(90), DebriefFacts.Empty with { BlockMinutes = 80, Origin = "EGLL", Destination = "EHAM" });
+        _service.HandleLegBegan("req:2", T0.AddMinutes(150)); // leg 2 begins, and is given up
+        _service.HandlePhase(FlightPhase.PushbackAndStart, T0.AddMinutes(170));
+        _arbiter.Requests.Clear();
+        AgeTheStateFile(TimeSpan.FromHours(13));
+
+        using var restarted = Create();
+        restarted.Start();
+
+        Assert.NotNull(recorded);
+        Assert.Equal(1, recorded.Legs);
+        Assert.Equal(["EGLL", "EHAM"], recorded.Route);
+        Assert.Equal(80, recorded.BlockMinutes);
+        Assert.Equal(105, recorded.DutyMinutes); // to the last on-blocks plus the allowance, not to "now"
+        Assert.DoesNotContain(_arbiter.Requests, r => r.Text.StartsWith("That's the duty day complete.", StringComparison.Ordinal));
+        Assert.Null(_store.Snapshot().View);
+        var line = Assert.Single(ReadEvents("day.abandoned"), e => e.Contains("\"day.abandoned\"", StringComparison.Ordinal));
+        Assert.Contains("\"legs\":1", line, StringComparison.Ordinal);
+        Assert.Contains("\"state\":\"OnLeg\"", line, StringComparison.Ordinal);
+    }
+
+    /// <summary>"Discard this day" (the page button, the day.discard command): the same path
+    /// with reason "pilot", at once — the signal is not deferred in a running app.</summary>
+    [Fact]
+    public void DiscardDay_ByThePilot_TakesTheAbandonPath_AndIsNotAnEndOfDuty()
+    {
+        _service.TryStartDay("test", T0);
+        _service.HandlePhase(FlightPhase.PushbackAndStart, T0.AddMinutes(20));
+        _arbiter.Requests.Clear();
+
+        Assert.True(((IDayControl)_service).DiscardDay());
+
+        Assert.Null(_store.Snapshot().View);
+        Assert.False(File.Exists(StatePath));
+        _logbook.Verify(l => l.RecordDay(It.IsAny<LogbookDay>()), Times.Never);
+        Assert.Empty(_arbiter.Requests); // no debrief, no announcement
+        Assert.Equal("abandoned-pilot", Assert.Single(_ended).Source);
+        var line = Assert.Single(ReadEvents("day.abandoned"), e => e.Contains("\"day.abandoned\"", StringComparison.Ordinal));
+        Assert.Contains("\"reason\":\"pilot\"", line, StringComparison.Ordinal);
+        Assert.DoesNotContain(ReadEvents(), e => e.Contains("\"day.ended\"", StringComparison.Ordinal));
+
+        // Nothing open any more: a second discard and an end of duty both find no day.
+        Assert.False(((IDayControl)_service).DiscardDay());
+        Assert.False(_service.TryEndDay("web", T0.AddMinutes(30)));
+        Assert.Single(_ended);
+
+        // The next plan opens a fresh day (auto-start), as after a clean start.
+        _options.AutoStart = true;
+        _service.HandleLegBegan("req:9", T0.AddMinutes(40));
+        Assert.True(_store.Snapshot().View!.Active);
+        Assert.Equal(1, _store.Snapshot().View!.LegIndex);
     }
 
     [Fact]

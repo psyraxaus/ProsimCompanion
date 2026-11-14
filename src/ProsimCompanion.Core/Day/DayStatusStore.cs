@@ -81,4 +81,9 @@ public interface IDayControl
 
     /// <summary>Ends the open duty day (same path as the "end duty day" voice command).</summary>
     void EndDay();
+
+    /// <summary>Discards the open duty day as abandoned (issue #239) — distinct from
+    /// <see cref="EndDay"/>: no debrief, the unfinished leg is not recorded, the state file is
+    /// removed. False when no day is open.</summary>
+    bool DiscardDay();
 }

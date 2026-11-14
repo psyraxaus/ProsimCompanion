@@ -179,6 +179,9 @@ public static class SpeechServiceCollectionExtensions
             p => p.GetRequiredService<Day.CompanyDayService>());
         services.AddSingleton<Core.Day.IDayControl>(p => p.GetRequiredService<Day.CompanyDayService>());
         services.AddHostedService<Day.DayBootstrapService>();
+        // A day abandoned at app start (issue #239) raises its duty-day-ended signal here, once
+        // the Core subscribers (startup modules registered before this pillar's) are listening.
+        services.AddStartupModule<Day.DayAbandonSignalModule>();
         services.AddStartupModule<SayIntentions.SayIntentionsService>();
         services.AddVoiceFeature<SayIntentions.SayIntentionsService>();
         // Wrong-frequency report: COM1 against the frequency SayIntentions ATC last assigned.

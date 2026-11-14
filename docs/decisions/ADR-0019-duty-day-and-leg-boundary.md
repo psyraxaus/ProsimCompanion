@@ -149,6 +149,37 @@ and the edges the review found wrong, now fixed:
   The FMS-cleared step counts "parked with the engines off" by the committed phase when the
   SimConnect sample is not valid (ProSim up, MSFS down).
 
+### Note (2026-11-14, issue #239): an abandoned day
+
+§8 says the day never ends on its own. One case had no end at all: a flight given up part-way
+(a sim crash, the pilot stopped) leaves the day `OnLeg`; the leg never completes, and the idle
+backstop and the FO's offer count from deboarding, which never comes. On the owner's sim PC
+the app resumed `day-20261107-194915` on 2026-11-14, a week old, and the owner emptied
+`daystate.json` by hand. The owner has not chosen a design; what is built is the conservative
+one, kept easy to change:
+
+- **At app start**, an open day (on a leg or in a turnaround) whose last save is older than
+  `DayAbandonRules.StaleAfter` — **12 hours of real time**, one constant, no setting — is not
+  resumed: it is closed as **abandoned**. "Last save" is the last-write time of
+  `daystate.json` (the state carries no save stamp; every transition of the day writes the
+  file). A younger day resumes exactly as before.
+- **Abandoned is not an end of duty**: no debrief is spoken and no summary file is written;
+  the legs without an on-blocks time are dropped, so the unfinished leg is never a flown leg;
+  legs completed before are recorded in the logbook as that day (none completed = nothing
+  recorded); the state file is removed and the engine is at "no day", the state the
+  hand-emptied file gave. One Information line and the session event
+  `day.abandoned {dayId, ageHours, state, legs, reason}`.
+- **The other pillars are told through the same signal** as an end of duty
+  (`DutyDaySignals.DayEnded`, source `abandoned-stale` / `abandoned-pilot`): the restart
+  snapshot, the leg boundary, the departure cycle and the de-icing answer let go as in §8. At
+  app start the signal is raised by `DayAbandonSignalModule`, after the Core subscribers have
+  started — the day service itself starts before them.
+- **By hand**: "Discard this day" on the Duty Day page (two presses) and the command
+  `day.discard` take the same path with reason `pilot`, at any age.
+- Not decided, and deliberately not built: asking the pilot at start ("continue the day from
+  <date>, or start fresh?"), a setting for the limit, a comparison of the aircraft's position
+  with the leg's.
+
 Owner's own setting for **Reset FMS after landing or failure**: **off** (2026-11-02; the owner did not know the option existed — both values are supported, the audit
 replays that case first).
 

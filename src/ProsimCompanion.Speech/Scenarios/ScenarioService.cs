@@ -95,6 +95,8 @@ public sealed class ScenarioService : Core.Hosting.IStartupModule, IHostedServic
     private bool _prosimConnected;
     private string? _lastClear;
     private IReadOnlyList<string> _liveFailures = [];
+    private readonly ProsimFailureListFile? _failureList;
+    private readonly ProsimSetupStore? _prosimSetup;
     private bool _started;
     private bool _disposed;
 
@@ -116,8 +118,14 @@ public sealed class ScenarioService : Core.Hosting.IStartupModule, IHostedServic
         ISpeechArbiter arbiter,
         JsonlEventLog eventLog,
         ILogger<ScenarioService> logger,
-        OfpStore? ofp = null)
+        OfpStore? ofp = null,
+        ProsimFailureListFile? failureList = null,
+        ProsimSetupStore? prosimSetup = null)
     {
+        // Optional (issue #197): where ProSim's live failure list is written for offline
+        // mapping, and the store that knows ProSim's version. Null = nothing is written.
+        _failureList = failureList;
+        _prosimSetup = prosimSetup;
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(abnormals);
         ArgumentNullException.ThrowIfNull(speech);
@@ -982,6 +990,7 @@ public sealed class ScenarioService : Core.Hosting.IStartupModule, IHostedServic
                 _logger.LogInformation("ProSim failure API: {Count} failures listed; {Unknown} catalogue name(s) not in the list{Names}",
                     list.Count, unknown.Count, unknown.Count == 0 ? "" : ": " + string.Join(", ", unknown));
                 _eventLog.Record("scenario.failuresListed", new { count = list.Count, unknown });
+                await WriteFailureListAsync(list).ConfigureAwait(false);
             }
         }
         catch (OperationCanceledException)
@@ -994,6 +1003,47 @@ public sealed class ScenarioService : Core.Hosting.IStartupModule, IHostedServic
         }
 
         UpdateStore();
+    }
+
+    /// <summary>
+    /// Writes ProSim's live list to <c>prosim-failures.json</c> (issue #197), overwritten on
+    /// every successful read: the names themselves were in no file, so the catalogue's
+    /// <c>failureName</c>s could not be mapped offline. The details come from the injector's
+    /// own description of each failure; when that read gives nothing the names just listed are
+    /// written alone. Read and write-to-disk only — nothing here arms or verifies a name.
+    /// </summary>
+    private async Task WriteFailureListAsync(IReadOnlyList<string> names)
+    {
+        if (_failureList is null)
+        {
+            return;
+        }
+
+        IReadOnlyList<ProsimFailureInfo> described = [];
+        try
+        {
+            described = await _injector.DescribeAsync(_shutdown.Token).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Failure descriptions unavailable — the names are written alone");
+        }
+
+        if (described.Count == 0)
+        {
+            described = [.. names.Select(name => new ProsimFailureInfo(name))];
+        }
+
+        var document = ProsimFailureListFile.Build(described, _prosimSetup?.Snapshot().ProsimVersion, Now());
+        if (_failureList.Write(document))
+        {
+            _logger.LogInformation("ProSim failure list written to {Path} ({Count} failures, ProSim {Version})",
+                _failureList.Path, document.Count, document.ProsimVersion ?? "version unknown");
+        }
     }
 
     // ---- voice ----

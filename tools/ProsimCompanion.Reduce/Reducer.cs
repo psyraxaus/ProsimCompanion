@@ -39,6 +39,11 @@ public static class Reducer
 
         cmTrace.Sort((a, b) => a.Timestamp.CompareTo(b.Timestamp));
 
+        if (bundle.FailureListFile is { } failureList)
+        {
+            notes.Add(FailureListNote(failureList));
+        }
+
         var reports = sessions.Select(s => SessionReducer.Reduce(s, cmTrace)).ToList();
 
         // CMTrace warnings/errors that no session's time range covers (app running with no
@@ -79,6 +84,32 @@ public static class Reducer
             Health = HealthReducer.Reduce(bundle.HealthSnapshotFile, bundle.HealthEventsFile),
         };
         return Trim(report, maxKb);
+    }
+
+    /// <summary>ProSim's live failure list (issue #197) is carried, not interpreted: one bundle
+    /// note says it is there and how many failures it holds, so whoever maps the scenario
+    /// catalogue knows to open the file. An unreadable file is a note too, never a refusal.</summary>
+    internal static string FailureListNote(string path)
+    {
+        var name = Path.GetFileName(path);
+        try
+        {
+            using var document = JsonDocument.Parse(File.ReadAllText(path));
+            var root = document.RootElement;
+            var count = root.ValueKind == JsonValueKind.Object
+                && root.TryGetProperty("failures", out var failures) && failures.ValueKind == JsonValueKind.Array
+                    ? failures.GetArrayLength()
+                    : 0;
+            var version = root.ValueKind == JsonValueKind.Object
+                && root.TryGetProperty("prosimVersion", out var v) && v.ValueKind == JsonValueKind.String
+                    ? v.GetString()
+                    : null;
+            return $"{name}: {count} ProSim failure(s) listed{(string.IsNullOrWhiteSpace(version) ? "" : $" (ProSim {version})")} — not reduced, read the file";
+        }
+        catch (Exception ex) when (ex is JsonException or IOException or UnauthorizedAccessException)
+        {
+            return $"{name}: unreadable ({ex.Message})";
+        }
     }
 
     /// <summary>Serialized size in bytes.</summary>

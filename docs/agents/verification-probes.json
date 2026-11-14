@@ -4269,7 +4269,7 @@
         "watch: the Information line 'Day state file <path> is empty — starting without a day' — one per start means the writer is still emptying the file; none means it stopped. Report the count and the file's last-write time against the previous run's last log line.",
         "watch: every 'Day state saved (N bytes, day <id>, <state>)' line — N is never 0; the LAST one of a run is the document the next start should load. A 'Day state saved' followed by an empty file at the next start = something outside DayStateFile truncates the file (installer? a sync tool? a second process?) — quote both timestamps.",
         "assert-absent: 'Day state corrupt — backed up to' with the JsonException 'The input does not contain any JSON tokens' (an empty file is no longer treated as corruption); any OTHER corrupt backup is a real parse failure to report with its first bytes.",
-        "assert-present: a start whose previous run saved a day with state OnLeg or Turnaround logs 'Company day service started (OnLeg|Turnaround)' — the day resumed."
+        "assert-present: a start whose previous run saved a day with state OnLeg or Turnaround logs 'Company day service started (OnLeg|Turnaround)' — the day resumed. Since 2026-11-14 (#239) only when that save is at most 12 h old in real time: an older open day is discarded as abandoned ('day.abandoned' {reason: stale}, probe day-abandoned) and the start logs 'no day'."
       ],
       "notes": "2026-10-31: DayStateFile.Load treats an empty file as 'no day' (deleted, Information line, no backup); Save serializes writes, uses a unique temp name per write, never moves an empty document into place and logs each write with its size. Root cause of the empty file is NOT found — no writer in the repo writes an empty daystate.json; the save path is temp-then-move; the write lands after the app's last log line. Candidates: the installer run between sessions, host shutdown killing a write (would leave a .tmp, not an empty file), another tool on the sim PC. The size-logged saves are the instrument for the next flight."
     },
@@ -4392,7 +4392,7 @@
         "log"
       ],
       "checks": [
-        "Only with scenario.enabled = true (off by default) AND at least one catalogue entry marked verified: true in scenarios.json. First flight on a rig: the log line 'ProSim failure API: N failures listed; M catalogue name(s) not in the list: …' and the scenario.failuresListed event {count, unknown} — the owner marks entries verified from that list; until then every entry is refused and scenario.armFailed {reason: refused-or-unreachable} is the expected sighting.",
+        "Only with scenario.enabled = true (off by default) AND at least one catalogue entry marked verified: true in scenarios.json. First flight on a rig: the log line 'ProSim failure API: N failures listed; M catalogue name(s) not in the list: …' and the scenario.failuresListed event {count, unknown} — the owner marks entries verified from that list; until then every entry is refused and scenario.armFailed {reason: refused-or-unreachable} is the expected sighting. Since 2026-11-14 the names themselves are on disk: every successful read also writes %LOCALAPPDATA%\\ProsimCompanion\\prosim-failures.json {listedUtc, prosimVersion, count, failures[{name, description, domain, groupName, groupMember, failureClass}]} (log line 'ProSim failure list written to … (N failures, ProSim …)') and the diagnostics bundle carries it as prosim-failures.json — map the catalogue's failureName values against that file, never by guessing.",
         "assert-present: ONE scenario.planned {scenario, title, phase, afterSeconds, shown} at the first live Preflight of a flight cycle on a hit of scenario.perFlightChance (never more than one per cycle); then scenario.arming {cancelWindowSeconds: 3} → scenario.armed {failure, source, takeoff} in the planned phase after afterSeconds, with the flight live and (in flight) above scenario.minAltitudeFt AGL; then scenario.fired {abnormalId} followed by failure.detected with the same id within 10 s — the detection is the real E/WD path, no shortcut.",
         "assert-present: after abnormal.ended for that id, ONE scenario.decision {source: llm|template, line} and a scenario.decisionQuestion raised with that line as the prompt; the answer lands as scenario.decided {outcome: continue|return|divert}; divert / return → flight.diverted with reason technical.",
         "assert-absent: scenario.armed while an abnormal.detected is not yet cleared, while a drill / ECAM dialogue runs, with a category-A tech-log item open, below the floor in flight, or with the flight not live (the log says 'Scenario … held: <reason>' once per reason instead); a scenario.armed whose failure name is not in the catalogue ∩ the listed failures; any write to system.config.Config.autoFailure / failureRate / engineAutoRestart (a cockpit.press / dataref write line naming them); two scenario.planned in one cycle; a scenario.armed for a takeoff scenario without abnormals.rtoEnabled / efatoEnabled and scenario.takeoffScenarios.",
@@ -5615,6 +5615,35 @@
         "requires-human: the pilot's exact words on the 'Landing Elevation' line — the session records only rejected text; with logging at Debug the router writes 'ASR heard \"…\" -> the answer to checklist line \"Landing Elevation\"'."
       ],
       "notes": "Built 2026-11-14 (issue #205, EGLL→LOWW on 1.0.0-rc.6). Root cause: 'Say again — which field?' is AtcInstructionParser's fallback Query (a number plus an FCU word such as 'feet' and no field), spoken by FcuExecutor.TryHandle. The router skips the raw value-parse pass while a line waits, but RouteText offers a non-answer to every roster candidate, value parsers included, and the FCU consumed it — the checklist never got a response and kept waiting. The line accepted only 'set' / 'auto', so an elevation read as a number ('six hundred feet') was a non-answer. Fix: (1) ChecklistValueAnswer — a line with expects none whose own accepted phrases include 'set' or 'checked' takes a number said alone (digits / number words, optional unit, optional challenge words) as its answer; an engine rule, because edited checklist files are kept across updates; (2) UtteranceRouter checks the pending line's acceptance on the transcript as heard before snapping; (3) IVoiceFeature.TryHandleWhileLinePending — FcuExecutor and RadioExecutor still act on a complete instruction while a line waits but do not ask their clarifier. The offline (System.Speech) engine's item window is unchanged: its closed grammar carries no digits on such a line. Tests ChecklistValueAnswerTests, UtteranceRouterTests (issue #205 block). Unverified live."
+    },
+    {
+      "id": "day-abandoned",
+      "issue": 239,
+      "state": "fixed-unverified",
+      "kind": "watch",
+      "machine": {
+        "kind": "signature",
+        "signature": {
+          "source": "session",
+          "type": "day.abandoned",
+          "contains": "\"reason\"",
+          "minCount": 1
+        }
+      },
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "Owner's sim PC 2026-11-14 07:53:36 local: 'Company day service started (\"OnLeg\")' resumed day-20261107-194915, one week old, after a flight that was given up; the owner stopped the app and emptied daystate.json by hand (07:54:10 'Day state file … is empty — starting without a day'). The same on 2026-11-08 06:36:14 / 06:37:00.",
+        "watch: each 'day.abandoned' {dayId, ageHours, state, legs, reason} — reason 'stale' comes only at an app start and only with ageHours > 12 (the limit is DayAbandonRules.StaleAfter, real time since daystate.json was last written); reason 'pilot' is the Duty Day page's 'Discard this day' or the day.discard command, at any age. Report dayId, ageHours, state and legs of each.",
+        "assert-present with a 'stale' sighting: the Information line 'Duty day <id> discarded as abandoned (stale): last saved N h ago, it was OnLeg|Turnaround; M completed leg(s) …' in the same start, then 'Company day service started (\"no day\")'; a 'gsx-cycle-reset' {reason: end of duty, source: abandoned-stale} may follow once the startup modules are up.",
+        "assert-absent in a session with 'day.abandoned': a 'day.ended' or a 'day.resumed' for the same dayId; a 'speech.spoken' with tag 'day.debrief' or the text 'Continuing the duty day'; a <dayId>.summary.txt written for it; a logbook leg for the unfinished sector (the day record holds completed legs only — legs: 0 records nothing).",
+        "assert-absent (the limit holds the other way): a 'day.abandoned' {reason: stale} with ageHours <= 12, or at any moment other than an app start — a restart inside a flight must log 'day.resumed' as before (2026-11-14 had three such restarts within three hours).",
+        "assert-absent after the fix: the hand-emptied file — 'Day state file … is empty — starting without a day' (probe day-state-empty-file) should now read zero on this rig.",
+        "requires-human: after 'Discard this day' the Duty Day page shows 'No duty day' and the next OFP starts a fresh day at leg 1; the departure services wait for a new plan or 'commence ground services', as after an end of duty."
+      ],
+      "notes": "Built 2026-11-14 (issue #239; the owner has not chosen a design — this is the conservative one). Core: DayAbandonRules (pure; StaleAfter 12 h, StaleAge), CompanyDayEngine.AbandonDay (drops the legs without on-blocks, closes the day, leaves 'no day'), DayStateFile.LastSavedUtc (the file's last-write time — the state carries no save stamp) and Clear, IDayControl.DiscardDay, command day.discard (DayCommandHandlers). Speech: CompanyDayService.Start checks the loaded day before resuming; the abandon path reuses the end-of-duty steps of TryEndDay (offer withdrawn, logbook day record when a leg was completed, DutyDaySignals.DayEnded with source abandoned-stale / abandoned-pilot) without the debrief and the summary file; at app start the signal is raised by DayAbandonSignalModule after the Core subscribers started. Web: 'Discard this day' beside 'End duty day', two presses. Unverified live. Known edges: a day in a Turnaround last saved more than 12 h ago is also abandoned at start (before, the idle backstop closed it with a spoken debrief on the first tick); the flight-state snapshot ignores the signal until it has decided its own restore (its own age limit, 18 h by default, is its fence); copying or restoring daystate.json changes its last-write time."
     }
   ]
 }

@@ -27,6 +27,11 @@ public sealed record BundleContents(
     /// file, although it is JSON lines.</summary>
     public string? HealthEventsFile { get; init; }
 
+    /// <summary>ProSim's live failure list (<c>prosim-failures.json</c>, issue #197) when the
+    /// bundle carries one; null is not an error. The reducer does not interpret it — it is
+    /// counted in a bundle note and read by whoever maps the scenario catalogue.</summary>
+    public string? FailureListFile { get; init; }
+
     public void Dispose()
     {
         if (TempDirectory is not null && Directory.Exists(TempDirectory))
@@ -230,6 +235,7 @@ public static class BundleReader
             TempDirectory = tempDirectory,
             HealthSnapshotFile = health.Snapshot,
             HealthEventsFile = health.Events,
+            FailureListFile = health.FailureList,
         };
     }
 
@@ -247,6 +253,10 @@ public static class BundleReader
         {
             health.Events ??= path;
         }
+        else if (string.Equals(name, DiagnosticsBundleBuilder.FailureListFileName, StringComparison.OrdinalIgnoreCase))
+        {
+            health.FailureList ??= path;
+        }
         else if (name.EndsWith(".jsonl", StringComparison.OrdinalIgnoreCase))
         {
             sessions.Add(path);
@@ -259,10 +269,12 @@ public static class BundleReader
     }
 }
 
-/// <summary>The two optional diagnostics files found while classifying (the shallowest wins).</summary>
+/// <summary>The optional diagnostics files found while classifying (the shallowest wins).</summary>
 internal sealed class HealthFiles
 {
     public string? Snapshot { get; set; }
 
     public string? Events { get; set; }
+
+    public string? FailureList { get; set; }
 }

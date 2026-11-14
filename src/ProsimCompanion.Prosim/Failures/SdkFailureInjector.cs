@@ -56,6 +56,46 @@ public sealed class SdkFailureInjector : IFailureInjector, IDisposable
         return failures ?? [];
     }
 
+    public async Task<IReadOnlyList<ProsimFailureInfo>> DescribeAsync(CancellationToken cancellationToken = default)
+    {
+        var failures = await RunAsync(c => c.getFailures()?.Select(Describe).Where(f => f.Name.Length > 0).ToList() ?? [], cancellationToken)
+            .ConfigureAwait(false);
+        return failures ?? [];
+    }
+
+    /// <summary>One SDK failure as the list file holds it. The name is read as
+    /// <see cref="ListAsync"/> reads it; the details go through <see cref="Details"/>, apart, so
+    /// an SDK build without one of them costs the details and not the list.</summary>
+    private static ProsimFailureInfo Describe(Failure failure)
+    {
+        var name = failure?.name ?? "";
+        if (failure is null || name.Length == 0)
+        {
+            return new ProsimFailureInfo("");
+        }
+
+        try
+        {
+            return Details(failure, name);
+        }
+        catch (Exception ex) when (ex is MissingMemberException or TypeLoadException or NullReferenceException)
+        {
+            return new ProsimFailureInfo(name);
+        }
+    }
+
+    // Not inlined: a member this SDK build lacks then fails when THIS method is compiled, inside
+    // Describe's guard, instead of failing the whole list read.
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    private static ProsimFailureInfo Details(Failure failure, string name)
+        => new(
+            name,
+            failure.description,
+            failure.domain,
+            failure.groupName,
+            failure.groupMember,
+            Convert.ToString(failure.failureClass, System.Globalization.CultureInfo.InvariantCulture));
+
     public async Task<string?> ArmAsync(string failureName, FailureArmCondition? condition, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(failureName);

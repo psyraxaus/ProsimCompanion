@@ -53,6 +53,27 @@ public sealed class DayStateFile : JsonStateFile<DayState>
     /// into place.</summary>
     public void Save(DayState day) => Write(day);
 
+    /// <summary>Removes the state file (issue #239: an abandoned day leaves nothing to resume,
+    /// so the next start is clean). Never throws.</summary>
+    public void Clear() => Delete();
+
+    /// <summary>When the state file was last written, or null when it is absent or its time
+    /// cannot be read. This is the day's "last save" for <see cref="DayAbandonRules"/>: the
+    /// state itself carries no save stamp, and every transition of the day writes the file.</summary>
+    public DateTimeOffset? LastSavedUtc()
+    {
+        var path = ResolvePath();
+        try
+        {
+            return File.Exists(path) ? new DateTimeOffset(File.GetLastWriteTimeUtc(path), TimeSpan.Zero) : null;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or NotSupportedException or ArgumentException)
+        {
+            _logger.LogDebug(ex, "Day state file time unavailable");
+            return null;
+        }
+    }
+
     protected override string ResolvePath()
     {
         var configured = _options.CurrentValue.Path;

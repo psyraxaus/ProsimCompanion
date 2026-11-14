@@ -1,7 +1,8 @@
 namespace ProsimCompanion.Core.Day;
 
 /// <summary>What one end of duty was: the day that closed, who closed it ("voice", "web",
-/// "offer", "idle") and when.</summary>
+/// "offer", "idle"; "abandoned-stale" / "abandoned-pilot" for a day closed as abandoned,
+/// issue #239) and when.</summary>
 public sealed record DutyDayEnded(string DayId, string Source, DateTimeOffset AtUtc);
 
 /// <summary>

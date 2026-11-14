@@ -378,6 +378,14 @@ public sealed class ScenarioTests : IDisposable
         public Dictionary<string, string> Armed { get; } = [];
         public int ClearAllCalls { get; private set; }
         public Task<IReadOnlyList<string>> ListAsync(CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<string>>(Live);
+
+        /// <summary>What the SDK says about each failure; null = this injector knows names only
+        /// (the interface's default).</summary>
+        public Func<string, ProsimFailureInfo>? Describe { get; set; }
+
+        Task<IReadOnlyList<ProsimFailureInfo>> IFailureInjector.DescribeAsync(CancellationToken cancellationToken)
+            => Task.FromResult<IReadOnlyList<ProsimFailureInfo>>([.. Live.Select(name => Describe?.Invoke(name) ?? new ProsimFailureInfo(name))]);
+
         public Task<string?> ArmAsync(string failureName, FailureArmCondition? condition, CancellationToken cancellationToken = default)
         {
             if (!Live.Contains(failureName))
@@ -422,6 +430,74 @@ public sealed class ScenarioTests : IDisposable
 
     private string StatePath => Path.Combine(_dir, "state.json");
 
+    private string FailureListPath => Path.Combine(_dir, ProsimFailureListFile.FileName);
+
+    private readonly ProsimSetupStore _prosimSetup = new();
+
+    /// <summary>Issue #197 (owner's rig, 2026-11-14: "ProSim failure API: 691 failures listed;
+    /// 19 catalogue name(s) not in the list" and the names in no file): a read of the live list
+    /// also writes it to prosim-failures.json, with what ProSim says about each failure, the
+    /// ProSim version and a UTC stamp — overwritten on the next read. Listing arms nothing.</summary>
+    [Fact]
+    public async Task ListingTheLiveFailures_WritesThemToTheFailureListFile_OverwrittenOnEachRead()
+    {
+        var h = CreateService(enabled: true);
+        using (h.Service)
+        {
+            Assert.False(File.Exists(FailureListPath)); // nothing read yet: no file
+            _prosimSetup.Update(s => s with { ProsimVersion = "1.76b5" });
+            h.Injector.Live.Add("Fuel pump left 1");
+            h.Injector.Describe = name => name == "Fuel pump left 1"
+                ? new ProsimFailureInfo(name, "Left tank pump 1 fails.", "Fuel", "Fuel pump", "Left 1", "Minor")
+                : new ProsimFailureInfo(name, Domain: "Electric");
+
+            Assert.Equal(CommandOutcome.Success, (await h.Service.ListFailuresAsync()).Outcome);
+
+            using (var doc = JsonDocument.Parse(File.ReadAllText(FailureListPath)))
+            {
+                var root = doc.RootElement;
+                Assert.Equal(T0, root.GetProperty("listedUtc").GetDateTimeOffset());
+                Assert.Equal("1.76b5", root.GetProperty("prosimVersion").GetString());
+                Assert.Equal(2, root.GetProperty("count").GetInt32());
+                Assert.Equal(["Generator 1 fault", "Fuel pump left 1"], root.GetProperty("failures").EnumerateArray().Select(f => f.GetProperty("name").GetString()));
+                var pump = root.GetProperty("failures")[1];
+                Assert.Equal("Left tank pump 1 fails.", pump.GetProperty("description").GetString());
+                Assert.Equal("Fuel", pump.GetProperty("domain").GetString());
+                Assert.Equal("Fuel pump", pump.GetProperty("groupName").GetString());
+                Assert.Equal("Left 1", pump.GetProperty("groupMember").GetString());
+                Assert.Equal("Minor", pump.GetProperty("failureClass").GetString());
+            }
+
+            // The next read replaces the file; an injector that knows names only still writes them.
+            h.Injector.Live.Remove("Fuel pump left 1");
+            h.Injector.Describe = null;
+            await h.Service.ListFailuresAsync();
+            using (var doc = JsonDocument.Parse(File.ReadAllText(FailureListPath)))
+            {
+                Assert.Equal(1, doc.RootElement.GetProperty("count").GetInt32());
+                Assert.Equal(["name"], doc.RootElement.GetProperty("failures")[0].EnumerateObject().Select(p => p.Name));
+            }
+
+            Assert.Empty(h.Injector.Armed); // a list is a read
+        }
+    }
+
+    /// <summary>ProSim not answering (an empty list) writes nothing and keeps the last file.</summary>
+    [Fact]
+    public async Task AnEmptyLiveList_LeavesTheFailureListFileAlone()
+    {
+        var h = CreateService(enabled: true);
+        using (h.Service)
+        {
+            await h.Service.ListFailuresAsync();
+            var written = File.ReadAllText(FailureListPath);
+
+            h.Injector.Live.Clear();
+            Assert.Equal(CommandOutcome.PreconditionFailed, (await h.Service.ListFailuresAsync()).Outcome);
+            Assert.Equal(written, File.ReadAllText(FailureListPath));
+        }
+    }
+
     private Harness CreateService(bool enabled, bool live = false, bool prosimConnected = false)
     {
         File.WriteAllText(Path.Combine(_dir, ScenarioCatalogueBank.FileName), """
@@ -455,7 +531,9 @@ public sealed class ScenarioTests : IDisposable
             new ScenarioCatalogueBank(NullLogger<ScenarioCatalogueBank>.Instance, configDirectory: _dir),
             new ScenarioStateFile(NullLogger<ScenarioStateFile>.Instance, StatePath),
             store, decisions, techLog.Object, signals, legBoundary, connections, arbiter, eventLog,
-            NullLogger<ScenarioService>.Instance)
+            NullLogger<ScenarioService>.Instance,
+            failureList: new ProsimFailureListFile(NullLogger<ProsimFailureListFile>.Instance, FailureListPath),
+            prosimSetup: _prosimSetup)
         {
             Roll = () => 0,
             Now = () => T0,

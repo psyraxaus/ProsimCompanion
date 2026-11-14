@@ -56,5 +56,7 @@ public static class CommandsBootstrap
         // Scenario mode (issue #197, ADR-0018): the Speech pillar implements the one serialised
         // failure-write path; ids are catalogue ids, never failure names.
         ScenarioCommandHandlers.Register(registry, services.GetService<IScenarioControl>());
+        // Discard an abandoned duty day (issue #239): the Speech pillar owns the day.
+        DayCommandHandlers.Register(registry, services.GetService<Day.IDayControl>());
     }
 }

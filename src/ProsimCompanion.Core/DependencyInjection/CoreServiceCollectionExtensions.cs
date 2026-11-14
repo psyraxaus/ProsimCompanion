@@ -243,6 +243,9 @@ public static class CoreServiceCollectionExtensions
         // state for the STATUS page, and the FO's decision question after the ECAM.
         services.AddSingleton<Scenarios.ScenarioCatalogueBank>();
         services.AddSingleton<Scenarios.ScenarioStateFile>();
+        // ProSim's live failure list on disk (prosim-failures.json under the data root), for
+        // mapping the catalogue offline; the diagnostics bundle carries it.
+        services.AddSingleton<Scenarios.ProsimFailureListFile>();
         services.AddSingleton<Scenarios.ScenarioStore>();
         services.AddSingleton<Scenarios.ScenarioDecisionStore>();
         services.AddSingleton<ICaptainsQuestionStore>(p => p.GetRequiredService<Scenarios.ScenarioDecisionStore>());
