@@ -591,6 +591,10 @@ public static partial class RadioSpeech
     [GeneratedRegex(@"^[A-Z]{0,2}\d{1,3}[A-Z]{0,2}$", RegexOptions.CultureInvariant)]
     private static partial Regex CompactStand();
 
+    // "stand 23", "Gate 17": a stand, gate or bay with a bare number of up to three digits.
+    [GeneratedRegex(@"\b(stand|gate|bay)\s+(\d{1,3})\b(?![.,]\d)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    private static partial Regex BareStand();
+
     /// <summary>A stand or gate designator spelled digit by digit for the radio (owner request
     /// 2026-10-29: SayIntentions' ATC voice and the FO both read "stand 311" as "three hundred
     /// and eleven"): "311" → "three-one-one", "546R" → "five-four-six-Romeo", "B16" →
@@ -681,6 +685,10 @@ public static partial class RadioSpeech
             _ => "center",
         });
         text = DigitGroups().Replace(text, m => m.Groups[1].Value + " " + Callouts.Aviation.ToDigits(m.Groups[2].Value));
+
+        // A bare stand number on the radio is digits too ("Taxi to Gate 17" → "Gate one
+        // seven", 2026-11-14); the cockpit's "gate twenty three" is Phraseology's and stays.
+        text = BareStand().Replace(text, m => m.Groups[1].Value + " " + Callouts.Aviation.ToDigits(m.Groups[2].Value));
 
         // The callsign as SI writes it is already spoken digits joined by hyphens.
         var sb = new StringBuilder(text.Length);

@@ -169,6 +169,29 @@ chains — "local only" hard mode must exist.
   `uk` ("flight level one hundred") — and only the FO-voice text changes, never the text
   sent to sayAs. Altitudes are "two thousand five hundred" / "one zero thousand" in all three
   (Annex 10 Vol II, AIM 4-2-9, CAP 413 agree). Cockpit talk has one style.
+- **Stands and gates** (2026-11-14, #200: check-in "Gate Foxtrot one seven", read-back of the
+  same gate "Foxtrot seventeen"). A stand / gate / bay designator **with a letter** ("F17",
+  "F 17", "23A", already phonetic "Foxtrot 17" / "23 Alpha") is a name and is digit by digit
+  in every path — `Phraseology.Letters` spells it with the caller's joiner, so the read-back
+  text sent to SayIntentions is "Gate Foxtrot-one-seven" like the check-in's
+  `RadioSpeech.Stand`. A **bare number**: three digits are digits everywhere; one or two
+  digits are a number in cockpit talk ("gate twenty three", owner 2026-10-29) and digits on a
+  radio line. The boundary is the function, not a tag: `RadioSpeech.Spoken` is the FO-voice
+  text of every radio line (read-backs, check-ins, requests) and spells a bare stand number;
+  a line that only passes `Phraseology.Normalize` is cockpit talk.
+- **Taxiway letters from a language model** (2026-11-14, #200). Streamed sentences do pass
+  `Phraseology.Normalize` (`SpeechArbiterService.SynthesizeAndPlayAsync`, the one synthesis
+  path of segments and whole lines); `speech.segment.text` is the model's raw sentence and
+  the event carries `spoken` since this date. The briefing facts were "taxiway LI closed" /
+  "taxiway A, C and TW closed"; the model wrote "taxiway L I closed; taxiways A, C, and T W
+  closed" and the list rule stopped at the space and at the Oxford comma. The net was
+  repaired rather than the fact sheet: after "taxiway(s)" / "holding point" a spaced pair of
+  capitals is one designator (three spaced capitals stay an abbreviation; a second letter
+  "I" needs the list's end after it, so "taxiway A I think" keeps its pronoun), and
+  ", and" continues a list. Handing the model "Lima India" in the fact sheet would not have
+  removed the need — the model rewrites what it is given, the template path speaks the same
+  lines, and the net is context-bound by the lead word. The routing words ("via", "on",
+  "at") still take single letters only.
 - **Abbreviations go through one table** (2026-11-14, owner request: "ECAM, not E C A M";
   SID and STAR were spelled by the engine). `Core/Speech/PronunciationTable`: `Words`
   (capital abbreviation → a respelling the engine reads as the word: "ECAM" → "ee-cam") and
@@ -202,6 +225,21 @@ chains — "local only" hard mode must exist.
   callsign is SayIntentions' own (`flight.json`) — the list serves lines that only have a
   flight number (the Duty Day "Next sector" message).
 
+- **Transition reminders** (#198; `Speech/Callouts/TransitionReminderCore` + service). Climb:
+  the origin's DFD `transition_altitude`. Descent threshold, in order
+  (`ResolveDescentThreshold`, 2026-11-14 — "LOWW TL null" on the owner's flight, the normal
+  case where ATC assigns the level): the destination's DFD `transition_level`; else the
+  lowest whole-thousand flight level whose pressure altitude is at or above the
+  destination's `transition_altitude` for the destination QNH (the Flight Status weather
+  card's, the same figure the spoken line reads; ISA altimeter equation — TA 10,000 ft:
+  QNH 1022 → FL100, QNH 1000 → FL110); else TA + 1,000 ft while no QNH is known; else no
+  reminder. The destination TA is the same `DfdNavDataProvider.Lookup` row as the TL — no
+  new source. ATC may assign one level higher (a guaranteed layer); the derived level is
+  the lowest possible, so the reminder is late rather than early. `transition.reminder`
+  carries `thresholdSource` (`databaseTa` / `databaseTl` / `derivedFromTaAndQnh` /
+  `derivedFromTaPlusMargin`) and `thresholdBasis`; the log names the threshold once per
+  value in the descent. Whether the DFD's `transition_level` is a flight level (the code
+  multiplies by 100) is unverified against a live database, like the rest of the table list.
 - **In-flight monitoring** (2026-10, #148): four modules in `Speech/Monitoring`, each a pure
   core plus a thin shell armed by `IFlightPhaseSource.IsLive`, all off by default under
   `sop.monitoring`. Fuel check (`fuel.check` event; navlog last-fix rule in `FuelCheckCore`),

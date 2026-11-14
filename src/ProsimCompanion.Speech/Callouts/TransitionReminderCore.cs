@@ -26,6 +26,9 @@ public enum TransitionReminderKind
 /// <param name="TransitionLevel">The destination's transition level as a flight level (DFD), or null.</param>
 /// <param name="QnhHpa">The destination QNH from its METAR, or null.</param>
 /// <param name="Now">The clock, passed in so the core owns no timer.</param>
+/// <param name="DestinationTransitionAltitudeFt">The destination's transition altitude (DFD),
+/// or null — what the descent threshold is derived from when the database has no transition
+/// level for the airport ("by ATC", the normal case in Europe).</param>
 public sealed record TransitionReminderInput(
     FlightPhase Phase,
     bool IsLive,
@@ -34,7 +37,42 @@ public sealed record TransitionReminderInput(
     double? TransitionAltitudeFt,
     double? TransitionLevel,
     double? QnhHpa,
-    DateTimeOffset Now);
+    DateTimeOffset Now,
+    double? DestinationTransitionAltitudeFt = null);
+
+/// <summary>Where a reminder's threshold came from.</summary>
+public enum TransitionThresholdSource
+{
+    /// <summary>The origin's transition altitude from the database (the climb reminder).</summary>
+    DatabaseTransitionAltitude,
+
+    /// <summary>The destination's transition level from the database.</summary>
+    DatabaseTransitionLevel,
+
+    /// <summary>No database level: the lowest flight level at or above the destination's
+    /// transition altitude for the QNH of the day.</summary>
+    DerivedFromQnh,
+
+    /// <summary>No database level and no QNH: the destination's transition altitude plus
+    /// <see cref="TransitionReminderCore.NoQnhMarginFt"/>.</summary>
+    DerivedFromMargin,
+}
+
+/// <summary>The altitude below which the descent reminder is due, and how it was found.</summary>
+/// <param name="ThresholdFt">Feet on the pilot's altimeter while it is on STD.</param>
+/// <param name="Source">Database level, or one of the two derivations.</param>
+/// <param name="TransitionAltitudeFt">The destination transition altitude a derivation used.</param>
+/// <param name="QnhHpa">The QNH a derivation used.</param>
+public readonly record struct DescentThreshold(
+    double ThresholdFt,
+    TransitionThresholdSource Source,
+    double? TransitionAltitudeFt,
+    double? QnhHpa)
+{
+    /// <summary>"database TL" / "derived from TA 5000 ft and QNH 1022" / "derived from TA
+    /// 5000 ft plus 1000 ft (no QNH)" — the log line and the event's <c>thresholdBasis</c>.</summary>
+    public string Describe() => TransitionReminderCore.DescribeSource(Source, TransitionAltitudeFt, QnhHpa);
+}
 
 /// <summary>A reminder the core decided to give this tick.</summary>
 public sealed record TransitionReminder(
@@ -42,7 +80,9 @@ public sealed record TransitionReminder(
     string Text,
     double AltitudeFt,
     double ThresholdFt,
-    double? QnhHpa);
+    double? QnhHpa,
+    TransitionThresholdSource Source = TransitionThresholdSource.DatabaseTransitionAltitude,
+    string ThresholdBasis = "database TA");
 
 /// <summary>
 /// The pure decision behind the FO's altimeter reminders (issue #198, owner request
@@ -54,11 +94,70 @@ public sealed record TransitionReminder(
 /// delay silently disarms it. No transition figure (no Navigraph database, airport without
 /// one) means no reminder on that side — never a guessed 18,000 ft. The QNH reminder re-arms
 /// when the aircraft climbs again (go-around), the standard reminder when it descends.
+///
+/// The descent threshold (owner's flight EGLL-LOWW 2026-11-14: "LOWW TL null", no descent
+/// reminder): most European airports have no transition level in the database because ATC
+/// assigns it. The level is then derived from the destination's transition altitude — see
+/// <see cref="ResolveDescentThreshold"/>. An airport with neither figure stays silent.
 /// </summary>
 public sealed class TransitionReminderCore
 {
     public const string StandardText = "Transition altitude. Standard, please.";
     public const string QnhUnknownText = "Transition level. QNH, please.";
+
+    /// <summary>Added to the destination's transition altitude when no QNH is known: the
+    /// customary minimum transition layer. With a QNH between 980 and 1013 hPa the derived
+    /// level lies up to 1,900 ft above the altitude, above 1013 at or just above it — a
+    /// reminder some hundred feet early or late, never a wrong altimeter setting.</summary>
+    public const double NoQnhMarginFt = 1000;
+
+    /// <summary>The descent threshold. In order: the database's transition level; else, from
+    /// the destination's transition altitude and QNH, the lowest whole-thousand flight level
+    /// (FL50, FL60 …) whose pressure altitude is at or above the transition altitude — the
+    /// aircraft is on STD, so its altimeter shows pressure altitude, and the transition
+    /// altitude lies at <see cref="PressureAltitudeFt"/> on that scale; else the transition
+    /// altitude plus <see cref="NoQnhMarginFt"/>; else null (no figure, no reminder). ATC may
+    /// assign a level one step higher (a guaranteed 1,000 ft layer) — the derived one is the
+    /// lowest it can be, so the reminder is late rather than early.</summary>
+    public static DescentThreshold? ResolveDescentThreshold(double? transitionLevel, double? destinationTransitionAltitudeFt, double? qnhHpa)
+    {
+        if (transitionLevel is { } tl && tl > 0)
+        {
+            return new DescentThreshold(tl * 100, TransitionThresholdSource.DatabaseTransitionLevel, null, null);
+        }
+
+        if (destinationTransitionAltitudeFt is not { } ta || ta <= 0)
+        {
+            return null;
+        }
+
+        if (qnhHpa is { } qnh && qnh is >= 900 and <= 1100)
+        {
+            var level = Math.Ceiling(Math.Round(PressureAltitudeFt(ta, qnh)) / 1000) * 1000;
+            return new DescentThreshold(level, TransitionThresholdSource.DerivedFromQnh, ta, qnh);
+        }
+
+        return new DescentThreshold(ta + NoQnhMarginFt, TransitionThresholdSource.DerivedFromMargin, ta, null);
+    }
+
+    /// <summary>The pressure altitude (what an altimeter on 1013.25 shows) at an altitude
+    /// read on <paramref name="qnhHpa"/> — the ISA altimeter equation, about 27 ft per hPa
+    /// near sea level.</summary>
+    public static double PressureAltitudeFt(double altitudeOnQnhFt, double qnhHpa)
+        => altitudeOnQnhFt + (145366.45 * (1 - Math.Pow(qnhHpa / 1013.25, 0.190284)));
+
+    /// <summary>The threshold's origin in words, for the log and the event.</summary>
+    public static string DescribeSource(TransitionThresholdSource source, double? transitionAltitudeFt, double? qnhHpa)
+    {
+        var ta = (transitionAltitudeFt ?? 0).ToString("0", CultureInfo.InvariantCulture);
+        return source switch
+        {
+            TransitionThresholdSource.DatabaseTransitionLevel => "database TL",
+            TransitionThresholdSource.DerivedFromQnh => $"derived from TA {ta} ft and QNH {(qnhHpa ?? 0).ToString("0", CultureInfo.InvariantCulture)}",
+            TransitionThresholdSource.DerivedFromMargin => $"derived from TA {ta} ft plus {NoQnhMarginFt.ToString("0", CultureInfo.InvariantCulture)} ft (no QNH)",
+            _ => "database TA",
+        };
+    }
 
     private DateTimeOffset? _standardSince;
     private DateTimeOffset? _qnhSince;
@@ -105,8 +204,9 @@ public sealed class TransitionReminderCore
         }
 
         var descending = input.Phase is FlightPhase.Descent or FlightPhase.Approach;
+        var threshold = ResolveDescentThreshold(input.TransitionLevel, input.DestinationTransitionAltitudeFt, input.QnhHpa);
         var qnhDue = descending && !_qnhSpoken && onStd
-            && input.TransitionLevel is { } tl && tl > 0 && input.IndicatedAltitudeFt < tl * 100;
+            && threshold is { } below && input.IndicatedAltitudeFt < below.ThresholdFt;
         if (qnhDue)
         {
             _qnhSince ??= input.Now;
@@ -114,7 +214,10 @@ public sealed class TransitionReminderCore
             {
                 _qnhSpoken = true;
                 _qnhSince = null;
-                return new TransitionReminder(TransitionReminderKind.Qnh, QnhText(input.QnhHpa), input.IndicatedAltitudeFt, input.TransitionLevel!.Value * 100, input.QnhHpa);
+                var used = threshold!.Value;
+                return new TransitionReminder(
+                    TransitionReminderKind.Qnh, QnhText(input.QnhHpa), input.IndicatedAltitudeFt, used.ThresholdFt, input.QnhHpa,
+                    used.Source, used.Describe());
             }
         }
         else

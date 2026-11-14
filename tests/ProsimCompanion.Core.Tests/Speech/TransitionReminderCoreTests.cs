@@ -11,8 +11,9 @@ public sealed class TransitionReminderCoreTests
 
     private static TransitionReminderInput Input(
         FlightPhase phase, double altitude, bool? std,
-        double? ta = 6000, double? tl = 70, double? qnh = 1013, DateTimeOffset? now = null, bool live = true)
-        => new(phase, live, altitude, std, ta, tl, qnh, now ?? T0);
+        double? ta = 6000, double? tl = 70, double? qnh = 1013, DateTimeOffset? now = null, bool live = true,
+        double? destinationTa = null)
+        => new(phase, live, altitude, std, ta, tl, qnh, now ?? T0, destinationTa);
 
     [Fact]
     public void Climb_PastTransitionAltitude_OnQnh_RemindsStandard_AfterDelay_Once()
@@ -143,6 +144,127 @@ public sealed class TransitionReminderCoreTests
 
         core.Process(Input(FlightPhase.Climb, 6500, std: false, now: T0.AddMinutes(5)), Delay);
         Assert.NotNull(core.Process(Input(FlightPhase.Climb, 8000, std: false, now: T0.AddMinutes(5).AddSeconds(30)), Delay));
+    }
+
+    // Issue #198, owner's flight EGLL-LOWW 2026-11-14: "LOWW TL null" — no descent reminder
+    // although the destination has a transition altitude. The level is derived from it.
+    [Theory]
+    [InlineData(10000, 1022, 10000)] // the flight: LOWW, QNH 1022 — FL100 lies at 10,238 ft on QNH
+    [InlineData(10000, 1000, 11000)] // low pressure: FL100 would be below the transition altitude
+    [InlineData(5000, 1022, 5000)]
+    [InlineData(5000, 1013, 6000)]   // FL50 on 1013 hPa is 7 ft under the altitude
+    [InlineData(5000, 1014, 5000)]
+    [InlineData(5000, 980, 6000)]
+    [InlineData(5000, 975, 7000)]
+    [InlineData(6000, 1055, 5000)]   // very high pressure: FL50 is already above 6,000 ft on QNH
+    public void DescentThreshold_WithoutADatabaseLevel_IsTheLowestFlightLevelAtOrAboveTheTransitionAltitude(
+        double ta, double qnh, double expectedFt)
+    {
+        var threshold = TransitionReminderCore.ResolveDescentThreshold(null, ta, qnh);
+
+        Assert.NotNull(threshold);
+        Assert.Equal(expectedFt, threshold.Value.ThresholdFt);
+        Assert.Equal(TransitionThresholdSource.DerivedFromQnh, threshold.Value.Source);
+        // The level is at or above the altitude, and the one below it is not.
+        Assert.True(expectedFt >= TransitionReminderCore.PressureAltitudeFt(ta, qnh) - 0.5);
+        Assert.True(expectedFt - 1000 < TransitionReminderCore.PressureAltitudeFt(ta, qnh) - 0.5);
+    }
+
+    [Fact]
+    public void DescentThreshold_Sources_DatabaseFirst_ThenQnh_ThenTheMargin_ThenNothing()
+    {
+        var database = TransitionReminderCore.ResolveDescentThreshold(70, 5000, 1022);
+        Assert.Equal(7000, database!.Value.ThresholdFt);
+        Assert.Equal("database TL", database.Value.Describe());
+
+        var derived = TransitionReminderCore.ResolveDescentThreshold(null, 5000, 1022);
+        Assert.Equal("derived from TA 5000 ft and QNH 1022", derived!.Value.Describe());
+
+        var margin = TransitionReminderCore.ResolveDescentThreshold(0, 5000, null);
+        Assert.Equal(6000, margin!.Value.ThresholdFt);
+        Assert.Equal(TransitionThresholdSource.DerivedFromMargin, margin.Value.Source);
+        Assert.Equal("derived from TA 5000 ft plus 1000 ft (no QNH)", margin.Value.Describe());
+
+        // A QNH that cannot be one is no QNH.
+        Assert.Equal(TransitionThresholdSource.DerivedFromMargin, TransitionReminderCore.ResolveDescentThreshold(null, 5000, 0)!.Value.Source);
+
+        Assert.Null(TransitionReminderCore.ResolveDescentThreshold(null, null, 1022));
+        Assert.Null(TransitionReminderCore.ResolveDescentThreshold(null, 0, null));
+    }
+
+    [Fact]
+    public void Descent_NoDatabaseLevel_RemindsBelowTheDerivedLevel_AndNamesItsSource()
+    {
+        var core = new TransitionReminderCore();
+
+        // LOWW on the flight: TA 10,000 ft, QNH 1022, still on STD.
+        Assert.Null(core.Process(Input(FlightPhase.Descent, 10400, std: true, tl: null, qnh: 1022, destinationTa: 10000), Delay));
+        Assert.Null(core.Process(Input(FlightPhase.Descent, 10050, std: true, tl: null, qnh: 1022, destinationTa: 10000, now: T0.AddMinutes(2)), Delay));
+        Assert.Null(core.Process(Input(FlightPhase.Descent, 9900, std: true, tl: null, qnh: 1022, destinationTa: 10000, now: T0.AddMinutes(3)), Delay));
+        var reminder = core.Process(Input(FlightPhase.Descent, 9300, std: true, tl: null, qnh: 1022, destinationTa: 10000, now: T0.AddMinutes(3).AddSeconds(30)), Delay);
+
+        Assert.NotNull(reminder);
+        Assert.Equal(TransitionReminderKind.Qnh, reminder.Kind);
+        Assert.Equal("Transition level. QNH one zero two two, please.", reminder.Text);
+        Assert.Equal(10000, reminder.ThresholdFt);
+        Assert.Equal(TransitionThresholdSource.DerivedFromQnh, reminder.Source);
+        Assert.Equal("derived from TA 10000 ft and QNH 1022", reminder.ThresholdBasis);
+
+        // Once per descent.
+        Assert.Null(core.Process(Input(FlightPhase.Approach, 6000, std: true, tl: null, qnh: 1022, destinationTa: 10000, now: T0.AddMinutes(10)), Delay));
+    }
+
+    [Fact]
+    public void Descent_NoDatabaseLevel_NoQnh_RemindsBelowTheAltitudePlusTheMargin()
+    {
+        var core = new TransitionReminderCore();
+
+        Assert.Null(core.Process(Input(FlightPhase.Descent, 6200, std: true, tl: null, qnh: null, destinationTa: 5000), Delay));
+        Assert.Null(core.Process(Input(FlightPhase.Descent, 5900, std: true, tl: null, qnh: null, destinationTa: 5000, now: T0.AddMinutes(1)), Delay));
+        var reminder = core.Process(Input(FlightPhase.Descent, 5400, std: true, tl: null, qnh: null, destinationTa: 5000, now: T0.AddMinutes(1).AddSeconds(30)), Delay);
+
+        Assert.NotNull(reminder);
+        Assert.Equal(TransitionReminderCore.QnhUnknownText, reminder.Text);
+        Assert.Equal(6000, reminder.ThresholdFt);
+        Assert.Equal(TransitionThresholdSource.DerivedFromMargin, reminder.Source);
+    }
+
+    [Fact]
+    public void Descent_DatabaseLevel_Wins_AndTheReminderSaysSo()
+    {
+        var core = new TransitionReminderCore();
+
+        core.Process(Input(FlightPhase.Descent, 6900, std: true, tl: 70, qnh: 1022, destinationTa: 5000), Delay);
+        var reminder = core.Process(Input(FlightPhase.Descent, 6400, std: true, tl: 70, qnh: 1022, destinationTa: 5000, now: T0.AddSeconds(30)), Delay);
+
+        Assert.NotNull(reminder);
+        Assert.Equal(7000, reminder.ThresholdFt);
+        Assert.Equal(TransitionThresholdSource.DatabaseTransitionLevel, reminder.Source);
+        Assert.Equal("database TL", reminder.ThresholdBasis);
+    }
+
+    [Fact]
+    public void Descent_NeitherLevelNorAltitude_StaysSilent_AndAlreadyOnQnhStaysSilentOnADerivedLevel()
+    {
+        var core = new TransitionReminderCore();
+        Assert.Null(core.Process(Input(FlightPhase.Descent, 3000, std: true, tl: null, destinationTa: null), Delay));
+        Assert.Null(core.Process(Input(FlightPhase.Descent, 2500, std: true, tl: null, destinationTa: null, now: T0.AddMinutes(4)), Delay));
+
+        // The flight itself: the pilot's side went to QNH above the level — nothing to say.
+        Assert.Null(core.Process(Input(FlightPhase.Descent, 9500, std: false, tl: null, qnh: 1022, destinationTa: 10000, now: T0.AddMinutes(5)), Delay));
+        Assert.Null(core.Process(Input(FlightPhase.Descent, 4000, std: false, tl: null, qnh: 1022, destinationTa: 10000, now: T0.AddMinutes(9)), Delay));
+    }
+
+    [Fact]
+    public void Climb_TheStandardReminder_NamesTheDatabaseAltitude()
+    {
+        var core = new TransitionReminderCore();
+        core.Process(Input(FlightPhase.Climb, 6500, std: false), Delay);
+        var reminder = core.Process(Input(FlightPhase.Climb, 8153, std: false, now: T0.AddSeconds(30)), Delay);
+
+        Assert.NotNull(reminder);
+        Assert.Equal(TransitionThresholdSource.DatabaseTransitionAltitude, reminder.Source);
+        Assert.Equal("database TA", reminder.ThresholdBasis);
     }
 
     [Theory]

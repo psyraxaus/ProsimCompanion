@@ -608,8 +608,11 @@ public sealed class SpeechArbiterService : ISpeechArbiter, ISpeechControl, IDisp
     {
         var evt = new SpeechArbiterEvent(kind, priority, tag, text, reason);
         // The phraseology pass runs again here (cheap, idempotent) so a probe can read what
-        // the voice was actually given — null when the line was spoken as written.
-        var spoken = kind == SpeechEventKind.Spoken ? Core.Speech.Phraseology.Normalize(text) : null;
+        // the voice was actually given — null when the line was spoken as written. A streamed
+        // sentence (speech.segment) carries it too since 2026-11-14: the segment's text is the
+        // model's own, and whether "taxiway L I closed" reached the voice as letters could not
+        // be read from the session.
+        var spoken = kind is SpeechEventKind.Spoken or SpeechEventKind.Segment ? Core.Speech.Phraseology.Normalize(text) : null;
         _eventLog.Record("speech." + kind.ToString().ToLowerInvariant(), new
         {
             priority = priority.ToString(),

@@ -42,20 +42,44 @@ public static partial class Phraseology
     // also keeps the pass idempotent.
     private const string Spaced = @"(?!\s[A-Z]\b|\sCAM\b)";
 
+    // A two-letter taxiway the language model wrote with a space ("taxiway L I closed",
+    // "taxiways A, C, and T W closed" for the facts "LI" and "TW" — owner's flight 2026-11-14,
+    // both streamed briefings): two bare capitals, only inside the explicit taxiway /
+    // holding-point context. Three spaced capitals are a letter-spelled abbreviation and are
+    // not paired; a second letter "I" must be followed by the end of the list (punctuation,
+    // "closed", "and" …) so "taxiway A I think" keeps its pronoun.
+    private const string SpacedPair =
+        @"[A-Z]\s(?:[A-HJ-Z]|I(?=\s*(?:[,;.:/)]|$)|\s+(?:closed|and|then|or|is|are|remains?|unavailable|blocked|unserviceable|between|from|to)\b))\b(?!\s[A-Z]\b)";
+
+    private const string NamedToken = @"\b" + VGuard + @"(?:" + SpacedPair + @"|[A-Z]{1,2}\d{0,2}\b)";
+    private const string RoutedToken = @"\b" + Guard + @"[A-Z]\d{0,2}\b" + Spaced;
+
+    // Between two designators of a list: "A, B", "A/B", "A and B", "A then B", and the
+    // language model's Oxford comma "A, C, and T W" (2026-11-14 — the list used to end at
+    // that comma and the last designator went out bare).
+    private const string ListSeparator = @"(?:\s*,?\s+(?i:and|then)\s+|\s*(?:,|/)\s*)";
+
     // "taxiway G and G5", "taxiways A, B and C", "holding point N1": the context names the
     // thing, so two-letter designators are allowed.
-    [GeneratedRegex(@"(?<lead>\b(?i:taxiways?|holding point)\s+)" + @"(?<list>\b" + VGuard + @"[A-Z]{1,2}\d{0,2}\b(?:\s*(?:,|/)\s*\b" + VGuard + @"[A-Z]{1,2}\d{0,2}\b|\s+(?i:and|then)\s+\b" + VGuard + @"[A-Z]{1,2}\d{0,2}\b)*)", RegexOptions.CultureInvariant)]
+    [GeneratedRegex(@"(?<lead>\b(?i:taxiways?|holding point)\s+)" + @"(?<list>" + NamedToken + @"(?:" + ListSeparator + NamedToken + @")*)", RegexOptions.CultureInvariant)]
     private static partial Regex NamedTaxiways();
 
     // Routing words (the radios composer's 2026-10-31 list): after one of these every single
     // letter token up to the end of the list is a taxiway. One letter only — "on ND" and
     // "at FL" are prose, not taxiways.
-    [GeneratedRegex(@"(?<lead>\b(?i:via|hold short of|join|onto|exit at|exit|cross|on|at)\s+)" + @"(?<list>\b" + Guard + @"[A-Z]\d{0,2}\b" + Spaced + @"(?:\s*(?:,|/)\s*\b" + Guard + @"[A-Z]\d{0,2}\b" + Spaced + @"|\s+(?i:and|then)\s+\b" + Guard + @"[A-Z]\d{0,2}\b" + Spaced + @")*)", RegexOptions.CultureInvariant)]
+    [GeneratedRegex(@"(?<lead>\b(?i:via|hold short of|join|onto|exit at|exit|cross|on|at)\s+)" + @"(?<list>" + RoutedToken + @"(?:" + ListSeparator + RoutedToken + @")*)", RegexOptions.CultureInvariant)]
     private static partial Regex RoutedTaxiways();
 
     // One token inside a matched list.
     [GeneratedRegex(@"\b[A-Z]{1,2}\d{0,2}\b", RegexOptions.CultureInvariant)]
     private static partial Regex ListToken();
+
+    // A spaced pair inside a matched taxiway list, joined before it is spelled.
+    [GeneratedRegex(@"\b([A-Z])\s([A-Z])\b", RegexOptions.CultureInvariant)]
+    private static partial Regex SpacedPairInList();
+
+    private const string NatoWord =
+        @"(?:Alpha|Alfa|Bravo|Charlie|Delta|Echo|Foxtrot|Golf|Hotel|India|Juliett?|Kilo|Lima|Mike|November|Oscar|Papa|Quebec|Romeo|Sierra|Tango|Uniform|Victor|Whiskey|X-ray|Xray|Yankee|Zulu)";
 
     // A letter glued to one or two digits anywhere ("A4", "B2") is a designator; three digits
     // ("A320") is a type and stays.
@@ -63,8 +87,11 @@ public static partial class Phraseology
     private static partial Regex GluedDesignator();
 
     // "stand 546R" / "gate 23 A" → the trailing letter; "gate B12" / "stand B 16" → the leading
-    // letter. The number itself is left to the source (the radios composer spells it for the
-    // radio; the FO says "gate twenty-three").
+    // letter. A designator with a letter is a name and is said digit by digit in every path
+    // ("Foxtrot one seven", "two three Alpha" — owner's flight 2026-11-14: the check-in said
+    // "Gate Foxtrot one seven" and the read-back of the same gate "Foxtrot seventeen"). A bare
+    // number is left alone here: cockpit talk says "gate twenty three" (owner 2026-10-29) and a
+    // radio line spells it in RadioSpeech.Spoken.
     [GeneratedRegex(@"\b(?<word>(?i:stand|gate|bay))\s+(?<number>\d{1,3})\s?(?<letter>[A-Z])\b", RegexOptions.CultureInvariant)]
     private static partial Regex StandTrailingLetter();
 
@@ -144,8 +171,15 @@ public static partial class Phraseology
         // A clock time: "09:00 zulu" → "zero niner zero zero zulu"; "14:05Z" likewise.
         (Rx(@"(?<![\d:])([01]?\d|2[0-3]):([0-5]\d)(?![\d:])(?:\s?Z\b)?"),
             m => Digits(m.Groups[1].Value.PadLeft(2, '0') + m.Groups[2].Value) + (m.Value.EndsWith('Z') || m.Value.EndsWith('z') ? " zulu" : "")),
+        // A stand already written with its NATO word ("Gate Foxtrot 17", "gate 23 Alpha" — a
+        // line somebody else phoneticized) is a lettered designator too: digit by digit
+        // (2026-11-14). The NATO word is matched in its capital form only.
+        (Rx(@"\b(stand|gate|bay)\s+((?-i:" + NatoWord + @"))\s+(\d{1,3})\b"),
+            m => m.Groups[1].Value + " " + m.Groups[2].Value + " " + Digits(m.Groups[3].Value)),
+        (Rx(@"\b(stand|gate|bay)\s+(\d{1,3})(?=\s+(?-i:" + NatoWord + @")\b)"),
+            m => m.Groups[1].Value + " " + Digits(m.Groups[2].Value)),
         // A three-digit stand is digits ("stand five four six", owner 2026-10-29); one or two
-        // digits stay a number for the net ("gate twenty three").
+        // digits with no letter stay a number for the net ("gate twenty three").
         (Rx(@"\b(stand|gate|bay)\s+((?:[A-Z][a-z]+\s+)?)(\d{3})\b"),
             m => m.Groups[1].Value + " " + m.Groups[2].Value + Digits(m.Groups[3].Value)),
         // "door 1L" → "door one left".
@@ -286,8 +320,8 @@ public static partial class Phraseology
         s = TwyAbbreviation().Replace(s, m => m.Value.EndsWith('S') || m.Value.EndsWith('s') ? "taxiways" : "taxiway");
         s = NamedTaxiways().Replace(s, m => m.Groups["lead"].Value + SpellList(m.Groups["list"].Value, join));
         s = RoutedTaxiways().Replace(s, m => m.Groups["lead"].Value + SpellList(m.Groups["list"].Value, join));
-        s = StandTrailingLetter().Replace(s, m => m.Groups["word"].Value + " " + m.Groups["number"].Value + " " + NatoPhonetics.Word(m.Groups["letter"].Value[0]));
-        s = StandLeadingLetter().Replace(s, m => m.Groups["word"].Value + " " + NatoPhonetics.Word(m.Groups["letter"].Value[0]) + " " + m.Groups["number"].Value);
+        s = StandTrailingLetter().Replace(s, m => m.Groups["word"].Value + " " + Spell(m.Groups["number"].Value + m.Groups["letter"].Value, join));
+        s = StandLeadingLetter().Replace(s, m => m.Groups["word"].Value + " " + Spell(m.Groups["letter"].Value + m.Groups["number"].Value, join));
         s = AtisLetter().Replace(s, m => m.Groups["word"].Value + " " + NatoPhonetics.Word(m.Groups["letter"].Value[0]));
         s = ApproachVariant().Replace(s, m => m.Groups["word"].Value + " " + NatoPhonetics.Word(m.Groups["letter"].Value[0]));
         s = GluedDesignator().Replace(s, m => Spell(m.Value, join));
@@ -340,5 +374,5 @@ public static partial class Phraseology
     }
 
     private static string SpellList(string list, string join)
-        => ListToken().Replace(list, m => Spell(m.Value, join));
+        => ListToken().Replace(SpacedPairInList().Replace(list, "$1$2"), m => Spell(m.Value, join));
 }

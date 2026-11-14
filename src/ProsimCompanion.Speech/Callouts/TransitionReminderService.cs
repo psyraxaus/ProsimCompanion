@@ -50,6 +50,8 @@ public sealed class TransitionReminderService : Core.Hosting.IStartupModule, IDi
     private (string Origin, string Destination)? _navFor;
     private double? _transitionAltitudeFt;
     private double? _transitionLevel;
+    private double? _destinationTransitionAltitudeFt;
+    private DescentThreshold? _loggedDescentThreshold;
 
     public TransitionReminderService(
         IOptionsMonitor<SopOptions> options,
@@ -146,7 +148,9 @@ public sealed class TransitionReminderService : Core.Hosting.IStartupModule, IDi
                 _transitionAltitudeFt,
                 _transitionLevel,
                 DestinationQnh(),
-                now);
+                now,
+                _destinationTransitionAltitudeFt);
+            LogDescentThreshold(input);
             reminder = _core.Process(input, TimeSpan.FromSeconds(Math.Max(0, transition.DelaySeconds)));
         }
 
@@ -156,13 +160,15 @@ public sealed class TransitionReminderService : Core.Hosting.IStartupModule, IDi
         }
 
         _logger.LogInformation(
-            "Transition reminder {Kind}: PFD {Altitude:F0} ft, threshold {Threshold:F0} ft, QNH {Qnh}",
-            reminder.Kind, reminder.AltitudeFt, reminder.ThresholdFt, reminder.QnhHpa);
+            "Transition reminder {Kind}: PFD {Altitude:F0} ft, threshold {Threshold:F0} ft ({Basis}), QNH {Qnh}",
+            reminder.Kind, reminder.AltitudeFt, reminder.ThresholdFt, reminder.ThresholdBasis, reminder.QnhHpa);
         _eventLog.Record(ReminderEvent, new
         {
             kind = reminder.Kind == TransitionReminderKind.Standard ? "standard" : "qnh",
             altitudeFt = Math.Round(reminder.AltitudeFt),
             thresholdFt = Math.Round(reminder.ThresholdFt),
+            thresholdSource = SourceCode(reminder.Source),
+            thresholdBasis = reminder.ThresholdBasis,
             qnhHpa = reminder.QnhHpa,
             delaySeconds = transition.DelaySeconds,
             origin = _navFor?.Origin,
@@ -171,6 +177,46 @@ public sealed class TransitionReminderService : Core.Hosting.IStartupModule, IDi
         });
         _arbiter.EnqueueAsync(new SpeechRequest(reminder.Text, SpeechPriority.Normal, SpokenTtl, Tag: Tag)).Observe(_logger, "Transition reminder line");
         return reminder;
+    }
+
+    /// <summary>The event's short form of the threshold's origin.</summary>
+    internal static string SourceCode(TransitionThresholdSource source) => source switch
+    {
+        TransitionThresholdSource.DatabaseTransitionLevel => "databaseTl",
+        TransitionThresholdSource.DerivedFromQnh => "derivedFromTaAndQnh",
+        TransitionThresholdSource.DerivedFromMargin => "derivedFromTaPlusMargin",
+        _ => "databaseTa",
+    };
+
+    /// <summary>One Information line each time the descent threshold or its origin changes
+    /// while the aircraft descends (the QNH arriving on the weather card moves a derived
+    /// one) — so a descent without a reminder still shows what it was measured against.</summary>
+    private void LogDescentThreshold(TransitionReminderInput input)
+    {
+        if (input.Phase is not (FlightPhase.Descent or FlightPhase.Approach) || !input.IsLive)
+        {
+            return;
+        }
+
+        var threshold = TransitionReminderCore.ResolveDescentThreshold(input.TransitionLevel, input.DestinationTransitionAltitudeFt, input.QnhHpa);
+        if (threshold == _loggedDescentThreshold)
+        {
+            return;
+        }
+
+        _loggedDescentThreshold = threshold;
+        if (threshold is { } t)
+        {
+            _logger.LogInformation(
+                "Transition reminders: {Destination} descent threshold {Threshold:F0} ft — {Basis}",
+                _navFor?.Destination, t.ThresholdFt, t.Describe());
+        }
+        else
+        {
+            _logger.LogInformation(
+                "Transition reminders: {Destination} has no transition level and no transition altitude — no descent reminder",
+                _navFor?.Destination);
+        }
     }
 
     /// <summary>Re-reads the DFD figures when the OFP's origin/destination pair changes (a
@@ -188,6 +234,8 @@ public sealed class TransitionReminderService : Core.Hosting.IStartupModule, IDi
         _navFor = (origin, destination);
         _transitionAltitudeFt = null;
         _transitionLevel = null;
+        _destinationTransitionAltitudeFt = null;
+        _loggedDescentThreshold = null;
         if (origin.Length == 0 && destination.Length == 0)
         {
             return;
@@ -211,12 +259,18 @@ public sealed class TransitionReminderService : Core.Hosting.IStartupModule, IDi
 
         if (destination.Length > 0)
         {
-            _transitionLevel = _navData.Lookup(destination, null).TransitionLevel;
+            // The same airport row the briefing reads (transition_altitude beside
+            // transition_level): the altitude is what the level is derived from when the
+            // database has none (2026-11-14, "LOWW TL null").
+            var facts = _navData.Lookup(destination, null);
+            _transitionLevel = facts.TransitionLevel;
+            _destinationTransitionAltitudeFt = facts.TransitionAltitudeFt;
         }
 
         _logger.LogInformation(
-            "Transition reminders: {Origin} TA {TransitionAltitude} ft, {Destination} TL {TransitionLevel}",
-            origin, _transitionAltitudeFt, destination, _transitionLevel);
+            "Transition reminders: {Origin} TA {TransitionAltitude} ft, {Destination} TL {TransitionLevel}, TA {DestinationTransitionAltitude} ft — descent threshold from {DescentSource}",
+            origin, _transitionAltitudeFt, destination, _transitionLevel, _destinationTransitionAltitudeFt,
+            _transitionLevel is > 0 ? "the database TL" : _destinationTransitionAltitudeFt is > 0 ? "the destination TA and the QNH of the day" : "nothing (no descent reminder)");
     }
 
     /// <summary>The destination QNH from whichever Flight Status card shows the destination

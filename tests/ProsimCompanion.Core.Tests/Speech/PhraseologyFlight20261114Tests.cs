@@ -45,4 +45,83 @@ public sealed class PhraseologyFlight20261114Tests
     [InlineData("Climb Flight-level-1-hundred.", "Climb flight level one hundred.")]
     public void AWholeHundredLevelAsSayIntentionsWritesIt_IsReadBackAsSaid(string text, string expected)
         => Assert.Equal(expected, Phraseology.Normalize(text));
+
+    // Issue #200: the briefing facts were "taxiway LI closed" and "taxiway A, C and TW closed";
+    // the model wrote the two-letter taxiways spaced and, in the second briefing, with an
+    // Oxford comma. The first two lines are the two speech.segment texts of the flight.
+    [Theory]
+    [InlineData(
+        "Threats: taxiway L I closed; taxiways A, C, and T W closed; icing conditions, engine anti-ice required.",
+        "Threats: taxiway Lima India closed; taxiways Alpha, Charlie, and Tango Whiskey closed; icing conditions, engine anti-ice required.")]
+    [InlineData(
+        "Tech log: number three brake wear indicator at limit, M E L category C. Threats: taxiway L I closed; taxiways A, C and T W closed; icing conditions, engine anti-ice on.",
+        "Tech log: number three brake wear indicator at limit, M E L category C. Threats: taxiway Lima India closed; taxiways Alpha, Charlie and Tango Whiskey closed; icing conditions, engine anti-ice on.")]
+    [InlineData("Threats today: taxiway LI closed, a taxiway closed, taxiway A, C and TW closed.", "Threats today: taxiway Lima India closed, a taxiway closed, taxiway Alpha, Charlie and Tango Whiskey closed.")]
+    [InlineData("taxiway T W.", "taxiway Tango Whiskey.")]
+    [InlineData("taxiways B, L I and G5 closed", "taxiways Bravo, Lima India and Golf five closed")]
+    [InlineData("taxi via A, B, and C to holding point N1", "taxi via Alpha, Bravo, and Charlie to holding point November one")]
+    public void ATwoLetterTaxiwayTheModelSpaced_AndAnOxfordCommaList_AreSpelled(string text, string expected)
+    {
+        var once = Phraseology.Normalize(text);
+        Assert.Equal(expected, once);
+        Assert.Equal(once, Phraseology.Normalize(once));
+    }
+
+    [Theory]
+    [InlineData("taxiway A I think is closed", "taxiway Alpha I think is closed")]           // the pronoun
+    [InlineData("holding point A I L S critical area", "holding point Alpha I L S critical area")] // a letter-spelled abbreviation
+    [InlineData("via T W", "via T W")]                                                        // the spaced pair is the taxiway context's only
+    [InlineData("on E CAM and at Q N H", "on ee-cam and at Q N H")]
+    public void ASpacedLetterThatIsNotATaxiway_IsLeftAlone(string text, string expected)
+        => Assert.Equal(expected, Phraseology.Normalize(text));
+
+    // Issue #200: the check-in said "stand Pier North Gate Foxtrot one seven" and, 27 seconds
+    // later, the read-back of ATC's "Gate F17" said "Gate Foxtrot seventeen". A designator
+    // with a letter is said digit by digit in every path.
+    [Theory]
+    [InlineData("Taxi to Pier North Gate F17 via D, L, Taxilane 37", "Taxi to Pier North Gate Foxtrot one seven via Delta, Lima, Taxilane thirty seven")]
+    [InlineData("Taxi to Pier North Gate Foxtrot 17 via Delta, Lima", "Taxi to Pier North Gate Foxtrot one seven via Delta, Lima")]
+    [InlineData("gate F 17", "gate Foxtrot one seven")]
+    [InlineData("stand 23A", "stand two three Alpha")]
+    [InlineData("stand 23 Alpha is ours", "stand two three Alpha is ours")]
+    [InlineData("bay B5", "bay Bravo five")]
+    [InlineData("stand 546R", "stand five four six Romeo")]
+    public void AStandWithALetter_IsDigitByDigit(string text, string expected)
+    {
+        var once = Phraseology.Normalize(text);
+        Assert.Equal(expected, once);
+        Assert.Equal(once, Phraseology.Normalize(once));
+    }
+
+    // The owner's 2026-10-29 decision stands for cockpit talk: a bare one- or two-digit gate
+    // is a number, a three-digit one digits.
+    [Theory]
+    [InlineData("We park at gate 23 today", "We park at gate twenty three today")]
+    [InlineData("stand 7", "stand seven")]
+    [InlineData("gate 506", "gate five zero six")]
+    public void ABareGateNumberInCockpitTalk_KeepsItsForm(string text, string expected)
+        => Assert.Equal(expected, Phraseology.Normalize(text));
+
+    // …and on the radio (RadioSpeech.Spoken — every radio line's FO-voice text) it is digits.
+    [Theory]
+    [InlineData("Taxi to Gate 17 via Delta, Speedbird-seven-two-two.", "Taxi to Gate one seven via Delta, Speedbird seven two two.")]
+    [InlineData("request taxi to stand 23.", "request taxi to stand two three.")]
+    [InlineData("request taxi to stand Pier North Gate Foxtrot-one-seven.", "request taxi to stand Pier North Gate Foxtrot one seven.")]
+    public void ABareGateNumberOnTheRadio_IsDigitByDigit(string transmit, string expected)
+    {
+        var spoken = ProsimCompanion.Speech.SayIntentions.RadioSpeech.Spoken(transmit);
+        Assert.Equal(expected, spoken);
+        Assert.Equal(expected, Phraseology.Normalize(spoken));
+    }
+
+    [Fact]
+    public void TheReadBackOfTheFlight_SaysTheGateAsTheCheckInDid()
+    {
+        var readback = ProsimCompanion.Speech.SayIntentions.ReadbackComposer.Compose(
+            "Speedbird 722, taxi to Pier North Gate F17 via D, L, Taxilane 37.", "Speedbird-seven-two-two", "Vienna Ground");
+
+        Assert.NotNull(readback);
+        Assert.Contains("Pier North Gate Foxtrot-one-seven via Delta, Lima", readback.Transmit, StringComparison.Ordinal);
+        Assert.Contains("Pier North Gate Foxtrot one seven via Delta, Lima", Phraseology.Normalize(readback.Spoken), StringComparison.Ordinal);
+    }
 }

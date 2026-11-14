@@ -48,8 +48,11 @@ public sealed class PhraseologyTests
     [InlineData("taxi via B2 and C, hold short of A3", "taxi via Bravo two and Charlie, hold short of Alpha three")]
     [InlineData("Gate 506 via A", "Gate five zero six via Alpha")]
     [InlineData("stand 546R", "stand five four six Romeo")]
-    [InlineData("gate B12", "gate Bravo twelve")]
-    [InlineData("stand 23 A", "stand twenty three Alpha")]
+    // 2026-11-14 (issue #200, "Gate Foxtrot seventeen" against the check-in's "Foxtrot one
+    // seven"): a stand with a letter is digit by digit — these two were "Bravo twelve" and
+    // "twenty three Alpha".
+    [InlineData("gate B12", "gate Bravo one two")]
+    [InlineData("stand 23 A", "stand two three Alpha")]
     [InlineData("information M is current", "information Mike is current")]
     [InlineData("ILS Y runway 27", "I L S Yankee runway two seven")]
     [InlineData("exit at A4", "exit at Alpha four")]
