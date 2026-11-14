@@ -25,7 +25,6 @@ namespace ProsimCompanion.Speech.SayIntentions;
 /// </summary>
 public sealed class FoRadiosService : Core.Hosting.IStartupModule, IDisposable
 {
-    private static readonly TimeSpan CopilotReassert = TimeSpan.FromMinutes(2);
     private const int TickMs = 15_000;
 
     private readonly IOptionsMonitor<SayIntentionsOptions> _options;
@@ -52,6 +51,9 @@ public sealed class FoRadiosService : Core.Hosting.IStartupModule, IDisposable
     private string? _clearedLevel;
     private long _handoffSerial;
     private DateTimeOffset _copilotAssertedUtc = DateTimeOffset.MinValue;
+    private bool _copilotSentThisFlight;
+    private readonly ISimVars? _simVars;
+    private IDataRefSubscription<double>? _copilotLvar;
     private FlightRadioContext _flight = new(false, null, null, null, null, null, null);
     private string? _departureGeometryFor;
     private RunwayGeometry? _departureGeometry;
@@ -106,6 +108,7 @@ public sealed class FoRadiosService : Core.Hosting.IStartupModule, IDisposable
         _runways = runways;
         _departureRunway = departureRunway;
         _radioGate = new RadioClearGate(simVars, logger);
+        _simVars = simVars;
     }
 
     /// <summary>True while the switch is on and the pillar is on.</summary>
@@ -155,6 +158,7 @@ public sealed class FoRadiosService : Core.Hosting.IStartupModule, IDisposable
         _timer?.Dispose();
         _shutdown.Cancel();
         _radioGate.Dispose();
+        _copilotLvar?.Dispose();
         _transmitGate.Dispose();
         _shutdown.Dispose();
     }
@@ -166,6 +170,7 @@ public sealed class FoRadiosService : Core.Hosting.IStartupModule, IDisposable
         {
             if (!IsActive)
             {
+                _copilotSentThisFlight = false; // switched off: the next switch-on says it once again
                 return;
             }
 
@@ -181,6 +186,11 @@ public sealed class FoRadiosService : Core.Hosting.IStartupModule, IDisposable
 
                     _flight = context;
                 }
+
+                if (!context.IsActive)
+                {
+                    _copilotSentThisFlight = false; // no flight: the next one starts with one "off"
+                }
             }
 
             var apiKey = SayIntentionsFrequencyMonitor.ResolveSapiCredential(_options.CurrentValue);
@@ -189,10 +199,20 @@ public sealed class FoRadiosService : Core.Hosting.IStartupModule, IDisposable
                 return;
             }
 
+            // The SI copilot is told "off" once per flight, and again only when SayIntentions
+            // shows it back on (owner's rig 2026-11-14: the old two-minute re-assert made the
+            // SayIntentions client play its two-note copilot tone every two minutes although
+            // the copilot was already off — proven by switching this feature off).
             var now = DateTimeOffset.UtcNow;
-            if (now - _copilotAssertedUtc >= CopilotReassert)
+            var copilot = CopilotLvar();
+            var reason = CopilotOffRule.Decide(_copilotSentThisFlight, copilot, now - _copilotAssertedUtc);
+            if (reason != CopilotOffReason.None)
             {
                 _copilotAssertedUtc = now;
+                _copilotSentThisFlight = true;
+                var why = reason == CopilotOffReason.FlightStart ? "flight start" : "copilot back on";
+                _logger.LogInformation("FO radios: SayIntentions copilot told off ({Reason}, L:SIAI_COPILOT read {Lvar})", why, copilot);
+                _eventLog.Record("sayintentions.copilot-off", new { reason = why, lvar = copilot });
                 _ = SapiClient.SetVarAsync(apiKey, "SIAI_COPILOT", "0", _logger, _shutdown.Token);
             }
 
@@ -201,6 +221,28 @@ public sealed class FoRadiosService : Core.Hosting.IStartupModule, IDisposable
         catch (Exception ex)
         {
             _logger.LogDebug(ex, "FO radios tick failed");
+        }
+    }
+
+    /// <summary>L:SIAI_COPILOT as the sim has it (1 = the SI copilot has the comms), or null
+    /// with no SimConnect layer or a failed subscription — then only the once-per-flight
+    /// "off" is sent.</summary>
+    private double? CopilotLvar()
+    {
+        if (_simVars is null)
+        {
+            return null;
+        }
+
+        try
+        {
+            _copilotLvar ??= _simVars.Subscribe(SayIntentionsLvarNames.Copilot);
+            return _copilotLvar.Value;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "FO radios: L:SIAI_COPILOT not readable");
+            return null;
         }
     }
 

@@ -17,6 +17,14 @@ public static class SayIntentionsLvarNames
     /// <summary>1 while the pilot's own push-to-talk is keyed in SayIntentions.</summary>
     public static readonly SimVarRef<double> RadioPtt = new("L:SIAI_RADIO_PTT", "number", DataRefTier.Frequent, 0.0);
 
+    /// <summary>1 while the SayIntentions copilot is in charge of comms, 0 while the pilot is
+    /// (SAPI LVAR reference). Read by the FO-radios service so the "copilot off" setVar goes
+    /// out only when the copilot is actually on — every setVar of it makes the SayIntentions
+    /// client play its two-note tone, even when nothing changes (owner's rig 2026-11-14).
+    /// Unverified live as a READ: with SayIntentions not keying it, it reads 0 and the FO
+    /// simply never re-sends.</summary>
+    public static readonly SimVarRef<double> Copilot = new("L:SIAI_COPILOT", "number", DataRefTier.Frequent, 0.0);
+
     /// <summary>The settable PTT control LVARs the SayIntentions client lists under Controls →
     /// "Map PTT inside the sim with an LVAR or dataref" (read off the client 2026-10-10; not in
     /// the published LVAR reference): write 1 to talk, 0 to stop. Each is on the sim write

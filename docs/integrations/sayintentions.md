@@ -80,14 +80,24 @@ Empirical rules (2026-10-05) — keep these:
 
 Not yet seen live: hand-off wording on arrival and in FAA phraseology, `since_id` behaviour,
 `L:SIAI_COPILOT` (documented: 1 = copilot has comms) and `L:SIAI_COM1_POSITION` (0 = unknown
-station) — neither of those two is read today (`SIAI_COM1_RECEIVING` / `SIAI_RADIO_PTT` are,
-for the radio-clear gate).
+station) — `SIAI_COM1_POSITION` is not read today; `SIAI_COPILOT` is read by the FO-radios
+service since 2026-11-14 (below), `SIAI_COM1_RECEIVING` / `SIAI_RADIO_PTT` by the
+radio-clear gate.
 
 ## FO works the radios (owner request 2026-10-25, opt-in)
 
 `sayIntentions.foRadios.enabled` (default off; Flight Deck → SayIntentions → "FO works
-the radios"). `FoRadiosService` holds the SI copilot off (`SIAI_COPILOT` = 0, re-asserted every
-2 min — SI resets it per flight; every other `SIAI_COPILOT` write in `SayIntentionsService` is
+the radios"). `FoRadiosService` holds the SI copilot off (`SIAI_COPILOT` = 0 once per flight —
+SI resets it per flight — and again only when `L:SIAI_COPILOT` reads 1, at most every 30 s:
+`CopilotOffRule`. **Every setVar of `SIAI_COPILOT` makes the SayIntentions client play its
+two-note copilot tone, changed or not** — the original two-minute re-assert was heard as a
+tone every two minutes for weeks (owner's rig 2026-11-14: the client's own
+`streamdeck-plugin.log` showed `receiving` audio on a 120–135 s rhythm with `copilot` false
+throughout, one burst five seconds after an app restart; switching the feature off stopped
+it; SAPI's docs describe no sound for any call). Never re-send a SayIntentions setVar as a
+keep-alive. The L:var read is unverified live — reading 0 forever only means no re-send.
+Each send: Information log line + `sayintentions.copilot-off` {reason, lvar}. Every other
+`SIAI_COPILOT` write in `SayIntentionsService` is
 forced to 0 while the switch is on, and the comms hand-over by phase, its readouts and the
 legacy departure gate are inert) and answers every ATC COM1 line the frequency monitor raises:
 

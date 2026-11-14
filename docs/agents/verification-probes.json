@@ -5405,6 +5405,25 @@
         "requires-human: the names sound like what a crew says for the airports flown; a name that is too long or odd is shortened in airport-names.json (app restart) and reported so the shipped list can change."
       ],
       "notes": "Built 2026-11-14 (owner picked the shipped list over names from the DFD alone). Core/Airports/AirportNameCatalog + AirportNameChain (file first, then DfdAirportNames) registered as IAirportNames in the Speech project; CrossCheckComposer.Compose takes the name function (ISpokenText.Airport from FmgcCrossCheckService) and spells both routes when two different airports are said the same. Side effect by design: every line that names an airport now takes the file's name before the DFD's. Shipped names are OpenFlights names with International / Airport / Airfield / Aerodrome / Regional / Municipal left out — not ear-checked. Hint on Settings -> Voice First Officer -> General in all seven packs. Unverified live."
+    },
+    {
+      "id": "si-copilot-off-tone",
+      "issue": 0,
+      "state": "fixed-unverified",
+      "kind": "watch",
+      "sources": [
+        "session",
+        "log",
+        "human"
+      ],
+      "checks": [
+        "Owner's rig 2026-11-14: a two-note tone every two minutes whenever SayIntentions ran, for weeks. Cause: with sayIntentions.foRadios on, FoRadiosService re-sent setVar SIAI_COPILOT = 0 every two minutes and the SayIntentions client plays its copilot tone on every such setVar, changed or not (the client's streamdeck-plugin.log: 'receiving' audio every 120-135 s with 'copilot' false throughout, one burst 5 s after an app restart; the tone stopped with the feature off). The write now goes out once per flight and again only when L:SIAI_COPILOT reads on (CopilotOffRule, at most every 30 s).",
+        "assert-present: with foRadios on and a SayIntentions flight active, exactly one sayintentions.copilot-off {reason: 'flight start'} per flight (and per app start within a flight), with the matching log line 'FO radios: SayIntentions copilot told off (flight start, L:SIAI_COPILOT read …)'.",
+        "assert-absent: sayintentions.copilot-off events on a two-minute rhythm, or more than a handful per flight. A {reason: 'copilot back on'} event is legitimate only when something switched the SayIntentions copilot on (the pilot's SI button, a new SI flight); a run of them 30 s apart means SayIntentions ignores the write or the L:var does not follow it — quote the lvar values.",
+        "requires-human: no periodic two-note tone in the headset during the flight with 'FO works the radios' ON. One tone shortly after the SayIntentions flight starts is expected.",
+        "requires-human (the L:var read, unverified): press the SayIntentions copilot button ON once in cruise — within 15-45 s the app should log 'copilot told off (copilot back on, L:SIAI_COPILOT read 1)' and the copilot should go off again. If nothing happens the L:var is not readable on this setup: report it (the FO and the SI copilot would then both answer)."
+      ],
+      "notes": "Built 2026-11-14. Speech/SayIntentions/CopilotOffRule (pure) + FoRadiosService.Tick (15 s) + SayIntentionsLvarNames.Copilot. The comms hand-over writes in SayIntentionsService are edge-driven and unchanged. The lookalike that this is NOT: audio.chime events (the app's own cabin ding-dong, also two notes — probe audio-chime-trail) and ProSim's MECH / CAB call chimes (ground.calling / cabin.calling). Unverified live after the fix."
     }
   ]
 }
