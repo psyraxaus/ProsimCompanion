@@ -36,7 +36,8 @@ public sealed record ProbeDefinition(
     IReadOnlyList<string> Sources,
     IReadOnlyList<string> Checks,
     string? Notes,
-    ProbeMachine? Machine);
+    ProbeMachine? Machine,
+    IReadOnlyList<int>? AlsoIssues = null);
 
 /// <summary>
 /// Loads the probe catalog (embedded copy or <c>--probes</c> override) and evaluates every
@@ -80,10 +81,25 @@ public static class ProbeEvaluator
                 Strings(p, "sources"),
                 Strings(p, "checks"),
                 Str(p, "notes"),
-                p.TryGetProperty("machine", out var m) && m.ValueKind == JsonValueKind.Object ? Machine(m) : null));
+                p.TryGetProperty("machine", out var m) && m.ValueKind == JsonValueKind.Object ? Machine(m) : null,
+                AlsoIssues(p)));
         }
 
         return probes;
+    }
+
+    /// <summary>The catalog's optional <c>alsoIssues</c>: further GitHub issues the same probe
+    /// decides (one probe, extended fix by fix, used to carry only the first issue's number —
+    /// 2026-11-14: fifteen open issues looked unprobed). Null when absent or empty.</summary>
+    private static IReadOnlyList<int>? AlsoIssues(JsonElement p)
+    {
+        if (!p.TryGetProperty("alsoIssues", out var el) || el.ValueKind != JsonValueKind.Array)
+        {
+            return null;
+        }
+
+        int[] numbers = [.. el.EnumerateArray().Where(e => e.ValueKind == JsonValueKind.Number && e.TryGetInt32(out _)).Select(e => e.GetInt32())];
+        return numbers.Length == 0 ? null : numbers;
     }
 
     private static ProbeMachine Machine(JsonElement m) => new(
@@ -121,7 +137,7 @@ public static class ProbeEvaluator
         {
             if (probe.Machine is null || probe.Kind is not ("assert-absent" or "assert-present" or "watch"))
             {
-                forLlm.Add(new ProbeForLlm(probe.Id, probe.Issue, probe.State, probe.Kind, probe.Sources, probe.Checks, probe.Notes));
+                forLlm.Add(new ProbeForLlm(probe.Id, probe.Issue, probe.State, probe.Kind, probe.Sources, probe.Checks, probe.Notes) { AlsoIssues = probe.AlsoIssues });
                 continue;
             }
 
@@ -141,6 +157,7 @@ public static class ProbeEvaluator
 
             results[probe.Id] = new ProbeResult(probe.Kind, probe.Issue, probe.State, outcome.Verdict, outcome.Evidence)
             {
+                AlsoIssues = probe.AlsoIssues,
                 Matches = watch ? outcome.Matches : null,
                 Violations = watch ? outcome.Violations : null,
             };

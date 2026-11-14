@@ -124,6 +124,10 @@ public sealed record ProbeResult(
     string Verdict,
     IReadOnlyList<string> Evidence)
 {
+    /// <summary>Further GitHub issues this probe decides (the catalog's <c>alsoIssues</c>).
+    /// Null — omitted from the JSON — when the probe names one issue only.</summary>
+    public IReadOnlyList<int>? AlsoIssues { get; init; }
+
     /// <summary>Watch probes only (issue #235): how many session events or log hits the machine
     /// block selected. Null — omitted from the JSON — on pass/fail probes.</summary>
     public int? Matches { get; init; }
@@ -141,7 +145,11 @@ public sealed record ProbeForLlm(
     string Kind,
     IReadOnlyList<string> Sources,
     IReadOnlyList<string> Checks,
-    string? Notes);
+    string? Notes)
+{
+    /// <summary>Further GitHub issues this probe decides; null when it names one issue only.</summary>
+    public IReadOnlyList<int>? AlsoIssues { get; init; }
+}
 
 /// <summary>One STATUS-page caution as the bundle carried it.</summary>
 public sealed record HealthCaution(string System, string Title, string Severity, IReadOnlyList<string> Actions, DateTimeOffset RaisedUtc);

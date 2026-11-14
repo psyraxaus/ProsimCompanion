@@ -103,6 +103,12 @@ turnaround of 2026-11-01 (`egll-eham-2026-11-01-1.0.0-rc1.jsonl`) is the checked
   `open`) and `closed-regression-watch`. `issue` is the GitHub number, `0` when a feature
   shipped without one (never null); `sources` names where the evidence comes from, `human`
   for the eyes-and-ears probes.
+- A probe that a later fix extends decides more than one issue: `issue` keeps the first number
+  and the optional `alsoIssues` array lists the others (`"alsoIssues": [173, 209]`). Naming the
+  issue only in the check text is not enough — on 2026-11-14 fifteen open issues looked
+  unprobed that way. The reducer copies `alsoIssues` into `probes` and `forLlm`; when listing
+  verdicts per issue, match both fields. An issue that no flight can show (a code-review
+  defect, a tool, a settings screen) needs a test or the `requires-human-checklist`, not a probe.
 - When an issue closes, flip its probe to `closed-regression-watch` (keep it — regressions
   are what the watch list is for). Retire a probe only when the code path it guards is gone.
   The 2026-11-03 hygiene pass (#233) found 43 probes still `open` on closed issues; check the

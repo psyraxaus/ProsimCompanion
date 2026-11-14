@@ -268,6 +268,7 @@
     {
       "id": "gate-resolved-by-identity",
       "issue": 156,
+      "alsoIssues": [190],
       "state": "open",
       "kind": "assert-present",
       "machine": {
@@ -343,6 +344,7 @@
     {
       "id": "parking-advisory-false-alarm",
       "issue": 44,
+      "alsoIssues": [157],
       "state": "closed-regression-watch",
       "kind": "assert-absent",
       "sources": [
@@ -400,6 +402,7 @@
     {
       "id": "arrival-gate-in-flight-pick",
       "issue": 75,
+      "alsoIssues": [157],
       "state": "closed-regression-watch",
       "kind": "assert-present",
       "sources": [
@@ -835,6 +838,7 @@
     {
       "id": "voice-ground-ops-wp2-upcalls",
       "issue": 51,
+      "alsoIssues": [170],
       "state": "closed-regression-watch",
       "kind": "assert-present",
       "sources": [
@@ -1097,6 +1101,7 @@
     {
       "id": "checklist-answer-acceptance",
       "issue": 107,
+      "alsoIssues": [205],
       "state": "closed-regression-watch",
       "kind": "assert-absent",
       "sources": [
@@ -1195,6 +1200,7 @@
     {
       "id": "refuel-tankering-preskip",
       "issue": 117,
+      "alsoIssues": [143],
       "state": "closed-regression-watch",
       "kind": "assert-present",
       "sources": [
@@ -1751,6 +1757,7 @@
     {
       "id": "pilot-announcement-ack",
       "issue": 127,
+      "alsoIssues": [177],
       "state": "closed-regression-watch",
       "kind": "assert-present",
       "sources": [
@@ -1916,6 +1923,7 @@
     {
       "id": "gate-monitor-states",
       "issue": 0,
+      "alsoIssues": [173, 209],
       "state": "open",
       "kind": "assert-present",
       "sources": [
@@ -2222,6 +2230,7 @@
     {
       "id": "llm-stream-takeover",
       "issue": 147,
+      "alsoIssues": [177, 203],
       "state": "closed-regression-watch",
       "kind": "assert-present",
       "machine": {
@@ -2812,6 +2821,7 @@
     {
       "id": "gsx-deice-policy",
       "issue": 0,
+      "alsoIssues": [204],
       "state": "open",
       "kind": "assert-present",
       "machine": {
@@ -2879,6 +2889,7 @@
     {
       "id": "gsx-simbrief-reload",
       "issue": 0,
+      "alsoIssues": [174],
       "state": "open",
       "kind": "assert-present",
       "machine": {
@@ -3249,7 +3260,7 @@
     {
       "id": "flight-state-restored",
       "issue": 167,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "assert-present",
       "machine": {
         "kind": "required-fields",
@@ -4004,6 +4015,7 @@
     {
       "id": "si-fo-radios",
       "issue": 0,
+      "alsoIssues": [192],
       "state": "open",
       "kind": "assert-present",
       "machine": {
@@ -4509,7 +4521,7 @@
     {
       "id": "si-comms-history-cursor",
       "issue": 237,
-      "state": "fixed-unverified",
+      "state": "closed-regression-watch",
       "kind": "watch",
       "sources": [
         "session",
@@ -5441,6 +5453,23 @@
         "requires-human: on descent the Landing page calculates with the VAPP override empty. If a calculation is refused, the page says 'ProSim refused the calculation: HTTP … — …' and never 'is ProSim running?' while ProSim runs."
       ],
       "notes": "Built 2026-11-14. Core/Aircraft/Gateway/GatewayCalcResult (+ GatewayFailureText), CalcLdrRequest.AircraftSpeed int, ProsimGatewayClient.PostCalcAsync, Landing.razor / Takeoff.razor. Which ProSim version started to refuse the null is not known (the log kept only the status code before this change). The gateway computed the same distance for speed 0 and 135 in the hand test — whether the override changes the result at all is not established. Unverified live."
+    },
+    {
+      "id": "speech-atc-line-identifiers",
+      "issue": 0,
+      "state": "fixed-unverified",
+      "kind": "assert-absent",
+      "sources": [
+        "session",
+        "human"
+      ],
+      "checks": [
+        "Owner's flight 2026-11-14 (EGLL-LOWW), found in the speech.spoken events: 'runway three fourapproach' / 'runway three fourvacated' (the runway rule took the space before the next word), 'the BUDE2W arrival' and 'via NER5N' (procedure identifiers in an ATC read-back went to the voice as written), 'Flight level-three-hundred' (SayIntentions' 'Flight-level-3-hundred').",
+        "assert-absent: a speech.spoken 'spoken' text with a digit word glued to the next word ('fourapproach', 'fourvacated'), with a capital identifier that holds a digit before 'arrival' / 'departure' / 'transition' or after 'via' / 'on', or with 'level-'.",
+        "assert-present (when ATC names a SID / STAR in a clearance): the read-back says it as words — 'the Bude two Whiskey arrival' (phonetic: Phraseology has no fix names; the app's own check-in line says 'Budex two Whiskey' from the navlog).",
+        "requires-human: the phonetic form is understandable, and a three-letter base spelled in NATO words ('November Echo Romeo five November') is acceptable."
+      ],
+      "notes": "Built 2026-11-14. Core/Speech/Phraseology: the runway rule keeps the space, ProcedureInContext (context-bound: before arrival / departure / transition / SID / STAR, or after via / on with a designator letter) through ProcedureSpeech with no name source, and the 'flight-level-N-hundred' rule. Tests PhraseologyFlight20261114Tests. Unverified live."
     }
   ]
 }

@@ -70,6 +70,41 @@ public sealed class ProbeCatalogGuardTests
         Assert.True(offenders.Count == 0, "issue must be an integer (0 = no issue number): " + string.Join(", ", offenders));
     }
 
+    /// <summary>One probe is extended fix by fix and decides several issues; <c>issue</c> holds
+    /// the first, <c>alsoIssues</c> the rest (2026-11-14: fifteen open issues looked unprobed
+    /// because only the probe TEXT named them). Positive integers, no repeat, never the probe's
+    /// own <c>issue</c>.</summary>
+    [Fact]
+    public void AlsoIssues_ArePositiveIntegers_WithoutARepeatOrTheProbesOwnIssue()
+    {
+        var offenders = new List<string>();
+        foreach (var probe in Probes())
+        {
+            if (!probe.TryGetProperty("alsoIssues", out var also))
+            {
+                continue;
+            }
+
+            if (also.ValueKind != JsonValueKind.Array || also.GetArrayLength() == 0)
+            {
+                offenders.Add($"{Id(probe)} (alsoIssues must be a non-empty array, or absent)");
+                continue;
+            }
+
+            var own = probe.TryGetProperty("issue", out var issue) && issue.TryGetInt32(out var n) ? n : 0;
+            var seen = new HashSet<int>();
+            foreach (var entry in also.EnumerateArray())
+            {
+                if (entry.ValueKind != JsonValueKind.Number || !entry.TryGetInt32(out var number) || number <= 0 || number == own || !seen.Add(number))
+                {
+                    offenders.Add($"{Id(probe)} ({entry.GetRawText()})");
+                }
+            }
+        }
+
+        Assert.True(offenders.Count == 0, "alsoIssues entries must be positive issue numbers, unique, and not the probe's own issue: " + string.Join(", ", offenders));
+    }
+
     [Fact]
     public void Kind_IsOneTheCatalogHeaderDefines()
     {

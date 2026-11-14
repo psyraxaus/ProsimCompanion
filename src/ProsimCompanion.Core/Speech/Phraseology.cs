@@ -103,6 +103,10 @@ public static partial class Phraseology
     // zero-padded to three digits instead.
     private static readonly (Regex Rx, MatchEvaluator Evaluate)[] NumberRules =
     [
+        // SayIntentions writes a whole-hundred level "Flight-level-3-hundred"; read back as
+        // ATC said it (owner's flight 2026-11-14: the voice got "Flight level-three-hundred").
+        (Rx(@"\bflight[ -]level[ -](\d)[ -]hundred\b"),
+            m => "flight level " + NatoPhonetics.DigitWords[m.Groups[1].Value[0] - '0'] + " hundred"),
         (Rx(@"\bFL\s*0*(\d{2,3})\b"), m => "flight level " + Digits(m.Groups[1].Value)),
         (Rx(@"\b(transition level|flight level)\s+0*(\d{2,3})\b"),
             m => m.Groups[1].Value + " " + Digits(m.Groups[2].Value)),
@@ -114,8 +118,10 @@ public static partial class Phraseology
         (Rx(@"\bQNH\s+0*(\d{3,4})\b"), m => "Q N H " + Digits(m.Groups[1].Value)),
         (Rx(@"\bQFE\s+0*(\d{3,4})\b"), m => "Q F E " + Digits(m.Groups[1].Value)),
         (Rx(@"\b(\d{3}\.\d{1,3})\b"), m => Digits(m.Groups[1].Value)), // frequencies (e.g. 110.30)
-        (Rx(@"\brunway\s+(\d{1,2})\s*([LRC])?\b"),
-            m => "runway " + Digits(m.Groups[1].Value) + Side(m.Groups[2].Value)),
+        // The space belongs to the side letter: with it outside the group "runway 34 approach"
+        // came out "runway three fourapproach" (owner's flight 2026-11-14, EGLL-LOWW).
+        (Rx(@"\brunway\s+(\d{1,2})(?:\s*([LRC])\b)?"),
+            m => "runway " + Digits(m.Groups[1].Value) + Side(m.Groups[2].Value.ToUpperInvariant())),
 
         // ---- 2026-11-14 (owner report: fuel read "eighty seven, zero"): the figures that are
         // said digit by digit although no rule above names them. Everything these leave is a
@@ -153,6 +159,14 @@ public static partial class Phraseology
     // A bare runway designator ("ILS 27R", "vacated 09L") — case-sensitive, 01 to 36 only.
     [GeneratedRegex(@"\b(0[1-9]|[12]\d|3[0-6])([LRC])\b", RegexOptions.CultureInvariant)]
     private static partial Regex BareRunway();
+
+    // A SID / STAR / transition identifier in a line somebody else wrote (an ATC read-back:
+    // "Cleared for the BUDE2W arrival", "via NER5N" — owner's flight 2026-11-14, both reached
+    // the voice as written). Only in context: before "arrival / departure / transition / SID /
+    // STAR", or after "via" / "on" with a designator letter — "ENG1", "CAT3" and "CONF3" are
+    // not procedures. Capital form only.
+    [GeneratedRegex(@"(?<=\b(?i:via|on)\s)(?<id>[A-Z]{3,5}\d[A-Z]{1,2})\b|\b(?<id>[A-Z]{3,5}\d[A-Z]{0,2})(?=\s+(?:arrival|departure|transition|SID|STAR)\b)", RegexOptions.CultureInvariant)]
+    private static partial Regex ProcedureInContext();
 
     // Any other number glued to one capital letter ("36A", "546R"): number, then NATO word.
     [GeneratedRegex(@"(?<![A-Za-z\d.,])(\d{1,3})([A-Z])\b", RegexOptions.CultureInvariant)]
@@ -228,6 +242,10 @@ public static partial class Phraseology
         }
 
         var s = Letters(text, " ");
+
+        // No name source here: the phonetic form ("Bude two Whiskey"). A line the app composes
+        // itself names the fix through ISpokenText.Procedure before it gets here.
+        s = ProcedureInContext().Replace(s, m => ProcedureSpeech.Speak(m.Groups["id"].Value, static _ => null));
         foreach (var (rx, evaluate) in NumberRules)
         {
             s = rx.Replace(s, evaluate);
