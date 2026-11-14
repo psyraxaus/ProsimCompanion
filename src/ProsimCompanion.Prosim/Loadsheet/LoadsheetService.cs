@@ -27,7 +27,10 @@ public sealed partial class LoadsheetService : ILoadsheetControl, IDisposable
     // A322 operational constants with no dataref (per-variant config is future work).
     private const double DefaultMaxLawKg = 64500.0;
     private const double DefaultWaterWasteKg = 1080.0;
-    private static readonly TimeSpan SettleDelay = TimeSpan.FromSeconds(3);
+
+    /// <summary>The wait between the EFB dataref write and the ACARS uplink. An instance
+    /// value only so a test of the whole sequence does not sit through it twice.</summary>
+    internal TimeSpan SettleDelay { get; set; } = TimeSpan.FromSeconds(3);
 
     private readonly IProsimGateway _gateway;
     private readonly AcarsUplink _acars;
@@ -74,7 +77,8 @@ public sealed partial class LoadsheetService : ILoadsheetControl, IDisposable
     private LoadsheetData? _cachedFinal;
     private LoadsheetContext? _cachedFinalContext;
     private string? _pendingRevision;
-    private bool _lmcEvaluated;
+    // Once per departure cycle across both edges; read and written under _stateLock.
+    private readonly LmcAutoLatch _lmcLatch = new();
     private readonly LmcRevisionStore _lmcQuestion;
     private readonly JsonlEventLog _eventLog;
     private bool _finalSent;
@@ -169,6 +173,7 @@ public sealed partial class LoadsheetService : ILoadsheetControl, IDisposable
 
         _signals.RefuelServiceActive += OnRefuelServiceActive;
         _signals.BoardingCompleted += OnBoardingCompleted;
+        _signals.PushbackProgress += OnPushbackProgress;
         _signals.FlightCycleReset += OnFlightCycleReset;
         _connections.Changed += OnConnectionChanged;
         _resyncState.Assessed += OnResyncAssessed;
@@ -185,6 +190,7 @@ public sealed partial class LoadsheetService : ILoadsheetControl, IDisposable
         _stdTimer.Dispose();
         _signals.RefuelServiceActive -= OnRefuelServiceActive;
         _signals.BoardingCompleted -= OnBoardingCompleted;
+        _signals.PushbackProgress -= OnPushbackProgress;
         _signals.FlightCycleReset -= OnFlightCycleReset;
         _connections.Changed -= OnConnectionChanged;
         _resyncState.Assessed -= OnResyncAssessed;
@@ -389,12 +395,10 @@ public sealed partial class LoadsheetService : ILoadsheetControl, IDisposable
     private void OnBoardingCompleted()
     {
         var options = _options.CurrentValue;
-        // Last-minute change (issue #181): only when a final already exists at this edge — a
-        // final still to come is computed from the boarded load anyway.
-        if (options.LmcEnabled)
-        {
-            _ = EvaluateLmcAtBoardingCompleteAsync();
-        }
+        // Last-minute change (issue #181): here only when a final already exists at this edge
+        // (issued by hand before boarding ended). A final still to come is computed from the
+        // boarded load, so the check then waits for the departure edge (OnPushbackProgress).
+        _ = RunAutomaticLmcAsync(finalExists => _lmcLatch.OnBoardingComplete(options.LmcEnabled, finalExists));
 
         if (!options.AutoFinalOnBoardingComplete)
         {
@@ -820,7 +824,7 @@ public sealed partial class LoadsheetService : ILoadsheetControl, IDisposable
             _cachedFinal = null;
             _cachedFinalContext = null;
             _pendingRevision = null;
-            _lmcEvaluated = false;
+            _lmcLatch.Reset();
             _finalSent = false;
             _nextEditionNumber = 1;
         }

@@ -84,6 +84,119 @@ public sealed class LmcTests
         Assert.Contains(result.Reasons, r => r.StartsWith("take-off weight differs by 800 kg", StringComparison.Ordinal));
     }
 
+    // ---- when the automatic check runs (the fault of 2026-11-14: it hung off the edge that
+    // only schedules the final, and never ran) ----
+
+    [Fact]
+    public void AutoLatch_StandardOrder_WaitsAtBoardingComplete_AndEvaluatesOnceAtTheFirstDepartureEdge()
+    {
+        var latch = new LmcAutoLatch();
+
+        var boarding = latch.OnBoardingComplete(enabled: true, finalExists: false);
+        Assert.Equal(LmcAutoAction.Wait, boarding.Action);
+        Assert.Equal("boarding complete — no final loadsheet yet, last-minute change check waits for doors closed / pushback", boarding.Reason);
+        Assert.False(latch.Evaluated);
+
+        var doors = latch.OnPushbackStage(PushbackStage.DoorsClosed, enabled: true, finalExists: true);
+        Assert.True(doors.ShouldEvaluate);
+        Assert.Equal("DoorsClosed", doors.Moment);
+        Assert.Equal("last-minute change check at pushback stage DoorsClosed — the load aboard against the final loadsheet", doors.Reason);
+
+        foreach (var later in Enum.GetValues<PushbackStage>())
+        {
+            Assert.Equal(new LmcAutoDecision(LmcAutoAction.None, later.ToString(), null), latch.OnPushbackStage(later, enabled: true, finalExists: true));
+        }
+
+        Assert.Equal(LmcAutoAction.None, latch.OnBoardingComplete(enabled: true, finalExists: true).Action);
+    }
+
+    [Fact]
+    public void AutoLatch_FinalIssuedBeforeBoardingEnded_EvaluatesAtBoardingComplete_AndNotAgainAtThePushback()
+    {
+        var latch = new LmcAutoLatch();
+
+        var boarding = latch.OnBoardingComplete(enabled: true, finalExists: true);
+        Assert.True(boarding.ShouldEvaluate);
+        Assert.Equal(LmcAutoLatch.BoardingCompleteMoment, boarding.Moment);
+
+        Assert.Equal(LmcAutoAction.None, latch.OnPushbackStage(PushbackStage.DoorsClosed, enabled: true, finalExists: true).Action);
+        Assert.Equal(LmcAutoAction.None, latch.OnPushbackStage(PushbackStage.Pushing, enabled: true, finalExists: true).Action);
+    }
+
+    [Theory]
+    [InlineData(PushbackStage.DoorsClosed, true)]
+    [InlineData(PushbackStage.BridgeRemoved, true)]
+    [InlineData(PushbackStage.TugConnected, true)]   // GSX-menu pushback: no doors-closed stage (2026-11-14, second boarding)
+    [InlineData(PushbackStage.Pushing, true)]
+    [InlineData(PushbackStage.PushComplete, false)]  // engines running: no moment to compare weights
+    [InlineData(PushbackStage.EngineStartConfirmed, false)]
+    [InlineData(PushbackStage.Disconnecting, false)]
+    [InlineData(PushbackStage.Clear, false)]
+    public void AutoLatch_OnlyTheStagesBeforeTheEnginesRun_AreTheDepartureEdge(PushbackStage stage, bool isEdge)
+    {
+        Assert.Equal(isEdge, LmcAutoLatch.IsDepartureEdge(stage));
+        Assert.Equal(isEdge, new LmcAutoLatch().OnPushbackStage(stage, enabled: true, finalExists: true).ShouldEvaluate);
+    }
+
+    [Fact]
+    public void AutoLatch_NoFinalAtTheDepartureEdge_SaysSoOnce_AndALaterStageWithAFinalStillEvaluates()
+    {
+        var latch = new LmcAutoLatch();
+
+        var doors = latch.OnPushbackStage(PushbackStage.DoorsClosed, enabled: true, finalExists: false);
+        Assert.Equal(LmcAutoAction.Wait, doors.Action);
+        Assert.Equal("pushback stage DoorsClosed — no final loadsheet this cycle, last-minute change not evaluated", doors.Reason);
+        Assert.Equal(new LmcAutoDecision(LmcAutoAction.None, "BridgeRemoved", null), latch.OnPushbackStage(PushbackStage.BridgeRemoved, enabled: true, finalExists: false));
+
+        Assert.True(latch.OnPushbackStage(PushbackStage.TugConnected, enabled: true, finalExists: true).ShouldEvaluate);
+    }
+
+    [Fact]
+    public void AutoLatch_SwitchOff_DoesNothing_AndDoesNotSpendTheCycle_ResetOpensANewCycle()
+    {
+        var latch = new LmcAutoLatch();
+
+        Assert.Equal(new LmcAutoDecision(LmcAutoAction.None, LmcAutoLatch.BoardingCompleteMoment, null), latch.OnBoardingComplete(enabled: false, finalExists: true));
+        Assert.Equal(new LmcAutoDecision(LmcAutoAction.None, "DoorsClosed", null), latch.OnPushbackStage(PushbackStage.DoorsClosed, enabled: false, finalExists: true));
+        Assert.False(latch.Evaluated);
+
+        Assert.True(latch.OnPushbackStage(PushbackStage.DoorsClosed, enabled: true, finalExists: true).ShouldEvaluate);
+        Assert.True(latch.Evaluated);
+        latch.Reset();
+        Assert.False(latch.Evaluated);
+        Assert.True(latch.OnPushbackStage(PushbackStage.DoorsClosed, enabled: true, finalExists: true).ShouldEvaluate);
+    }
+
+    [Fact]
+    public void AutoLatch_StandardOrder_ARealChangeAfterTheFinal_IsWithinToleranceAtTheDepartureEdge()
+    {
+        var latch = new LmcAutoLatch();
+        latch.OnBoardingComplete(enabled: true, finalExists: false);
+
+        // The delayed final is computed from the live state: compared at that instant it can only be "no change".
+        Assert.Equal(LmcVerdict.NoChange, LmcEvaluator.Evaluate(Final(), Actual(), LmcTolerances.Default).Verdict);
+
+        // Two passengers offloaded after it, then the doors close.
+        Assert.True(latch.OnPushbackStage(PushbackStage.DoorsClosed, enabled: true, finalExists: true).ShouldEvaluate);
+        var result = LmcEvaluator.Evaluate(Final(), Actual(-2, -176), LmcTolerances.Default);
+        Assert.Equal(LmcVerdict.WithinTolerance, result.Verdict);
+        Assert.False(LmcEvaluator.IsGroundBurnOnly(result));
+    }
+
+    [Theory]
+    [InlineData(0, 0.0, 0.0, -80.0, true)]    // the APU's burn while waiting for the push
+    [InlineData(0, 0.0, 0.0, -400.0, true)]   // a long delay at the stand: still burn, not a load change
+    [InlineData(0, 0.0, 0.0, -30.0, false)]   // gauge noise: NoChange already
+    [InlineData(0, 0.0, 0.0, 200.0, false)]   // a top-up is a change
+    [InlineData(-2, -176.0, 0.0, -80.0, false)] // passengers moved as well
+    [InlineData(0, 0.0, 120.0, -80.0, false)]   // a bag loaded as well
+    public void GroundBurnOnly_IsLessFuelWithThePayloadUntouched(int paxDelta, double zfwDelta, double cargoDelta, double fuelDelta, bool expected)
+    {
+        var result = LmcEvaluator.Evaluate(Final(), Actual(paxDelta, zfwDelta, cargoDelta, fuelDelta), LmcTolerances.Default);
+
+        Assert.Equal(expected, LmcEvaluator.IsGroundBurnOnly(result));
+    }
+
     [Fact]
     public void FormatLmc_IsTheAirlineBlock_WithOptionalCargoFuelAndCaption()
     {

@@ -7,7 +7,11 @@ namespace ProsimCompanion.Prosim.Loadsheet;
 
 /// <summary>
 /// Last-minute changes on the final loadsheet (issue #181). Once per departure cycle, at the
-/// boarding-complete edge, when a final already exists: the load actually aboard (the live
+/// first edge that finds a final in hand (<see cref="LmcAutoLatch"/>): boarding complete when
+/// the final was issued by hand before boarding ended, else the first pushback stage before
+/// the engines run (doors closed … pushing) — the standard order, where the final only lands
+/// a crew-realism delay AFTER boarding complete and is computed from the live state at that
+/// instant, so nothing can differ from it until later. The load actually aboard (the live
 /// W&amp;B, bit-exact) against the cached final. Within tolerance → the LMC block stands under
 /// the final, the FO reads it (Speech side, off the store), an ACARS "LMC" message goes to the
 /// cockpit in its own slot — never over the loadsheets in 01/02 — and the FMS is NOT re-synced
@@ -54,27 +58,42 @@ public sealed partial class LoadsheetService
         return ok;
     }
 
-    private async Task EvaluateLmcAtBoardingCompleteAsync()
+    /// <summary>The departure edge of the automatic check (2026-11-14): the first pushback
+    /// stage before the engines run. Raised on the GSX pushback tick — the evaluation (an
+    /// ACARS uplink, possibly a revised final) is taken off that thread.</summary>
+    private void OnPushbackProgress(PushbackStage stage)
+    {
+        if (!LmcAutoLatch.IsDepartureEdge(stage))
+        {
+            return;
+        }
+
+        var enabled = _options.CurrentValue.LmcEnabled;
+        _ = Task.Run(() => RunAutomaticLmcAsync(finalExists => _lmcLatch.OnPushbackStage(stage, enabled, finalExists)));
+    }
+
+    /// <summary>One edge of the automatic check: the latch decides under the state lock (it
+    /// is what keeps "once per departure cycle" across the two edges), the evaluation runs
+    /// outside it.</summary>
+    private async Task RunAutomaticLmcAsync(Func<bool, LmcAutoDecision> decide)
     {
         try
         {
+            LmcAutoDecision decision;
             lock (_stateLock)
             {
-                if (_lmcEvaluated)
-                {
-                    return;
-                }
-
-                if (_cachedFinal is null)
-                {
-                    RecordDecision("boarding complete — no final loadsheet yet, last-minute change not evaluated");
-                    return;
-                }
-
-                _lmcEvaluated = true;
+                decision = decide(_cachedFinal is not null);
             }
 
-            await EvaluateLmcAsync(onDemand: false, CancellationToken.None).ConfigureAwait(false);
+            if (decision.Reason is not null)
+            {
+                RecordDecision(decision.Reason);
+            }
+
+            if (decision.ShouldEvaluate)
+            {
+                await EvaluateLmcAsync(onDemand: false, CancellationToken.None, decision.Moment).ConfigureAwait(false);
+            }
         }
         catch (Exception ex)
         {
@@ -82,7 +101,7 @@ public sealed partial class LoadsheetService
         }
     }
 
-    private async Task<bool> EvaluateLmcAsync(bool onDemand, CancellationToken cancellationToken)
+    private async Task<bool> EvaluateLmcAsync(bool onDemand, CancellationToken cancellationToken, string moment = "OnDemand")
     {
         LoadsheetData final;
         LoadsheetContext finalContext;
@@ -119,10 +138,16 @@ public sealed partial class LoadsheetService
             _ => LmcDisposition.AwaitingDecision,
         };
 
+        // Fuel burnt at the stand since the final is taxi fuel, not a change: silent on the
+        // automatic path (an on-demand check still shows what it measured).
+        var groundBurnOnly = !onDemand && LmcEvaluator.IsGroundBurnOnly(result);
+
         _eventLog.Record("loadsheet.lmc", new
         {
             verdict = result.Verdict.ToString(),
             onDemand,
+            moment,
+            groundBurnOnly,
             againstEdno = finalContext.EditionNumber,
             deltaPax = result.DeltaPax,
             deltaZfwKg = Math.Round(result.DeltaZfwKg),
@@ -144,6 +169,12 @@ public sealed partial class LoadsheetService
         // NoChange is silent on the automatic path; an on-demand check shows "no change" on the page.
         if (result.Verdict == LmcVerdict.NoChange && !onDemand)
         {
+            return true;
+        }
+
+        if (groundBurnOnly)
+        {
+            RecordDecision($"last-minute change: fuel {result.DeltaFuelKg:+0;-0} kg since the final with the payload unchanged — burnt at the stand, not a change");
             return true;
         }
 

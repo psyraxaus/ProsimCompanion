@@ -299,9 +299,20 @@ Built because ProSim's Preliminary loadsheet endpoint is broken for non-A320 var
   values carry `L` markers.
 - CG plausibility validation before emitting (refuse to send a loadsheet from an unpopulated CG).
 - Randomized dispatcher name pool for flavour.
-- **Last-minute changes** (issue #181, 2026-10-24): at boarding-complete, when a final already
-  exists, the live state is run through the same `CalculateFinal` and compared with the cached
-  final (`LmcEvaluator`). Within tolerance → the LMC text (`LMC  PAX -2  ZFW 58.8  TOW 65.8  LAW
+- **Last-minute changes** (issue #181, 2026-10-24; the moment corrected 2026-11-14): once per
+  departure cycle the live state is run through the same `CalculateFinal` and compared with the
+  cached final (`LmcEvaluator`). The moment is the first edge that finds a final in hand
+  (`LmcAutoLatch`, Core): **boarding complete** when the final was issued by hand before
+  boarding ended, else the **first pushback stage before the engines run**
+  (`GroundOpsSignals.PushbackProgress`: DoorsClosed / BridgeRemoved from the beacon sequence,
+  TugConnected / Pushing for a pushback asked on GSX's own menu). The final is computed from the
+  live state at the instant it is generated, and the automatic final only lands a crew-realism
+  delay after boarding complete — so as first built (boarding complete only) the check never
+  ran in the standard order (EGLL 2026-11-14, three boardings, no `loadsheet.lmc` event). Less
+  fuel with the payload untouched is the APU's burn since the final, not a change, and stays
+  silent on the automatic path (`LmcEvaluator.IsGroundBurnOnly`). The final is not kept across
+  an app restart in memory, so a session restarted after the final does not run the automatic
+  check. Within tolerance → the LMC text (`LMC  PAX -2  ZFW 58.8  TOW 65.8  LAW
   61.4  MACZFW 26.9  MACTOW 25.4`) is uplinked as type `LMC`, slot **`"03"`**, `accept=false` —
   never slots 01/02, so it neither replaces nor is replaced by a loadsheet; INIT B is not
   written. Beyond tolerance → either a revised final through the normal final path with the

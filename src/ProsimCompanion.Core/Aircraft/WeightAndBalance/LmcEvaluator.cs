@@ -122,6 +122,23 @@ public static class LmcEvaluator
             macZfwShift, macTowShift, reasons);
     }
 
+    /// <summary>True when the only difference is LESS fuel with the payload untouched: the
+    /// APU (or an engine already turning) burnt it between the final and the check. That is
+    /// taxi fuel, not a last-minute change — the automatic check at the departure edge runs
+    /// some 15 minutes after the final (first boarding in the log of 2026-11-14: final
+    /// 08:18:34 local, doors closed 08:34:02) and an APU at roughly 2 kg a minute crosses <see cref="NoChangeFuelKg"/> on
+    /// any longer wait. No upper bound: fuel leaves the tanks at the stand by being burnt, a
+    /// defuelling is not modelled. A top-up (more fuel) is a change and never matches. The
+    /// MAC figures are left out on purpose — both follow the fuel through the gross CG.</summary>
+    public static bool IsGroundBurnOnly(LmcResult result)
+    {
+        ArgumentNullException.ThrowIfNull(result);
+        return result.DeltaPax == 0
+            && Math.Abs(result.DeltaZfwKg) < NoChangeWeightKg
+            && Math.Abs(result.DeltaCargoKg) < NoChangeWeightKg
+            && result.DeltaFuelKg <= -NoChangeFuelKg;
+    }
+
     /// <summary>The FO's spoken LMC for a within-tolerance change: the deltas, the new
     /// figures, and the reminder that the FMS is not re-synced on its own. Tonnes to 1 dp,
     /// invariant culture — a European locale must never emit "58,9". Every number in it is
