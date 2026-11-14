@@ -180,9 +180,11 @@ public sealed class DeicePacksProcedureTests : IDisposable
     // ---- Holdover fluid source (part 4) ----
 
     [Fact]
-    public void ResolveFluid_PrefersTheLvar_ThenTheMenuAnswer_ThenTheSettingsWithAWarning()
+    public void ResolveFluid_PrefersTheMenuAnswer_ThenTheSignalsFluid_ThenTheSettingsWithAWarning()
     {
-        Assert.Equal((1, 75, "GSX", false), DeiceHoldoverService.ResolveFluid(1, 4, 75, "Type IV", "75"));
+        // The menu answer first since EGLL 2026-11-14 (issue #166; DeiceAppliedFluidTests).
+        Assert.Equal((4, 75, "menu answer", false), DeiceHoldoverService.ResolveFluid(1, 4, 75, "Type IV", "75"));
+        Assert.Equal((1, 75, "GSX", false), DeiceHoldoverService.ResolveFluid(1, null, 75, "Type IV", "100"));
         Assert.Equal((2, 100, "menu answer", false), DeiceHoldoverService.ResolveFluid(0, 2, 100, "Type IV", "75"));
         Assert.Equal((2, 75, "menu answer", false), DeiceHoldoverService.ResolveFluid(0, 2, null, "Type IV", "75"));
         Assert.Equal((4, 75, "settings (unconfirmed)", true), DeiceHoldoverService.ResolveFluid(0, null, null, "Type IV", "75"));

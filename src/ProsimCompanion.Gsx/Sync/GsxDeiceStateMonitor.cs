@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using ProsimCompanion.Core.Aircraft;
+using ProsimCompanion.Core.Deice;
 using ProsimCompanion.Core.EventLog;
 using ProsimCompanion.Core.State;
 
@@ -73,6 +74,13 @@ public sealed class GsxDeiceStateMonitor : Core.Hosting.IStartupModule, IDisposa
         _ => $"{state} (unknown)",
     };
 
+    /// <summary>The fluid the type LVAR names while a treatment is Active (5) or Completed (6),
+    /// read as a zero-based index — "Type IV" for 3 (issue #166: 0 with Type I on 2026-10-10,
+    /// 3 with Type IV picked on 2026-11-14; inferred, not documented). Null at any other state:
+    /// at rest the LVAR reads 0, or still holds the last treatment's value, and names nothing.</summary>
+    public static string? AssumedFluid(int state, int type)
+        => state is 5 or 6 && DeiceAppliedFluid.FromLvar(type) is { } fluidType ? DeiceAppliedFluid.Label(fluidType) : null;
+
     private void OnChanged(object? sender, EventArgs e)
     {
         try
@@ -96,10 +104,21 @@ public sealed class GsxDeiceStateMonitor : Core.Hosting.IStartupModule, IDisposa
                 _lastState = state;
                 _lastType = type;
                 _diagnostics.UpdateDeiceLvars(new GsxDeiceLvarView(DateTimeOffset.UtcNow, state, Label(state), type));
-                _logger.LogInformation(
-                    "GSX de-icing LVARs: state {State} ({Label}), fluid type {Type} (was state {Previous})",
-                    state, Label(state), type, previous);
-                _eventLog.Record("gsx-deice-state", new { state, label = Label(state), fluidType = type, previousState = previous });
+                var assumed = AssumedFluid(state, type);
+                if (assumed is null)
+                {
+                    _logger.LogInformation(
+                        "GSX de-icing LVARs: state {State} ({Label}), fluid type {Type} (was state {Previous})",
+                        state, Label(state), type, previous);
+                }
+                else
+                {
+                    _logger.LogInformation(
+                        "GSX de-icing LVARs: state {State} ({Label}), fluid type {Type} = {Assumed} as a zero-based index (assumed, not documented) (was state {Previous})",
+                        state, Label(state), type, assumed, previous);
+                }
+
+                _eventLog.Record("gsx-deice-state", new { state, label = Label(state), fluidType = type, fluidAssumed = assumed, previousState = previous });
 
                 // EFHK 2026-10-10 (issue #166): state 6 arrived 43 s BEFORE the Remote API's
                 // Completed edge and the fluid type read 0 throughout. Logged as the early

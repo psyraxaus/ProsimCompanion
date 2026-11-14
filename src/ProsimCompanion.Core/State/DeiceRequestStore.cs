@@ -162,6 +162,24 @@ public sealed class DeiceRequestStore : CaptainsQuestionStore<DeiceRequestSnapsh
             announceAnswer: false);
     }
 
+    /// <summary>Puts back the answer of this departure after an app restart (issue #166, EGLL
+    /// 2026-11-14 — see <see cref="DeiceVerdictMemory"/>). No <see cref="ICaptainsQuestionStore.Answered"/>
+    /// edge: the answer was announced, logged and acted on in the session that received it —
+    /// a second edge would write a second <c>gsx-deice-policy</c> answer and, for a "yes" after
+    /// the sequence completed, call de-icing a second time. True when the answer was taken.</summary>
+    public bool Restore(DeiceVerdictMemory saved)
+    {
+        ArgumentNullException.ThrowIfNull(saved);
+        var taken = false;
+        Update(s =>
+        {
+            var next = saved.ApplyTo(s);
+            taken = !ReferenceEquals(next, s);
+            return next;
+        });
+        return taken;
+    }
+
     /// <summary>The departure sequencer reports the DeIce step's turn has come (every earlier
     /// service done or skipped, the plan gate passed). Idempotent per cycle. A question that
     /// was asked earlier and still stands is re-asked once, with a fresh TTL — the captain

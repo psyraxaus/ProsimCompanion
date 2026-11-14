@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging.Abstractions;
 using ProsimCompanion.Core.Aircraft;
+using ProsimCompanion.Core.EventLog;
 using ProsimCompanion.Core.State;
 using ProsimCompanion.Gsx.Mirror;
 using ProsimCompanion.Gsx.Protocol;
@@ -17,12 +18,16 @@ public sealed class GsxGroundOpsSignalRelayTests : IDisposable
 {
     private readonly GsxServiceLifecycleTracker _tracker = new(NullLogger<GsxServiceLifecycleTracker>.Instance);
     private readonly GroundOpsSignals _signals = new();
+    private readonly DeiceActivityStore _activity;
+    private readonly JsonlEventLog _eventLog = new(Directory.CreateTempSubdirectory("pc-tests-").FullName, NullLogger<JsonlEventLog>.Instance);
+    private readonly StubSimVars _simVars = new(fluidType: 1); // a zero-based index: 1 = Type II
     private readonly GsxGroundOpsSignalRelay _relay;
     private readonly List<string> _raised = [];
 
     public GsxGroundOpsSignalRelayTests()
     {
-        _relay = new GsxGroundOpsSignalRelay(_tracker, _signals, new StubSimVars(fluidType: 2),
+        _activity = new DeiceActivityStore(_signals);
+        _relay = new GsxGroundOpsSignalRelay(_tracker, _signals, _simVars, _activity, _eventLog,
             NullLogger<GsxGroundOpsSignalRelay>.Instance);
         _signals.RefuelServiceActive += () => _raised.Add("refuel-active");
         _signals.RefuelCompleted += () => _raised.Add("refuel-completed");
@@ -32,7 +37,12 @@ public sealed class GsxGroundOpsSignalRelayTests : IDisposable
         _signals.DeiceCompleted += type => _raised.Add($"deice-completed:{type}");
     }
 
-    public void Dispose() => _relay.Dispose();
+    public void Dispose()
+    {
+        _relay.Dispose();
+        _activity.Dispose();
+        _eventLog.DisposeAsync().AsTask().GetAwaiter().GetResult();
+    }
 
     private static Dictionary<string, GsxServiceInfo> Services(params (string Id, GsxServiceState State)[] entries)
         => entries.ToDictionary(
@@ -107,6 +117,55 @@ public sealed class GsxGroundOpsSignalRelayTests : IDisposable
             _raised);
     }
 
+    // ---- The de-icing fluid on the completed edge (issue #166, EGLL 2026-11-14) ----
+
+    [Fact]
+    public void Deice_TheAppsMenuAnswer_IsTheFluid_NotTheRawLvar_Egll20261114()
+    {
+        // 04:42:06Z picked 'Fluid Type IV'; 04:42:07Z the LVAR read 3; 04:44:49Z the raw 3
+        // went out and the card and the ground crew said Type III.
+        _activity.RecordMenuAnswer(4, null);
+        _simVars.FluidType = 3;
+
+        _tracker.Process(Services(("DeIce", GsxServiceState.Completed)));
+
+        Assert.Equal(["deice-completed:4"], _raised);
+    }
+
+    [Fact]
+    public void Deice_WithoutAMenuAnswer_TheLvarIsAZeroBasedIndex_Efhk20261010()
+    {
+        // GSX sprayed Type I (its own choice) and the LVAR read 0 throughout: Type I, not "unknown".
+        _simVars.FluidType = 0;
+
+        _tracker.Process(Services(("DeIce", GsxServiceState.Completed)));
+
+        Assert.Equal(["deice-completed:1"], _raised);
+    }
+
+    [Fact]
+    public void Deice_WithoutAMenuAnswerOrADeliveredLvar_TheFluidIsUnknown()
+    {
+        _simVars.FluidType = null;
+
+        _tracker.Process(Services(("DeIce", GsxServiceState.Completed)));
+
+        Assert.Equal(["deice-completed:0"], _raised);
+    }
+
+    [Fact]
+    public void Deice_AMenuAnswerOfTheLastCycle_IsNotThisCyclesFluid()
+    {
+        _activity.RecordMenuAnswer(4, 75);
+        _tracker.ResetCycle();
+        _signals.RaiseFlightCycleReset();
+        _simVars.FluidType = 0;
+
+        _tracker.Process(Services(("DeIce", GsxServiceState.Completed)));
+
+        Assert.Equal(["deice-completed:1"], _raised);
+    }
+
     [Fact]
     public void RefuelTopUp_SecondRunInOneCycle_DoesNotRelayAgain()
     {
@@ -148,10 +207,13 @@ public sealed class GsxGroundOpsSignalRelayTests : IDisposable
         Assert.False(suppressed);
     }
 
-    private sealed class StubSimVars(double fluidType) : ISimVars
+    private sealed class StubSimVars(double? fluidType) : ISimVars
     {
+        /// <summary>L:FSDT_GSX_DEICING_TYPE as the sim reports it; null = not delivered.</summary>
+        public double? FluidType { get; set; } = fluidType;
+
         public IDataRefSubscription SubscribeDynamic(string simVarName, string unit, DataRefTier tier)
-            => new StubSubscription { Name = simVarName, RawValue = fluidType };
+            => new StubSubscription { Name = simVarName, Source = this };
 
         public Task WriteAsync(string simVarName, double value, CancellationToken cancellationToken = default) => Task.CompletedTask;
     }
@@ -159,7 +221,8 @@ public sealed class GsxGroundOpsSignalRelayTests : IDisposable
     private sealed class StubSubscription : IDataRefSubscription
     {
         public required string Name { get; init; }
-        public object? RawValue { get; init; }
+        public required StubSimVars Source { get; init; }
+        public object? RawValue => Source.FluidType;
         public bool IsStale => false;
         public DateTimeOffset? LastUpdatedUtc => null;
         public event EventHandler? ValueChanged { add { } remove { } }

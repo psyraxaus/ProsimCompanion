@@ -3344,7 +3344,7 @@
         "assert-present: a 'gsx-deice-fluid' event {asked fluidType, answered true, fluidType 1..4, picked, entries, source settings} and one {asked concentration, answered true, concentration, picked, entries} with the matching gsx-question 'de-icing fluidType menu' / 'de-icing concentration menu' decision lines reading picked '<entry>' for <configured value>. The picked fluid entry names the configured deIceFluidType (Type IV never matched by 'Type I'); the picked concentration entry carries the configured figure (75 matches '75%' / '75/25', never '175').",
         "assert-absent: the log line \"GSX menu 'Select fluid type' has no question handler\" / \"'Select concentration' has no question handler\" (the 2026-10-10 signature) while the trigger holds. With autoDeIce off and no app request, a 'gsx-deice-fluid' {answered false, source user} and the decision 'left for the user (auto-accept off and the app did not request de-icing)' is the correct outcome.",
         "watch: the 'entries' arrays — the exact wording of GSX's two menus was never captured (the wire trace had no frames for that window); record them so the matchers can be tightened to literal entries.",
-        "Holdover card: after the DeIce Completed edge the log reads 'Deice complete — holdover card armed (Type <roman> <conc>%, from GSX | menu answer)'; the warning 'holdover card armed … from the settings: fluid type unconfirmed' appears ONLY when the LVAR read 0 and no menu was answered by the app (then report it as the gap it is). The OFP page's fluid line shows the source in brackets.",
+        "Holdover card: after the DeIce Completed edge the log reads 'Deice complete — holdover card armed (Type <roman> <conc>%, from menu answer | GSX)' and the fluid is the one the fluidType event picked (2026-11-14: the menu answer outranks the LVAR, which is a zero-based index — probe deice-holdover-fluid-source); the warning 'holdover card armed … from the settings: fluid type unconfirmed' appears ONLY when no menu was answered by the app and the LVAR was not delivered or is outside 0–3 (then report it as the gap it is). The OFP page's fluid line shows the source in brackets.",
         "requires-human: GSX's de-icing trucks visibly spray the configured fluid (GSX names the fluid in its status text)."
       ],
       "notes": "Issue #166 (EFHK 2026-10-10): the catalogue only knew the predecessor's combined 'Select de-icing type' title, so both of GSX's separate menus were left for the user, GSX sprayed its default, and the holdover card armed with the configured 'Type IV 75%' while L:FSDT_GSX_DEICING_TYPE read 0. Fix 2026-10-11: GsxQuestionCatalog answers 'Select fluid type' / 'Select concentration' from gsx.deIceFluidType / deIceConcentration (word-boundary roman numeral + figure matchers, re-found exactly), records the answers on the Core DeiceActivityStore, and DeiceHoldoverService.ResolveFluid arms LVAR → menu answer → settings (warning)."
@@ -5529,6 +5529,64 @@
         }
       },
       "notes": "Built 2026-11-14. Root causes: the once-per-cycle flag was a field of FmgcCrossCheckService (not in the snapshot); the first repeat ran 4.5 s after the start, 2 s before the snapshot restore; the second came from ILegBoundaryEvents.LegBegan ('first plan of the session') clearing the flag when the restored OFP was set; the ADIRS subscriptions had no pushed value yet and read their fallbacks. Speech/FoSide/CrossCheckAutoLatch (pure: RestoreSettle 15 s, ValuesWait 30 s, LegBegan on the same plan id keeps the latch) + FmgcCrossCheckService as IFlightStatePart 'fmgcCrossCheck' (RestoreOrder 60). Tests CrossCheckAutoLatchTests, FmgcCrossCheckSnapshotPartTests. Unverified live."
+    },
+    {
+      "id": "deice-verdict-survives-restart",
+      "issue": 166,
+      "state": "fixed-unverified",
+      "kind": "assert-absent",
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "Owner's flight 2026-11-14 (EGLL, sessions 035435 and 043241): gsx-deice-policy {verdict 'declined', source 'voice', reason 'declined by the captain (voice)'} at 04:20:45Z, app restart at 04:32:42Z on the same plan at the same stand (flight-state-restored without a de-icing item), then at 04:40:51Z gsx-question {action 'de-icing offer', reason \"answered: picked 'Yes' — policy verdict Pending — GSX's own icing judgement stands\"} and the DeIce service Active at 04:42:04Z.",
+        "assert-absent (the machine block; the reducer reads the sessions of one flight together): after a gsx-deice-policy {verdict 'declined'} a gsx-question 'de-icing offer' whose reason reads 'policy verdict Pending'. The correct line after a decline, with or without a restart in between, is \"answered: picked 'No' — the captain declined de-icing (declined by the captain (voice))\" and no DeIce Requested / Active edge follows. On a bundle with two legs judge each departure on its own: a Pending offer on the NEXT leg (before that leg's de-ice step) is not this fault.",
+        "assert-present after an app restart at the stand with the question already answered: gsx-deice-verdict-restored {answer 'declined' | 'accepted', source, reason, answeredAtUtc, planId, verdict}, the log line 'De-icing answer restored from the flight-state snapshot: declined (voice, HH:mm:ssZ, plan req:…) — GSX's own de-icing offer is answered No', and 'deiceVerdict' among the items of flight-state-restored. No second gsx-deice-policy {verdict 'declined' | 'accepted'} and no second FO read-back for the restored answer (the answer was announced in the session that received it); one gsx-deice-policy {verdict 'Ask'} from the policy running again is expected and raises no deice-question.",
+        "assert-absent: gsx-deice-verdict-restored on a session whose plan differs from the event's planId, after an arrival (gsx-automation-phase Arrival / a flight cycle reset), after a gsx-cycle-reset {reason 'new flight plan'} or after the end of duty — the log then reads '… was given for plan req:A, the plan loaded is req:B — not restored' or shows no de-icing line at all.",
+        "Not kept on purpose: an open question or a verdict without an answer (NotRequired, NoData) — after a restart the policy decides again when the DeIce step's turn comes, and may ask again."
+      ],
+      "machine": {
+        "kind": "signature",
+        "trigger": {
+          "source": "session",
+          "type": "gsx-deice-policy",
+          "contains": "\"verdict\":\"declined\""
+        },
+        "signature": {
+          "source": "session",
+          "type": "gsx-question",
+          "contains": "policy verdict Pending"
+        }
+      },
+      "notes": "Built 2026-11-14 (issue #166, fault 1 of the first live test). Root cause: the DeiceRequestStore was not part of the flight-state snapshot, so a restart left it at Pending and GsxQuestionCatalog.IceWarningAnswer fell through to the legacy Yes. Core: DeiceVerdictMemory (pure: Of / IsForPlan / ApplyTo), DeiceRequestStore.Restore (no Answered edge), DeiceVerdictSnapshotPart ('deiceVerdict', RestoreOrder 55, stamps the plan id when the answer appears, empties the store at the end of duty). Tests DeiceVerdictSnapshotPartTests. Unverified live."
+    },
+    {
+      "id": "deice-holdover-fluid-source",
+      "issue": 166,
+      "state": "fixed-unverified",
+      "kind": "assert-absent",
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "Owner's flight 2026-11-14 (EGLL, session 043241): gsx-deice-fluid {asked 'fluidType', picked 'Fluid Type IV', fluidType 4} at 04:42:06Z, gsx-deice-state {state 5, fluidType 3} at 04:42:07Z, then at 04:44:49Z the log line 'Deice complete — holdover card armed (\"Type III 75%\", from \"GSX\")' and the ground crew's 'de-icing complete, Type three'. EFHK 2026-10-10: GSX sprayed Type I and the LVAR read 0 throughout. The LVAR is read as a zero-based index (0 = Type I … 3 = Type IV) — inferred from those two flights, not documented.",
+        "assert-present on every DeIce Completed edge: one gsx-deice-fluid-applied {fluidType 1..4 | 0, source 'menu answer' | 'lvar (zero-based, assumed)' | 'unknown', menuFluidType, lvar, lvarFluidType, disagrees}. When the app answered the fluid menu (a gsx-deice-fluid {asked 'fluidType', answered true} earlier in the treatment) its fluidType equals that event's fluidType and source is 'menu answer'; the holdover line reads 'holdover card armed (Type <that fluid> <conc>%, from menu answer)' and the ground.upcall {call 'ground.upcall.deice'} text names the same fluid.",
+        "assert-absent (the machine block): gsx-deice-fluid-applied {disagrees true} — the app's menu answer and the LVAR (as a zero-based index) name different fluids; the Warning 'De-icing fluid: the app answered Type … on GSX's fluid menu but L:FSDT_GSX_DEICING_TYPE reads N (…)' carries both values. One such event means GSX sprayed something else or the zero-based mapping is wrong: report both values and what GSX's status text named.",
+        "Without a menu answer by the app (GSX's own choice, the pilot's pick, or an app restart after the menu): source 'lvar (zero-based, assumed)', fluidType = lvar + 1, and the holdover line says 'the fluid menu was not answered by the app, L:FSDT_GSX_DEICING_TYPE is read as a zero-based index … an assumption'. The warning 'from the settings: fluid type unconfirmed' now appears only when the LVAR was not delivered or is outside 0–3.",
+        "watch (settles the mapping): a treatment with Fluid Type II or III — report lvar against the picked entry. gsx-deice-state carries fluidAssumed ('Type IV' for 3) while state is 5 or 6, null otherwise.",
+        "requires-human: GSX's status text / trucks name the fluid the card shows."
+      ],
+      "machine": {
+        "kind": "signature",
+        "signature": {
+          "source": "session",
+          "type": "gsx-deice-fluid-applied",
+          "contains": "\"disagrees\":true"
+        }
+      },
+      "notes": "Built 2026-11-14 (issue #166, fault 2 of the first live test). Root cause: GsxGroundOpsSignalRelay raised DeiceCompleted with the raw LVAR and DeiceHoldoverService.ResolveFluid trusted it first as 1 = Type I … 4 = Type IV. Core: DeiceAppliedFluid (pure: FromLvar zero-based, Resolve menu answer → LVAR → unknown, Disagrees). Gsx: the relay resolves once on the Completed edge and raises the resolved fluid (the card and GroundCrewUpcallService read the same number); GsxDeiceStateMonitor.AssumedFluid. ResolveFluid order is now menu answer → signal → settings. Tests DeiceAppliedFluidTests, GsxGroundOpsSignalRelayTests (Deice_*). A menu answer is not kept across an app restart (the LVAR mapping then decides). Unverified live."
     }
   ]
 }

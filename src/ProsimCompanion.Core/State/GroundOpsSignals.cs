@@ -37,9 +37,11 @@ public sealed class GroundOpsSignals
     /// that treats both kinds alike says so in its signature (<c>FlightCycleResetKind _</c>).</summary>
     public event Action<FlightCycleResetKind>? FlightCycleReset;
 
-    /// <summary>GSX de-icing completed; the argument is the applied fluid type from
-    /// <c>L:FSDT_GSX_DEICING_TYPE</c> (1=Type I … 4=Type IV, 0 = unknown). Arms the holdover
-    /// card.</summary>
+    /// <summary>GSX de-icing completed; the argument is the applied fluid type (1=Type I …
+    /// 4=Type IV, 0 = unknown) as the GSX relay resolved it — the fluid-menu entry the app
+    /// answered, else <c>L:FSDT_GSX_DEICING_TYPE</c> read as a zero-based index
+    /// (<see cref="Deice.DeiceAppliedFluid.Resolve"/>, issue #166: never the raw LVAR, which
+    /// read 3 for Type IV on 2026-11-14). Arms the holdover card.</summary>
     public event Action<int>? DeiceCompleted;
 
     /// <summary>The arrival is done with the aircraft (deboarding completed): the phase

@@ -394,6 +394,7 @@ public static class CoreServiceCollectionExtensions
         services.AddSingleton<Flight.IFlightStatePart, Flight.OfpSnapshotPart>();
         services.AddSingleton<Flight.IFlightStatePart, Flight.ArrivalMinimaSnapshotPart>();
         services.AddSingleton<Flight.IFlightStatePart, Flight.DepartureCycleSnapshotPart>();
+        services.AddSingleton<Flight.IFlightStatePart, Flight.DeiceVerdictSnapshotPart>();
         services.AddStartupModule<Flight.FlightStateSnapshotService>();
 
         // IFlightDataSource and IProsimDataRefs come from the Prosim project's registrations.

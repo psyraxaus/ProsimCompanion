@@ -1,5 +1,7 @@
 using Microsoft.Extensions.Logging;
 using ProsimCompanion.Core.Aircraft;
+using ProsimCompanion.Core.Deice;
+using ProsimCompanion.Core.EventLog;
 using ProsimCompanion.Core.State;
 using ProsimCompanion.Gsx.Services;
 
@@ -23,6 +25,8 @@ public sealed class GsxGroundOpsSignalRelay : IDisposable
     private readonly GsxServiceLifecycleTracker _lifecycle;
     private readonly GroundOpsSignals _signals;
     private readonly ILogger<GsxGroundOpsSignalRelay> _logger;
+    private readonly DeiceActivityStore _activity;
+    private readonly JsonlEventLog _eventLog;
     private readonly IDataRefSubscription<double> _deiceFluidType;
     private readonly GroundOpsSignalRelayCore _core = new();
     private readonly object _gate = new();
@@ -31,17 +35,24 @@ public sealed class GsxGroundOpsSignalRelay : IDisposable
         GsxServiceLifecycleTracker lifecycle,
         GroundOpsSignals signals,
         ISimVars simVars,
+        DeiceActivityStore activity,
+        JsonlEventLog eventLog,
         ILogger<GsxGroundOpsSignalRelay> logger)
     {
         ArgumentNullException.ThrowIfNull(lifecycle);
         ArgumentNullException.ThrowIfNull(signals);
         ArgumentNullException.ThrowIfNull(simVars);
+        ArgumentNullException.ThrowIfNull(activity);
+        ArgumentNullException.ThrowIfNull(eventLog);
         ArgumentNullException.ThrowIfNull(logger);
         _lifecycle = lifecycle;
         _signals = signals;
+        _activity = activity;
+        _eventLog = eventLog;
         _logger = logger;
-        // Applied fluid TYPE the user picked at the GSX deice crew (1=Type I … 4=Type IV).
-        // GSX exposes the type but not the concentration.
+        // The fluid TYPE GSX sprayed, as a zero-based index as far as two flights show
+        // (0 = Type I … 3 = Type IV — DeiceAppliedFluid.FromLvar; until 2026-11-14 it was read
+        // as 1 = Type I … 4 = Type IV). GSX exposes the type but not the concentration.
         _deiceFluidType = simVars.Subscribe(GsxLvarNames.DeicingType);
         _lifecycle.ServiceEvent += OnServiceEvent;
         _signals.FlightCycleReset += OnFlightCycleReset;
@@ -109,8 +120,65 @@ public sealed class GsxGroundOpsSignalRelay : IDisposable
                 break;
 
             case GroundOpsRelaySignal.DeiceCompleted:
-                _signals.RaiseDeiceCompleted((int)_deiceFluidType.Value);
+                _signals.RaiseDeiceCompleted(ResolveDeiceFluid());
                 break;
         }
+    }
+
+    /// <summary>The fluid of the treatment that just completed (issue #166, EGLL 2026-11-14:
+    /// the raw LVAR went out, read 3 after the app had picked "Fluid Type IV", and the card
+    /// and the ground crew both said Type III). The app's own menu answer is the truth; the
+    /// LVAR is compared with it, or — when the app did not answer the menu — read as a
+    /// zero-based index. Once per treatment: this edge is once per cycle (the core above).</summary>
+    private int ResolveDeiceFluid()
+    {
+        var menuFluidType = _activity.Snapshot().MenuFluidType;
+        var fluid = DeiceAppliedFluid.Resolve(_deiceFluidType.RawValue is null ? null : _deiceFluidType.Value, menuFluidType);
+        var lvarReading = fluid.LvarRaw is { } raw ? raw.ToString(System.Globalization.CultureInfo.InvariantCulture) : "nothing";
+        var lvarLabel = DeiceAppliedFluid.Label(fluid.LvarFluidType ?? 0);
+
+        switch (fluid.Witness)
+        {
+            case DeiceFluidWitness.MenuAnswer when fluid.Disagrees:
+                _logger.LogWarning(
+                    "De-icing fluid: the app answered {MenuFluid} on GSX's fluid menu but L:FSDT_GSX_DEICING_TYPE reads {Lvar} ({LvarFluid} as a zero-based index, 0 = Type I … 3 = Type IV — an inferred mapping) — the menu answer is used",
+                    DeiceAppliedFluid.Label(fluid.FluidType), lvarReading, lvarLabel);
+                break;
+
+            case DeiceFluidWitness.MenuAnswer:
+                _logger.LogInformation(
+                    "De-icing fluid: {MenuFluid}, as the app answered GSX's fluid menu (L:FSDT_GSX_DEICING_TYPE reads {Lvar}; as a zero-based index that is the same fluid, or the LVAR was not delivered)",
+                    DeiceAppliedFluid.Label(fluid.FluidType), lvarReading);
+                break;
+
+            case DeiceFluidWitness.LvarZeroBased:
+                _logger.LogInformation(
+                    "De-icing fluid: {Fluid} — the fluid menu was not answered by the app; L:FSDT_GSX_DEICING_TYPE reads {Lvar}, taken as a zero-based index (0 = Type I … 3 = Type IV): an assumption from the flights of 2026-10-10 and 2026-11-14, not documented by GSX",
+                    DeiceAppliedFluid.Label(fluid.FluidType), lvarReading);
+                break;
+
+            default:
+                _logger.LogInformation(
+                    "De-icing fluid: unknown — the fluid menu was not answered by the app and L:FSDT_GSX_DEICING_TYPE reads {Lvar}",
+                    lvarReading);
+                break;
+        }
+
+        _eventLog.Record("gsx-deice-fluid-applied", new
+        {
+            fluidType = fluid.FluidType,
+            source = fluid.Witness switch
+            {
+                DeiceFluidWitness.MenuAnswer => "menu answer",
+                DeiceFluidWitness.LvarZeroBased => "lvar (zero-based, assumed)",
+                _ => "unknown",
+            },
+            menuFluidType,
+            lvar = fluid.LvarRaw,
+            lvarFluidType = fluid.LvarFluidType,
+            disagrees = fluid.Disagrees,
+        });
+
+        return fluid.FluidType;
     }
 }

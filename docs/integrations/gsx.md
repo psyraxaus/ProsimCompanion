@@ -38,7 +38,7 @@ State values for per-service `_STATE` LVARs: `1` Callable, `4` Requested, `5` Ac
 | `L:FSDT_GSX_VEHICLE_PUSHBACK_STATE` | 8 pushing, 11 wait-shutdown, **12 awaiting engine start**, 13 disconnecting, 14 clear |
 | `L:FSDT_GSX_BYPASS_PIN` | pin inserted/removed |
 | `L:FSDT_VAR_Frozen` | 1 while the tug holds the aircraft (note the `FSDT_VAR_` prefix). **ProSim mirrors it into `groundservice.pushback`** (0 = push in progress → nose wheel steering disconnected, NW STRG DISC); writes to that dataref do not stick. **GSX Pro 4.0.23 leaves it at 1 after the tug has gone** (rig 2026-11-14, `tools/NwsProbe`): pin out, vehicle state 1, MSFS `PUSHBACK STATE` 3 and every freeze variable clean, yet the tiller dead. The pushback tick clears it (the one allowed write, 0 only) 8 s after pin-out with the tug in state 0 / 1 / 4 / 14 — `gsx.releaseSteeringAfterPushback`, probe `gsx-steering-release-after-push`. |
-| `L:FSDT_GSX_DEICING_TYPE` | 1–4 (fluid type) |
+| `L:FSDT_GSX_DEICING_TYPE` | the fluid GSX sprays, read as a **zero-based index: 0 = Type I … 3 = Type IV** while the de-icing state is 5 / 6 (Active / Completed). **Inferred from two flights, not from GSX's documentation** (note of 2026-11-14, issue #166): EFHK 2026-10-10 — GSX sprayed Type I (its own choice, the fluid menus unanswered) and the LVAR read 0 through the whole treatment; EGLL 2026-11-14 — the app picked `Fluid Type IV` at 04:42:06Z and the LVAR read 3 from 04:42:07Z (the app then read it as 1–4 and armed the holdover card as "Type III"). Consistent with it, fluid not seen: EGLL 2026-11-13 22:48Z, no fluid menu shown, LVAR 0 throughout. At rest it reads 0 — or still holds the last treatment's value (3 after state went back to 0 at 04:44:59Z) — so outside states 5 / 6 it names nothing. A Type II or III treatment, or GSX's own documentation, would settle it. `DeiceAppliedFluid` (Core): the fluid-menu entry the app itself answered outranks the LVAR, a disagreement is logged once with both values (`gsx-deice-fluid-applied`) |
 | `L:FSDT_GSX_DEICING_STATE` | per-service state of the de-icing crew (`GsxDeiceStateMonitor`, every transition logged as `gsx-deice-state`). **Observed on the first de-iced departure** (see the de-icing section below): 0 → 4 when the offer is answered → 5 about 25 s AFTER the Remote API Active edge → 6 about 43 s BEFORE the API Completed edge → 0. So 4/5/6 follow the generic Requested/Active/Completed convention but lead or lag the API; 6 is logged as an early-completed signal only and the holdover card arms once, on the API Completed edge. 1/2/3 were not seen |
 | `L:FSDT_GSX_OPERATEJETWAYS_STATE` / `OPERATESTAIRS_STATE` | **unreliable/sticky — apply a 30 s grace window** |
 | `L:FSDT_GSX_SetGate_Name/Number/Suffix` | gate readback; letter map 12=A…37=Z, 10=GATE |
@@ -149,6 +149,16 @@ Behaviours that must survive the port:
   `askWhen`, `stepNext`). The GSX "Ice warning" offer (`gsx.autoDeIce`) obeys the verdict:
   No after a decline, left open while the question stands, Yes when requested or when the
   policy never asked. A direct call while the question stands counts as "yes".
+  **The answer survives an app restart** (issue #166, EGLL 2026-11-14: declined by voice at
+  04:20:45Z, app restarted at the stand at 04:32:42Z, the offer answered Yes at 04:40:51Z on
+  "policy verdict Pending"): the flight-state snapshot part `deiceVerdict`
+  (`DeiceVerdictSnapshotPart`, Core, restore order 55) keeps the settled answer — the
+  captain's yes / no, the timeout's no, the `auto` request — with the plan id it was given
+  for, and puts it back into the `DeiceRequestStore` without a second Answered edge
+  (`gsx-deice-verdict-restored`). An open question or a verdict without an answer is not
+  kept: the policy decides again when the step's turn comes. The answer goes with its
+  departure — the flight-cycle reset (arrival, a different plan), the end of duty, and never
+  under another plan id.
 - **De-icing fluid menus** (issue #166, EFHK 2026-10-10): GSX asks the fluid and the
   concentration as TWO menus — `Select fluid type` 62 s after the DeIce Active edge, then
   `Select concentration` 11 s later (entry wording not yet captured; the `gsx-deice-fluid`
@@ -156,9 +166,17 @@ Behaviours that must survive the port:
   older builds. `GsxQuestionCatalog` answers both from `deIceFluidType` / `deIceConcentration`
   (roman numeral on a word boundary, figure not inside a longer number, re-found exactly) when
   `autoDeIce` is on or the app requested de-icing, and records the picks on the Core
-  `DeiceActivityStore`. `L:FSDT_GSX_DEICING_TYPE` read **0 throughout** that treatment; the
-  holdover card arms LVAR → menu answer → settings (with a "fluid type unconfirmed" warning)
-  and shows the source. `L:FSDT_GSX_DEICING_STATE` went 0→4 (offer answered) →5 (25 s
+  `DeiceActivityStore`. `L:FSDT_GSX_DEICING_TYPE` read **0 throughout** that treatment (GSX
+  sprayed Type I: the LVAR is a zero-based index as far as the flights show — see the LVAR
+  table). Since 2026-11-14 (EGLL: `Fluid Type IV` picked, LVAR 3, card "Type III") the fluid
+  is resolved once, on the Completed edge, by the relay (`DeiceAppliedFluid.Resolve`): the
+  menu entry the app answered → the LVAR as a zero-based index → unknown; the
+  `DeiceCompleted` signal carries that fluid (1–4, 0 = unknown), never the raw LVAR, so the
+  holdover card (menu answer → signal → settings with a "fluid type unconfirmed" warning;
+  it shows the source) and the ground crew's "de-icing complete, Type …" call agree.
+  Entries captured 2026-11-14: `Fluid Type I [GSX choice]` / `Fluid Type II` / `Fluid Type III`
+  / `Fluid Type IV`, then `50%   [GSX choice, based on temperature]` / `75% ` / `100% `; the
+  fluid menu came 2 s after the Active edge. `L:FSDT_GSX_DEICING_STATE` went 0→4 (offer answered) →5 (25 s
   AFTER the API Active) →6 (43 s BEFORE the API Completed) →0: state 6 is logged as an
   early-completed signal only; the card arms once, on the API edge. The crew's lifecycle
   edges are relayed to the `DeiceActivityStore` (`GsxDeiceActivityRelay`): the Speech
