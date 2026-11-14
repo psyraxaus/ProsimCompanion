@@ -74,6 +74,7 @@
         }
       },
       "pronunciationsFile": "Hoe afkortingen worden uitgesproken (ECAM als woord, APU letter voor letter) staat in de lijst pronunciations.json in %LOCALAPPDATA%\\ProsimCompanion\\config. Pas daar een spelling aan als een woord verkeerd klinkt met jouw stem en herstart de app.",
+      "airportNamesFile": "Luchthavens worden bij naam genoemd, niet met hun vierlettercode (EGLL = Heathrow). De lijst is airport-names.json in %LOCALAPPDATA%\\ProsimCompanion\\config — verander een naam in wat jouw crews zeggen, of in de stad, en herstart de app. Een luchthaven die niet in de lijst staat krijgt de naam uit je Navigraph-database, of wordt gespeld.",
       "playback": {
         "title": "Weergave",
         "outputDevice": {

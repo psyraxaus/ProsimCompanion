@@ -45,6 +45,9 @@ public sealed class FmgcCrossCheckService : IVoiceFeature, Core.Hosting.IStartup
     private readonly object _gate = new();
     private readonly ILegBoundaryEvents _legBoundary;
     private readonly LegBoundaryStore _legStore;
+
+    // Airports are named, not spelled (owner request 2026-11-14): "INIT page: Heathrow to Schiphol".
+    private readonly Core.Speech.ISpokenText _spokenText;
     private Timer? _timer;
     private int _ticking;
     private bool _autoDone;
@@ -66,7 +69,8 @@ public sealed class FmgcCrossCheckService : IVoiceFeature, Core.Hosting.IStartup
         ILogger<FmgcCrossCheckService> logger,
         GroundOpsSignals signals,
         ILegBoundaryEvents legBoundary,
-        LegBoundaryStore legStore)
+        LegBoundaryStore legStore,
+        Core.Speech.ISpokenText? spokenText = null)
     {
         ArgumentNullException.ThrowIfNull(legBoundary);
         ArgumentNullException.ThrowIfNull(legStore);
@@ -87,6 +91,7 @@ public sealed class FmgcCrossCheckService : IVoiceFeature, Core.Hosting.IStartup
         _eventLog = eventLog;
         _logger = logger;
         _legStore = legStore;
+        _spokenText = spokenText ?? new Core.Speech.SpokenText();
         _legBoundary = legBoundary;
         _signals = signals;
         _aligning = [dataRefs.Subscribe(ProsimDataRefNames.Adiru1Aligning), dataRefs.Subscribe(ProsimDataRefNames.Adiru2Aligning), dataRefs.Subscribe(ProsimDataRefNames.Adiru3Aligning)];
@@ -279,7 +284,7 @@ public sealed class FmgcCrossCheckService : IVoiceFeature, Core.Hosting.IStartup
                 .Select(i => new AdiruState(i + 1, _aligning[i].Value, _minutes[i].Value, _attitude[i].Value))
                 .ToList();
             var fmgc = new FmgcFacts(_origin.Value, _destination.Value, _cruise.Value, _v1.Value, _vr.Value, _v2.Value, _flex.Value);
-            var readout = CrossCheckComposer.Compose(adirus, fmgc, _ofp.Current, _perf.Snapshot());
+            var readout = CrossCheckComposer.Compose(adirus, fmgc, _ofp.Current, _perf.Snapshot(), _spokenText.Airport);
 
             var check = NumberVerifier.Check(readout.Text, readout.Numbers);
             if (!check.Ok)

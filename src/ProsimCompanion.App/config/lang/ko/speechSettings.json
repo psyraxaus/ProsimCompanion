@@ -74,6 +74,7 @@
         }
       },
       "pronunciationsFile": "약어를 읽는 방식(ECAM은 단어로, APU는 글자별로)은 %LOCALAPPDATA%\\ProsimCompanion\\config 의 pronunciations.json 목록에 있습니다. 음성에서 이상하게 들리면 그곳의 철자를 바꾸고 앱을 다시 시작하세요.",
+      "airportNamesFile": "공항은 네 글자 코드가 아니라 이름으로 읽습니다(EGLL = Heathrow). 목록은 %LOCALAPPDATA%\\ProsimCompanion\\config 의 airport-names.json입니다. 승무원이 부르는 이름이나 도시 이름으로 바꾸고 앱을 다시 시작하세요. 목록에 없는 공항은 Navigraph 데이터베이스의 이름을 쓰거나 철자로 읽습니다.",
       "playback": {
         "title": "재생",
         "outputDevice": {

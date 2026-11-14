@@ -83,3 +83,24 @@ re-verified against upstream.
 - Regenerate: download `airlines.dat`, keep rows with Active = `Y`, a callsign, and a
   three-letter ICAO or two-character IATA code; first row wins per ICAO code; sort by ICAO.
 - Used by `AirlineCallsigns` (spoken flight numbers: "BA124" → "Speedbird one two four").
+
+## Airport name list — `src/ProsimCompanion.App/config/airport-names.json`
+
+- Upstream: OpenFlights airport database — https://openflights.org/data
+  (`airports.dat`, https://github.com/jpatokal/openflights, fetched 2026-11-14; upstream
+  credits OurAirports for most rows)
+- Licence: **Open Database License (ODbL) 1.0** — https://opendatacommons.org/licenses/odbl/1-0/ ;
+  any rights in individual contents: **Database Contents License 1.0** —
+  http://opendatacommons.org/licenses/dbcl/1.0/
+- What we ship: a derived database — the airports with a four-letter ICAO code (ICAO code,
+  name, city). The words International, Intl, Airport, Airfield, Aerodrome, Regional and
+  Municipal are left out of the name; names or cities in a non-Latin script are dropped; 23
+  names are replaced by the short forms crews say ("Heathrow", "Schiphol" — the app's own
+  list since issue #70). The derived file stays under the ODbL; it is a data file beside the
+  program, not part of the program's GPL-licensed code. The file itself names the source and
+  the licence.
+- The list is a snapshot: not complete and not current. It is user-editable content, seeded
+  with keep-user-edits semantics (ADR-0007).
+- Regenerate: download `airports.dat`, apply the rules above, first row wins per ICAO code,
+  sort by ICAO.
+- Used by `AirportNameCatalog` (the first tier of the spoken airport names: "EGLL" → "Heathrow").

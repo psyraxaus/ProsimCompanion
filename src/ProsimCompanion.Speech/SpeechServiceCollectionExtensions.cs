@@ -133,8 +133,15 @@ public static class SpeechServiceCollectionExtensions
         // airport_name column. Optional everywhere it is consumed, so a missing DFD just
         // means spelled ICAOs again.
         services.AddSingleton<Briefings.DfdAirportNames>();
-        services.AddSingleton<Core.Airports.IAirportNames>(
-            p => p.GetRequiredService<Briefings.DfdAirportNames>());
+        // The pilot's airport-names.json answers first (2026-11-14: names without a Navigraph
+        // database, and the pilot's own wording beats the DFD's formal name); the DFD names
+        // the airports the file does not list.
+        services.AddSingleton<Core.Airports.AirportNameCatalog>();
+        services.AddSingleton<Core.Airports.IAirportNames>(p => new Core.Airports.AirportNameChain(
+        [
+            p.GetRequiredService<Core.Airports.AirportNameCatalog>(),
+            p.GetRequiredService<Briefings.DfdAirportNames>(),
+        ]));
         // Fix / navaid names for the spoken SID and STAR (owner request 2026-10-29): the OFP
         // navlog first (this flight's own fixes), the DFD's navaid / waypoint names behind it.
         services.AddSingleton<Briefings.DfdFixNames>();

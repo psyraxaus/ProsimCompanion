@@ -74,6 +74,7 @@
         }
       },
       "pronunciationsFile": "略語の読み方（ECAM は単語として、APU は一文字ずつ）は %LOCALAPPDATA%\\ProsimCompanion\\config の pronunciations.json にあります。音声で聞こえ方がおかしい場合はそこで綴りを変え、アプリを再起動してください。",
+      "airportNamesFile": "空港は 4 文字コードではなく名前で読みます（EGLL = Heathrow）。一覧は %LOCALAPPDATA%\\ProsimCompanion\\config の airport-names.json です。乗員が使う呼び方や都市名に変更し、アプリを再起動してください。一覧にない空港は Navigraph データベースの名前を使うか、綴りで読みます。",
       "playback": {
         "title": "再生",
         "outputDevice": {

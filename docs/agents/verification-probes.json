@@ -5386,6 +5386,25 @@
         "requires-human: the ear check, per voice engine in use — 'ee-cam', 'sid', 'star', 'ay-tis', 'ay-dirs', 'toe-ga', 'tee-cas', 'mee-tar', 'no-tam' each sound like the word a crew says. A wrong one is corrected in pronunciations.json (app restart) and reported so the default can change."
       ],
       "notes": "Built 2026-11-14 (owner picked the user-editable file over a fixed list). Core/Speech/PronunciationTable (+ LoadUserFile, called from Program.cs after the config seeding and before the host builds); Phraseology.UsePronunciations / the table pass in Normalize; the old case-insensitive ILS/QNH/ATIS/ECAM/MCDU … rules moved into the defaults and are case-sensitive now. Shipped checklists write 'ECAM' and 'ADIRS' again (were 'E CAM', 'A D I R S' — a user-edited copy keeps its spelling and is still said as the word). FailureMonitor.SpokenFaultName replaces the spoken title. Hints naming pronunciations.json and airline-callsigns.json on Settings -> Voice First Officer (General -> playback, Company) in all seven packs. The respellings were chosen without an audition on any engine. Unverified live."
+    },
+    {
+      "id": "speech-airport-names",
+      "issue": 0,
+      "state": "fixed-unverified",
+      "kind": "watch",
+      "sources": [
+        "session",
+        "log",
+        "human"
+      ],
+      "checks": [
+        "Owner 2026-11-14: the FO's ADIRS / FMGC cross-check (spoken once per departure when the FMGC init settles at the gate, and on 'cross-check') read 'INIT page: EGLL to EHAM' — the bare ICAO codes. Airports are now named from the pilot's airport-names.json (about 7,500 airports, OpenFlights), then the Navigraph DFD, and NATO-spelled when neither knows the airport.",
+        "assert-present: one log line 'Airport names loaded: N airports' the first time an airport is spoken (or '… not found — airport names come from the nav database only').",
+        "assert-present: the cross-check speech.spoken line reads 'INIT page: <name> to <name>.' with the names of this flight's origin and destination (EGLL -> 'Heathrow', EHAM -> 'Schiphol'); with a plan that differs from the INIT page, 'The plan says <name> to <name>.' follows.",
+        "assert-absent: a four-letter ICAO code as written in the 'spoken' field of any speech.spoken event whose text names an airport (the cross-check, the company 'Next sector' and arrival-update lines, the briefing, the debrief) — regex \\b[A-Z]{4}\\b against the flight's origin, destination and alternate codes.",
+        "requires-human: the names sound like what a crew says for the airports flown; a name that is too long or odd is shortened in airport-names.json (app restart) and reported so the shipped list can change."
+      ],
+      "notes": "Built 2026-11-14 (owner picked the shipped list over names from the DFD alone). Core/Airports/AirportNameCatalog + AirportNameChain (file first, then DfdAirportNames) registered as IAirportNames in the Speech project; CrossCheckComposer.Compose takes the name function (ISpokenText.Airport from FmgcCrossCheckService) and spells both routes when two different airports are said the same. Side effect by design: every line that names an airport now takes the file's name before the DFD's. Shipped names are OpenFlights names with International / Airport / Airfield / Aerodrome / Regional / Municipal left out — not ear-checked. Hint on Settings -> Voice First Officer -> General in all seven packs. Unverified live."
     }
   ]
 }

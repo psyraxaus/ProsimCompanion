@@ -27,10 +27,16 @@ public sealed record CrossCheckReadout(string Text, IReadOnlyList<string> Mismat
 /// </summary>
 public static class CrossCheckComposer
 {
-    public static CrossCheckReadout Compose(IReadOnlyList<AdiruState> adirus, FmgcFacts fmgc, OfpData? ofp, TakeoffPerfSnapshot? perf)
+    /// <param name="airportName">The spoken name of an airport (<see cref="ISpokenText.Airport"/>:
+    /// "Heathrow", or the NATO-spelled code when no name is known). Owner request 2026-11-14 —
+    /// the read-out used to hand the bare ICAO code to the voice. Null = spelled codes.</param>
+    public static CrossCheckReadout Compose(
+        IReadOnlyList<AdiruState> adirus, FmgcFacts fmgc, OfpData? ofp, TakeoffPerfSnapshot? perf,
+        Func<string?, string>? airportName = null)
     {
         ArgumentNullException.ThrowIfNull(adirus);
         ArgumentNullException.ThrowIfNull(fmgc);
+        airportName ??= Spelled;
         var parts = new List<string>();
         var mismatches = new List<string>();
         var numbers = new List<double>();
@@ -73,10 +79,18 @@ public static class CrossCheckComposer
         }
         else
         {
-            parts.Add($"INIT page: {NatoPhonetics.SpeakIdentifier(fmgc.Origin)} to {NatoPhonetics.SpeakIdentifier(fmgc.Destination)}.");
-            if (ofp is not null && (!Same(fmgc.Origin, ofp.OriginIcao) || !Same(fmgc.Destination, ofp.DestinationIcao)))
+            var differs = ofp is not null && (!Same(fmgc.Origin, ofp.OriginIcao) || !Same(fmgc.Destination, ofp.DestinationIcao));
+
+            // Two different airports that are SAID the same (a file that names both by their
+            // city) would make the mismatch inaudible — then both lines spell the codes.
+            var say = differs
+                && (SameSpoken(fmgc.Origin, ofp!.OriginIcao) || SameSpoken(fmgc.Destination, ofp.DestinationIcao))
+                ? Spelled
+                : airportName;
+            parts.Add($"INIT page: {say(fmgc.Origin)} to {say(fmgc.Destination)}.");
+            if (differs)
             {
-                parts.Add($"The plan says {NatoPhonetics.SpeakIdentifier(ofp.OriginIcao)} to {NatoPhonetics.SpeakIdentifier(ofp.DestinationIcao)}.");
+                parts.Add($"The plan says {say(ofp!.OriginIcao)} to {say(ofp.DestinationIcao)}.");
                 mismatches.Add($"route {fmgc.Origin}/{fmgc.Destination} vs plan {ofp.OriginIcao}/{ofp.DestinationIcao}");
             }
         }
@@ -142,6 +156,9 @@ public static class CrossCheckComposer
         parts.Add(mismatches.Count == 0 ? "Cross-check complete." : "Cross-check complete — check the differences.");
         return new CrossCheckReadout(string.Join(" ", parts), mismatches, numbers, complete);
 
+        bool SameSpoken(string? a, string? b)
+            => !Same(a, b) && string.Equals(airportName(a), airportName(b), StringComparison.OrdinalIgnoreCase);
+
         void Compare(string label, int entered, int computed)
         {
             if (entered == computed)
@@ -154,6 +171,11 @@ public static class CrossCheckComposer
             mismatches.Add($"{label.Replace(" ", "", StringComparison.Ordinal)} {entered} vs computed {computed}");
         }
     }
+
+    // "EGLL" → "Echo Golf Lima Lima" — never the bare code, which the voice engine guesses at.
+    private static readonly SpokenText NoNames = new();
+
+    private static string Spelled(string? icao) => NoNames.Icao(icao);
 
     private static string Digits(int value) => Aviation.ToDigits(value.ToString(CultureInfo.InvariantCulture));
 

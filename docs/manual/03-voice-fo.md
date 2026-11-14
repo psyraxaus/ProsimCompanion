@@ -179,6 +179,13 @@ spelling (`"SID": ""`) leaves that abbreviation exactly as written. Only the cap
 of a whole word is changed, so write abbreviations in capitals in your own checklist and
 phrase files (`ECAM status`, not `E CAM status`).
 
+**Airport names.** The FO says an airport by its name, not by its four-letter code — EGLL
+is *"Heathrow"*. The list is `%LOCALAPPDATA%\ProsimCompanion\config\airport-names.json`:
+each airport has the `name` that is said and its `city`. Change a name to what your crews
+say, or copy the city into it, and restart the app. An airport that is not in the list is
+named from your Navigraph database when you have one, and spelled otherwise (*"Echo Golf
+Lima Lima"*).
+
 **Flight numbers.** A flight number is said with the airline's radio callsign — BA124 is
 *"Speedbird one two four"*. The list is
 `%LOCALAPPDATA%\ProsimCompanion\config\airline-callsigns.json`; add your airline or correct a

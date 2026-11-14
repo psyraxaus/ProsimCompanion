@@ -185,6 +185,17 @@ chains — "local only" hard mode must exist.
   heard**: kokoro, ElevenLabs, Google and the Windows voices each read "ee-cam" their own
   way — that is why the file exists. Never speak an abnormal's `title` (ECAM shorthand,
   "HYD B RSVR LO LVL"); use `FailureMonitor.SpokenFaultName` (the announce line).
+- **Airport names have two tiers** (2026-11-14): `IAirportNames` is an `AirportNameChain` —
+  `Core/Airports/AirportNameCatalog` over the seeded `airport-names.json` (OpenFlights, ODbL —
+  THIRD_PARTY.md; name + city, the 23 crew short forms folded in) FIRST, then
+  `DfdAirportNames` (its own curated overrides, then the DFD's `airport_name`). The file
+  wins so the pilot's wording beats the DFD's formal name and names work with no DFD at
+  all; `ISpokenText.Airport` still falls to the NATO-spelled code when neither knows the
+  airport. Never hand a bare ICAO code to the voice — `NatoPhonetics.SpeakIdentifier("EGLL")`
+  keeps a leading run of three or more letters AS WRITTEN (right for "VOLA3V", wrong for an
+  airport): the FMGC cross-check did exactly that until this change. Use
+  `ISpokenText.Airport` / `.Icao`. The cross-check spells both routes when two different
+  airports would be said the same, so a mismatch is always audible.
 - **Airline callsigns** (2026-11-14): `Core/Speech/AirlineCallsigns` over the seeded
   `airline-callsigns.json` (OpenFlights, ODbL — THIRD_PARTY.md), ICAO code first, then IATA,
   loaded on first use; an unlisted airline is spelled. With SayIntentions running the radio

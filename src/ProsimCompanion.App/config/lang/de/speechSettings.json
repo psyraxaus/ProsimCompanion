@@ -74,6 +74,7 @@
         }
       },
       "pronunciationsFile": "Wie Abkürzungen gesprochen werden (ECAM als Wort, APU buchstabiert), steht in der Liste pronunciations.json in %LOCALAPPDATA%\\ProsimCompanion\\config. Ändere dort eine Schreibweise, wenn ein Wort mit deiner Stimme falsch klingt, und starte die App neu.",
+      "airportNamesFile": "Flughäfen werden mit Namen gesprochen, nicht mit dem Vier-Buchstaben-Code (EGLL = Heathrow). Die Liste ist airport-names.json in %LOCALAPPDATA%\\ProsimCompanion\\config — ändere einen Namen so, wie deine Crews ihn sagen, oder in die Stadt, und starte die App neu. Ein Flughafen, der nicht in der Liste steht, wird aus deiner Navigraph-Datenbank benannt oder buchstabiert.",
       "playback": {
         "title": "Wiedergabe",
         "outputDevice": {

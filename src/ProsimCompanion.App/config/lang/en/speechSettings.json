@@ -74,6 +74,7 @@
         }
       },
       "pronunciationsFile": "How abbreviations are said (ECAM as a word, APU as letters) is the list pronunciations.json in %LOCALAPPDATA%\\ProsimCompanion\\config. Change a spelling there if a word sounds wrong on your voice, then restart the app.",
+      "airportNamesFile": "Airports are said by name, not by their four-letter code (EGLL = Heathrow). The list is airport-names.json in %LOCALAPPDATA%\\ProsimCompanion\\config — change a name to what your crews say, or to the city, then restart the app. An airport that is not in the list is named from your Navigraph database, or spelled.",
       "playback": {
         "title": "Playback",
         "outputDevice": {
