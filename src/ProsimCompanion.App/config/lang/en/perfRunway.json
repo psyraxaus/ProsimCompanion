@@ -35,7 +35,8 @@
       "runwayFetchFailedProsim": "Runway fetch failed — is ProSim running?",
       "runwayFetchFailed": "Runway fetch failed: {0}",
       "weatherFetchFailed": "Weather fetch failed ({0})",
-      "calcRequestFailedProsim": "Calculation request failed — is ProSim running?"
+      "calcRequestFailedProsim": "Calculation request failed — is ProSim running?",
+      "calcRefused": "ProSim refused the calculation: {0}"
     },
     "wind": {
       "components": "Wind components",

@@ -35,7 +35,8 @@
       "runwayFetchFailedProsim": "Fallo al obtener las pistas — ¿está ProSim en marcha?",
       "runwayFetchFailed": "Fallo al obtener las pistas: {0}",
       "weatherFetchFailed": "Fallo al obtener la meteo ({0})",
-      "calcRequestFailedProsim": "Fallo en la solicitud de cálculo — ¿está ProSim en marcha?"
+      "calcRequestFailedProsim": "Fallo en la solicitud de cálculo — ¿está ProSim en marcha?",
+      "calcRefused": "ProSim ha rechazado el cálculo: {0}"
     },
     "wind": {
       "components": "Componentes del viento",

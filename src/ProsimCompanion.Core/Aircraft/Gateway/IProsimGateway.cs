@@ -31,11 +31,13 @@ public interface IProsimGateway
     Task<bool> CancelBoardingAsync(CancellationToken cancellationToken = default);
 
     /// <summary>Takeoff performance calculation (V1/VR/V2, FLEX, THS). A calculation the tables
-    /// cannot satisfy is reported inside a 200 body via <see cref="CalcVSpeedResult.CalculationError"/>.</summary>
-    Task<CalcVSpeedResult?> CalculateVSpeedsAsync(CalcVSpeedRequest request, CancellationToken cancellationToken = default);
+    /// cannot satisfy is reported inside a 200 body via <see cref="CalcVSpeedResult.CalculationError"/>.
+    /// Never returns null: a refused or unreachable request carries its reason.</summary>
+    Task<GatewayCalcResult<CalcVSpeedResult>> CalculateVSpeedsAsync(CalcVSpeedRequest request, CancellationToken cancellationToken = default);
 
-    /// <summary>Landing distance required calculation.</summary>
-    Task<CalcLdrResponse?> CalculateLandingDistanceAsync(CalcLdrRequest request, CancellationToken cancellationToken = default);
+    /// <summary>Landing distance required calculation. Never returns null: a refused or
+    /// unreachable request carries its reason.</summary>
+    Task<GatewayCalcResult<CalcLdrResponse>> CalculateLandingDistanceAsync(CalcLdrRequest request, CancellationToken cancellationToken = default);
 
     /// <summary>Runway database for an airport. Returns null on failure.</summary>
     Task<IReadOnlyList<RunwayResponse>?> GetRunwaysAsync(string icao, bool includeIntersections, CancellationToken cancellationToken = default);

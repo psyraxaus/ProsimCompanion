@@ -67,7 +67,10 @@ Base `http://{prosimHost}:5000`. PascalCase requests / camelCase responses. 3 re
   **the Preliminary endpoint is broken for non-A320 variants; deliberately unused** (in-house
   pipeline instead, §4).
 - `POST /efb/calculate/vspeeds` (V1/VR/V2/FLEX/THS), `POST /efb/calculate/ldr` — note the request
-  fields misspelled `Break*` are required as-is.
+  fields misspelled `Break*` are required as-is. `AircraftSpeed` on `/calculate/ldr` must be a
+  number: null or missing answers 500 `{"message":"Value cannot be null. (Parameter
+  'AircraftSpeed')"}` (owner's flight 2026-11-14, ProSim 1.76b5); 0 = no VAPP override. Errors
+  come back as `{"message":"…"}` — `GatewayFailureText` keeps that text for the page and the log.
 - `GET /efb/airport/{icao}/runways?includeIntersections=`, `GET /efb/airport/{icao}/metar`
   (204 = no data; don't retry), `GET /efb/failures`.
 - **Airport coordinates come from the runway list** (issue #145): the gateway has no airport

@@ -5424,6 +5424,23 @@
         "requires-human (the L:var read, unverified): press the SayIntentions copilot button ON once in cruise — within 15-45 s the app should log 'copilot told off (copilot back on, L:SIAI_COPILOT read 1)' and the copilot should go off again. If nothing happens the L:var is not readable on this setup: report it (the FO and the SI copilot would then both answer)."
       ],
       "notes": "Built 2026-11-14. Speech/SayIntentions/CopilotOffRule (pure) + FoRadiosService.Tick (15 s) + SayIntentionsLvarNames.Copilot. The comms hand-over writes in SayIntentionsService are edge-driven and unchanged. The lookalike that this is NOT: audio.chime events (the app's own cabin ding-dong, also two notes — probe audio-chime-trail) and ProSim's MECH / CAB call chimes (ground.calling / cabin.calling). Unverified live after the fix."
+    },
+    {
+      "id": "landing-calc-aircraft-speed",
+      "issue": 0,
+      "state": "fixed-unverified",
+      "kind": "watch",
+      "sources": [
+        "log",
+        "human"
+      ],
+      "checks": [
+        "Owner's flight 2026-11-14 (EGLL-LOWW, ProSim 1.76b5): the Landing page showed 'Calculation request failed - is ProSim running?' on every calculation. Cause: with the VAPP override field empty the request carried AircraftSpeed null and the gateway answered POST /efb/calculate/ldr with 500 {\"message\":\"Value cannot be null. (Parameter 'AircraftSpeed')\"} (reproduced by hand against the rig: null or missing = 500, 0 or 135 = 200 with the same ldr 1418). The request now always carries a number (0 = no override), and a refused calculation shows and logs the gateway's own words.",
+        "assert-absent: 'Gateway \"/calculate/ldr\" attempt N/3 failed with 500' lines during descent with the VAPP override empty.",
+        "assert-absent (any calculation): a 'Gateway {Operation} refused: HTTP …' warning without a reason after the status code when the gateway sent a body.",
+        "requires-human: on descent the Landing page calculates with the VAPP override empty. If a calculation is refused, the page says 'ProSim refused the calculation: HTTP … — …' and never 'is ProSim running?' while ProSim runs."
+      ],
+      "notes": "Built 2026-11-14. Core/Aircraft/Gateway/GatewayCalcResult (+ GatewayFailureText), CalcLdrRequest.AircraftSpeed int, ProsimGatewayClient.PostCalcAsync, Landing.razor / Takeoff.razor. Which ProSim version started to refuse the null is not known (the log kept only the status code before this change). The gateway computed the same distance for speed 0 and 135 in the hand test — whether the override changes the result at all is not established. Unverified live."
     }
   ]
 }

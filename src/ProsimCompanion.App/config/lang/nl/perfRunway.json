@@ -35,7 +35,8 @@
       "runwayFetchFailedProsim": "Ophalen van banen mislukt — draait ProSim?",
       "runwayFetchFailed": "Ophalen van banen mislukt: {0}",
       "weatherFetchFailed": "Ophalen van het weer mislukt ({0})",
-      "calcRequestFailedProsim": "Berekeningsverzoek mislukt — draait ProSim?"
+      "calcRequestFailedProsim": "Berekeningsverzoek mislukt — draait ProSim?",
+      "calcRefused": "ProSim heeft de berekening geweigerd: {0}"
     },
     "wind": {
       "components": "Windcomponenten",

@@ -701,7 +701,7 @@
                 Oat = _oat,
                 Slp = _qnh,
                 BreakAction = RunwayConditions.BreakAction(_condition),
-                AircraftSpeed = _vappOverride > 0 ? _vappOverride : null,
+                AircraftSpeed = Math.Max(0, _vappOverride),  // 0 = no override; null is a gateway 500
                 LdgW = (float)_ldgWeightTons,               // tonnes wire scale
                 BreakMode = _brakeMode,
                 Rev = _revMode,
@@ -710,10 +710,13 @@
                 Athr = _athr,
             };
 
-            var result = await Gateway.CalculateLandingDistanceAsync(request);
-            if (result is null)
+            var outcome = await Gateway.CalculateLandingDistanceAsync(request);
+            if (outcome.Value is not { } result)
             {
-                _lastError = T["perfRunway.shared.calcRequestFailedProsim"];
+                // "Is ProSim running?" only when nothing answered; a refusal shows ProSim's words.
+                _lastError = outcome.Reached
+                    ? T["perfRunway.shared.calcRefused", outcome.FailureReason ?? string.Empty]
+                    : T["perfRunway.shared.calcRequestFailedProsim"];
                 _hasResult = false;
             }
             else

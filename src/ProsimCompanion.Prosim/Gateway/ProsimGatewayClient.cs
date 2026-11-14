@@ -164,17 +164,17 @@ public sealed class ProsimGatewayClient : IProsimGateway, IDisposable
     }
 
     /// <inheritdoc />
-    public Task<CalcVSpeedResult?> CalculateVSpeedsAsync(CalcVSpeedRequest request, CancellationToken cancellationToken = default)
+    public Task<GatewayCalcResult<CalcVSpeedResult>> CalculateVSpeedsAsync(CalcVSpeedRequest request, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
-        return PostJsonAsync<CalcVSpeedRequest, CalcVSpeedResult>("/calculate/vspeeds", request, cancellationToken);
+        return PostCalcAsync<CalcVSpeedRequest, CalcVSpeedResult>("/calculate/vspeeds", request, cancellationToken);
     }
 
     /// <inheritdoc />
-    public Task<CalcLdrResponse?> CalculateLandingDistanceAsync(CalcLdrRequest request, CancellationToken cancellationToken = default)
+    public Task<GatewayCalcResult<CalcLdrResponse>> CalculateLandingDistanceAsync(CalcLdrRequest request, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
-        return PostJsonAsync<CalcLdrRequest, CalcLdrResponse>("/calculate/ldr", request, cancellationToken);
+        return PostCalcAsync<CalcLdrRequest, CalcLdrResponse>("/calculate/ldr", request, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -225,7 +225,10 @@ public sealed class ProsimGatewayClient : IProsimGateway, IDisposable
 
     public void Dispose() => _http.Dispose();
 
-    private async Task<TResponse?> PostJsonAsync<TRequest, TResponse>(
+    /// <summary>A calculation POST that keeps the gateway's own refusal text (owner's flight
+    /// 2026-11-14: a 500 "Value cannot be null. (Parameter 'AircraftSpeed')" reached the pilot
+    /// as "is ProSim running?" and the log as a bare status code).</summary>
+    private async Task<GatewayCalcResult<TResponse>> PostCalcAsync<TRequest, TResponse>(
         string relative,
         TRequest request,
         CancellationToken cancellationToken)
@@ -241,12 +244,23 @@ public sealed class ProsimGatewayClient : IProsimGateway, IDisposable
             },
             relative,
             cancellationToken).ConfigureAwait(false);
-        if (response is not { IsSuccessStatusCode: true })
+        if (response is null)
         {
-            return null;
+            return new GatewayCalcResult<TResponse>(null, "gateway unreachable", Reached: false);
         }
 
-        return await DeserializeAsync<TResponse>(response, relative, cancellationToken).ConfigureAwait(false);
+        if (!response.IsSuccessStatusCode)
+        {
+            var body = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+            var reason = GatewayFailureText.Describe((int)response.StatusCode, body);
+            _logger.LogWarning("Gateway {Operation} refused: {Reason}", relative, reason);
+            return new GatewayCalcResult<TResponse>(null, reason, Reached: true);
+        }
+
+        var value = await DeserializeAsync<TResponse>(response, relative, cancellationToken).ConfigureAwait(false);
+        return value is null
+            ? new GatewayCalcResult<TResponse>(null, "gateway response unparseable", Reached: true)
+            : new GatewayCalcResult<TResponse>(value, null, Reached: true);
     }
 
     private async Task<TResponse?> GetJsonAsync<TResponse>(Uri uri, string operation, CancellationToken cancellationToken)

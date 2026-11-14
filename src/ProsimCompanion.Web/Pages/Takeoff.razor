@@ -710,10 +710,13 @@
                 WindMag = _windKt,
             };
 
-            var result = await Gateway.CalculateVSpeedsAsync(request);
-            if (result is null)
+            var outcome = await Gateway.CalculateVSpeedsAsync(request);
+            if (outcome.Value is not { } result)
             {
-                _lastError = T["perfRunway.shared.calcRequestFailedProsim"];
+                // "Is ProSim running?" only when nothing answered; a refusal shows ProSim's words.
+                _lastError = outcome.Reached
+                    ? T["perfRunway.shared.calcRefused", outcome.FailureReason ?? string.Empty]
+                    : T["perfRunway.shared.calcRequestFailedProsim"];
             }
             else if (!string.IsNullOrEmpty(result.CalculationError))
             {

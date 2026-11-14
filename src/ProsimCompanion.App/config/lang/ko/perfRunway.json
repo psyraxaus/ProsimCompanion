@@ -35,7 +35,8 @@
       "runwayFetchFailedProsim": "활주로 조회 실패 — ProSim이 실행 중인가요?",
       "runwayFetchFailed": "활주로 조회 실패: {0}",
       "weatherFetchFailed": "기상 조회 실패 ({0})",
-      "calcRequestFailedProsim": "계산 요청 실패 — ProSim이 실행 중인가요?"
+      "calcRequestFailedProsim": "계산 요청 실패 — ProSim이 실행 중인가요?",
+      "calcRefused": "ProSim이 계산을 거부했습니다: {0}"
     },
     "wind": {
       "components": "바람 성분",

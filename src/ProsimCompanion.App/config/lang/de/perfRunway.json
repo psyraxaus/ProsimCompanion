@@ -35,7 +35,8 @@
       "runwayFetchFailedProsim": "Pistenabfrage fehlgeschlagen — läuft ProSim?",
       "runwayFetchFailed": "Pistenabfrage fehlgeschlagen: {0}",
       "weatherFetchFailed": "Wetterabfrage fehlgeschlagen ({0})",
-      "calcRequestFailedProsim": "Berechnungsanfrage fehlgeschlagen — läuft ProSim?"
+      "calcRequestFailedProsim": "Berechnungsanfrage fehlgeschlagen — läuft ProSim?",
+      "calcRefused": "ProSim hat die Berechnung abgelehnt: {0}"
     },
     "wind": {
       "components": "Windkomponenten",

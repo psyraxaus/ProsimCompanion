@@ -153,7 +153,11 @@ public sealed class CalcLdrRequest
     /// <summary>Runway condition 1–6 (6 = Dry … 1 = Poor). sic — gateway spelling.</summary>
     public int BreakAction { get; set; }
 
-    public int? AircraftSpeed { get; set; }
+    /// <summary>VAPP override in kt; 0 = none. Never nullable: the gateway answers a missing
+    /// or null value with 500 "Value cannot be null. (Parameter 'AircraftSpeed')" (owner's
+    /// flight 2026-11-14, ProSim 1.76b5) and computes the same distance for 0 as for a real
+    /// speed.</summary>
+    public int AircraftSpeed { get; set; }
 
     /// <summary>Landing weight in tonnes (66 t reference scale).</summary>
     public float LdgW { get; set; }

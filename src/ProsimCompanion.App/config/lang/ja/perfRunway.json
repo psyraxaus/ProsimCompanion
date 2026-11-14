@@ -35,7 +35,8 @@
       "runwayFetchFailedProsim": "滑走路の取得に失敗 — ProSim は起動していますか？",
       "runwayFetchFailed": "滑走路の取得に失敗: {0}",
       "weatherFetchFailed": "気象の取得に失敗（{0}）",
-      "calcRequestFailedProsim": "計算リクエストに失敗 — ProSim は起動していますか？"
+      "calcRequestFailedProsim": "計算リクエストに失敗 — ProSim は起動していますか？",
+      "calcRefused": "ProSim が計算を拒否しました: {0}"
     },
     "wind": {
       "components": "風成分",
