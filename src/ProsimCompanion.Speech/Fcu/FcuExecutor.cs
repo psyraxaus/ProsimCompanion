@@ -109,6 +109,23 @@ public sealed class FcuExecutor : IVoiceFeature, IDisposable
 
     public bool ValueParse => true;
 
+    /// <summary>While a checklist line waits (issue #205): a complete instruction is still
+    /// executed, but words the parser could only ask about ("six hundred feet" → "which
+    /// field?") are left to the line — on 2026-11-14 that question was asked three times over
+    /// the pilot's answer to "Landing Elevation" and the checklist never heard it.</summary>
+    public bool TryHandleWhileLinePending(string utterance)
+    {
+        if (!utterance.Contains("checklist", StringComparison.OrdinalIgnoreCase)
+            && AtcInstructionParser.Parse(utterance) is { Type: FcuInstructionType.Query } query)
+        {
+            _logger.LogInformation(
+                "FCU clarifier (\"{Reason}\") withheld — a checklist line is waiting for its answer", query.Reason);
+            return false;
+        }
+
+        return TryHandle(utterance);
+    }
+
     public bool TryHandle(string utterance)
     {
         // A checklist request is never an FCU instruction — "after takeoff climb checklist"

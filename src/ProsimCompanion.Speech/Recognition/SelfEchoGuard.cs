@@ -61,7 +61,35 @@ public sealed class SelfEchoGuard
     /// <param name="PlayedAloud">True when the line actually went out through the playback
     /// device (arbiter outcome Spoken / Segment, or playing now). A deferred, dropped or
     /// suppressed line never reached a speaker and cannot have been heard back.</param>
-    public sealed record SpokenLine(string Text, DateTimeOffset SpokenAtUtc, bool PlayedAloud);
+    /// <param name="StillPlaying">True for the line the arbiter is playing at transcript time:
+    /// its stamp is then not a playback end, so the timing rules of <see cref="HeardUtterance"/>
+    /// do not apply to it — it stays an echo candidate.</param>
+    public sealed record SpokenLine(string Text, DateTimeOffset SpokenAtUtc, bool PlayedAloud, bool StillPlaying = false);
+
+    /// <summary>How long after the mic reopens a short transcript can still be the end of the
+    /// FO's own line (issue #172, 2026-11-14). An echo that slips past the mic gate is audible
+    /// the moment the gate opens — playback end plus <c>speech.micTailAfterSpeakingMs</c> — so
+    /// the captured utterance begins there; this margin on top covers a playback device that
+    /// finishes late, the VAD's onset and the 50 ms capture buffers. A judgement, not a
+    /// measurement: no flight since the gate (2026-10-10) has recorded a true echo to time.</summary>
+    public static TimeSpan EchoOnsetMargin { get; } = TimeSpan.FromMilliseconds(1500);
+
+    /// <summary>The tail after a line's playback end inside which an utterance must have begun
+    /// for a short transcript to be an echo candidate: the mic gate's own tail plus
+    /// <see cref="EchoOnsetMargin"/> (2.2 s at the default 700 ms).</summary>
+    public static TimeSpan EchoTailFor(int micTailMs)
+        => TimeSpan.FromMilliseconds(Math.Max(0, micTailMs)) + EchoOnsetMargin;
+
+    /// <summary>What the recognizer knows about the utterance behind a transcript (issue #172,
+    /// EGLL–LOWW 2026-11-14: "Descent checklist." asked 0.8 s and again 6.6 s after the FO's
+    /// "Descent checklist cancelled." was dropped twice as the FO's own voice).</summary>
+    /// <param name="BeganUtc">When the captured utterance began — its close time minus the
+    /// length of its audio, pre-roll included.</param>
+    /// <param name="EchoTail">See <see cref="EchoTailFor"/>.</param>
+    /// <param name="CommandPhrases">The phrases the live listening window is open for (checklist
+    /// starts, global commands, feature phrases). A transcript that IS one of them is a command
+    /// unless it began before the matching line's playback ended.</param>
+    public sealed record HeardUtterance(DateTimeOffset BeganUtc, TimeSpan EchoTail, IReadOnlyList<string> CommandPhrases);
 
     /// <summary>Convenience for callers (and the original tests) with no clock: every line
     /// counts as played aloud just now, with nothing expected.</summary>
@@ -73,6 +101,16 @@ public sealed class SelfEchoGuard
             heard, recentlySpoken.Select(s => new SpokenLine(s, now, PlayedAloud: true)), now, OwnSpeechWindow, []);
     }
 
+    /// <summary>The text-only test, for callers that do not know when the utterance began:
+    /// see <see cref="MatchOwnSpeech"/> with no <see cref="HeardUtterance"/>.</summary>
+    public static bool LooksLikeOwnSpeech(
+        string heard,
+        IEnumerable<SpokenLine> recentlySpoken,
+        DateTimeOffset nowUtc,
+        TimeSpan window,
+        IEnumerable<string> expectedReplies)
+        => MatchOwnSpeech(heard, recentlySpoken, nowUtc, window, expectedReplies, utterance: null) is not null;
+
     /// <summary>True when the transcript is the FO's own recent line heard back: a short one
     /// (≤ 4 words) sits inside a line that was played aloud, a longer one shares at least 60 %
     /// of its words with a line — "You too. See you at the next line up." heard back as "See
@@ -82,20 +120,30 @@ public sealed class SelfEchoGuard
     /// checklist." was dropped 71 s after "Taxi checklist complete."), and a transcript that
     /// is one of the <paramref name="expectedReplies"/> (the pending clarifier's candidate, the
     /// open checklist item's accepted phrases) is the pilot answering, not an echo, however
-    /// recently the FO said those very words.</summary>
-    public static bool LooksLikeOwnSpeech(
+    /// recently the FO said those very words.
+    /// <para>With an <paramref name="utterance"/> (issue #172, 2026-11-14) two timing rules
+    /// join the text test, each against the line's playback end: a short transcript is an echo
+    /// candidate of a line only when the utterance began no later than
+    /// <see cref="HeardUtterance.EchoTail"/> after it (an echo overlaps the playback or trails
+    /// it at once; a pilot repeating the FO's words speaks later), and a transcript that is
+    /// exactly one of the <see cref="HeardUtterance.CommandPhrases"/> is an echo candidate only
+    /// when the utterance began before the playback ended. The longer-transcript overlap test
+    /// keeps the whole window — it is the last defence against the 2026-10-10 answer loop.</para>
+    /// Returns the line the transcript was matched to, or null when it is not the FO's own.</summary>
+    public static SpokenLine? MatchOwnSpeech(
         string heard,
         IEnumerable<SpokenLine> recentlySpoken,
         DateTimeOffset nowUtc,
         TimeSpan window,
-        IEnumerable<string> expectedReplies)
+        IEnumerable<string> expectedReplies,
+        HeardUtterance? utterance)
     {
         ArgumentNullException.ThrowIfNull(recentlySpoken);
         ArgumentNullException.ThrowIfNull(expectedReplies);
         var heardTokens = Tokens(heard);
         if (heardTokens.Count < 2)
         {
-            return false;
+            return null;
         }
 
         var heardPhrase = " " + string.Join(' ', heardTokens) + " ";
@@ -111,9 +159,12 @@ public sealed class SelfEchoGuard
             if (expectedPhrase.Contains(heardPhrase, StringComparison.Ordinal)
                 || heardPhrase.Contains(expectedPhrase, StringComparison.Ordinal))
             {
-                return false;
+                return null;
             }
         }
+
+        var isCommand = utterance is not null
+            && utterance.CommandPhrases.Any(phrase => " " + string.Join(' ', Tokens(phrase)) + " " == heardPhrase);
 
         var cutoff = nowUtc - (window < TimeSpan.Zero ? TimeSpan.Zero : window);
         foreach (var line in recentlySpoken)
@@ -129,6 +180,15 @@ public sealed class SelfEchoGuard
                 continue;
             }
 
+            // A command of the open window, begun after this line had finished playing: the
+            // pilot, whatever words the two share ("Descent checklist." 0.8 s after "Descent
+            // checklist cancelled.").
+            var timed = utterance is not null && !line.StillPlaying;
+            if (timed && isCommand && utterance!.BeganUtc >= line.SpokenAtUtc)
+            {
+                continue;
+            }
+
             if (heardTokens.Count <= ShortPhraseWords)
             {
                 if (!line.PlayedAloud)
@@ -136,10 +196,16 @@ public sealed class SelfEchoGuard
                     continue;
                 }
 
+                // Begun after the echo tail: too late to be this line heard back.
+                if (timed && utterance!.BeganUtc > line.SpokenAtUtc + utterance.EchoTail)
+                {
+                    continue;
+                }
+
                 var spokenPhrase = " " + string.Join(' ', spokenTokens) + " ";
                 if (spokenPhrase.Contains(heardPhrase, StringComparison.Ordinal))
                 {
-                    return true;
+                    return line;
                 }
 
                 continue;
@@ -149,11 +215,11 @@ public sealed class SelfEchoGuard
             var hits = heardTokens.Count(spokenSet.Contains);
             if ((double)hits / heardTokens.Count >= OwnSpeechThreshold)
             {
-                return true;
+                return line;
             }
         }
 
-        return false;
+        return null;
     }
 
     /// <summary>Lower-case words in order, punctuation stripped. A hyphen splits ("line-up"

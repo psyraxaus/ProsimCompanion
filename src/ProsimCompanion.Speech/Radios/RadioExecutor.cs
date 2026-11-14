@@ -131,7 +131,14 @@ public sealed class RadioExecutor : IVoiceFeature, IDisposable
 
     public bool ValueParse => true;
 
-    public bool TryHandle(string utterance)
+    public bool TryHandle(string utterance) => Handle(utterance, linePending: false);
+
+    /// <summary>While a checklist line waits (issue #205): a readable frequency is still
+    /// tuned, but "Say again the frequency" is not asked over words that were most likely the
+    /// line's answer — the line's own flow answers the miss.</summary>
+    public bool TryHandleWhileLinePending(string utterance) => Handle(utterance, linePending: true);
+
+    private bool Handle(string utterance, bool linePending)
     {
         var text = " " + CommandMatcher.Normalize(utterance) + " ";
 
@@ -187,6 +194,11 @@ public sealed class RadioExecutor : IVoiceFeature, IDisposable
         var khz = FrequencyParser.Parse(frequencyText);
         if (khz is null)
         {
+            if (linePending)
+            {
+                return false;
+            }
+
             // Tagged "clarifier" so unreadable-value asks are attributable in the session
             // jsonl (issue #66 — untagged spoken lines hid a misroute for a whole flight).
             // Short TTL like the FCU clarifier (issue #128): stale asks die quietly.

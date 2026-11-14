@@ -320,6 +320,19 @@ public sealed class UtteranceRouter : IDisposable
             }
         }
 
+        // The pending line's answer, as heard, wins before anything is snapped or offered
+        // (issue #205): the item window also carries every feature phrase, the snapper may
+        // bend a spoken value towards one of them, and RouteText's own acceptance check then
+        // sees the bent text. An accepted answer is the line's.
+        if (awaiting is not null && host.IsAcceptedAnswer(awaiting, e.Text))
+        {
+            _logger.LogDebug("ASR heard \"{Heard}\" -> the answer to checklist line \"{Item}\"", e.Text, awaiting.Say);
+            _signals?.Decided(nameof(InterpretKind.Resolved), e.Text);
+            _lastFoActivityUtc = _time.GetUtcNow();
+            host.Complete(RoutedResponseKind.Phrase, e.Text);
+            return;
+        }
+
         // A control word glued to other speech while a checklist line waits (2026-10-25 EKCH→EFHK:
         // "… 80 degrees Celsius, skip," — the cabin PA plus the pilot's "skip"). The accepted
         // answer still wins when the whole transcript is one.
@@ -665,7 +678,8 @@ public sealed class UtteranceRouter : IDisposable
         // handover or radio call must not become a failed checklist answer. Disabled
         // features are never offered the utterance (the router owns the gate). The roster
         // ranks the candidates: exact-phrase owners first (issue #137), then declared
-        // precedence — see VoiceFeatureRoster.Candidates.
+        // precedence — see VoiceFeatureRoster.Candidates. While a line waits, a feature that
+        // would only ask about the words ("which field?") declines them (issue #205).
         foreach (var feature in _roster.Candidates(text))
         {
             if (SkipWhileFoAway(feature))
@@ -673,7 +687,7 @@ public sealed class UtteranceRouter : IDisposable
                 continue;
             }
 
-            if (feature.TryHandle(text))
+            if (awaiting is not null ? feature.TryHandleWhileLinePending(text) : feature.TryHandle(text))
             {
                 return;
             }

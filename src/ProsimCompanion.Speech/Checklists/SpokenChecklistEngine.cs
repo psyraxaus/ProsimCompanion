@@ -767,11 +767,18 @@ public sealed class SpokenChecklistEngine : Core.Hosting.IStartupModule, IDispos
 
     /// <summary>Matching is against AcceptedPhrases (plus <see cref="UniversalAnswers"/>),
     /// never the display-only ExpectedResponse: extracted number (when expected), exact
-    /// equality, or whole-word containment ("QNH 1017 set" matches "set"; "reset" does not).</summary>
-    private static bool IsAccepted(ChecklistItemDefinition item, string text)
+    /// equality, or whole-word containment ("QNH 1017 set" matches "set"; "reset" does not).
+    /// A line that declares "set" / "checked" also takes the value itself read back, with
+    /// nothing else said (issue #205 — <see cref="ChecklistValueAnswer"/>). Internal for tests.</summary>
+    internal static bool IsAccepted(ChecklistItemDefinition item, string text)
     {
         var isNumber = item.Expects.Equals("number", StringComparison.OrdinalIgnoreCase);
         if (isNumber && NumberExtractor.TryExtract(text, out _))
+        {
+            return true;
+        }
+
+        if (ChecklistValueAnswer.Satisfies(item, text))
         {
             return true;
         }

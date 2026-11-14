@@ -128,6 +128,92 @@ public sealed class SelfEchoGuardTests
         Assert.False(SelfEchoGuard.LooksLikeOwnSpeech(heard, lines, T0.AddSeconds(16), Window, []));
     }
 
+    // ---- issue #172 again: EGLL→LOWW 2026-11-14 — a fresh command dropped twice as echo ----
+
+    /// <summary>speech.spoken {tag: checklist.cancelled} "Descent checklist cancelled." — the playback end.</summary>
+    private static readonly DateTimeOffset CancelledSpokenAt = new(2026, 11, 14, 6, 17, 58, 828, TimeSpan.Zero);
+
+    /// <summary>asr.utterance 06:18:01.328 {durationMs: 1708} → began 0.79 s after the line; asr.self-echo 06:18:01.590.</summary>
+    private static readonly DateTimeOffset FirstAttemptBegan = new DateTimeOffset(2026, 11, 14, 6, 18, 1, 328, TimeSpan.Zero).AddMilliseconds(-1708);
+    private static readonly DateTimeOffset FirstAttemptHeard = new(2026, 11, 14, 6, 18, 1, 590, TimeSpan.Zero);
+
+    /// <summary>asr.utterance 06:18:07.527 {durationMs: 2124} → began 6.6 s after the line; asr.self-echo 06:18:07.785.</summary>
+    private static readonly DateTimeOffset SecondAttemptBegan = new DateTimeOffset(2026, 11, 14, 6, 18, 7, 527, TimeSpan.Zero).AddMilliseconds(-2124);
+    private static readonly DateTimeOffset SecondAttemptHeard = new(2026, 11, 14, 6, 18, 7, 785, TimeSpan.Zero);
+
+    /// <summary>The idle window the checklist left open after its cancellation, in part.</summary>
+    private static readonly string[] IdleWindow = ["Descent checklist", "request Descent checklist", "cancel checklist", "gear down"];
+
+    private static SelfEchoGuard.HeardUtterance Began(DateTimeOffset at, params string[] commands)
+        => new(at, SelfEchoGuard.EchoTailFor(700), commands);
+
+    [Fact]
+    public void TheEchoTail_IsTheMicTailPlusTheMargin()
+    {
+        Assert.Equal(TimeSpan.FromMilliseconds(2200), SelfEchoGuard.EchoTailFor(700));
+        Assert.Equal(SelfEchoGuard.EchoOnsetMargin, SelfEchoGuard.EchoTailFor(-5));
+    }
+
+    [Fact]
+    public void DescentChecklist_AskedAgainAfterItsCancellation_IsACommand_NotTheCancellationHeardBack()
+    {
+        var lines = new[] { Line("Descent checklist cancelled.", CancelledSpokenAt) };
+
+        // The text alone says echo, both times — what the flight's guard did.
+        Assert.True(SelfEchoGuard.LooksLikeOwnSpeech("Descent checklist.", lines, FirstAttemptHeard, Window, []));
+        Assert.True(SelfEchoGuard.LooksLikeOwnSpeech("Descent checklist.", lines, SecondAttemptHeard, Window, []));
+
+        // Told when the utterances began and what the window was open for, it keeps both.
+        Assert.Null(SelfEchoGuard.MatchOwnSpeech("Descent checklist.", lines, FirstAttemptHeard, Window, [], Began(FirstAttemptBegan, IdleWindow)));
+        Assert.Null(SelfEchoGuard.MatchOwnSpeech("Descent checklist.", lines, SecondAttemptHeard, Window, [], Began(SecondAttemptBegan, IdleWindow)));
+    }
+
+    [Fact]
+    public void AShortTranscript_BegunAfterTheEchoTail_IsNotAnEcho_WhateverItsWords()
+    {
+        var lines = new[] { Line("Descent checklist cancelled.", CancelledSpokenAt) };
+
+        // The second attempt, 6.6 s after the playback ended: kept on timing alone (no command list).
+        Assert.Null(SelfEchoGuard.MatchOwnSpeech("Descent checklist.", lines, SecondAttemptHeard, Window, [], Began(SecondAttemptBegan)));
+        // The first, 0.79 s after: inside the tail — only its being a command of the window saves it.
+        Assert.NotNull(SelfEchoGuard.MatchOwnSpeech("Descent checklist.", lines, FirstAttemptHeard, Window, [], Began(FirstAttemptBegan)));
+        Assert.NotNull(SelfEchoGuard.MatchOwnSpeech("Descent checklist.", lines, FirstAttemptHeard, Window, [], Began(FirstAttemptBegan, "gear down")));
+        // The boundary: at the tail still a candidate, a millisecond later not.
+        var tail = SelfEchoGuard.EchoTailFor(700);
+        Assert.NotNull(SelfEchoGuard.MatchOwnSpeech("Descent checklist.", lines, SecondAttemptHeard, Window, [], Began(CancelledSpokenAt + tail)));
+        Assert.Null(SelfEchoGuard.MatchOwnSpeech("Descent checklist.", lines, SecondAttemptHeard, Window, [], Began(CancelledSpokenAt + tail + TimeSpan.FromMilliseconds(1))));
+    }
+
+    [Fact]
+    public void ACommandPhrase_ThatOverlapsThePlayback_IsStillAnEcho()
+    {
+        // Begun 300 ms before the line finished playing: the FO's own "Descent checklist …" in the mic.
+        var lines = new[] { Line("Descent checklist cancelled.", CancelledSpokenAt) };
+        var matched = SelfEchoGuard.MatchOwnSpeech(
+            "Descent checklist.", lines, FirstAttemptHeard, Window, [], Began(CancelledSpokenAt.AddMilliseconds(-300), IdleWindow));
+        Assert.Same(lines[0], matched);
+
+        // A line still playing at transcript time has no playback end to compare with: a candidate as before.
+        var playing = new[] { new SelfEchoGuard.SpokenLine("Descent checklist cancelled.", CancelledSpokenAt, PlayedAloud: true, StillPlaying: true) };
+        Assert.NotNull(SelfEchoGuard.MatchOwnSpeech(
+            "Descent checklist.", playing, FirstAttemptHeard, Window, [], Began(SecondAttemptBegan, IdleWindow)));
+    }
+
+    [Theory]
+    // The 2026-10-10 loop with the utterance's start known: the long ones are matched on word
+    // overlap anywhere in the window; the short one trails its line at once.
+    [InlineData("See you at the next line-up.\n Didn't catch that.", "You too. See you at the next line up.", 5000)]
+    [InlineData("I'll bring the coffee. Stand by.", "Sounds like we're planning a date. I'll bring the coffee.", 5000)]
+    [InlineData("Yes, run the departure briefing", "Yes, run the departure briefing.", 5000)]
+    [InlineData("I don't have that.", "I don't have that.", 700)]
+    [InlineData("gear is down", "Yes captain, gear is down.", 700)]
+    public void TheRealEchoes_AreStillDropped_WithTheUtteranceStartKnown(string heard, string spoken, int beganAfterMs)
+    {
+        var lines = new[] { Line(spoken, T0) };
+        Assert.NotNull(SelfEchoGuard.MatchOwnSpeech(
+            heard, lines, T0.AddMilliseconds(beganAfterMs + 2000), Window, [], Began(T0.AddMilliseconds(beganAfterMs), IdleWindow)));
+    }
+
     [Fact]
     public void AnExpectedReplyWithExtraWords_IsStillExempt()
     {

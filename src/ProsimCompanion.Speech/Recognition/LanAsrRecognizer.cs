@@ -104,7 +104,7 @@ public sealed class LanAsrRecognizer : IVoiceRecognizer
         List<SelfEchoGuard.SpokenLine> recent = [];
         if (snapshot.NowPlaying is { Length: > 0 } playing)
         {
-            recent.Add(new SelfEchoGuard.SpokenLine(playing, now, PlayedAloud: true));
+            recent.Add(new SelfEchoGuard.SpokenLine(playing, now, PlayedAloud: true, StillPlaying: true));
         }
 
         foreach (var line in snapshot.RecentUtterances)
@@ -252,7 +252,11 @@ public sealed class LanAsrRecognizer : IVoiceRecognizer
             // lands — the ASR round-trip is part of what the pilot waits for.
             _turns?.UtteranceEnded(DateTimeOffset.UtcNow);
             _signals?.UtteranceClosed(e.Stats.DurationMs);
-            _ = TranscribeAsync(e.Pcm);
+            // When the captured audio began (issue #172): the self-echo guard compares it with
+            // the end of the FO line the transcript resembles. The length is the buffer's own
+            // (pre-roll and closing silence included), so this is the capture clock's answer.
+            var beganUtc = DateTimeOffset.UtcNow - TimeSpan.FromMilliseconds(e.Stats.DurationMs);
+            _ = TranscribeAsync(e.Pcm, beganUtc);
         };
         segmenter.UtteranceDropped += (_, e) =>
         {
@@ -385,7 +389,7 @@ public sealed class LanAsrRecognizer : IVoiceRecognizer
         _signals?.Rejected(DateTimeOffset.UtcNow);
     }
 
-    private async Task TranscribeAsync(byte[] pcm)
+    private async Task TranscribeAsync(byte[] pcm, DateTimeOffset beganUtc)
     {
         try
         {
@@ -442,14 +446,22 @@ public sealed class LanAsrRecognizer : IVoiceRecognizer
             }
 
             // The FO's own words came back through the speakers (bleed the timing gate missed,
-            // or the gate is off): drop them, never answer them.
-            if (options.MuteMicWhileSpeaking && SelfEchoGuard.LooksLikeOwnSpeech(
+            // or the gate is off): drop them, never answer them. Not the pilot repeating the
+            // FO's words later, and not a command of the open window said after the line ended
+            // (issue #172, 2026-11-14) — the guard is told when the utterance began.
+            if (options.MuteMicWhileSpeaking && SelfEchoGuard.MatchOwnSpeech(
                     transcript.Text, _recentlySpoken, DateTimeOffset.UtcNow,
                     TimeSpan.FromSeconds(Math.Max(0, options.SelfEchoWindowSeconds)),
-                    _expectedReplies?.ExpectedReplies ?? []))
+                    _expectedReplies?.ExpectedReplies ?? [],
+                    new SelfEchoGuard.HeardUtterance(
+                        beganUtc, SelfEchoGuard.EchoTailFor(options.MicTailAfterSpeakingMs), grammar)) is { } echoed)
             {
-                _logger.LogInformation("ASR dropped the FO's own words heard back from the speakers: {Text}", transcript.Text);
-                _eventLog?.Record("asr.self-echo", new { text = transcript.Text, windowSeconds = options.SelfEchoWindowSeconds });
+                // Negative = the utterance began while the line was still playing.
+                var afterPlaybackMs = echoed.StillPlaying ? (int?)null : (int)(beganUtc - echoed.SpokenAtUtc).TotalMilliseconds;
+                _logger.LogInformation(
+                    "ASR dropped the FO's own words heard back from the speakers: {Text} (utterance began {AfterPlaybackMs} ms after the line's playback ended)",
+                    transcript.Text, afterPlaybackMs);
+                _eventLog?.Record("asr.self-echo", new { text = transcript.Text, windowSeconds = options.SelfEchoWindowSeconds, afterPlaybackMs });
                 NoteRejected();
                 Rejected?.Invoke(this, new RecognizedEventArgs("", 0, null, transcript.NoSpeechProb));
                 return;

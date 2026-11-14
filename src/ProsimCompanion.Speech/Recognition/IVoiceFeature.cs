@@ -34,6 +34,15 @@ public interface IVoiceFeature
     /// <summary>Handles the utterance; true = consumed. Not called while disabled.</summary>
     bool TryHandle(string utterance);
 
+    /// <summary>The same offer while a spoken checklist line awaits its answer and the
+    /// utterance was not one (issue #205, 2026-11-14: "Say again — which field?" three times
+    /// over the Descent checklist's "Landing Elevation" line). A feature that can act on the
+    /// words still does — a handover or a complete instruction must not become a failed
+    /// checklist answer — but a feature that would only ASK about them (a value parser's
+    /// "say again …" clarifier) overrides this and declines: the words were most likely meant
+    /// for the line, and the line's own flow answers a miss. Default: no difference.</summary>
+    bool TryHandleWhileLinePending(string utterance) => TryHandle(utterance);
+
     /// <summary>True for a feature that only ever answers with words — nothing it does moves a
     /// switch, a lever or a setting (the FMA / capture-call acknowledgements). The router may
     /// fire such a feature on a gray-band match without the "did you mean …?" round trip in a

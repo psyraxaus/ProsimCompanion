@@ -834,4 +834,114 @@ public sealed class UtteranceRouterTests
         Assert.Empty(_intent.Asked);
         Assert.Empty(boarding.Handled);
     }
+
+    // ---- issue #205: EGLL→LOWW 2026-11-14 — "Say again — which field?" over a checklist line ----
+
+    /// <summary>The Descent checklist's line, as shipped.</summary>
+    private static readonly ChecklistItemDefinition LandingElevation = new()
+    {
+        Say = "Landing Elevation", ExpectedResponse = "SET", AcceptedPhrases = ["set", "auto"],
+    };
+
+    /// <summary>The real FCU feature — the one that says "which field?".</summary>
+    private ProsimCompanion.Speech.Fcu.FcuExecutor CreateFcu()
+    {
+        var eventLog = SpeechTestSupport.TempEventLog();
+        return new ProsimCompanion.Speech.Fcu.FcuExecutor(
+            Mock.Of<IProsimDataRefs>(),
+            new ProsimCompanion.Speech.Roles.RoleManager(
+                _arbiter, _phases, eventLog, NullLogger<ProsimCompanion.Speech.Roles.RoleManager>.Instance),
+            _arbiter,
+            eventLog,
+            NullLogger<ProsimCompanion.Speech.Fcu.FcuExecutor>.Instance);
+    }
+
+    [Fact]
+    public void WhichField_IsTheFcuParsersClarifier_ForANumberWithAnFcuWordAndNoField()
+    {
+        using var fcu = CreateFcu();
+        using var router = CreateRouter(fcu);
+
+        _window.Hear("Six hundred feet.");
+
+        var clarifier = Assert.Single(_arbiter.Requests);
+        Assert.Equal("clarifier", clarifier.Tag);
+        Assert.Equal("Say again — which field?.", clarifier.Text); // the flight's line, to the letter
+    }
+
+    [Theory]
+    [InlineData("Six hundred feet.")]
+    [InlineData("Eight.")]                  // 06:18:38Z, then rejected as not-an-answer
+    [InlineData("Six hundred feet, set.")]
+    public void TheValueReadBack_OnLandingElevation_CompletesTheLine_AndNoClarifierIsAsked(string heard)
+    {
+        _host.AwaitingItem = LandingElevation;
+        _host.ResponsePending = true;
+        _host.IsIdle = false;
+        _host.Accepts = text => SpokenChecklistEngine.IsAccepted(LandingElevation, text);
+        using var fcu = CreateFcu();
+        using var router = CreateRouter(fcu);
+
+        _window.Hear(heard);
+
+        Assert.Equal([(RoutedResponseKind.Phrase, heard)], _host.Completed);
+        Assert.Empty(_arbiter.Requests);
+        Assert.Empty(_unmatched.Snapshot().Recent);
+    }
+
+    [Fact]
+    public void WhileALineIsPending_TheFcuDoesNotAskAboutWordsItCannotPlace_TheLinesOwnFlowAnswers()
+    {
+        // A line that takes no value ("Descent Briefing … completed"): the number is not its
+        // answer, and it is not the FCU's question either.
+        _host.AwaitingItem = new ChecklistItemDefinition { Say = "Descent Briefing", AcceptedPhrases = ["complete", "completed", "confirmed"] };
+        _host.ResponsePending = true;
+        _host.IsIdle = false;
+        _host.Accepts = text => SpokenChecklistEngine.IsAccepted(_host.AwaitingItem, text);
+        using var fcu = CreateFcu();
+        using var router = CreateRouter(fcu);
+
+        _window.Hear("Six hundred feet.");
+
+        Assert.DoesNotContain(_arbiter.Requests, r => r.Tag == "clarifier");
+        Assert.Equal([(RoutedResponseKind.Phrase, "Six hundred feet.")], _host.Completed); // fails acceptance there → "Didn't catch that", once
+        var miss = Assert.Single(_unmatched.Snapshot().Recent);
+        Assert.Equal("checklist: Descent Briefing", miss.Context);
+        Assert.Equal("not-an-answer", miss.Reason);
+    }
+
+    [Fact]
+    public void WhileALineIsPending_ACompleteFcuInstruction_IsStillTheFcus()
+    {
+        // Reference semantics kept: the FCU acts on what it can read (here it answers that the
+        // captain is flying), it only stops asking.
+        _host.AwaitingItem = new ChecklistItemDefinition { Say = "Descent Briefing", AcceptedPhrases = ["completed"] };
+        _host.ResponsePending = true;
+        _host.IsIdle = false;
+        using var fcu = CreateFcu();
+        using var router = CreateRouter(fcu);
+
+        _window.Hear("turn left heading two two zero");
+
+        Assert.Empty(_host.Completed);
+        Assert.Contains(_arbiter.Requests, r => r.Text == "You're pilot flying — the FCU is yours.");
+    }
+
+    [Fact]
+    public void TheLinesAnswer_AsHeard_WinsOverAFeatureThatOwnsTheSameWords()
+    {
+        // The item window carries every feature phrase: the interpreter resolves the transcript
+        // to the feature's phrase, and only the transcript itself is the line's answer.
+        var feature = new ScriptedFeature("six hundred feet");
+        _host.AwaitingItem = LandingElevation;
+        _host.ResponsePending = true;
+        _host.IsIdle = false;
+        _host.Accepts = text => text == "Six hundred feet.";
+        using var router = CreateRouter(feature);
+
+        _window.Hear("Six hundred feet.");
+
+        Assert.Empty(feature.Handled);
+        Assert.Equal([(RoutedResponseKind.Phrase, "Six hundred feet.")], _host.Completed);
+    }
 }
