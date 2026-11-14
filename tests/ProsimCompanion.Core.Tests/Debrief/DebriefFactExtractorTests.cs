@@ -117,6 +117,33 @@ public sealed class DebriefFactExtractorTests : IDisposable
         Assert.True(facts.HasData);
     }
 
+    // Issue #240 — EGLL–LOWW 2026-11-14: five abnormals "detected" 11 s after an app start in
+    // the climb and cleared 7–9 s later were read out as "5 abnormals handled".
+    [Fact]
+    public void Extract_ARetractedDetection_IsNotAnAbnormalOfTheFlight()
+    {
+        string[] ids = ["elec-gen-1-fault", "elec-gen-2-fault", "hyd-blue-rsvr-lo-lvl", "hyd-green-rsvr-lo-lvl", "hyd-yellow-rsvr-lo-lvl"];
+        var log = new SessionLogBuilder().At("05:08:24").Event("session-started").At("05:08:36");
+        foreach (var id in ids)
+        {
+            log.Event("failure.detected", new { id, title = id.ToUpperInvariant() });
+        }
+
+        log.At("05:08:43");
+        foreach (var id in ids)
+        {
+            log.Event("failure.cleared", new { id });
+            log.Event("failure.retracted", new { id, title = id.ToUpperInvariant(), reason = "cleared-before-announced" });
+        }
+
+        // A real one later in the flight, with the same id as a retracted one, counts.
+        log.At("06:10:00").Event("failure.detected", new { id = "elec-gen-1-fault", title = "ELEC GEN 1 FAULT" });
+
+        var facts = _extractor.Extract(log.Write(_dir));
+
+        Assert.Equal(new AbnormalFact("ELEC GEN 1 FAULT", Cleared: false), Assert.Single(facts.Abnormals));
+    }
+
     [Fact]
     public void Extract_SkipsUnparseableLines()
     {

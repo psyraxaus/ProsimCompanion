@@ -1,3 +1,5 @@
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ProsimCompanion.Core.Aircraft;
@@ -20,8 +22,11 @@ namespace ProsimCompanion.Speech.FoSide;
 /// (<see cref="CrossCheckComposer"/>, pure). Every number is checked by the
 /// <see cref="NumberVerifier"/> before it is spoken. No MCDU key is pressed.
 /// </summary>
-public sealed class FmgcCrossCheckService : IVoiceFeature, Core.Hosting.IStartupModule, IDisposable
+public sealed class FmgcCrossCheckService : IVoiceFeature, Core.Hosting.IStartupModule, IDisposable, IFlightStatePart
 {
+    public const string RestoredEvent = "fo.crossCheck.restored";
+    public const string HeldEvent = "fo.crossCheck.held";
+
     private static readonly string[] Triggers = ["cross check", "cross-check", "crosscheck", "fmgc cross check", "fmgc cross-check", "adirs check", "adirs cross check", "fmgc check"];
 
     private readonly IOptionsMonitor<SpeechOptions> _speech;
@@ -50,7 +55,11 @@ public sealed class FmgcCrossCheckService : IVoiceFeature, Core.Hosting.IStartup
     private readonly Core.Speech.ISpokenText _spokenText;
     private Timer? _timer;
     private int _ticking;
-    private bool _autoDone;
+
+    // Once per departure, across an app restart, and never on values not yet delivered
+    // (issue #221 — the rules and the 2026-11-14 evidence are on the latch).
+    private readonly CrossCheckAutoLatch _latch = new();
+    private CrossCheckAutoVerdict _lastHold = CrossCheckAutoVerdict.NotDue;
     // The auto trigger belongs to a leg whose plan is in (ADR-0019 §1, issue #221): armed for
     // the first leg, disarmed when the arrival is done with the aircraft (the flown plan still
     // satisfies "origin, destination and V1 settled" on the arrival's Shutdown → Preflight
@@ -135,6 +144,7 @@ public sealed class FmgcCrossCheckService : IVoiceFeature, Core.Hosting.IStartup
             // the modules start: with the flown plan still in the box the trigger must come up
             // disarmed, or "INIT page: EGLL to EHAM" is spoken again (review 2026-11-05).
             _armed = ArmedFor(_legStore.Snapshot().State);
+            _latch.Started(DateTimeOffset.UtcNow);
         }
 
         _signals.FlightCycleReset += OnFlightCycleReset;
@@ -169,9 +179,15 @@ public sealed class FmgcCrossCheckService : IVoiceFeature, Core.Hosting.IStartup
 
     private void OnReset()
     {
+        bool changed;
         lock (_gate)
         {
-            _autoDone = false;
+            changed = _latch.Reset();
+        }
+
+        if (changed)
+        {
+            Changed?.Invoke(); // outside the lock: the snapshot service captures under it
         }
     }
 
@@ -179,20 +195,80 @@ public sealed class FmgcCrossCheckService : IVoiceFeature, Core.Hosting.IStartup
     /// until the next leg's plan begins it (issue #221).</summary>
     private void OnArrivalCompleted()
     {
+        bool changed;
         lock (_gate)
         {
             _armed = false;
-            _autoDone = false;
+            changed = _latch.Reset();
+        }
+
+        if (changed)
+        {
+            Changed?.Invoke();
         }
     }
 
     private void OnLegBegan(object? sender, LegBeganEventArgs e)
     {
+        bool changed;
         lock (_gate)
         {
             _armed = true;
-            _autoDone = false;
+
+            // The plan the check already ran for "beginning the leg" again is the app meeting
+            // its own plan after a restart, not a new departure (issue #221: the second
+            // repeat of 2026-11-14 04:32:48Z came from this edge).
+            changed = _latch.LegBegan(e.PlanId);
         }
+
+        if (changed)
+        {
+            Changed?.Invoke();
+        }
+    }
+
+    // ---- the flight-state snapshot part (issue #221: once per departure, across a restart) ----
+
+    /// <inheritdoc />
+    public string Key => "fmgcCrossCheck";
+
+    /// <summary>After the OFP (10) and the departure cycle (50): the plan the latch names is in.</summary>
+    public int RestoreOrder => 60;
+
+    /// <inheritdoc />
+    public event Action? Changed;
+
+    /// <inheritdoc />
+    public JsonNode? Capture()
+    {
+        CrossCheckAutoSnapshot? state;
+        lock (_gate)
+        {
+            state = _latch.Capture();
+        }
+
+        return state is null ? null : JsonSerializer.SerializeToNode(state, FlightStateSnapshotStore.JsonOptions);
+    }
+
+    /// <inheritdoc />
+    public void Restore(JsonNode node)
+    {
+        ArgumentNullException.ThrowIfNull(node);
+        var saved = node.Deserialize<CrossCheckAutoSnapshot>(FlightStateSnapshotStore.JsonOptions);
+        bool taken;
+        lock (_gate)
+        {
+            taken = _latch.Restore(saved);
+        }
+
+        if (!taken)
+        {
+            return;
+        }
+
+        _eventLog.Record(RestoredEvent, new { planId = saved?.PlanId });
+        _logger.LogInformation(
+            "FMGC cross-check already done for this departure (plan {PlanId}, flight-state snapshot) — not repeated", saved?.PlanId ?? "none");
     }
 
     /// <summary>Whether the auto trigger is armed for the current leg — public for tests.</summary>
@@ -240,21 +316,38 @@ public sealed class FmgcCrossCheckService : IVoiceFeature, Core.Hosting.IStartup
                 return;
             }
 
-            bool due;
+            var waiting = UndeliveredReads();
+            CrossCheckAutoVerdict verdict;
+            bool newHold;
             lock (_gate)
             {
                 // The store is read every tick as well: a snapshot restored after this module
                 // started, or a boundary step the events missed, disarms the trigger too.
-                due = AutoDue(_flight.CurrentPhase, _flight.IsLive && !_origin.IsStale, _origin.Value, _destination.Value, _v1.Value, _autoDone,
+                var due = AutoDue(_flight.CurrentPhase, _flight.IsLive && !_origin.IsStale, _origin.Value, _destination.Value, _v1.Value, _latch.Done,
                     _armed && ArmedFor(_legStore.Snapshot().State));
-                if (due)
-                {
-                    _autoDone = true;
-                }
+                verdict = _latch.Judge(DateTimeOffset.UtcNow, due, waiting.Count == 0, OfpPlanIdentity.PlanId(_ofp.Current));
+                newHold = verdict != _lastHold;
+                _lastHold = verdict;
             }
 
-            if (due)
+            switch (verdict)
             {
+                case CrossCheckAutoVerdict.HeldForRestore when newHold:
+                    _eventLog.Record(HeldEvent, new { reason = "restore" });
+                    _logger.LogInformation("FMGC cross-check is due — held until the flight-state snapshot has said whether it already ran (at most {Seconds:F0} s after the start)", CrossCheckAutoLatch.RestoreSettle.TotalSeconds);
+                    break;
+                case CrossCheckAutoVerdict.HeldForValues when newHold:
+                    _eventLog.Record(HeldEvent, new { reason = "values", waiting });
+                    _logger.LogInformation("FMGC cross-check is due — held until ProSim has delivered {Datarefs} (at most {Seconds:F0} s)", string.Join(", ", waiting), CrossCheckAutoLatch.ValuesWait.TotalSeconds);
+                    break;
+                case CrossCheckAutoVerdict.RunWithoutAllValues:
+                    _logger.LogWarning("FMGC cross-check runs without a value for {Datarefs} — ProSim delivered none in {Seconds:F0} s (not on this ProSim build?)", string.Join(", ", waiting), CrossCheckAutoLatch.ValuesWait.TotalSeconds);
+                    break;
+            }
+
+            if (verdict is CrossCheckAutoVerdict.Run or CrossCheckAutoVerdict.RunWithoutAllValues)
+            {
+                Changed?.Invoke();
                 _ = RunAsync("auto");
             }
         }
@@ -267,6 +360,15 @@ public sealed class FmgcCrossCheckService : IVoiceFeature, Core.Hosting.IStartup
             Interlocked.Exchange(ref _ticking, 0);
         }
     }
+
+    /// <summary>The datarefs the readout speaks that ProSim has not delivered (or that went
+    /// stale): "ADIRS one — no attitude" on 2026-11-14 was the fallback of a value still on
+    /// its way, four seconds after the app started (issue #221).</summary>
+    private List<string> UndeliveredReads()
+        => [.. _aligning.Cast<IDataRefSubscription>().Concat(_minutes).Concat(_attitude)
+            .Concat([_origin, _destination, _cruise, _v1, _vr, _v2, _flex])
+            .Where(read => read.RawValue is null || read.IsStale)
+            .Select(read => read.Name)];
 
     /// <summary>Reads, composes, verifies the numbers and speaks — public for tests.</summary>
     public async Task RunAsync(string source)

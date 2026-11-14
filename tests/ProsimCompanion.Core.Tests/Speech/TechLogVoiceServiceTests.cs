@@ -187,4 +187,18 @@ public sealed class TechLogVoiceServiceTests : IDisposable
         _phases.SetPhase(FlightPhase.Preflight); // new flight — memory cleared
         Assert.Empty(_voice.FiredAbnormals);
     }
+
+    // Issue #240: a detection the monitor took back (cleared before the FO had begun to
+    // announce it) is not offered to the tech log at the end of the flight.
+    [Fact]
+    public void ARetractedAbnormal_IsForgotten_TheOthersStay()
+    {
+        _voice.NoteAbnormal("elec-gen-1-fault", "ELEC GEN 1 FAULT");
+        _voice.NoteAbnormal("pack-1-fault", "PACK 1 FAULT");
+
+        _voice.ForgetAbnormal("ELEC-GEN-1-FAULT", "ELEC GEN 1 FAULT");
+        _voice.ForgetAbnormal("never-noted", "X");
+
+        Assert.Equal(["pack-1-fault"], _voice.FiredAbnormals.Keys);
+    }
 }

@@ -108,6 +108,8 @@ public static class SpeechServiceCollectionExtensions
         services.AddStartupModule<FoSide.FoSideDutiesService>();
         services.AddVoiceFeature<FoSide.FmgcCrossCheckService>();
         services.AddStartupModule<FoSide.FmgcCrossCheckService>();
+        // "Auto cross-check done for this plan" rides in the flight-state snapshot (issue #221).
+        services.AddSingleton<Core.Flight.IFlightStatePart>(p => p.GetRequiredService<FoSide.FmgcCrossCheckService>());
         // ADR-0019 §3 (issue #215): the one-time "the FMS still holds the previous flight plan"
         // when a new OFP lands while the FMS still carries the flown pair.
         services.AddStartupModule<FoSide.FmsPlanReminderService>();

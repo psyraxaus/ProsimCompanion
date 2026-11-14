@@ -44,6 +44,13 @@ public sealed class FailureMonitor : IEcamDialogueIo, Core.State.IAbnormalDialog
     private readonly Dictionary<string, TriggerState> _states = [];
     private readonly HashSet<string> _conditionFaultLogged = new(StringComparer.Ordinal);
     private bool _burstLogged;
+    private bool _presubscribed;
+
+    /// <summary>How long a trigger condition may stay without a value from ProSim before one
+    /// line names the datarefs it waits for (issue #240) — long past the 7–9 s the values
+    /// took on the 2026-11-14 restarts, so only a name this ProSim build does not have is
+    /// reported.</summary>
+    public static readonly TimeSpan UndeliveredNoteAfter = TimeSpan.FromSeconds(30);
 
     private IDataRefSubscription<string>? _ewdText;
     private IDataRefSubscription<double>? _masterWarning;
@@ -136,6 +143,13 @@ public sealed class FailureMonitor : IEcamDialogueIo, Core.State.IAbnormalDialog
     /// without re-parsing the event log. Fires on the monitor's tick thread.</summary>
     public event Action<string, string>? FailureDetected;
 
+    /// <summary>Raised (id, title) when a detected abnormal cleared before the FO had begun to
+    /// announce it (issue #240): for the crew it never happened, so whoever remembered it from
+    /// <see cref="FailureDetected"/> forgets it — the tech log's end-of-flight offer does. The
+    /// event log carries the same fact as <c>failure.retracted</c> for the debrief. Fires on the
+    /// monitor's tick thread, outside its lock.</summary>
+    public event Action<string, string>? FailureRetracted;
+
     /// <summary>Raised when an ECAM dialogue ends, whichever way (completed, cleared, cancelled,
     /// session-ended) — the scenario mode's decision turn follows it (issue #197). Fired outside
     /// the lock, on the dialogue's thread.</summary>
@@ -191,6 +205,7 @@ public sealed class FailureMonitor : IEcamDialogueIo, Core.State.IAbnormalDialog
             _definitions = definitions;
             _states.Clear();
             _conditionFaultLogged.Clear(); // a reloaded definition earns one fresh warning
+            _presubscribed = false;
             foreach (var definition in _definitions)
             {
                 _states[definition.Id] = new TriggerState();
@@ -236,9 +251,11 @@ public sealed class FailureMonitor : IEcamDialogueIo, Core.State.IAbnormalDialog
         // Cancelled outside the lock: Cancel() can run continuations synchronously, and one
         // of those may re-enter this monitor.
         CancellationTokenSource? clearedDialogue = null;
+        List<(string Id, string Title)>? retracted = null;
 
         lock (_lock)
         {
+            Presubscribe();
             if (!_flight.IsLive || !Options.Enabled)
             {
                 // Switched off (abnormals.enabled, 2026-10-08) reads like not-live: nothing
@@ -249,28 +266,116 @@ public sealed class FailureMonitor : IEcamDialogueIo, Core.State.IAbnormalDialog
                 // packs, dead generators — and the 2026-08-29 launch test had the FO working
                 // ECAM faults at an empty sim. Hold, and drop every per-flight latch so the
                 // next session starts clean rather than inheriting a "fired" fault.
-                clearedDialogue = ResetForNotLive();
+                clearedDialogue = ResetForNotLive(ref retracted);
             }
             else
             {
-                clearedDialogue = Evaluate(nowUtc);
+                clearedDialogue = Evaluate(nowUtc, ref retracted);
             }
         }
 
         clearedDialogue?.Cancel();
+        if (retracted is null)
+        {
+            return;
+        }
+
+        foreach (var (id, title) in retracted)
+        {
+            try
+            {
+                FailureRetracted?.Invoke(id, title);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "FailureRetracted subscriber threw for {Id}", id);
+            }
+        }
+    }
+
+    /// <summary>Registers every dataref the triggers, corroborations and cleared rules read, on
+    /// the first tick after a load — live flight or not, phase armed or not; caller holds
+    /// <see cref="_lock"/>. Until 2026-11-14 a name was registered the first time its definition
+    /// was evaluated, which after an app start in flight is the tick the phase commits: the
+    /// value then arrived seconds after the condition had already been judged on the fallback
+    /// (issue #240). Registered from the start, the values are usually in before any phase
+    /// arms; <see cref="AnyLeafUnreadable"/> covers the rest.</summary>
+    private void Presubscribe()
+    {
+        if (_presubscribed)
+        {
+            return;
+        }
+
+        _presubscribed = true;
+        foreach (var definition in _definitions)
+        {
+            var names = new List<string>();
+            CollectDatarefs(definition.Trigger?.Condition, names);
+            CollectDatarefs(definition.ClearedWhen, names);
+            if (!string.IsNullOrWhiteSpace(definition.Trigger?.Corroborate))
+            {
+                names.Add(definition.Trigger.Corroborate);
+            }
+
+            foreach (var name in names)
+            {
+                try
+                {
+                    Subscription(name);
+                }
+                catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or ObjectDisposedException)
+                {
+                    // A name the table refuses is reported where it is evaluated (issue #228).
+                }
+            }
+        }
+    }
+
+    private static void CollectDatarefs(VerifyCondition? condition, List<string> names)
+    {
+        if (condition is null)
+        {
+            return;
+        }
+
+        if (condition.IsCompound)
+        {
+            foreach (var child in condition.Conditions!)
+            {
+                CollectDatarefs(child, names);
+            }
+
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(condition.Dataref))
+        {
+            names.Add(condition.Dataref);
+        }
     }
 
     /// <summary>Drops every trigger latch and ends a running dialogue silently. Returns the
     /// dialogue's CTS for the caller to cancel outside the lock, or null.</summary>
-    private CancellationTokenSource? ResetForNotLive()
+    private CancellationTokenSource? ResetForNotLive(ref List<(string Id, string Title)>? retracted)
     {
         var hadState = false;
-        foreach (var state in _states.Values)
+        foreach (var definition in _definitions)
         {
+            var state = _states[definition.Id];
             hadState |= state.Fired || state.RisingSinceUtc is not null;
+            if (state.Fired)
+            {
+                // The flight went away with the announcement still waiting: it is not spoken
+                // later, at an empty sim, and the detection does not count.
+                Retract(definition, state, "session-ended", ref retracted);
+            }
+
             state.Fired = false;
             state.RisingSinceUtc = null;
             state.SuppressionLogged = false;
+            state.UndeliveredSinceUtc = null;
+            state.UndeliveredLogged = false;
         }
 
         if (hadState)
@@ -290,7 +395,7 @@ public sealed class FailureMonitor : IEcamDialogueIo, Core.State.IAbnormalDialog
     /// <summary>The live-flight evaluation pass; caller holds <see cref="_lock"/>. Returns the
     /// CTS of a dialogue whose failure cleared this tick — cancelled by the caller outside the
     /// lock, since Cancel() can run continuations synchronously that re-enter this monitor.</summary>
-    private CancellationTokenSource? Evaluate(DateTimeOffset nowUtc)
+    private CancellationTokenSource? Evaluate(DateTimeOffset nowUtc, ref List<(string Id, string Title)>? retracted)
     {
         CancellationTokenSource? clearedDialogue = null;
         {
@@ -363,9 +468,11 @@ public sealed class FailureMonitor : IEcamDialogueIo, Core.State.IAbnormalDialog
                     // and the FO announced "has cleared" over a dead generator). Without a
                     // clearedWhen, signal absence remains the only clue we have; an
                     // unreadable condition (null) never clears.
+                    // A trigger that cannot be judged (null — its datarefs undelivered, or
+                    // stale on a connection drop, issue #240) is no proof either.
                     var cleared = definition.ClearedWhen is not null
                         ? ((IEcamDialogueIo)this).TryEvaluate(definition.ClearedWhen) == true
-                        : !signal;
+                        : signal == false;
                     if (!cleared)
                     {
                         continue;
@@ -374,6 +481,7 @@ public sealed class FailureMonitor : IEcamDialogueIo, Core.State.IAbnormalDialog
                     state.Fired = false;
                     state.RisingSinceUtc = null;
                     _eventLog.Record("failure.cleared", new { id = definition.Id });
+                    Retract(definition, state, "cleared-before-announced", ref retracted);
 
                     // A dialogue mid-run for this failure ends now (issue #57): the
                     // 2026-08-15 flight had the FO demanding a gen reset for 13 minutes
@@ -388,8 +496,11 @@ public sealed class FailureMonitor : IEcamDialogueIo, Core.State.IAbnormalDialog
                     continue;
                 }
 
-                if (!signal)
+                NoteUndelivered(definition, state, signal is null, nowUtc);
+                if (signal != true)
                 {
+                    // Not met, or not known: a condition whose datarefs have delivered nothing
+                    // yet is "unknown", never "false / 0" (issue #240) — no rising edge on it.
                     state.RisingSinceUtc = null;
                     continue;
                 }
@@ -423,7 +534,7 @@ public sealed class FailureMonitor : IEcamDialogueIo, Core.State.IAbnormalDialog
                 }
 
                 state.Fired = true;
-                Fire(definition);
+                Fire(definition, state);
             }
 
             if (_burstLogged && _states.All(s => s.Value.RisingSinceUtc is null || s.Value.Fired))
@@ -464,7 +575,72 @@ public sealed class FailureMonitor : IEcamDialogueIo, Core.State.IAbnormalDialog
         return true;
     }
 
-    private void Fire(AbnormalDefinition definition)
+    /// <summary>A detection whose announcement had not begun when the failure went away is
+    /// taken back (issue #240, 2026-11-14: five abnormals detected 11 s after an app start in
+    /// the climb, cleared 7–9 s later, yet spoken one after the other, counted as "5 abnormals
+    /// handled" and offered to the tech log one by one). The waiting announcement drops itself
+    /// at the arbiter's dequeue check; <c>failure.retracted</c> takes the detection out of the
+    /// debrief facts; <see cref="FailureRetracted"/> takes it out of the tech-log offer. An
+    /// announcement already begun stands — the crew heard it. Caller holds <see cref="_lock"/>.</summary>
+    private void Retract(AbnormalDefinition definition, TriggerState state, string reason, ref List<(string Id, string Title)>? retracted)
+    {
+        var announcement = state.Announcement;
+        state.Announcement = null;
+        if (announcement is null || !announcement.TryRetract())
+        {
+            return;
+        }
+
+        _eventLog.Record("failure.retracted", new { id = definition.Id, title = definition.Title, reason });
+        _logger.LogInformation(
+            "Abnormal {Id} went away before its announcement was spoken ({Reason}) — not announced, not counted, not offered to the tech log",
+            definition.Id, reason);
+        (retracted ??= []).Add((definition.Id, definition.Title));
+    }
+
+    /// <summary>One Information line per episode for a trigger condition that has had no value
+    /// from ProSim for <see cref="UndeliveredNoteAfter"/> — a silent "unknown" would look like
+    /// a broken monitor in the log (the #103 / #116 diagnosability rule).</summary>
+    private void NoteUndelivered(AbnormalDefinition definition, TriggerState state, bool unknown, DateTimeOffset nowUtc)
+    {
+        if (!unknown)
+        {
+            state.UndeliveredSinceUtc = null;
+            state.UndeliveredLogged = false;
+            return;
+        }
+
+        state.UndeliveredSinceUtc ??= nowUtc;
+        if (state.UndeliveredLogged || nowUtc - state.UndeliveredSinceUtc < UndeliveredNoteAfter)
+        {
+            return;
+        }
+
+        state.UndeliveredLogged = true;
+        var names = new List<string>();
+        CollectDatarefs(definition.Trigger?.Condition, names);
+        var waiting = names
+            .Distinct(StringComparer.Ordinal)
+            .Where(Undelivered);
+        _logger.LogInformation(
+            "Abnormal {Id} condition is not judged — ProSim has delivered no value for {Datarefs} in {Seconds:F0} s (a name this ProSim build does not have, or the connection is down); its E/WD text still triggers",
+            definition.Id, string.Join(", ", waiting), UndeliveredNoteAfter.TotalSeconds);
+    }
+
+    private bool Undelivered(string dataref)
+    {
+        try
+        {
+            var read = Subscription(dataref);
+            return read.RawValue is null || read.IsStale;
+        }
+        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or ObjectDisposedException)
+        {
+            return false; // a name the table refuses has its own warning (issue #228)
+        }
+    }
+
+    private void Fire(AbnormalDefinition definition, TriggerState state)
     {
         _eventLog.Record("failure.detected", new { id = definition.Id, title = definition.Title });
         try
@@ -495,8 +671,14 @@ public sealed class FailureMonitor : IEcamDialogueIo, Core.State.IAbnormalDialog
         var priority = definition.Severity.Equals("warning", StringComparison.OrdinalIgnoreCase)
             ? SpeechPriority.Critical
             : SpeechPriority.High;
+
+        // The announcement re-checks itself when the arbiter takes it off the queue: five
+        // false detections queued behind each other were all spoken on 2026-11-14 although
+        // every one had cleared by then (issue #240).
+        var latch = new AnnouncementLatch();
+        state.Announcement = latch;
         _ = _arbiter.EnqueueAsync(new SpeechRequest(
-            announcement, priority, Tag: $"abnormal:{definition.Id}"));
+            announcement, priority, IsStillValid: latch.TryBegin, Tag: $"abnormal:{definition.Id}"));
 
         // The announcement always plays; the interactive per-line dialogue follows only when
         // there are action lines to work, a mic seam to hold them on, and the pilot has not
@@ -672,6 +854,11 @@ public sealed class FailureMonitor : IEcamDialogueIo, Core.State.IAbnormalDialog
 
     private bool AnyLeafUnreadable(VerifyCondition condition)
     {
+        if (condition is null)
+        {
+            return false; // a null child — the evaluator's own fault, reported there (issue #228)
+        }
+
         if (condition.IsCompound)
         {
             return condition.Conditions!.Any(AnyLeafUnreadable);
@@ -731,7 +918,10 @@ public sealed class FailureMonitor : IEcamDialogueIo, Core.State.IAbnormalDialog
         }
     }
 
-    private bool EvaluateTrigger(AbnormalDefinition definition, string ewdText, out bool corroborateSuppressed)
+    /// <summary>True = the trigger is firing, false = it is not, null = it cannot be judged:
+    /// a dataref of its condition has delivered nothing yet (or went stale) and the E/WD text
+    /// does not decide on its own (<see cref="CombineSignal"/>).</summary>
+    private bool? EvaluateTrigger(AbnormalDefinition definition, string ewdText, out bool corroborateSuppressed)
     {
         corroborateSuppressed = false;
         var trigger = definition.Trigger!;
@@ -740,11 +930,23 @@ public sealed class FailureMonitor : IEcamDialogueIo, Core.State.IAbnormalDialog
             : null;
 
         bool? condHit = null;
+        var conditionUnknown = false;
         if (trigger.Condition is not null)
         {
             try
             {
-                condHit = ConditionEvaluator.Evaluate(trigger.Condition, Read);
+                // "No value yet" is not 0 (issue #240): elec-gen-1-fault is "Gen1Line equals 0
+                // AND engine 1 running" — after the 2026-11-14 restart in the climb the engine
+                // flag (shared with other readers) was in and the relay was not, the relay read
+                // its fallback 0, and the FO announced a generator fault on a healthy aircraft.
+                if (AnyLeafUnreadable(trigger.Condition))
+                {
+                    conditionUnknown = true;
+                }
+                else
+                {
+                    condHit = ConditionEvaluator.Evaluate(trigger.Condition, Read);
+                }
             }
             catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or ObjectDisposedException)
             {
@@ -759,16 +961,10 @@ public sealed class FailureMonitor : IEcamDialogueIo, Core.State.IAbnormalDialog
             }
         }
 
-        bool signal;
-        if (textHit is not null && condHit is not null)
+        var combined = CombineSignal(textHit, condHit, conditionUnknown, trigger.Logic.Equals("all", StringComparison.OrdinalIgnoreCase));
+        if (combined is not { } signal)
         {
-            signal = trigger.Logic.Equals("all", StringComparison.OrdinalIgnoreCase)
-                ? textHit.Value && condHit.Value
-                : textHit.Value || condHit.Value;
-        }
-        else
-        {
-            signal = textHit ?? condHit ?? false;
+            return null;
         }
 
         // The takeoff window (issue #187): "after V1, below 400 ft AAL" is two live figures the
@@ -789,6 +985,31 @@ public sealed class FailureMonitor : IEcamDialogueIo, Core.State.IAbnormalDialog
         }
 
         return signal;
+    }
+
+    /// <summary>The trigger's two halves as one signal, pure. With the condition readable it is
+    /// the authored logic ("all" = both, otherwise either; a missing half leaves the other).
+    /// With the condition unknown (issue #240) the E/WD text decides only where the logic lets
+    /// it decide alone: a text hit under "any" is a hit, a text miss under "all" is a miss —
+    /// everything else is unknown (null), which is neither a rising edge nor a clearing.</summary>
+    public static bool? CombineSignal(bool? textHit, bool? conditionHit, bool conditionUnknown, bool all)
+    {
+        if (conditionUnknown)
+        {
+            return textHit switch
+            {
+                true when !all => true,
+                false when all => false,
+                _ => null,
+            };
+        }
+
+        if (textHit is not null && conditionHit is not null)
+        {
+            return all ? textHit.Value && conditionHit.Value : textHit.Value || conditionHit.Value;
+        }
+
+        return textHit ?? conditionHit ?? false;
     }
 
     /// <summary>The trigger window (issue #187), pure: after V1 = IAS at or above the FMS V1
@@ -841,6 +1062,7 @@ public sealed class FailureMonitor : IEcamDialogueIo, Core.State.IAbnormalDialog
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(id);
         AbnormalDefinition? definition;
+        TriggerState handedOver;
         lock (_lock)
         {
             definition = _definitions.FirstOrDefault(d => !d.IsDrill && d.Enabled && d.Id.Equals(id, StringComparison.OrdinalIgnoreCase));
@@ -851,11 +1073,12 @@ public sealed class FailureMonitor : IEcamDialogueIo, Core.State.IAbnormalDialog
 
             state.Fired = true;
             state.RisingSinceUtc = null;
+            handedOver = state;
         }
 
         _eventLog.Record("abnormal.handoff", new { id = definition.Id, origin });
         _logger.LogInformation("ECAM procedure {Id} started by {Origin}", definition.Id, origin);
-        Fire(definition);
+        Fire(definition, handedOver);
         return true;
     }
 
@@ -899,7 +1122,7 @@ public sealed class FailureMonitor : IEcamDialogueIo, Core.State.IAbnormalDialog
             return;
         }
 
-        if (state.HeldUnpoweredLogged || !EvaluateTrigger(definition, ewdText, out _))
+        if (state.HeldUnpoweredLogged || EvaluateTrigger(definition, ewdText, out _) != true)
         {
             return;
         }
@@ -1029,7 +1252,41 @@ public sealed class FailureMonitor : IEcamDialogueIo, Core.State.IAbnormalDialog
 
         /// <summary>One "held, de-icing in progress" line per treatment (issue #123).</summary>
         public bool HeldDeiceLogged { get; set; }
+
+        /// <summary>Since when the trigger condition has had no value to judge (issue #240).</summary>
+        public DateTimeOffset? UndeliveredSinceUtc { get; set; }
+
+        /// <summary>One "not judged, no value delivered" line per episode (issue #240).</summary>
+        public bool UndeliveredLogged { get; set; }
+
+        /// <summary>The announcement of the current detection, until the failure clears.</summary>
+        public AnnouncementLatch? Announcement { get; set; }
     }
+}
+
+/// <summary>
+/// Whether a detection's announcement has begun (issue #240) — decided once, between the two
+/// threads that ask: the arbiter, when it takes the announcement off its queue
+/// (<see cref="TryBegin"/> is the request's validity re-check, the last gate before playback),
+/// and the monitor's tick, when the failure clears (<see cref="TryRetract"/>). Whoever comes
+/// first wins: begun, the announcement is spoken and the detection stands; retracted, it is
+/// dropped and the detection is taken back. Lock-free on purpose — the arbiter may ask under
+/// its own lock while the monitor enqueues under its own.
+/// </summary>
+public sealed class AnnouncementLatch
+{
+    private const int Waiting = 0;
+    private const int Begun = 1;
+    private const int Retracted = 2;
+
+    private int _state;
+
+    /// <summary>The arbiter is about to speak it: false when it was retracted first. A second
+    /// ask (re-admission after a deferral, a restart after a pre-emption) answers the same.</summary>
+    public bool TryBegin() => Interlocked.CompareExchange(ref _state, Begun, Waiting) != Retracted;
+
+    /// <summary>The failure went away: true when the announcement had not begun — it never will.</summary>
+    public bool TryRetract() => Interlocked.CompareExchange(ref _state, Retracted, Waiting) == Waiting;
 }
 
 /// <summary>The loaded memory drills as (title, voice triggers) — the Voice Reference

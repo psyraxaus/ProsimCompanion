@@ -114,6 +114,7 @@ public sealed class TechLogVoiceService : IVoiceFeature, IDisposable
 
         _flight.PhaseChanged += OnPhaseChanged;
         _failures.FailureDetected += NoteAbnormal;
+        _failures.FailureRetracted += ForgetAbnormal;
         _techLog.WearRaised += OnWearRaised;
         _logger.LogInformation("Tech log voice started");
     }
@@ -122,6 +123,7 @@ public sealed class TechLogVoiceService : IVoiceFeature, IDisposable
     {
         _flight.PhaseChanged -= OnPhaseChanged;
         _failures.FailureDetected -= NoteAbnormal;
+        _failures.FailureRetracted -= ForgetAbnormal;
         _techLog.WearRaised -= OnWearRaised;
     }
 
@@ -155,6 +157,23 @@ public sealed class TechLogVoiceService : IVoiceFeature, IDisposable
         lock (_gate)
         {
             _flightAbnormals[id] = title;
+        }
+    }
+
+    /// <summary>Forgets an abnormal the monitor took back — it cleared before the FO had begun
+    /// to announce it (issue #240: five start-up detections that were never real were each
+    /// offered to the tech log at the end of the 2026-11-14 flight). Fed by
+    /// <see cref="FailureMonitor.FailureRetracted"/>; public for tests.</summary>
+    public void ForgetAbnormal(string id, string title)
+    {
+        if (string.IsNullOrWhiteSpace(id))
+        {
+            return;
+        }
+
+        lock (_gate)
+        {
+            _flightAbnormals.Remove(id);
         }
     }
 

@@ -37,7 +37,9 @@ public interface IDebriefFactExtractor
 /// <item><c>techlog.raised</c> / <c>techlog.rectified</c> — counts;
 /// <c>techlog.carried</c> / <c>techlog.briefed</c> { open } — defects carried (max).</item>
 /// <item><c>failure.detected</c> { id, title } / <c>failure.cleared</c> { id } — abnormals
-/// (first title per id wins; cleared when a later cleared event names the id).</item>
+/// (first title per id wins; cleared when a later cleared event names the id);
+/// <c>failure.retracted</c> { id } takes the detection back — it went away before the FO had
+/// begun to announce it (issue #240).</item>
 /// <item><c>flight.route</c> { role, airport, runway } — origin/destination + runways
 /// (emitted by the briefing service when a briefing resolves).</item>
 /// <item><c>ofp.loaded</c> { origin, destination, flightNumber } / legacy
@@ -286,6 +288,21 @@ public sealed class DebriefFactExtractor : IDebriefFactExtractor
                             if (!string.IsNullOrWhiteSpace(id) && abnormals.TryGetValue(id, out var known))
                             {
                                 abnormals[id] = (known.Title, true);
+                            }
+
+                            break;
+                        }
+
+                        case "failure.retracted":
+                        {
+                            // Issue #240: the failure went away before the FO had begun to
+                            // announce it — nothing was handled, so it is not a fact of the
+                            // flight ("5 abnormals handled" on 2026-11-14 for five start-up
+                            // detections). A later, real detection of the same id counts again.
+                            var id = Str(payload, "id");
+                            if (!string.IsNullOrWhiteSpace(id) && abnormals.Remove(id))
+                            {
+                                abnormalOrder.RemoveAll(known => string.Equals(known, id, StringComparison.OrdinalIgnoreCase));
                             }
 
                             break;

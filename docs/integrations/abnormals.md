@@ -37,6 +37,29 @@ package 8 of the November 2026 batch (#187) added the 31st and two extensions to
 | `holdDuringDeice` | Held while the GSX de-icing crew is Requested→Completed (#123). |
 | `window` | **New (#187).** The takeoff window the trigger must fall in; see below. |
 
+### A value ProSim has not delivered is "unknown", never 0 (#240, 2026-11-14)
+
+A dataref subscription has no value until ProSim pushes one (`IDataRefSubscription.RawValue` is
+null), and after a connection the first push of a name nobody else reads took 7–9 s on the rig.
+Until 2026-11-14 the monitor read a condition leaf with a fallback of 0, and registered the names
+on the first tick their definition was evaluated — after an app start in flight that is the tick
+the phase commits. Result on EGLL–LOWW: `Gen1Line equals 0 AND engines.1.running equals 1`
+(the engine flag is shared and was already in, the relay was not) and `hydraulics.*.quantity
+lessThan 3` were true on fallbacks; five abnormals detected 11 s after the start, announced,
+cleared as the values arrived, counted in the debrief and offered to the tech log.
+
+- Every trigger / `corroborate` / `clearedWhen` name is registered on the **first tick** after a
+  load, live flight or not.
+- A condition with any leaf undelivered or stale is **unknown**. `FailureMonitor.CombineSignal`
+  (pure, tested): with `logic: any` an E/WD text hit still fires; with `all` a text miss is a
+  miss; everything else is unknown — no rising edge, and a latched fault without `clearedWhen`
+  does **not** clear on it. One log line names the datarefs after 30 s without a value (a name
+  the ProSim build does not have).
+- A detection that clears before the arbiter has taken its announcement off the queue is taken
+  back: the announcement drops itself (`SpeechRequest.IsStillValid`), `failure.retracted
+  {id, title, reason}` removes it from the debrief facts, `FailureMonitor.FailureRetracted`
+  removes it from the tech-log offer. An announcement already begun stands.
+
 ### `trigger.window` — the takeoff window
 
 ```json

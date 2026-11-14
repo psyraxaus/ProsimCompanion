@@ -5471,6 +5471,64 @@
         "requires-human: the phonetic form is understandable, and a three-letter base spelled in NATO words ('November Echo Romeo five November') is acceptable."
       ],
       "notes": "Built 2026-11-14. Core/Speech/Phraseology: the runway rule keeps the space, ProcedureInContext (context-bound: before arrival / departure / transition / SID / STAR, or after via / on with a designator letter) through ProcedureSpeech with no name source, and the 'flight-level-N-hundred' rule. Tests PhraseologyFlight20261114Tests. Unverified live."
+    },
+    {
+      "id": "failure-startup-early-read",
+      "issue": 240,
+      "state": "fixed-unverified",
+      "kind": "assert-absent",
+      "sources": [
+        "session",
+        "log",
+        "human"
+      ],
+      "checks": [
+        "Owner's flight 2026-11-14 (EGLL-LOWW): session-started 05:08:24.569Z in the climb, failure.detected x5 at 05:08:36.619Z (elec-gen-1-fault, elec-gen-2-fault, hyd-blue/green/yellow-rsvr-lo-lvl, all within 5 ms), spoken 05:08:40-55Z, failure.cleared x5 at 05:08:43-45Z; the same five again at 06:34:39Z after the second restart; debrief '5 abnormals handled' and five tech-log offers at the end.",
+        "assert-absent: a failure.detected within 60 s of a session-started in flight that is followed by a failure.cleared for the same id within 15 s (the values arriving). After an app restart in flight there are no failure.* events at all on a healthy aircraft.",
+        "assert-absent (the machine block): a failure.retracted {reason 'cleared-before-announced'} — the second line of defence worked, but a detection still rose and fell inside a few seconds: quote the id, the gap to session-started and the gap between failure.detected and failure.cleared. A retraction far from any app start is a short real transient, not this fault — say which.",
+        "assert-absent: after a failure.retracted for an id, a speech.spoken / speech.dequeued with tag 'abnormal:<id>' for that detection, that title in the debrief's abnormal count, or a tech-log offer 'We had the <title> this flight' for it.",
+        "watch (log): 'Abnormal <id> condition is not judged — ProSim has delivered no value for <datarefs> in 30 s' names a dataref this ProSim build does not have; that definition then works on its E/WD text alone — report the names.",
+        "requires-human: restart the app in climb or cruise — the FO announces no ECAM fault; a failure injected from the ProSim IOS afterwards is announced within its usual two seconds."
+      ],
+      "machine": {
+        "kind": "signature",
+        "signature": {
+          "source": "session",
+          "type": "failure.retracted",
+          "contains": "\"reason\":\"cleared-before-announced\""
+        }
+      },
+      "notes": "Built 2026-11-14. Root cause: FailureMonitor read a trigger condition through GetValue(0.0), so a dataref with no pushed value read 0, and the abnormal datarefs were first registered on the tick the phase committed (10 s after the start). Speech/Abnormals/FailureMonitor: Presubscribe (every trigger / corroborate / clearedWhen name on the first tick), EvaluateTrigger three-valued over AnyLeafUnreadable + CombineSignal (pure), a latched fault without clearedWhen does not clear on unknown, AnnouncementLatch + Retract (failure.retracted, FailureRetracted event), TechLogVoiceService.ForgetAbnormal, DebriefFactExtractor drops a retracted id. Tests FailureMonitorEarlyReadTests, DebriefFactExtractorTests.Extract_ARetractedDetection_IsNotAnAbnormalOfTheFlight, TechLogVoiceServiceTests.ARetractedAbnormal_IsForgotten_TheOthersStay. Unverified live."
+    },
+    {
+      "id": "fmgc-crosscheck-once-across-restart",
+      "issue": 221,
+      "alsoIssues": [
+        240
+      ],
+      "state": "fixed-unverified",
+      "kind": "assert-absent",
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "Owner's flight 2026-11-14 (EGLL, session-20261114-043241): fo.crossCheck {source 'auto'} at 04:24:23Z (ADIRS aligned), app restart at 04:32:42Z on the same plan at the same stand, then fo.crossCheck {source 'auto'} at 04:32:46.56Z and 04:32:48.52Z, both 'ADIRS one — no attitude. ADIRS two — no attitude. ADIRS three — no attitude'.",
+        "assert-absent (the machine block): two fo.crossCheck {source 'auto'} events within 15 minutes — across an app restart too (the reducer reads the sessions of one flight together). One automatic cross-check per departure.",
+        "assert-present after an app restart at the gate with the check already done: fo.crossCheck.restored {planId} and the log line 'FMGC cross-check already done for this departure (plan req:…, flight-state snapshot) — not repeated'; the flight-state-restored event lists 'fmgcCrossCheck' among its items.",
+        "assert-absent: an fo.crossCheck {source 'auto'} whose adirs all read aligned false / aligning false / minutesLeft 0 within 30 s of a session-started (values not yet delivered). fo.crossCheck.held {reason 'restore' | 'values'} before the check is the wait working; a Warning 'FMGC cross-check runs without a value for <datarefs>' means ProSim never delivered them in 30 s — report the names.",
+        "Not decided here: the arrival's Shutdown → Preflight edge (probe fmgc-crosscheck-new-leg)."
+      ],
+      "machine": {
+        "kind": "duplicate-within",
+        "type": "fo.crossCheck",
+        "key": "source",
+        "windowSeconds": 900,
+        "where": {
+          "source": "auto"
+        }
+      },
+      "notes": "Built 2026-11-14. Root causes: the once-per-cycle flag was a field of FmgcCrossCheckService (not in the snapshot); the first repeat ran 4.5 s after the start, 2 s before the snapshot restore; the second came from ILegBoundaryEvents.LegBegan ('first plan of the session') clearing the flag when the restored OFP was set; the ADIRS subscriptions had no pushed value yet and read their fallbacks. Speech/FoSide/CrossCheckAutoLatch (pure: RestoreSettle 15 s, ValuesWait 30 s, LegBegan on the same plan id keeps the latch) + FmgcCrossCheckService as IFlightStatePart 'fmgcCrossCheck' (RestoreOrder 60). Tests CrossCheckAutoLatchTests, FmgcCrossCheckSnapshotPartTests. Unverified live."
     }
   ]
 }
