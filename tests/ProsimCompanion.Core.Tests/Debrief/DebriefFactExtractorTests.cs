@@ -290,4 +290,53 @@ public sealed class DebriefFactExtractorTests : IDisposable
         Assert.Equal(39, facts.FlightMinutes);
         Assert.Equal(2100.0, facts.FuelUsedKg);
     }
+
+    [Fact]
+    public void Extract_SessionBegunInFlight_WithTheSimClockAhead_NeverMixesTheTwoClocks()
+    {
+        // EGLL→LOWW 2026-11-14: the sim clock ran 1 h 16 min ahead of real UTC and the app was
+        // restarted in the descent. Off-blocks came from the restored stamp (sim clock) and
+        // on-blocks from this session's Shutdown edge (real clock): the FO said "62 minutes
+        // block" for a 137-minute leg. The session's times below are the real ones of that day.
+        var path = new SessionLogBuilder()
+            .At("06:34:28").Event("session-started")
+            .At("06:34:37").Phase("Unknown", "Descent")
+            .At("06:34:39").Event("flight-times", new { offBlocksUtc = "2026-11-14T06:02:01Z", takeoffUtc = "2026-11-14T06:18:24Z", takeoffFobKg = 7063.0 })
+            .At("06:53:12").Phase("Descent", "Approach")
+            .At("06:57:33").Phase("Approach", "LandingRollout", groundSpeedKt: 131.0)
+            .At("06:57:34").Event("flight-times", new { landingUtc = "2026-11-14T08:12:43Z", landingFobKg = 6301.0 })
+            .At("06:58:09").Phase("LandingRollout", "TaxiIn")
+            .At("07:04:00").Phase("TaxiIn", "Shutdown")
+            .At("07:04:01").Event("flight-times", new { onBlocksUtc = "2026-11-14T08:19:09Z", onBlocksFobKg = 6249.0 })
+            .Write(_dir);
+
+        var facts = _extractor.Extract(path);
+
+        Assert.Equal(137, facts.BlockMinutes);  // 06:02:01 → 08:19:09 on the sim clock, not 62
+        Assert.Equal(114, facts.FlightMinutes); // 06:18:24 → 08:12:43, not 39
+        Assert.Equal(814.0, facts.FuelUsedKg);
+    }
+
+    [Fact]
+    public void Extract_FullSession_KeepsItsOwnEdges_WhateverTheSimClockSays()
+    {
+        // A session that saw the whole leg measures it on its own clock, as before; the stamps
+        // (sim clock, here a different day) change nothing.
+        var path = new SessionLogBuilder()
+            .At("10:00:00").Event("session-started")
+            .At("10:10:00").Phase("Preflight", "PushbackAndStart")
+            .At("10:10:01").Event("flight-times", new { offBlocksUtc = "2026-03-03T22:00:00Z" })
+            .At("10:20:00").Phase("TakeoffRoll", "InitialClimb", iasKt: 150.0)
+            .At("10:20:01").Event("flight-times", new { takeoffUtc = "2026-03-03T22:10:00Z", takeoffFobKg = 8000.0 })
+            .At("11:20:00").Phase("Approach", "LandingRollout", groundSpeedKt: 130.0)
+            .At("11:20:01").Event("flight-times", new { landingUtc = "2026-03-03T23:10:00Z", landingFobKg = 5000.0 })
+            .At("11:30:00").Phase("TaxiIn", "Shutdown")
+            .At("11:30:01").Event("flight-times", new { onBlocksUtc = "2026-03-03T23:20:00Z", onBlocksFobKg = 4900.0 })
+            .Write(_dir);
+
+        var facts = _extractor.Extract(path);
+
+        Assert.Equal(80, facts.BlockMinutes);
+        Assert.Equal(60, facts.FlightMinutes);
+    }
 }

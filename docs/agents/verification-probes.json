@@ -239,7 +239,7 @@
     {
       "id": "gsx-arrival-gate-position-menu",
       "issue": 156,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "assert-present",
       "machine": {
         "kind": "required-fields",
@@ -301,7 +301,7 @@
     {
       "id": "pushback-direction-advisor",
       "issue": 156,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "assert-present",
       "machine": {
         "kind": "required-fields",
@@ -686,7 +686,7 @@
     {
       "id": "briefing-dialogue-hold-and-questions",
       "issue": 201,
-      "state": "fixed-unverified",
+      "state": "closed-regression-watch",
       "kind": "assert-present",
       "sources": [
         "session"
@@ -704,7 +704,7 @@
     {
       "id": "fo-radios-fix-names-region",
       "issue": 202,
-      "state": "fixed-unverified",
+      "state": "closed-regression-watch",
       "kind": "assert-absent",
       "sources": [
         "session",
@@ -3125,7 +3125,7 @@
     {
       "id": "roster-one-per-sim-day",
       "issue": 219,
-      "state": "fixed-unverified",
+      "state": "closed-regression-watch",
       "kind": "assert-absent",
       "sources": [
         "session",
@@ -3232,7 +3232,7 @@
     {
       "id": "gsx-gate-suffix-choice",
       "issue": 156,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "assert-present",
       "machine": {
         "kind": "required-fields",
@@ -3469,7 +3469,7 @@
     {
       "id": "wind-limits-callout",
       "issue": 182,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "assert-present",
       "machine": {
         "kind": "required-fields",
@@ -4129,7 +4129,7 @@
     {
       "id": "gate-std-sim-day",
       "issue": 139,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "watch",
       "machine": {
         "kind": "required-fields",
@@ -4226,7 +4226,7 @@
     {
       "id": "vspeed-pronunciation",
       "issue": 193,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "requires-human",
       "sources": [
         "session"
@@ -4241,7 +4241,8 @@
     {
       "id": "day-state-empty-file",
       "issue": 191,
-      "state": "open",
+      "alsoIssues": [239],
+      "state": "closed-regression-watch",
       "kind": "watch",
       "machine": {
         "kind": "signature",
@@ -4267,7 +4268,7 @@
     {
       "id": "fo-roster-daily-draw",
       "issue": 194,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "assert-present",
       "machine": {
         "kind": "required-fields",
@@ -4298,7 +4299,7 @@
     {
       "id": "cruise-small-talk",
       "issue": 195,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "assert-present",
       "machine": {
         "kind": "required-fields",
@@ -4676,7 +4677,7 @@
     {
       "id": "pushback-suggestion-loop-survives",
       "issue": 231,
-      "state": "fixed-unverified",
+      "state": "closed-regression-watch",
       "kind": "assert-present",
       "machine": {
         "kind": "signature",
@@ -4852,7 +4853,7 @@
     {
       "id": "pause-grace-parked",
       "issue": 206,
-      "state": "fixed-unverified",
+      "state": "closed-regression-watch",
       "kind": "assert-absent",
       "sources": [
         "session",
@@ -4965,7 +4966,7 @@
     {
       "id": "day-end-clears",
       "issue": 218,
-      "state": "fixed-unverified",
+      "state": "closed-regression-watch",
       "kind": "assert-present",
       "sources": [
         "session",
@@ -4995,7 +4996,7 @@
     {
       "id": "day-debrief-content",
       "issue": 222,
-      "state": "fixed-unverified",
+      "state": "closed-regression-watch",
       "kind": "assert-present",
       "sources": [
         "session",
@@ -5264,7 +5265,7 @@
     {
       "id": "abnormal-condition-fault-once",
       "issue": 228,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "assert-absent",
       "machine": {
         "kind": "duplicate-within",
@@ -5291,7 +5292,7 @@
     {
       "id": "greeting-band-one-source",
       "issue": 229,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "assert-absent",
       "sources": [
         "session"
@@ -5309,7 +5310,7 @@
     {
       "id": "gsx-toggle-retraction-once",
       "issue": 225,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "assert-absent",
       "machine": {
         "kind": "duplicate-within",
@@ -5338,7 +5339,7 @@
     {
       "id": "gsx-new-plan-tracking-clear",
       "issue": 230,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "assert-present",
       "machine": {
         "kind": "required-fields",

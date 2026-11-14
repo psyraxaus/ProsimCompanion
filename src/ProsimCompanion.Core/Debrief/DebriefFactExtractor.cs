@@ -464,16 +464,14 @@ public sealed class DebriefFactExtractor : IDebriefFactExtractor
             // no push/taxi edge, but the restored stamps carry the leg's off-blocks and takeoff
             // (issue #223, EHAM→EGLL 2026-11-01: leg two read no block, the day summary said
             // 77 minutes for a 131-minute day).
-            var blockFrom = offBlock ?? stampOff;
-            var blockTo = onBlock ?? stampOn;
-            int? blockMin = blockFrom is { } ob && blockTo is { } on && on > ob
-                ? (int)Math.Round((on - ob).TotalMinutes)
-                : null;
-            var flightFrom = liftoff ?? stampTakeoff;
-            var flightTo = touchdown ?? stampLanding;
-            int? flightMin = flightFrom is { } lo && flightTo is { } td && td > lo
-                ? (int)Math.Round((td - lo).TotalMinutes)
-                : null;
+            //
+            // Never one end from each: the edges are on the session's clock (real UTC) and the
+            // stamps on the sim's clock, which the pilot may set to any hour. EGLL→LOWW
+            // 2026-11-14, sim clock 1 h 16 min ahead, app restarted in flight: off-blocks from
+            // the stamp (06:02Z sim) and on-blocks from the Shutdown edge (07:04Z real) read
+            // "62 minutes block" for a 137-minute leg, and 39 minutes of flight for 114.
+            var blockMin = Minutes(offBlock, onBlock) ?? Minutes(stampOff, stampOn);
+            var flightMin = Minutes(liftoff, touchdown) ?? Minutes(stampTakeoff, stampLanding);
             double? startFob = takeoffFob;
             double? finalFob = onBlocksFob ?? landingFob;
             double? used = startFob is { } s0 && finalFob is { } f0 && s0 >= f0 ? s0 - f0 : null;
@@ -523,6 +521,11 @@ public sealed class DebriefFactExtractor : IDebriefFactExtractor
             && o.ValueKind == JsonValueKind.Object
                 ? Str(o, field)
                 : null;
+
+    /// <summary>Whole minutes between two instants of the SAME clock; null when either is
+    /// missing or the pair does not run forward.</summary>
+    private static int? Minutes(DateTimeOffset? from, DateTimeOffset? to)
+        => from is { } f && to is { } t && t > f ? (int)Math.Round((t - f).TotalMinutes) : null;
 
     private static double? Num(JsonElement payload, string field)
         => payload.ValueKind == JsonValueKind.Object
