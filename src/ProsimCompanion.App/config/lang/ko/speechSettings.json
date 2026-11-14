@@ -860,6 +860,7 @@
         "hint": "버튼이 송신하는 SayIntentions 무선 또는 인터콤. 거의 모두에게 필요한 것은 COM 무선 PTT입니다."
       },
       "phraseology": "표준 용어",
+      "phraseology.hint": "FO가 무선에서 숫자를 읽는 방식. ICAO: 주파수에 'decimal'. FAA: 'point', 편명은 그룹으로 읽음 ('Speedbird eight fifty'). UK: 'flight level one hundred'. 조종실 대화는 바뀌지 않습니다.",
       "foSpeaks": {
         "label": "FO가 송신 내용을 말함",
         "hint": "전송 전에 FO가 무선 콜을 소리 내어 말합니다.",

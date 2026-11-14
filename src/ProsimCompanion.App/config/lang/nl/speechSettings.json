@@ -860,6 +860,7 @@
         "hint": "Welke SayIntentions-radio of -intercom de knop bedient. COM-radio-PTT is wat bijna iedereen nodig heeft."
       },
       "phraseology": "Fraseologie",
+      "phraseology.hint": "Hoe de FO getallen over de radio zegt. ICAO: 'decimal' in de frequentie. FAA: 'point' en het vluchtnummer in groepen ('Speedbird eight fifty'). UK: 'flight level one hundred'. Gesprekken in de cockpit veranderen niet.",
       "foSpeaks": {
         "label": "FO spreekt de uitzending",
         "hint": "De FO zegt de radiocall hardop voordat hij wordt verzonden.",

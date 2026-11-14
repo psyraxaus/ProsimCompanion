@@ -5348,6 +5348,25 @@
         "When trackingLvars reads 'cleared': the 'Tracking LVARs new-leg clear: 9 write(s) done' debug line follows within a second (Debug level needed to see it)."
       ],
       "notes": "Shipped 2026-11-03 (#230, audit B10): CompanionTrackingLvars is the one writer of the companion tracking LVARs — it owns the MSFS-down queue (latest value per LVAR), the SimConnect connected-edge flush and the three bulk resets (ResetForArrivalAsync, ClearAllAsync, ClearDepartureSideAsync); GsxStartupResyncService and GsxAutomationService both call it. Before, GsxAutomationService.ClearDepartureTracking wrote the LVARs directly, so a different plan while SimConnect was down cleared nothing. The trackingLvars field on gsx-cycle-reset is NEW in this change (both the new-plan and the end-of-duty event carry it). LoadsheetService (Prosim project) still writes the two loadsheet LVARs directly for its own edition counters — out of this change's scope. Unverified live."
+    },
+    {
+      "id": "speech-numbers-in-words",
+      "issue": 0,
+      "state": "fixed-unverified",
+      "kind": "watch",
+      "sources": [
+        "session",
+        "human"
+      ],
+      "checks": [
+        "Owner 2026-11-14: the FO read the fuel quantity '8700 kilograms' as 'eighty seven, zero' — the app handed every figure that was not a digit-by-digit one (QNH, heading, flight level, squawk, frequency, runway) to the TTS engine as Arabic digits, and each engine read them its own way. Phraseology.Normalize is now the net: no figure reaches the voice as digits. Quantities are plain words (fuel, weights, tonnes with 'point', passengers, counts, minutes, miles, feet, metres); speeds, V-speeds, wind, directions, clock times, three-digit stands and the altimeter are digit by digit; names keep their digits (A320, N1).",
+        "assert-absent: on any speech.spoken event, the 'spoken' field (the text the voice was given; when it is null the 'text' field was spoken as written) contains a standalone digit — regex (?<![A-Za-z0-9])[0-9]+(?![A-Za-z0-9]). A hit names the line that still leaks a figure; quote text and spoken.",
+        "assert-present: the checklist fuel line ({fuel} / {fuelQuantity}) is spoken as words rounded to the nearest 100 — '… eight thousand seven hundred kilograms …' (pounds when ProSim's weight unit is LBS).",
+        "assert-present (radio, only with sayIntentions.foRadios or a voice ATC request): sayintentions.readback / the 'sayintentions.tx' speech.spoken line reads altitudes 'two thousand five hundred' / 'one zero thousand'; with sayIntentions.phraseology = faa the frequency says 'point' and the callsign's flight number is in group form ('Speedbird eight fifty'); with uk a whole-hundred level reads 'flight level one hundred'. The payload.transmit text sent to SayIntentions is the same in every style.",
+        "assert-present (Duty Day, a planned day with a flight number): the company's 'Next sector …' line says the airline's radio callsign ('flight Speedbird one two four') when airline-callsigns.json lists the airline, the letters ('flight B A one two four') when it does not; the log has 'Airline callsigns loaded: N airlines' once.",
+        "requires-human: the ear check — fuel, loadsheet tonnes ('sixty two point three tonnes'), passengers, the briefing's V-speeds and transition altitude, a wind read-out and a clock time all sound like a crew member said them, on the voice engine in use (Kokoro / ElevenLabs / Google)."
+      ],
+      "notes": "Built 2026-11-14 (owner decisions: fuel to the nearest 100; tonnes stay tonnes; radio phraseology selectable ICAO / FAA / UK CAP 413 on the existing sayIntentions.phraseology setting, radio lines only; airline callsigns from a shipped list). Core: NumberWords (Cardinal, Number, Decimal, Clock, RadioAltitude, GroupForm), RadioPhraseology, the new number rules and the leftover-number net in Phraseology.Normalize, AirlineCallsigns over %LOCALAPPDATA%\\ProsimCompanion\\config\\airline-callsigns.json (seeded; derived from OpenFlights, ODbL — THIRD_PARTY.md). Speech: SpokenValueFormatting.FuelQuantity writes words; RadioSpeech.Spoken(transmit, style, callsign); CompanyDayService speaks the flight number and the clock. The TTS cache text of every line with a figure changed, so those lines synthesise once more on first use. FAA group form is from JO 7110.65 2-4-20 as remembered (faa.gov refused the fetch on the build day) — check against the document if a US pilot reports it. Unverified live."
     }
   ]
 }

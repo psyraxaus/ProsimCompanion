@@ -4,23 +4,23 @@ using Xunit;
 namespace ProsimCompanion.Core.Tests.Speech;
 
 /// <summary>{fuelQuantity} rendering (issue #129): a quantity with its unit, rounded to the
-/// nearest 10, following ProSim's configured weight unit — plain digits, not aviation digit
+/// nearest 100, following ProSim's configured weight unit — plain number words, not aviation digit
 /// words, because a fuel figure is a number, not a callsign.</summary>
 public sealed class FuelQuantityTokenTests
 {
     [Theory]
-    [InlineData(8_537.4, null, "8540 kilograms")]
-    [InlineData(8_537.4, "KG", "8540 kilograms")]
-    [InlineData(8_537.4, "", "8540 kilograms")]
-    [InlineData(12_000.0, "kg", "12000 kilograms")]
-    [InlineData(0.0, "KG", "0 kilograms")]
-    public void Kilograms_RoundToNearestTen(double kg, string? unit, string expected)
+    [InlineData(8_537.4, null, "eight thousand five hundred kilograms")]
+    [InlineData(8_537.4, "KG", "eight thousand five hundred kilograms")]
+    [InlineData(8_537.4, "", "eight thousand five hundred kilograms")]
+    [InlineData(12_000.0, "kg", "twelve thousand kilograms")]
+    [InlineData(0.0, "KG", "zero kilograms")]
+    public void Kilograms_RoundToNearestHundred_InWords(double kg, string? unit, string expected)
         => Assert.Equal(expected, SpokenValueFormatting.FuelQuantity(kg, unit));
 
     [Theory]
-    [InlineData(8_537.4, "LBS", "18820 pounds")]
-    [InlineData(8_537.4, "lbs", "18820 pounds")]
-    [InlineData(1_000.0, "LB", "2200 pounds")]
+    [InlineData(8_537.4, "LBS", "eighteen thousand eight hundred pounds")]
+    [InlineData(8_537.4, "lbs", "eighteen thousand eight hundred pounds")]
+    [InlineData(1_000.0, "LB", "two thousand two hundred pounds")]
     public void Pounds_FollowProsimWeightUnit(double kg, string unit, string expected)
         => Assert.Equal(expected, SpokenValueFormatting.FuelQuantity(kg, unit));
 
@@ -36,10 +36,10 @@ public sealed class FuelQuantityTokenTests
     public void ApplyTokens_FuelIsAnAliasOfFuelQuantity()
     {
         // Flight 2026-09-19: the owner's checklist said "{fuel}" and the FO read the braces.
-        var values = CommandTokenValues.Unavailable with { FuelQuantity = "8540 kilograms" };
+        var values = CommandTokenValues.Unavailable with { FuelQuantity = "eight thousand five hundred kilograms" };
 
         Assert.Equal(
-            "Fuel quantity, 8540 kilograms, loaded",
+            "Fuel quantity, eight thousand five hundred kilograms, loaded",
             SpokenValueFormatting.ApplyTokens("Fuel quantity, {fuel}, loaded", values));
     }
 
@@ -70,10 +70,10 @@ public sealed class FuelQuantityTokenTests
     [Fact]
     public void ApplyTokens_ExpandsFuelQuantity()
     {
-        var values = CommandTokenValues.Unavailable with { FuelQuantity = "8540 kilograms" };
+        var values = CommandTokenValues.Unavailable with { FuelQuantity = "eight thousand five hundred kilograms" };
 
         Assert.Equal(
-            "Fuel quantity, 8540 kilograms, checked",
+            "Fuel quantity, eight thousand five hundred kilograms, checked",
             SpokenValueFormatting.ApplyTokens("Fuel quantity, {fuelQuantity}, checked", values));
     }
 
@@ -82,7 +82,7 @@ public sealed class FuelQuantityTokenTests
     {
         // Token names stay case-sensitive; a misspelt one is no longer read aloud as braces
         // (issue #129 hotfix) — it is left out and the caller logs it.
-        var values = CommandTokenValues.Unavailable with { FuelQuantity = "8540 kilograms" };
+        var values = CommandTokenValues.Unavailable with { FuelQuantity = "eight thousand five hundred kilograms" };
 
         Assert.Equal(
             "Fuel quantity,",

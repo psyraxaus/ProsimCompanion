@@ -345,6 +345,8 @@ public static class CoreServiceCollectionExtensions
         // registered one, NATO-spelled codes otherwise.
         services.AddSingleton<Speech.ISpokenText>(provider =>
             new Speech.SpokenText(provider.GetService<Airports.IAirportNames>(), provider.GetService<Speech.IFixNames>()));
+        // Airline radio callsigns for spoken flight numbers (2026-11-14), loaded on first use.
+        services.AddSingleton<Speech.AirlineCallsigns>();
         // Per-profile GSX settings (Prosim2GSX model): the active profile's stored block is
         // written over the live gsx section on activation.
         services.AddHostedService<Profiles.ProfileGsxApplier>();

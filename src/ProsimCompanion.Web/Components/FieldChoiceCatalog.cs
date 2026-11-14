@@ -38,7 +38,7 @@ public static class FieldChoiceCatalog
                 ("ftps2", T["speechSettings.options.turbulenceUnit.ftps2"].Value),
             ],
             // Phraseology names are the standards' own acronyms — the same in every language.
-            ["phraseology"] = _ => [("icao", "ICAO"), ("faa", "FAA")],
+            ["phraseology"] = _ => [("icao", "ICAO"), ("faa", "FAA"), ("uk", "UK CAP 413")],
             // Skalarki descriptor catalogues are SDK names, not prose (ADR-0014 exception).
             ["skalarkiCatalogue"] = _ => [("a32X", "A32X"), ("a33X", "A33X"), ("b73X", "B73X"), ("b77X", "B77X")],
             // Screen & FOV (2026-10-28): where a physical display sits. Values are DisplayRole's camelCase names.

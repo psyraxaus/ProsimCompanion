@@ -116,7 +116,61 @@ public static partial class Phraseology
         (Rx(@"\b(\d{3}\.\d{1,3})\b"), m => Digits(m.Groups[1].Value)), // frequencies (e.g. 110.30)
         (Rx(@"\brunway\s+(\d{1,2})\s*([LRC])?\b"),
             m => "runway " + Digits(m.Groups[1].Value) + Side(m.Groups[2].Value)),
+
+        // ---- 2026-11-14 (owner report: fuel read "eighty seven, zero"): the figures that are
+        // said digit by digit although no rule above names them. Everything these leave is a
+        // quantity and goes to the net below as plain words.
+        // "altimeter 29.92" / "altimeter 2992" → "altimeter two niner niner two".
+        (Rx(@"\baltimeter\s+(\d{2})\.?(\d{2})\b"), m => "altimeter " + Digits(m.Groups[1].Value + m.Groups[2].Value)),
+        // A speed after its name: "V1 140", "V 1 142", "rotate 145", "VAPP 134", "flex 55",
+        // "speed 230", "gusting 41".
+        (Rx(@"\b(V\s?[12R]|VAPP|VREF|VLS|VFE|rotate|flex|speed|gusting)(\s*,?\s+)(\d{2,3})\b"),
+            m => m.Groups[1].Value + m.Groups[2].Value + Digits(m.Groups[3].Value)),
+        // A speed limit or a cross-checked figure: "flaps two limit is 215", "limit of 33",
+        // "V one: FMS 140, performance 142".
+        (Rx(@"\b(limit\s+(?:is|of)|FMS|performance)\s+(\d{2,3})\b"), m => m.Groups[1].Value + " " + Digits(m.Groups[2].Value)),
+        // A direction: "163 degrees", "Wind at destination 270 at 8 …" (before the knots
+        // rule, which takes the digit this one looks ahead for).
+        (Rx(@"\b(\d{3})(?=\s+degrees\b|\s+at\s+\d)"), m => Digits(m.Groups[1].Value)),
+        // A speed before its unit: "250 knots", "12 kts", "a 8 knot tailwind".
+        (Rx(@"\b(\d{1,3})(\s*-?\s*)(knots?|kts?)\b"),
+            m => Digits(m.Groups[1].Value) + m.Groups[2].Value + m.Groups[3].Value),
+        // A clock time: "09:00 zulu" → "zero niner zero zero zulu"; "14:05Z" likewise.
+        (Rx(@"(?<![\d:])([01]?\d|2[0-3]):([0-5]\d)(?![\d:])(?:\s?Z\b)?"),
+            m => Digits(m.Groups[1].Value.PadLeft(2, '0') + m.Groups[2].Value) + (m.Value.EndsWith('Z') || m.Value.EndsWith('z') ? " zulu" : "")),
+        // A three-digit stand is digits ("stand five four six", owner 2026-10-29); one or two
+        // digits stay a number for the net ("gate twenty three").
+        (Rx(@"\b(stand|gate|bay)\s+((?:[A-Z][a-z]+\s+)?)(\d{3})\b"),
+            m => m.Groups[1].Value + " " + m.Groups[2].Value + Digits(m.Groups[3].Value)),
+        // "door 1L" → "door one left".
+        (Rx(@"\b(doors?)\s+(\d)([LR])\b"),
+            m => m.Groups[1].Value + " " + Digits(m.Groups[2].Value) + Side(m.Groups[3].Value)),
+        // "seat 24C", "row 12" + letter: a number and a NATO letter.
+        (Rx(@"\b(seat|row)\s+(\d{1,2})([A-K])\b"),
+            m => m.Groups[1].Value + " " + NumberWords.Cardinal(int.Parse(m.Groups[2].Value, System.Globalization.CultureInfo.InvariantCulture)) + " " + NatoPhonetics.Word(m.Groups[3].Value[0])),
     ];
+
+    // A bare runway designator ("ILS 27R", "vacated 09L") — case-sensitive, 01 to 36 only.
+    [GeneratedRegex(@"\b(0[1-9]|[12]\d|3[0-6])([LRC])\b", RegexOptions.CultureInvariant)]
+    private static partial Regex BareRunway();
+
+    // Any other number glued to one capital letter ("36A", "546R"): number, then NATO word.
+    [GeneratedRegex(@"(?<![A-Za-z\d.,])(\d{1,3})([A-Z])\b", RegexOptions.CultureInvariant)]
+    private static partial Regex NumberWithLetter();
+
+    // ------------------------------------------------------------------ pass 3: the net
+    // Every figure still written in digits is a quantity: "8700 kilograms", "6.8 tonnes",
+    // "2,500", "-2". Digits glued to a letter ("A320", "N1", "BA124", "5th") are names and
+    // stay. See NumberWords.Number for the leading-zero and long-number exceptions.
+    [GeneratedRegex(@"(?<![A-Za-z\d])(?<neg>(?<=^|\s)-)?(?<num>\d{1,3}(?:,\d{3})+|\d+)(?:\.(?<frac>\d+))?(?![A-Za-z\d])", RegexOptions.CultureInvariant)]
+    private static partial Regex LeftoverNumber();
+
+    private static string SpeakLeftover(Match m)
+    {
+        var written = m.Groups["num"].Value + (m.Groups["frac"].Success ? "." + m.Groups["frac"].Value : "");
+        var spoken = NumberWords.Number(written);
+        return m.Groups["neg"].Success ? "minus " + spoken : spoken;
+    }
 
     // ------------------------------------------------------------------ pass 2: abbreviations
 
@@ -179,10 +233,17 @@ public static partial class Phraseology
             s = rx.Replace(s, evaluate);
         }
 
+        s = BareRunway().Replace(s, m => Digits(m.Groups[1].Value) + Side(m.Groups[2].Value));
+        s = NumberWithLetter().Replace(s, m =>
+            (m.Groups[1].Value.Length == 3 ? Digits(m.Groups[1].Value) : NumberWords.Number(m.Groups[1].Value))
+            + " " + NatoPhonetics.Word(m.Groups[2].Value[0]));
+
         foreach (var (rx, replacement) in Abbreviations)
         {
             s = rx.Replace(s, replacement);
         }
+
+        s = LeftoverNumber().Replace(s, SpeakLeftover);
 
         return Regex.Replace(s, @"[ \t]{2,}", " ").Trim();
     }

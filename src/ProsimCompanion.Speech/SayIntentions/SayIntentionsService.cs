@@ -447,7 +447,7 @@ public sealed class SayIntentionsService : IVoiceFeature, Core.Hosting.IStartupM
                 // RadioSpeech (2026-10-29): "runway 27R" → "two seven right", the spelled stand's
                 // hyphens → spaces, as for every FO read-back; sayAs still gets the text form.
                 await _arbiter.EnqueueAsync(new SpeechRequest(
-                    RadioSpeech.Spoken(message),
+                    RadioSpeech.Spoken(message, RadioSpeech.Style(options.Phraseology), flight.Callsign),
                     SpeechPriority.Normal,
                     Ttl: TimeSpan.FromSeconds(30),
                     Tag: "sayintentions.tx")).ConfigureAwait(false);

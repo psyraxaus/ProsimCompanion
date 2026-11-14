@@ -319,7 +319,7 @@ public sealed class FoRadiosService : Core.Hosting.IStartupModule, IDisposable
                 return;
             }
 
-            var readback = ReadbackComposer.Compose(tx.Text, flight.Callsign, tx.Station, OurAtisLetter());
+            var readback = ReadbackComposer.Compose(tx.Text, flight.Callsign, tx.Station, OurAtisLetter(), RadioSpeech.Style(_options.CurrentValue.Phraseology));
             if (readback is null)
             {
                 // Same shape as a transmitted read-back (probe si-fo-radios reads payload.* and
@@ -580,6 +580,7 @@ public sealed class FoRadiosService : Core.Hosting.IStartupModule, IDisposable
             GroundSpeedKt: data?.GroundSpeedKt ?? 0,
             VerticalSpeedFpm: data is null || onGround ? null : data.VerticalSpeedFpm,
             HoldingPointDistanceNm: Math.Max(0.05, _options.CurrentValue.CommsHandover.HoldingPointDistanceNm),
+            Style: RadioSpeech.Style(_options.CurrentValue.Phraseology),
             // The crew's names for the procedures (2026-10-29) — flight.json names no airport,
             // so the OFP navlog tier answers and the DFD tier only when the ident is unique.
             // The airport pins the fix-name lookup to its region (issue #202: without it the

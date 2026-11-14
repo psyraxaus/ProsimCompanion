@@ -860,6 +860,7 @@
         "hint": "ボタンが送信する SayIntentions の無線またはインターコム。ほぼ全員が必要なのは COM 無線 PTT です。"
       },
       "phraseology": "フレーズオロジー",
+      "phraseology.hint": "FO が無線で数字を読む方式。ICAO: 周波数は 'decimal'。FAA: 'point'、便名はグループ読み ('Speedbird eight fifty')。UK: 'flight level one hundred'。コックピット内の会話は変わりません。",
       "foSpeaks": {
         "label": "FO が送信内容を発話",
         "hint": "送信前に FO が無線コールを声に出します。",

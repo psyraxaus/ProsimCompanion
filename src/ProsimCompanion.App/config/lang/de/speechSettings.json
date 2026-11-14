@@ -860,6 +860,7 @@
         "hint": "Welches SayIntentions-Funkgerät oder Intercom der Knopf tastet. COM-Funk-PTT ist das, was fast jeder braucht."
       },
       "phraseology": "Phraseologie",
+      "phraseology.hint": "Wie der FO Zahlen im Funk spricht. ICAO: 'decimal' in der Frequenz. FAA: 'point' und die Flugnummer in Gruppen ('Speedbird eight fifty'). UK: 'flight level one hundred'. Gespräche im Cockpit ändern sich nicht.",
       "foSpeaks": {
         "label": "FO spricht die Sendung",
         "hint": "Der FO sagt den Funkspruch laut, bevor er gesendet wird.",

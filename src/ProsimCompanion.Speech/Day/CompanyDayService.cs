@@ -87,6 +87,9 @@ public sealed class CompanyDayService : IVoiceFeature, ISessionFinalizationStep,
     private readonly EndOfDutyOfferStore _offer;
     private readonly DutyDaySignals _dutySignals;
 
+    // Airline radio callsigns (2026-11-14): "flight BA124" is said "flight Speedbird one two four".
+    private readonly Core.Speech.AirlineCallsigns _airlines;
+
     private readonly object _gate = new();
     private readonly CompanyDayEngine _engine = new();
     private DateTimeOffset? _coldAndDarkSinceUtc;
@@ -111,7 +114,8 @@ public sealed class CompanyDayService : IVoiceFeature, ISessionFinalizationStep,
         ILegBoundaryEvents legBoundary,
         GroundOpsSignals signals,
         EndOfDutyOfferStore endOfDutyOffer,
-        DutyDaySignals dutySignals)
+        DutyDaySignals dutySignals,
+        Core.Speech.AirlineCallsigns? airlines = null)
     {
         ArgumentNullException.ThrowIfNull(spokenText);
         ArgumentNullException.ThrowIfNull(ofp);
@@ -125,6 +129,7 @@ public sealed class CompanyDayService : IVoiceFeature, ISessionFinalizationStep,
         _signals = signals;
         _offer = endOfDutyOffer;
         _dutySignals = dutySignals;
+        _airlines = airlines ?? Core.Speech.AirlineCallsigns.FromJson(null);
         ArgumentNullException.ThrowIfNull(flight);
         ArgumentNullException.ThrowIfNull(eventLog);
         ArgumentNullException.ThrowIfNull(extractor);
@@ -557,12 +562,12 @@ public sealed class CompanyDayService : IVoiceFeature, ISessionFinalizationStep,
 
         if (!string.IsNullOrEmpty(leg.FlightNo))
         {
-            parts.Add($"flight {leg.FlightNo}");
+            parts.Add($"flight {_airlines.Speak(leg.FlightNo)}");
         }
 
         if (DayMath.ParseUtc(leg.ScheduledOffUtc) is { } off)
         {
-            parts.Add($"scheduled off-blocks {off:HH\\:mm} zulu");
+            parts.Add($"scheduled off-blocks {Core.Speech.NumberWords.Clock(off.Hour, off.Minute)} zulu");
         }
 
         return string.Join(", ", parts) + ".";

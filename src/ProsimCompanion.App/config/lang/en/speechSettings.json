@@ -860,6 +860,7 @@
         "hint": "Which SayIntentions radio or intercom the button keys. COM radio PTT is the one almost everybody needs."
       },
       "phraseology": "Phraseology",
+      "phraseology.hint": "How the FO says numbers on the radio. ICAO: 'decimal' in a frequency. FAA: 'point', and the flight number in groups ('Speedbird eight fifty'). UK: 'flight level one hundred'. Cockpit talk does not change.",
       "foSpeaks": {
         "label": "FO speaks the transmission",
         "hint": "The FO says the radio call out loud before it is sent.",

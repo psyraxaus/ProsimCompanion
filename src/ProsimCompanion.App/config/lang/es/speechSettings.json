@@ -860,6 +860,7 @@
         "hint": "Qué radio o intercomunicador de SayIntentions activa el botón. El PTT de radio COM es el que necesita casi todo el mundo."
       },
       "phraseology": "Fraseología",
+      "phraseology.hint": "Cómo dice el FO los números por radio. ICAO: 'decimal' en la frecuencia. FAA: 'point' y el número de vuelo en grupos ('Speedbird eight fifty'). UK: 'flight level one hundred'. La conversación en cabina no cambia.",
       "foSpeaks": {
         "label": "El FO dice la transmisión",
         "hint": "El FO dice la llamada de radio en voz alta antes de enviarla.",

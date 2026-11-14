@@ -150,6 +150,31 @@ chains — "local only" hard mode must exist.
 
 ## Architecture notes to preserve
 
+- **No figure reaches the TTS engine as digits** (2026-11-14, owner report: Kokoro read
+  "8700 kilograms" as "eighty seven, zero" — every engine reads Arabic digits its own way).
+  `Core/Speech/NumberWords` writes the words (`Cardinal`, `Number`, `Decimal`, `Clock`,
+  `RadioAltitude`, `GroupForm`); `Phraseology.Normalize` — the one pass every line takes — is
+  the net: after the named digit-by-digit rules (FL, heading, squawk, wind, QNH, frequency,
+  runway, and since this change altimeter, V-speeds, `speed`/`gusting`/`limit is`/`FMS`/
+  `performance` + figure, `### degrees`, `### at #`, `# knots`, `HH:mm`, three-digit stands,
+  seats, doors, a bare `27R`) and the abbreviations, every figure still standing alone is a
+  quantity and becomes plain words ("6.8" → "six point eight", "2,500", "-2" → "minus two";
+  a leading zero or more than six digits reads digit by digit). Digits glued to a letter
+  ("A320", "N1") are names and stay. So a composer may write `$"{kg} kilograms"`; write the
+  words at the source only when the form is not the default (the radio altitude, a flight
+  number). Rule order matters: the direction rule looks ahead for the digit the knots rule
+  consumes, and the V-speed rule must run before the abbreviation pass turns "V1" into
+  "Vee one". **Radio lines** (`RadioSpeech.Spoken(transmit, style, callsign)`) take the
+  pilot's `sayIntentions.phraseology` — `icao` / `faa` ("point", group-form flight number) /
+  `uk` ("flight level one hundred") — and only the FO-voice text changes, never the text
+  sent to sayAs. Altitudes are "two thousand five hundred" / "one zero thousand" in all three
+  (Annex 10 Vol II, AIM 4-2-9, CAP 413 agree). Cockpit talk has one style.
+- **Airline callsigns** (2026-11-14): `Core/Speech/AirlineCallsigns` over the seeded
+  `airline-callsigns.json` (OpenFlights, ODbL — THIRD_PARTY.md), ICAO code first, then IATA,
+  loaded on first use; an unlisted airline is spelled. With SayIntentions running the radio
+  callsign is SayIntentions' own (`flight.json`) — the list serves lines that only have a
+  flight number (the Duty Day "Next sector" message).
+
 - **In-flight monitoring** (2026-10, #148): four modules in `Speech/Monitoring`, each a pure
   core plus a thin shell armed by `IFlightPhaseSource.IsLive`, all off by default under
   `sop.monitoring`. Fuel check (`fuel.check` event; navlog last-fix rule in `FuelCheckCore`),

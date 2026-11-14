@@ -860,6 +860,7 @@
         "hint": "Quelle radio ou interphone SayIntentions le bouton active. Le PTT radio COM est celui dont presque tout le monde a besoin."
       },
       "phraseology": "Phraséologie",
+      "phraseology.hint": "Comment le copilote dit les nombres à la radio. ICAO : 'decimal' dans la fréquence. FAA : 'point' et le numéro de vol par groupes ('Speedbird eight fifty'). UK : 'flight level one hundred'. Les échanges dans le cockpit ne changent pas.",
       "foSpeaks": {
         "label": "Le copilote dit l'émission",
         "hint": "Le copilote dit l'appel radio à voix haute avant son envoi.",

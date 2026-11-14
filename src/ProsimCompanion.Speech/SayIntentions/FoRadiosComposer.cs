@@ -97,7 +97,7 @@ public static partial class ReadbackComposer
     /// from the front of the instruction, where SI ATC identifies itself on a check-in reply.</param>
     /// <param name="ourAtisLetter">The ATIS letter we hold for the airport in question (null
     /// when none): ATC's "have you got information Victor?" is answered from it.</param>
-    public static Readback? Compose(string atcText, string? callsign, string? station, string? ourAtisLetter = null)
+    public static Readback? Compose(string atcText, string? callsign, string? station, string? ourAtisLetter = null, Core.Speech.RadioPhraseology style = Core.Speech.RadioPhraseology.Icao)
     {
         if (string.IsNullOrWhiteSpace(atcText))
         {
@@ -124,7 +124,7 @@ public static partial class ReadbackComposer
         {
             var name = TitleCase(handoff.Groups["station"].Value.Trim());
             var transmit = WithCallsign($"Contacting {name} on {handoff.Groups["freq"].Value}.", callsign);
-            return new Readback(transmit, RadioSpeech.Spoken(transmit), ReadbackKind.Handoff, name, khz);
+            return new Readback(transmit, RadioSpeech.Spoken(transmit, style, callsign), ReadbackKind.Handoff, name, khz);
         }
 
         var clauses = new List<string>();
@@ -172,7 +172,7 @@ public static partial class ReadbackComposer
             if (atisAnswer is not null)
             {
                 var answer = WithCallsign(Capitalize(atisAnswer) + ".", callsign);
-                return new Readback(answer, RadioSpeech.Spoken(answer), ReadbackKind.Readback);
+                return new Readback(answer, RadioSpeech.Spoken(answer, style, callsign), ReadbackKind.Readback);
             }
 
             if (!advisory)
@@ -181,7 +181,7 @@ public static partial class ReadbackComposer
             }
 
             var ack = WithCallsign("Roger.", callsign);
-            return new Readback(ack, RadioSpeech.Spoken(ack), ReadbackKind.Acknowledge);
+            return new Readback(ack, RadioSpeech.Spoken(ack, style, callsign), ReadbackKind.Acknowledge);
         }
 
         var body = string.Join(" ", clauses);
@@ -191,7 +191,7 @@ public static partial class ReadbackComposer
         }
 
         var joined = WithCallsign(body, callsign);
-        return new Readback(joined, RadioSpeech.Spoken(joined), ReadbackKind.Readback);
+        return new Readback(joined, RadioSpeech.Spoken(joined, style, callsign), ReadbackKind.Readback);
     }
 
     /// <summary>The answer to "have you got information X?" (pure, for the tests): "information
@@ -467,7 +467,8 @@ public sealed record CheckInContext(
     double? DistanceToDepartureRunwayNm = null,
     double GroundSpeedKt = 0,
     double HoldingPointDistanceNm = 0.3,
-    double? VerticalSpeedFpm = null);
+    double? VerticalSpeedFpm = null,
+    Core.Speech.RadioPhraseology Style = Core.Speech.RadioPhraseology.Icao);
 
 /// <summary>
 /// The check-in call after a hand-off, shaped on the SI copilot's own (2026-10-25 transcript):
@@ -550,7 +551,7 @@ public static class CheckInComposer
         }
 
         var transmit = head + body;
-        return new Readback(transmit, RadioSpeech.Spoken(transmit), ReadbackKind.Readback);
+        return new Readback(transmit, RadioSpeech.Spoken(transmit, c.Style, c.Callsign), ReadbackKind.Readback);
     }
 
     /// <summary>Vertical speed within this of zero is "maintaining".</summary>
@@ -624,12 +625,55 @@ public static partial class RadioSpeech
         return trimmed;
     }
 
-    public static string Spoken(string transmit)
+    // An altitude in a transmit text: "2,500", "10,000 feet", "3500 feet".
+    [GeneratedRegex(@"\b(?:(\d{1,2}),(\d{3})\b|(\d{3,5})(?=\s*(?:feet|ft)\b))", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    private static partial Regex Altitude();
+
+    [GeneratedRegex(@"^(?:zero|one|two|three|four|five|six|seven|eight|nine|niner)$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    private static partial Regex DigitWord();
+
+    /// <summary>"icao" → <see cref="Core.Speech.RadioPhraseology.Icao"/>, "faa", "uk";
+    /// anything else is ICAO (the <c>sayIntentions.phraseology</c> setting).</summary>
+    public static Core.Speech.RadioPhraseology Style(string? setting) => setting?.Trim().ToLowerInvariant() switch
+    {
+        "faa" => Core.Speech.RadioPhraseology.Faa,
+        "uk" => Core.Speech.RadioPhraseology.Uk,
+        _ => Core.Speech.RadioPhraseology.Icao,
+    };
+
+    /// <summary>The FO-voice form of a transmit text. <paramref name="style"/> is the pilot's
+    /// phraseology (owner decision 2026-11-14, radio lines only): UK reads a whole-hundred
+    /// flight level "flight level one hundred" (CAP 413), FAA says "point" in a frequency
+    /// (AIM 4-2-8) and reads the flight number of <paramref name="callsign"/> in group form
+    /// ("Speedbird eight fifty", JO 7110.65 2-4-20). Altitudes read "two thousand five
+    /// hundred" / "one zero thousand" in every style — the three documents agree. Only what
+    /// the FO SAYS changes; the text sent to SayIntentions is never touched.</summary>
+    public static string Spoken(string transmit, Core.Speech.RadioPhraseology style = Core.Speech.RadioPhraseology.Icao, string? callsign = null)
     {
         ArgumentNullException.ThrowIfNull(transmit);
 
-        var text = Fl().Replace(transmit, m => "flight level " + Callouts.Aviation.ToDigits(m.Groups[1].Value));
-        text = Frequency().Replace(text, m => Callouts.Aviation.ToDigits(m.Groups[1].Value));
+        if (style == Core.Speech.RadioPhraseology.Faa && GroupFormCallsign(callsign) is { } grouped)
+        {
+            transmit = transmit.Replace(callsign!.Trim(), grouped, StringComparison.OrdinalIgnoreCase);
+        }
+
+        var text = Fl().Replace(transmit, m =>
+        {
+            var level = m.Groups[1].Value;
+            return style == Core.Speech.RadioPhraseology.Uk && level.Length == 3 && level.EndsWith("00", StringComparison.Ordinal)
+                ? "flight level " + Core.Speech.NatoPhonetics.DigitWords[level[0] - '0'] + " hundred"
+                : "flight level " + Callouts.Aviation.ToDigits(level);
+        });
+        text = Frequency().Replace(text, m =>
+        {
+            var spoken = Callouts.Aviation.ToDigits(m.Groups[1].Value);
+            return style == Core.Speech.RadioPhraseology.Faa ? spoken.Replace("decimal", "point", StringComparison.Ordinal) : spoken;
+        });
+        text = Altitude().Replace(text, m =>
+        {
+            var digits = m.Groups[3].Success ? m.Groups[3].Value : m.Groups[1].Value + m.Groups[2].Value;
+            return Core.Speech.NumberWords.RadioAltitude(int.Parse(digits, CultureInfo.InvariantCulture));
+        });
         text = RunwayDesignator().Replace(text, m => Callouts.Aviation.ToDigits(m.Groups[1].Value) + " " + m.Groups[2].Value switch
         {
             "L" => "left",
@@ -647,5 +691,35 @@ public static partial class RadioSpeech
         }
 
         return sb.ToString();
+    }
+
+    /// <summary>SayIntentions' callsign with its trailing flight number in FAA group form:
+    /// "Speedbird-eight-five-zero" → "Speedbird eight fifty". Null when the callsign has no
+    /// trailing run of digit words (a letter suffix keeps it as SayIntentions wrote it).</summary>
+    internal static string? GroupFormCallsign(string? callsign)
+    {
+        if (string.IsNullOrWhiteSpace(callsign))
+        {
+            return null;
+        }
+
+        var words = callsign.Trim().Split(['-', ' '], StringSplitOptions.RemoveEmptyEntries);
+        var first = words.Length;
+        while (first > 0 && DigitWord().IsMatch(words[first - 1]))
+        {
+            first--;
+        }
+
+        if (first == 0 || first == words.Length)
+        {
+            return null;
+        }
+
+        var digits = string.Concat(words[first..].Select(w => w.ToLowerInvariant() switch
+        {
+            "zero" => '0', "one" => '1', "two" => '2', "three" => '3', "four" => '4', "five" => '5',
+            "six" => '6', "seven" => '7', "eight" => '8', _ => '9',
+        }));
+        return string.Join(" ", words[..first]) + " " + Core.Speech.NumberWords.GroupForm(digits);
     }
 }

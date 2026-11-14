@@ -66,3 +66,20 @@ re-verified against upstream.
   upstream C# example (`examples/csharp/SileroVadOnnxModel.cs` at the same tag): inputs
   `input` [1, context+512], `sr` [1], `state` [2, 1, 128]; outputs `output`, `stateN`;
   64-sample context carry-over at 16 kHz.
+
+## Airline callsign list — `src/ProsimCompanion.App/config/airline-callsigns.json`
+
+- Upstream: OpenFlights airline database — https://openflights.org/data
+  (`airlines.dat`, https://github.com/jpatokal/openflights, fetched 2026-11-14)
+- Licence: **Open Database License (ODbL) 1.0** — https://opendatacommons.org/licenses/odbl/1-0/ ;
+  any rights in individual contents: **Database Contents License 1.0** —
+  http://opendatacommons.org/licenses/dbcl/1.0/
+- What we ship: a derived database — the airlines marked active that carry a callsign and an
+  ICAO or IATA code (ICAO code, IATA code, callsign in title case, name). The derived file
+  stays under the ODbL; it is a data file beside the program, not part of the program's
+  GPL-licensed code. The file itself names the source and the licence.
+- The list is a snapshot: it is not complete and not current (upstream says so). It is
+  user-editable content, seeded with keep-user-edits semantics (ADR-0007).
+- Regenerate: download `airlines.dat`, keep rows with Active = `Y`, a callsign, and a
+  three-letter ICAO or two-character IATA code; first row wins per ICAO code; sort by ICAO.
+- Used by `AirlineCallsigns` (spoken flight numbers: "BA124" → "Speedbird one two four").

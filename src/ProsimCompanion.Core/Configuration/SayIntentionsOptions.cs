@@ -43,8 +43,10 @@ public sealed class SayIntentionsOptions : IOptionSection
     /// 2026-10-25): read-backs, hand-off tuning and check-ins in the FO's own voice.</summary>
     public FoRadiosOptions FoRadios { get; set; } = new();
 
-    /// <summary>"icao" or "faa" request phraseology.</summary>
-    [OptionField(FieldKind.Select, "speechSettings.sayIntentions.phraseology", Choices = "phraseology", DependsOn = "Enabled", Normalize = FieldNormalization.TrimLower)]
+    /// <summary>"icao", "faa" or "uk": the request template ("uk" uses the ICAO one) and how
+    /// the FO says numbers on the radio (owner decision 2026-11-14 — see
+    /// <see cref="Speech.RadioPhraseology"/>). Cockpit talk is the same in every style.</summary>
+    [OptionField(FieldKind.Select, "speechSettings.sayIntentions.phraseology", Hint = "speechSettings.sayIntentions.phraseology.hint", Choices = "phraseology", DependsOn = "Enabled", Normalize = FieldNormalization.TrimLower)]
     public string Phraseology { get; set; } = "icao";
 
     /// <summary>The FO speaks the exact transmission text locally (in the FO voice) before it

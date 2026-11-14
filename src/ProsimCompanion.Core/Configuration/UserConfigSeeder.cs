@@ -43,6 +43,7 @@ public static class UserConfigSeeder
         "lang", // UI language packs (ADR-0014): user edits and user-added languages are kept
         "atc-requests.json",
         "delay-codes.json", // IATA delay codes the FO offers at a late off-blocks (issue #185)
+        "airline-callsigns.json", // airline radio callsigns for spoken flight numbers (2026-11-14; OpenFlights, ODbL)
         "commands.json",
         "phrases.json",
         "region-facts.json",

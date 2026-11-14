@@ -101,12 +101,14 @@ public static class SpokenValueFormatting
     private const double LbPerKg = Core.State.DisplayUnitService.LbPerKg;
 
     /// <summary>Total fuel on board as a spoken figure with its unit (issue #129):
-    /// "8540 kilograms" / "18830 pounds". The unit follows ProSim's configured weight unit
-    /// (<c>system.config.Units.Weight</c>, "LBS" ⇒ pounds — the same rule the display-unit
-    /// service applies) so the FO reads what the ECAM shows. Rounded to the nearest 10 —
-    /// nobody reads back single kilograms. Left as plain digits (not aviation digit words):
-    /// a fuel figure is a quantity, spoken "eight thousand five hundred forty", never
-    /// "eight five four zero". Null (dataref not yet pushed) reads "unavailable".</summary>
+    /// "eight thousand seven hundred kilograms" / "eighteen thousand eight hundred pounds".
+    /// The unit follows ProSim's configured weight unit (<c>system.config.Units.Weight</c>,
+    /// "LBS" ⇒ pounds — the same rule the display-unit service applies) so the FO reads what
+    /// the ECAM shows. Rounded to the nearest 100 (owner decision 2026-11-14 — a crew says
+    /// "eight thousand seven hundred", not "… seven hundred forty"; it was the nearest 10).
+    /// A fuel figure is a quantity, never "eight seven zero zero" — and it is written in
+    /// WORDS here: left as digits, the TTS engine read "8700" as "eighty seven, zero" (owner
+    /// report 2026-11-14). Null (dataref not yet pushed) reads "unavailable".</summary>
     public static string FuelQuantity(double? kg, string? weightUnit)
     {
         if (kg is null || !double.IsFinite(kg.Value) || kg.Value < 0)
@@ -117,9 +119,8 @@ public static class SpokenValueFormatting
         var pounds = !string.IsNullOrWhiteSpace(weightUnit)
             && weightUnit.Contains("LB", StringComparison.OrdinalIgnoreCase);
         var figure = pounds ? kg.Value * LbPerKg : kg.Value;
-        var rounded = (int)(Math.Round(figure / 10) * 10);
-        return rounded.ToString(System.Globalization.CultureInfo.InvariantCulture)
-            + (pounds ? " pounds" : " kilograms");
+        var rounded = (long)(Math.Round(figure / 100, MidpointRounding.AwayFromZero) * 100);
+        return Core.Speech.NumberWords.Cardinal(rounded) + (pounds ? " pounds" : " kilograms");
     }
 
     /// <summary>F/O baro as spoken digits. <paramref name="std"/> null = no data yet

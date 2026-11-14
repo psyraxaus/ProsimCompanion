@@ -158,6 +158,21 @@ A `confirmCallout` in your checklist file may carry a live value: `{fuel}` (or
 `{flightLevel}`, `{takeoffConfig}`. A brace word the app does not know is left out, never read
 aloud (a warning names it in the log once).
 
+**How numbers are said.** The FO says a quantity as a number — fuel is *"eight thousand seven
+hundred kilograms"* (to the nearest 100), the loadsheet *"sixty two point three tonnes"*,
+*"one hundred forty eight"* passengers, *"ten thousand feet"*. QNH, headings, flight levels,
+squawks, frequencies, runways, speeds, wind and clock times are said digit by digit (*"one
+zero one three"*, *"V one, one four zero"*, *"zero niner zero zero zulu"*). You may write
+plain figures in your own checklist and phrase files — `8700 kilograms`, `speed 230` — and
+the FO says them the same way. On the radio the FO follows the phraseology you pick under
+Settings → Voice First Officer → SayIntentions → **Phraseology** (ICAO, FAA or UK CAP 413);
+cockpit talk does not change with it.
+
+**Flight numbers.** A flight number is said with the airline's radio callsign — BA124 is
+*"Speedbird one two four"*. The list is
+`%LOCALAPPDATA%\ProsimCompanion\config\airline-callsigns.json`; add your airline or correct a
+callsign there. An airline that is not in the list is spelled by its letters.
+
 A line may carry a `system` tag (`"system": "apu"` — the shipped checklists tag the APU,
 gear, flaps, autobrake, brakes, anti-ice, packs, fuel, lights, engines, spoilers, radar,
 transponder, TCAS, ADIRS and flight-control lines). When an open tech-log item is about that

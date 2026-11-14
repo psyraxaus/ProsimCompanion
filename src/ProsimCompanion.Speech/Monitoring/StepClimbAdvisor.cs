@@ -162,7 +162,7 @@ public sealed class StepClimbAdvisor : IVoiceFeature, Core.Hosting.IStartupModul
         }
 
         var distance = Distance(next);
-        var where = distance is { } d ? $", {Aviation.ToDigits(((int)Math.Round(d)).ToString(CultureInfo.InvariantCulture))} miles ahead" : "";
+        var where = distance is { } d ? $", {Core.Speech.NumberWords.Cardinal((long)Math.Round(d))} miles ahead" : "";
         return $"Next step: flight level {Aviation.ToDigits(next.ToFlightLevel.ToString(CultureInfo.InvariantCulture))} at {Core.Speech.NatoPhonetics.SpeakIdentifier(next.Ident)}{where}.";
     }
 

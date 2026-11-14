@@ -341,7 +341,9 @@ public sealed class CompanyDayServiceTests : IDisposable
 
         var message = Assert.Single(_company.Messages);
         // No IAirportNames registered here, so the ICAOs fall back to spelled form (#70).
-        Assert.Equal("Next sector, Echo Golf Charlie Charlie to Echo Golf Lima Lima, flight BA124, scheduled off-blocks 09:00 zulu.", message);
+        // No airline list here either, so the flight number is spelled (2026-11-14: with the
+        // list it reads "flight Speedbird one two four"); the clock time is four digit words.
+        Assert.Equal("Next sector, Echo Golf Charlie Charlie to Echo Golf Lima Lima, flight B A one two four, scheduled off-blocks zero niner zero zero zulu.", message);
     }
 
     // ---- deviation (post-hoc, at leg completion) ----
