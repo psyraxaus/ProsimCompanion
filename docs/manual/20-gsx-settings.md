@@ -144,6 +144,40 @@ time in **Turnaround auto-start delay**. Tick **Ask before a turnaround starts**
 First Officer asks *"Next plan loaded — commence ground services?"* first and starts on your
 "yes".
 
+### SimBrief / VDGS
+
+GSX reads your SimBrief plan for its gate displays (VDGS) and the marshaller. After a new
+plan GSX must read it again, or the display shows the old flight. GSX has a menu line for
+this, and the app can click it for you.
+
+| Setting | Default | What to know |
+|---|---|---|
+| **Reload SimBrief in GSX on a new OFP** | off | On: the app clicks GSX's SimBrief line once per new flight plan. Only while you are parked at the gate with the engines off and GSX ready, never in flight. A plan fetched in the air is reloaded at the next gate. |
+| **Additional Services pages to search** | `4` | The line is not on GSX's first menu page. The app looks at the gate menu, then at Additional Services and up to this many further pages. |
+
+- The button **Reload SimBrief in GSX** on the Status page (card **Departure Status Board**)
+  does the same at once, whatever the switch is set to.
+- **GSX needs your SimBrief username.** GSX only offers the line when a SimBrief username is
+  set in GSX's own settings. Without it no page has the line; the Status page then says so
+  once and this plan is not tried again.
+
+**Check it:** press **Reload SimBrief in GSX** at the gate. Under the buttons a line that
+starts with **SimBrief reload:** tells you the result: "Reloaded", "Sent" or "Not performed",
+with the reason.
+
+### Cold & Dark Check
+
+Once per session, on a fresh departure, the app compares your cockpit switches with a cold
+and dark aircraft. It never runs on a turnaround. It only reports; it moves no switch.
+
+| Setting | Default | What to know |
+|---|---|---|
+| **Verify aircraft state at session start** | on | The expected switch positions are in the file `aircraft-states\cold-and-dark.json` in your config folder (`%LOCALAPPDATA%\ProsimCompanion\config\`). |
+| **First Officer announces mismatches** | on | The First Officer reads out the first few mismatches. Grey while the switch above is off. The same switch is also on the **Voices** page. |
+
+**Check it:** start a session with a switch that is not in its cold and dark position. The
+First Officer names it, and the Flight Status page shows the full list.
+
 ## Refuel & Boarding
 
 How the fuel truck is called, how fast the tanks fill, and how passengers and bags arrive
@@ -161,6 +195,20 @@ Leave **Allow defuel** off: a wrong low fuel figure then never takes fuel out.
 
 **Check it:** during refuelling the fuel on board in ProSim rises only while the hose is
 connected. During boarding the passenger count rises with GSX's counter.
+
+### Passengers
+
+For a load that is not exactly the planned one: some booked passengers do not show up, and
+some extra passengers appear.
+
+| Setting | Default | What to know |
+|---|---|---|
+| **Randomize pax no-shows / extras** | off | Off: the load is exactly the load of the flight plan. On: each seat can change, a booked seat to empty or an empty seat to booked. |
+| **Chance per seat** | `0.03` | The chance for each seat, from 0 to 1. `0.03` is 3 percent. Grey while the switch above is off. |
+| **Weight per bag** | `15` kg | The cargo follows the change: this weight is taken off or added for each passenger less or more. |
+
+**Check it:** tick the switch, save, and load a flight plan. The booked passenger count
+differs a little from the figure in the plan.
 
 ## Pushback
 
@@ -252,6 +300,69 @@ any time until the **Answer timeout** ends; only the end of that time counts as 
 **The GSX menu card and the automation.** The card does not take your click while the
 automation is answering the same menu. A line that moved before your click arrived is not
 sent. Every answer, and every menu left for you, is in the decision log.
+
+### De-icing from the weather
+
+The card **De-Icing** on this page holds two things: how the app answers GSX's own ice
+warning, and whether the app itself asks for de-icing. **Request de-icing from the weather**
+has three values: **Off** (the default), **Ask me** and **Auto**.
+
+**The conditions.** The app decides when the de-icing step has its turn (see "When the
+de-icing question comes" above). De-icing is called for when both of these are true:
+
+1. **It is cold.** The outside air temperature is at or below **OAT threshold** (`3` °C).
+   The temperature comes from ProSim. When ProSim gives none, the temperature of the
+   departure airport's METAR is used. With no temperature at all the app makes no request.
+2. **The weather can put ice on the aircraft.** The departure METAR shows one of: snow,
+   freezing precipitation, ice pellets or hail, rain, freezing fog, or a dew point within
+   3 °C of the temperature (frost is likely). Without a METAR for the departure airport the
+   app cannot know this and makes no request.
+
+Point 2 is the switch **Require precipitation or frost** (on). Untick it and the temperature
+alone decides.
+
+**The warning on the card.** With an **OAT threshold** above 10 °C the card shows: "A
+threshold above 10 °C asks on nearly every flight — most of Europe sits below it for half the
+year. 3 °C is the usual rule." Leave it on `3`.
+
+**What each value does.**
+
+- **Ask me**: the First Officer asks, for example *"Captain, conditions call for de-icing —
+  OAT -2, snow. Request it?"*. The question is also in **Captain's Questions** on the Status
+  page. Only the de-icing step waits for your answer; boarding is not held.
+- **Auto**: nobody asks. De-icing becomes the last departure service, after all the others.
+  If your **Departure Service Order** already has a DeIce row that is not on **Skip /
+  ignore**, that row stays where you put it.
+
+**How Auto-accept de-ice offer follows your answer.** GSX can also offer de-icing by itself
+(its "Ice warning" question). With **Auto-accept de-ice offer** off, that question is left
+for you. With it on, the app answers it the way you decided:
+
+| Your decision on the app's question | The app answers GSX |
+|---|---|
+| You said no, or the **Answer timeout** ended | No |
+| The question is still open | Nothing. The menu is left for you, and your pick on it is your answer. |
+| You said yes, or **Auto** requested de-icing | Yes |
+| The app did not ask (the switch is on **Off**, or the weather did not call for it) | Yes: GSX's own judgement stands. |
+
+**De-ice fluid** (`Type IV`) and **Concentration** (`75 / 25`) answer GSX's two fluid menus
+in both cases, for GSX's offer and for the app's own request.
+
+**Packs procedure** (off). Tick it and the First Officer runs the cockpit side with you:
+
+1. When the de-icing crew arrives: *"De-icing starting — packs off, ditching on."*
+2. Twenty seconds later the First Officer looks at the pack OFF lights and the DITCHING ON
+   light. All correct: *"Packs off, ditching on — checked."* Otherwise one reminder, for
+   example *"Reminder — pack 1 still on. For de-icing: packs off, ditching on."*
+3. When the crew leaves: *"De-icing complete — packs on, ditching off."*, with the same
+   check twenty seconds later.
+
+The First Officer never moves these switches. The procedure works for every de-icing that
+GSX runs: the app's request, GSX's offer or your own call.
+
+**Check it:** on the Status page, the card **De-Icing** shows the **Verdict** (for example
+**Not required**, **Asking the captain** or **De-icing requested**) with the reason beside
+it, and under **Inputs** the figures the app used.
 
 ## Voices
 
