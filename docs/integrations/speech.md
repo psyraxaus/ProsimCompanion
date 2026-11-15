@@ -35,10 +35,24 @@ chains — "local only" hard mode must exist.
 
 - **LAN ASR** — two server flavours, selected by `speech.asrApi` (`AsrServerApi` holds the
   wire differences; the recognizer is flavour-agnostic):
-  - `fasterWhisper` (Prosim2FO `deploy/faster-whisper` wrapper): `GET /health`,
-    `POST /transcribe` (multipart WAV 16 kHz) → `text`, `duration`, `confidence`, `avg_logprob`,
-    `no_speech_prob`, word timestamps; biasing fields `initial_prompt`/`hotwords`/`vad_filter`.
-  - `whisperCpp` (whisper.cpp `whisper-server`, e.g. native on a Mac mini since 2026-08-29):
+  - `fasterWhisper` — on the page "Simple (/transcribe)" since 2026-11-16; the settings value
+    keeps its name. The contract, complete: `GET /health` answers any 2xx; `POST /transcribe`
+    takes a multipart form with `file` (WAV, 16 kHz mono 16-bit) and, when the open window
+    has 1 to 50 phrases, `hotwords` (the phrases joined with ", "); the reply is a JSON
+    object with `text` (string), `confidence` (0..1, optional) and `no_speech_prob` (0..1,
+    optional). Nothing else is read. No authentication header is sent. The in-repo example
+    server is `tools/asr-server` (faster-whisper; `confidence` = exp of the duration-weighted
+    `avg_logprob`, silence = empty text, confidence 0, no_speech_prob 1).
+  - `whisperCpp` — on the page "OpenAI-style (/v1/audio/transcriptions)". whisper.cpp
+    `whisper-server` (e.g. native on a Mac mini since 2026-08-29), and any server with the
+    same API: the owner's Qwen3-ASR server (a private script over mlx-qwen3-asr, not in the
+    repo). Tested 2026-11-16 with the app's own form fields and one spoken WAV: `/health`
+    200 `{"status": "ok", "model": "Qwen/Qwen3-ASR-1.7B"}`, the transcription answered
+    `{"text": "Before start checklist."}` in 0.6 s, `text` only. That script also answers
+    `POST /transcribe` with the same body, so it fits both types. Not tested through the
+    app itself. A text-only reply carries no confidence and no no-speech score, so the
+    interpreter's `confidenceFloor` / `noSpeechCeiling` checks have nothing to grade and the
+    text-only ladder decides.
     OpenAI-style `POST /v1/audio/transcriptions`, fields `file`, `prompt` (grammar phrases go
     here — it is the initial prompt), `response_format=verbose_json`, `temperature=0`. Reply
     carries `text` plus `segments[].{start,end,avg_logprob,no_speech_prob}`; confidence is
@@ -49,7 +63,10 @@ chains — "local only" hard mode must exist.
     is green; the app used to drop those silently (a whole session with zero "ASR heard"
     lines). Now a Warning "LAN ASR server … answered 404 … check speech.asrApi" fires once
     per episode.
-  Default `http://192.168.1.50:8000`; readiness polling + optional wake-on-LAN (MAC/broadcast/port 9).
+  `speech.asrBaseUrl` is empty by default (`http://192.168.1.50:8000` is only the field's
+  example text); readiness polling + optional wake-on-LAN (MAC/broadcast/port 9).
+  Seen on a whisper.cpp server 2026-11-16: `/health` 200, `POST /transcribe` answers 404
+  with the body `File Not Found (/transcribe)`.
 - **Utterance segmentation (ADR-0009)** — `UtteranceSegmenter` over a pluggable
   `ISpeechFrameClassifier` (512-sample / 32 ms frames at 16 kHz; WaveInEvent's 800-sample
   buffers are reframed with remainder carry). Engine per `speech.vadEngine`:

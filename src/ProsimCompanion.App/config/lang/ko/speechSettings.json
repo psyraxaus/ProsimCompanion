@@ -283,7 +283,7 @@
         "flavour": {
           "label": "LAN ASR 서버 종류",
           "hint": "그 주소에서 실행 중인 서버 종류와 일치해야 합니다.",
-          "more": "종류가 틀리면 상태 확인은 녹색인데 모든 요청에 404로 답합니다. 그럴 때 경고가 기록됩니다."
+          "more": "단순: ProsimCompanion 프로젝트의 faster-whisper 예제 서버(tools/asr-server). OpenAI 방식: whisper.cpp의 whisper-server 및 같은 API로 텍스트를 반환하는 모든 서버. 종류가 틀리면 상태 확인은 녹색인데 모든 요청에 404로 답합니다. 그럴 때 경고가 기록됩니다."
         },
         "vad": {
           "label": "음성 활동 감지",
@@ -1650,8 +1650,8 @@
         "ollama": "Ollama 네이티브 (/api/chat — 사고 제어)"
       },
       "asrApi": {
-        "fasterWhisper": "faster-whisper 래퍼 (/transcribe)",
-        "whisperCpp": "whisper.cpp 서버 (/v1/audio/transcriptions)"
+        "fasterWhisper": "단순 (/transcribe)",
+        "whisperCpp": "OpenAI 방식 (/v1/audio/transcriptions)"
       },
       "vad": {
         "silero": "Silero VAD (신경망, 권장)",

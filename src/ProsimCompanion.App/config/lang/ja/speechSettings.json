@@ -283,7 +283,7 @@
         "flavour": {
           "label": "LAN ASR サーバーの種類",
           "hint": "そのアドレスで動いているサーバーの種類と一致させる必要があります。",
-          "more": "種類が違うとヘルスチェックは緑のまま、すべてに 404 が返ります。その場合は警告がログに記録されます。"
+          "more": "シンプル: ProsimCompanion プロジェクトの faster-whisper サンプルサーバー (tools/asr-server)。OpenAI 形式: whisper.cpp の whisper-server、および同じ API でテキストを返すすべてのサーバー。種類が違うとヘルスチェックは緑のまま、すべてに 404 が返ります。その場合は警告がログに記録されます。"
         },
         "vad": {
           "label": "音声区間検出",
@@ -1650,8 +1650,8 @@
         "ollama": "Ollama ネイティブ (/api/chat — 思考制御)"
       },
       "asrApi": {
-        "fasterWhisper": "faster-whisper ラッパー (/transcribe)",
-        "whisperCpp": "whisper.cpp サーバー (/v1/audio/transcriptions)"
+        "fasterWhisper": "シンプル (/transcribe)",
+        "whisperCpp": "OpenAI 形式 (/v1/audio/transcriptions)"
       },
       "vad": {
         "silero": "Silero VAD（ニューラル、推奨）",

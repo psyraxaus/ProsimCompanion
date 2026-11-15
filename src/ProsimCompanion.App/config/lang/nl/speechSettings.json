@@ -283,7 +283,7 @@
         "flavour": {
           "label": "Type LAN-ASR-server",
           "hint": "Moet overeenkomen met het servertype dat op dat adres draait.",
-          "more": "Het verkeerde type antwoordt 404 op alles terwijl de gezondheidscontrole groen blijft. Als dat gebeurt wordt een waarschuwing gelogd."
+          "more": "Eenvoudig: de faster-whisper-voorbeeldserver uit het ProsimCompanion-project (tools/asr-server). OpenAI-stijl: de whisper-server van whisper.cpp en elke server met dezelfde API die tekst teruggeeft. Het verkeerde type antwoordt 404 op alles terwijl de gezondheidscontrole groen blijft. Als dat gebeurt wordt een waarschuwing gelogd."
         },
         "vad": {
           "label": "Spraakactiviteitsdetectie",
@@ -1650,8 +1650,8 @@
         "ollama": "Ollama natief (/api/chat — denkbesturing)"
       },
       "asrApi": {
-        "fasterWhisper": "faster-whisper-wrapper (/transcribe)",
-        "whisperCpp": "whisper.cpp-server (/v1/audio/transcriptions)"
+        "fasterWhisper": "Eenvoudig (/transcribe)",
+        "whisperCpp": "OpenAI-stijl (/v1/audio/transcriptions)"
       },
       "vad": {
         "silero": "Silero VAD (neuraal, aanbevolen)",

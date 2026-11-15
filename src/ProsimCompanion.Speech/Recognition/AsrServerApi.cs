@@ -14,10 +14,10 @@ public sealed record AsrTranscript(string Text, double? Confidence, double? NoSp
 /// <summary>
 /// Pure request/response knowledge for the two LAN ASR server shapes
 /// (<see cref="AsrApiKind"/>), kept out of the recognizer so the parsing is unit-testable
-/// without a microphone. The faster-whisper wrapper pre-computes confidence server-side;
+/// without a microphone. The simple shape's server pre-computes confidence server-side;
 /// whisper.cpp only returns per-segment <c>avg_logprob</c>/<c>no_speech_prob</c> in
-/// <c>verbose_json</c>, so the same duration-weighted formula the wrapper uses
-/// (Prosim2FO <c>deploy/faster-whisper/server.py</c>) is applied here — the interpreter's
+/// <c>verbose_json</c>, so the same duration-weighted formula that server uses
+/// (<c>tools/asr-server/server.py</c>) is applied here — the interpreter's
 /// thresholds (<c>confidenceFloor</c>, <c>noSpeechCeiling</c>) then mean the same thing for
 /// both servers.
 /// </summary>

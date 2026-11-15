@@ -1,0 +1,6 @@
+# hotwords needs faster-whisper 1.0 or later.
+faster-whisper>=1.0
+fastapi
+uvicorn[standard]
+# FastAPI needs this to read the uploaded file.
+python-multipart

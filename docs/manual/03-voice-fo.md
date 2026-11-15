@@ -5,7 +5,8 @@
 - **Push-to-talk** (default): bind a key or joystick button on the First Officer settings
   page; hold, speak, release. The header's mic pill shows LISTENING while the mic is open.
   Continuous mode is available for boom-mic setups.
-- **Recognition** tries your LAN faster-whisper box first (if configured) and falls back to
+- **Recognition** tries your speech recognition server first (if configured; setup in
+  [chapter 16](16-speech-recognition-server.md)) and falls back to
   Windows offline recognition. Misheard phrases snap to the nearest expected phrase; a
   genuinely unclear response gets a "say again?". A near miss earns *"did you mean …?"* —
   answer *yes*, or just say the command again. Never on the takeoff roll, in the initial

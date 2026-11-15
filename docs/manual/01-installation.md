@@ -7,7 +7,7 @@
 - ProSim A320 (A322) with the **ProSim SDK** (`ProSimSDK.dll` ships with ProSim; this app
   never bundles it)
 - MSFS 2020 or 2024 with **GSX Pro** (for the ground-services pillar; optional)
-- Optional: VoiceMeeter (audio routing), a Kokoro/faster-whisper LAN box (local TTS/ASR),
+- Optional: VoiceMeeter (audio routing), a Kokoro voice server and a speech recognition server on your network (local TTS/ASR),
   Navigraph DFD database (briefing procedures), SayIntentions (ATC integration),
   VoicemeeterBridge on a second PC's Voicemeeter ([chapter 9](09-remote-mixer.md))
 

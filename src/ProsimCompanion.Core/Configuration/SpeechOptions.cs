@@ -72,14 +72,19 @@ public sealed class HumanizeOptions
 /// <summary>HTTP shape of the LAN speech-recognition server (<c>speech.asrApi</c>).</summary>
 public enum AsrApiKind
 {
-    /// <summary>The Prosim2FO faster-whisper wrapper (<c>deploy/faster-whisper</c>):
-    /// <c>POST /transcribe</c> with a <c>hotwords</c> field, flat JSON reply carrying
-    /// <c>text</c>, <c>confidence</c> and <c>no_speech_prob</c>.</summary>
+    /// <summary>The simple shape ("Simple (/transcribe)" on the page), served by the
+    /// faster-whisper example server in <c>tools/asr-server</c>: <c>POST /transcribe</c> with
+    /// a <c>hotwords</c> field, flat JSON reply carrying <c>text</c>, <c>confidence</c> and
+    /// <c>no_speech_prob</c>. The member name is the settings value (<c>fasterWhisper</c>)
+    /// and stays for the files users already have; the contract is in
+    /// docs/integrations/speech.md.</summary>
     FasterWhisper,
 
-    /// <summary>whisper.cpp <c>whisper-server</c>: OpenAI-style
+    /// <summary>The OpenAI-style shape, served by whisper.cpp <c>whisper-server</c> and by any
+    /// server with the same API (the owner's Qwen3-ASR server, 2026-11-16):
     /// <c>POST /v1/audio/transcriptions</c> with a <c>prompt</c> field; the app asks for
-    /// <c>verbose_json</c> and derives confidence from the segments' <c>avg_logprob</c>.</summary>
+    /// <c>verbose_json</c> and derives confidence from the segments' <c>avg_logprob</c>. A
+    /// reply with <c>text</c> only is accepted, without a confidence.</summary>
     WhisperCpp,
 }
 

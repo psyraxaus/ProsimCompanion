@@ -35,6 +35,7 @@ kept there so a broken web configuration can always be repaired.
 | [Screen & FOV: a life-size view on your TV](14-screen-fov.md) | Enter your screen's size and distance, see the true field of view, press one button to write it into MSFS 2024's saved pilot view (with a backup), and check it in Developer Mode; Multi Window rotations and the ChasePlane caveat |
 | [Stream Deck on another PC: cockpit switches and camera views](12-remote-streamdeck.md) | Running the plugin on a second PC; Cockpit Switch keys that press ProSim switches you have no hardware for (Korry buttons, toggles, knobs, drawn like the real overhead); Camera View keys that change ChasePlane views through the vJoy relay |
 | [Language model (LLM): connecting your own server](15-language-model.md) | Pointing the app at Ollama, Open WebUI, LM Studio, llama-server or OpenAI: which API flavour, the Base URL exactly as it must be typed, the model name, thinking models, a check before and inside the app, troubleshooting |
+| [Speech recognition server: connecting whisper.cpp or faster-whisper](16-speech-recognition-server.md) | Pointing the app at a whisper.cpp server or the faster-whisper example server: which server flavour, the address exactly as it must be typed, the wrong-flavour trap where everything stays green, a check before and inside the app, troubleshooting |
 
 ## Design principles (what to expect)
 
