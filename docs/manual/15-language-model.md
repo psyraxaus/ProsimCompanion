@@ -180,4 +180,4 @@ the zip. Your key is never in the logs and is removed from the exported settings
 
 ---
 
-**Next:** [Loudspeaker dial](08-loudspeaker-dial.md) · [Manual contents](README.md)
+**Next:** [SayIntentions](17-sayintentions.md) · [Manual contents](README.md)

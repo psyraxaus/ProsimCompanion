@@ -42,6 +42,7 @@ the chapters were written, not the reading order; every chapter ends with a link
 | [ElevenLabs voices](06-elevenlabs.md) | Step-by-step setup: API key, voice, plan, crew voices, cost control |
 | [Speech recognition server: connecting whisper.cpp or faster-whisper](16-speech-recognition-server.md) | Pointing the app at a whisper.cpp server or the faster-whisper example server: which server flavour, the address exactly as it must be typed, the wrong-flavour trap where everything stays green, a check before and inside the app, troubleshooting |
 | [Language model (LLM): connecting your own server](15-language-model.md) | Pointing the app at Ollama, Open WebUI, LM Studio, llama-server or OpenAI: which API flavour, the Base URL exactly as it must be typed, the model name, thinking models, a check before and inside the app, troubleshooting |
+| [SayIntentions: ATC requests, the radios and weather](17-sayintentions.md) | Switching SayIntentions on, the API key (Auto or Manual), what you can say to have the FO call ATC, the three ways to share the radios with the SayIntentions copilot, push-to-talk from a cockpit button, the arrival gate from ATC, weather, troubleshooting |
 
 ### Audio
 
