@@ -65,6 +65,9 @@ chains — "local only" hard mode must exist.
     per episode.
   `speech.asrBaseUrl` is empty by default (`http://192.168.1.50:8000` is only the field's
   example text); readiness polling + optional wake-on-LAN (MAC/broadcast/port 9).
+  whisper-server listens on `/inference`, host 127.0.0.1 and port 8080 unless started with
+  `--inference-path "/v1/audio/transcriptions" --host 0.0.0.0 --port <port>` (its README, read
+  2026-11-16); without the first option every utterance answers 404. Manual chapter 16 has the steps.
   Seen on a whisper.cpp server 2026-11-16: `/health` 200, `POST /transcribe` answers 404
   with the body `File Not Found (/transcribe)`.
 - **Utterance segmentation (ADR-0009)** — `UtteranceSegmenter` over a pluggable

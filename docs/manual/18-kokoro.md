@@ -13,10 +13,10 @@ tab and the voice list arrived in **0.7.0-rc.6**.
 
 ## Before you start
 
-**The app does not contain the Kokoro server.** Installing it is outside this manual. The
-app is written for [kokoro-fastapi](https://github.com/remsky/Kokoro-FastAPI); follow the
-install page of that project. The app only sends the server text and plays the sound that
-comes back.
+**The app does not contain the Kokoro server.** You install it yourself; "Install the server,
+step by step" below shows how. The app is written for
+[kokoro-fastapi](https://github.com/remsky/Kokoro-FastAPI). The app only sends the server
+text and plays the sound that comes back.
 
 **What the server must offer.** The app calls three addresses on the server, and nothing
 else:
@@ -74,6 +74,95 @@ curl http://192.168.1.50:8880/v1/audio/speech -H "Content-Type: application/json
 A good answer is a file `kokoro-test.wav` that plays the sentence when you double-click it.
 A file of a few bytes holds an error text instead: open it with Notepad and read it. This is
 the same request the app sends.
+
+## Install the server, step by step
+
+These steps follow the kokoro-fastapi project page as it was in November 2026:
+<https://github.com/remsky/Kokoro-FastAPI>. The project changes; if a command fails, the
+project page is right and this page is old. Do the steps on the server PC.
+
+### With Docker (the quickest way)
+
+Docker is a program that runs ready-made packages. The package has the voices inside, so
+there is nothing else to download.
+
+1. Install Docker Desktop on the server PC and start it.
+2. Open a command window and type the line for your PC:
+
+   | Your PC | Command |
+   |---|---|
+   | No graphics card | `docker run -p 8880:8880 ghcr.io/remsky/kokoro-fastapi-cpu:latest` |
+   | NVIDIA graphics card (up to the RTX 40 series) | `docker run --gpus all -p 8880:8880 ghcr.io/remsky/kokoro-fastapi-gpu:latest` |
+   | NVIDIA RTX 50 series | `docker run --gpus all -p 8880:8880 ghcr.io/remsky/kokoro-fastapi-gpu:latest-cu128` |
+
+   The first start downloads the package. That takes some minutes.
+3. Leave that window open. The server runs as long as it is open. To let Docker run it in the
+   background and start it again after a restart of the PC, put `-d --restart unless-stopped`
+   after `docker run`.
+4. On the server PC open `http://localhost:8880/web` in a browser. You see the project's own
+   test page. Type a sentence there and listen. If you hear it, the server works.
+
+The project page says `:latest` is fine for a test, and that you should use a fixed release
+tag for regular use, so that an update does not change your server by surprise.
+
+### Without Docker
+
+Use this way on a Mac with Apple Silicon: the project says the Mac's graphics chip is used
+only when the server runs directly, not in Docker. This is the way in daily use with this app
+on a Mac mini.
+
+1. Install `uv` (a Python tool, <https://docs.astral.sh/uv/>) and git.
+2. Get the program:
+
+   ```
+   git clone https://github.com/remsky/Kokoro-FastAPI.git
+   cd Kokoro-FastAPI
+   ```
+
+3. Start it. On Windows: `.\start-cpu.ps1`, or `.\start-gpu.ps1` with an NVIDIA graphics
+   card. On Linux and macOS: `./start-cpu.sh` or `./start-gpu.sh`. On a Mac with Apple
+   Silicon: `./start-gpu_mac.sh`.
+
+**Start it automatically on a Mac.** Save the text below as
+`~/Library/LaunchAgents/com.example.kokoro.plist`, with your own user name in place of
+`YOURNAME`. Then type `launchctl load ~/Library/LaunchAgents/com.example.kokoro.plist`. The
+server now starts when you log in, and starts again if it stops.
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.example.kokoro</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>-lc</string>
+    <string>cd /Users/YOURNAME/Kokoro-FastAPI && ./start-gpu_mac.sh</string>
+  </array>
+  <key>WorkingDirectory</key>
+  <string>/Users/YOURNAME/Kokoro-FastAPI</string>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key>
+    <string>/opt/homebrew/bin:/usr/bin:/bin</string>
+  </dict>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>KeepAlive</key>
+  <true/>
+  <key>StandardOutPath</key>
+  <string>/Users/YOURNAME/Library/Logs/kokoro.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/YOURNAME/Library/Logs/kokoro.err.log</string>
+</dict>
+</plist>
+```
+
+If the server does not start, read the two log files named at the end.
+
+The server has no password. Use it on your home network only.
 
 ## Set it up
 

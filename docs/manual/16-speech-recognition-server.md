@@ -36,7 +36,7 @@ the port your server listens on.
 
 | Your server | LAN ASR server flavour | LAN ASR URL, exactly |
 |---|---|---|
-| whisper.cpp `whisper-server` | **OpenAI-style (/v1/audio/transcriptions)** | `http://192.168.1.50:8000` — the address and port only, no `/v1` |
+| whisper.cpp `whisper-server`, started with `--inference-path "/v1/audio/transcriptions"` (see the install steps) | **OpenAI-style (/v1/audio/transcriptions)** | `http://192.168.1.50:8000` — the address and port only, no `/v1` |
 | faster-whisper, with the example server of this project ([tools/asr-server](../../tools/asr-server/README.md)) | **Simple (/transcribe)** | `http://192.168.1.50:8000` — the address and port only |
 
 What the app adds to your address:
@@ -96,9 +96,167 @@ A good answer contains `"text"` followed by your words. An answer such as
 `File Not Found (/transcribe)` or `404` means this server is the other type, or the address
 is wrong.
 
-Installing the server itself is not part of this manual. For whisper.cpp see its project
-page, <https://github.com/ggml-org/whisper.cpp>. For the example server see its
-[README](../../tools/asr-server/README.md).
+If the server is not installed yet, see "Install the server, step by step" below, then come
+back to this check.
+
+## Install the server, step by step
+
+These steps follow the projects' own pages as they were in November 2026. The projects
+change; if a command fails, the project page is right and this page is old. Do the steps on
+the server PC, not on the sim PC (unless they are the same PC).
+
+### whisper.cpp
+
+Project page: <https://github.com/ggml-org/whisper.cpp>. The server program is described at
+<https://github.com/ggml-org/whisper.cpp/tree/master/examples/server>.
+
+You need git, CMake and a C++ compiler on the server PC.
+
+1. Get the program:
+
+   ```
+   git clone https://github.com/ggml-org/whisper.cpp.git
+   cd whisper.cpp
+   ```
+
+2. Get a speech model. `base.en` is small and fast and is good for a first test:
+
+   ```
+   sh ./models/download-ggml-model.sh base.en
+   ```
+
+   On Windows: `.\models\download-ggml-model.cmd base.en`. A bigger model hears better, and
+   needs more memory and a faster PC. `large-v3-turbo-q8_0` is the model in daily use with
+   this app on a Mac mini with Apple Silicon; get it with the same command and that name. The
+   project page has the list and the memory each one needs.
+
+3. Build it:
+
+   ```
+   cmake -B build
+   cmake --build build -j --config Release
+   ```
+
+   - With an NVIDIA graphics card: install CUDA first, then use `cmake -B build -DGGML_CUDA=1`
+     as the first line.
+   - On a Mac with Apple Silicon the graphics chip is used with no extra step.
+
+4. Start the server. **All three options matter:**
+
+   ```
+   ./build/bin/whisper-server -m models/ggml-base.en.bin --host 0.0.0.0 --port 8000 --inference-path "/v1/audio/transcriptions"
+   ```
+
+   | Option | Without it | Why you need it |
+   |---|---|---|
+   | `--host 0.0.0.0` | The server answers only its own PC (`127.0.0.1`). | The sim PC must reach it. |
+   | `--port 8000` | The port is `8080`. | Any free port works; type the same one in **LAN ASR URL**. |
+   | `--inference-path "/v1/audio/transcriptions"` | The server listens on `/inference`. | The app sends every sentence to `/v1/audio/transcriptions`. Without this option the server answers 404 to every sentence. |
+
+   This is the start line in daily use with this app on a Mac mini, with the bigger model and
+   five more options:
+
+   ```
+   ./build/bin/whisper-server -m models/ggml-large-v3-turbo-q8_0.bin -l en -bs 5 -fa -t 8 --host 0.0.0.0 --port 8000 --inference-path "/v1/audio/transcriptions" --convert
+   ```
+
+   | Option | What it does |
+   |---|---|
+   | `-l en` | The spoken language is English. |
+   | `-bs 5` | Beam size 5: the server compares more possible sentences. Better results, a little slower. |
+   | `-fa` | Flash attention: faster on a graphics chip. |
+   | `-t 8` | Use 8 processor threads. Use the number of fast cores of your PC. |
+   | `--convert` | Convert the sound to WAV on the server. This needs the program ffmpeg on the server PC. |
+
+5. Leave that window open. The server runs as long as it is open.
+
+**Start it automatically on a Mac.** Save the text below as
+`~/Library/LaunchAgents/com.example.whisper-server.plist`. Put your own user name in place of
+`YOURNAME` and use your own model file. Then type
+`launchctl load ~/Library/LaunchAgents/com.example.whisper-server.plist`. The server now
+starts when you log in, and starts again if it stops.
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.example.whisper-server</string>
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+    </dict>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/YOURNAME/whisper.cpp/build/bin/whisper-server</string>
+        <string>-m</string>
+        <string>/Users/YOURNAME/whisper.cpp/models/ggml-large-v3-turbo-q8_0.bin</string>
+        <string>-l</string>
+        <string>en</string>
+        <string>-bs</string>
+        <string>5</string>
+        <string>-fa</string>
+        <string>-t</string>
+        <string>8</string>
+        <string>--host</string>
+        <string>0.0.0.0</string>
+        <string>--port</string>
+        <string>8000</string>
+        <string>--inference-path</string>
+        <string>/v1/audio/transcriptions</string>
+        <string>--convert</string>
+    </array>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+    <key>ThrottleInterval</key>
+    <integer>10</integer>
+    <key>StandardOutPath</key>
+    <string>/Users/YOURNAME/Library/Logs/whisper-server.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/YOURNAME/Library/Logs/whisper-server.err.log</string>
+</dict>
+</plist>
+```
+
+The `PATH` line lets the server find ffmpeg (for `--convert`) when it was installed with
+Homebrew. If the server does not start, read the two log files named at the end.
+
+The project warns: do not run the server as administrator, and the server has no password.
+Use it on your home network only.
+
+### faster-whisper
+
+Project page: <https://github.com/SYSTRAN/faster-whisper>. faster-whisper needs the small
+server program of this project around it.
+
+1. Install Python 3.10 or later on the server PC.
+2. Get the folder `tools/asr-server` of this project from
+   <https://github.com/psyraxaus/ProsimCompanion> (three files: `server.py`,
+   `requirements.txt`, `README.md`).
+3. Open a command window in that folder and install what it needs:
+
+   ```
+   pip install -r requirements.txt
+   ```
+
+4. With an NVIDIA graphics card, faster-whisper also needs two NVIDIA libraries (cuBLAS and
+   cuDNN 9 for CUDA 12). Its project page, section "GPU", says how to install them. Without a
+   graphics card it runs on the processor, slower.
+5. Start the server:
+
+   ```
+   uvicorn server:app --host 0.0.0.0 --port 8000
+   ```
+
+   The first start downloads the speech model (`large-v3` unless you choose another one; the
+   folder's README lists the settings).
+
+This example server is new and has not been run by the project yet. Do the check below
+before you rely on it.
 
 ## Set it up
 
@@ -149,6 +307,7 @@ of the last round trip, and the top right shows the last thing the app heard. Se
 
 | What you see | Why | What to do |
 |---|---|---|
+| whisper.cpp, right flavour, right address, and still the warning with `404` | The server was started without `--inference-path "/v1/audio/transcriptions"`, so it listens on `/inference` only. | Stop the server and start it again with the three options from the install steps. |
 | Everything is green, **Ear: whisper (LAN)**, but the FO never reacts to anything you say. The Logs page has one warning: `LAN ASR server … answered 404 for flavour … — utterances are being dropped; check speech.asrApi matches the server` (in this line `FasterWhisper` means **Simple** and `WhisperCpp` means **OpenAI-style**) | The **LAN ASR server flavour** does not match the server, or the **LAN ASR URL** has something extra at the end. The server refuses every sentence. | Choose the other flavour. Remove everything after the port from the address. **Save**. The next sentence uses the new values. |
 | The same, with the **OpenAI-style** flavour, and no such warning | The address points at another program that answers, not at the speech server. For this flavour any answer counts as "up". | Do "Check the server before you touch the app". Correct the port. |
 | `Speech recognition: no LAN engine configured — the offline engine is the only one.` | **LAN ASR URL** is empty, or you did not press **Save**. | Type the address, **Save**, then **Reconnect voice services**. |
