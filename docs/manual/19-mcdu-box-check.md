@@ -64,8 +64,8 @@ Hold your FO push-to-talk key and say one of:
 - *"check the box"*, *"box check"*, *"check the MCDU"*, *"check the FMS"*: start the check.
 - *"stop the check"* or *"cancel the check"*: stop it. The FO says *"Check stopped."*
 
-You can also press the **Check the box** button on the **MCDU CHECK** card. The card is on
-the **Flight Status** page and on EFB INIT.
+You can also press the **Check the box** button on the **MCDU CHECK** card. The card is at
+the top of **Settings → Flight Deck → MCDU** and on the **INIT** page.
 
 ### What the FO does
 
@@ -191,8 +191,8 @@ own side".
 
 ## Check that it works
 
-1. At the gate, with ProSim running and the flight plan loaded, open the **Flight Status**
-   page. The **MCDU CHECK** card shows **NOT RUN**.
+1. At the gate, with ProSim running and the flight plan loaded, open **Settings → Flight
+   Deck → MCDU** (or the **INIT** page). The **MCDU CHECK** card shows **NOT RUN**.
 2. Say *"check the box"*. You hear *"Checking the box."*, the card shows **CHECKING…**, and
    the pages on the FO's MCDU change.
 3. After about a minute you hear the report. The card shows **CHECKED** with the time, and

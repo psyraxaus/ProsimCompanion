@@ -724,6 +724,11 @@ else if (CurrentSection == "providers")
 }
 else if (CurrentSection == "mcdu")
 {
+    @* The FO's MCDU check (2026-11-15): the eight D-I-F-S-R-I-P-P letters, what was found and the
+       button, beside the settings of the check. It was on Flight Status until 2026-11-16 (owner
+       report: it shared the hero tile's height and cut the hero off); it stays on EFB INIT. *@
+    <BoxCheckCard />
+
     <Section Title="@T["speechSettings.mcdu.title"]" Hint="@T["speechSettings.mcdu.hint"]">
         <OptionField Draft="_mcdu" For="o => o.Enabled" />
         <OptionField Draft="_mcdu" For="o => o.AllowActuation" />

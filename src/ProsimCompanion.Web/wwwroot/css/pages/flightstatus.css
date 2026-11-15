@@ -25,6 +25,11 @@
 
 .fs-tile { position: relative; display: flex; flex-direction: column; min-width: 0; flex: 1 1 44%; }
 .fs-tile > section { flex: 1; }
+/* A card under the hero in the same tile (the diversion card) keeps its own height. Without
+   this it took half the tile and the hero was cut off (seen 2026-11-16 with the MCDU check
+   card, since moved to Settings → Flight Deck → MCDU). */
+.fs-tile { gap: 16px; }
+.fs-tile > section.diversion-card { flex: 0 0 auto; }
 .fs-tile-hero { flex: 2 1 58%; }
 .fs-tile-sequence { flex: 1 1 28%; min-width: 280px; }
 

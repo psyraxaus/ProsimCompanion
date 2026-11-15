@@ -116,6 +116,10 @@ public sealed partial class SettingsPagesRenderTests
         roster.SetupGet(r => r.State).Returns(new ProsimCompanion.Core.Persona.FoRosterState());
         roster.SetupGet(r => r.FilePath).Returns(@"C:\fake\fo-roster.json");
         services.AddSingleton(roster.Object);
+        // The MCDU check card at the top of the MCDU section (moved there from Flight Status, 2026-11-16).
+        services.AddSingleton<GroundOpsSignals>();
+        services.AddSingleton<BoxCheckStore>();
+        services.AddSingleton<ProsimCompanion.Core.Commands.CommandRegistry>();
 
         var parameters = new Dictionary<string, object?> { ["Section"] = section, ["Tab"] = tab };
         return await RenderPageAsync<ProsimCompanion.Web.Pages.SpeechSettings>(services, "settings/speech/" + section, parameters);
