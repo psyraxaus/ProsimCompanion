@@ -2,13 +2,15 @@
 
 ## Talking to the FO
 
-- **Push-to-talk** (default): bind a key or joystick button on the First Officer settings
-  page; hold, speak, release. The header's mic pill shows LISTENING while the mic is open.
-  Continuous mode is available for boom-mic setups.
+- **Push-to-talk** (default): bind a key or joystick button under Settings → Voice First
+  Officer → Listening & PTT (**FO push-to-talk**); hold, speak, release. The header's mic pill
+  shows LISTENING while the mic is open. Continuous mode (**Listening mode** on the same page)
+  is available for boom-mic setups.
 - **Recognition** tries your speech recognition server first (if configured; setup in
   [chapter 16](16-speech-recognition-server.md)) and falls back to
   Windows offline recognition. Misheard phrases snap to the nearest expected phrase; a
-  genuinely unclear response gets a "say again?". A near miss earns *"did you mean …?"* —
+  genuinely unclear response gets a "say again?". A near miss earns *"Say again — did you
+  mean …?"* —
   answer *yes*, or just say the command again. Never on the takeoff roll, in the initial
   climb, on the rollout or airborne below 1,000 ft radio height (**No 'did you mean' below**,
   advanced): there an FMA read or capture call that nearly matched is simply acknowledged and
@@ -19,7 +21,9 @@
 - The FO ignores the microphone while it speaks and drops a transcript that repeats what it
   said in the last 15 seconds (**Own-words window**, advanced) — your answer to a "did you
   mean" and the open checklist line's reply are never dropped.
-- A separate **ATC-mute** binding silences the FO while you transmit to online ATC.
+- A separate binding, **ATC push-to-talk (mute)**, silences the FO while you transmit to
+  online ATC; **ATC mute from a ProSim switch** does the same from a sidestick or hand-mic
+  switch in ProSim.
 
 ## What can I say?
 
@@ -52,8 +56,8 @@ Flight Deck → Briefings & LLM) you can also just ask: *"what is our fuel on bo
 *"how long to top of descent"*, *"tell me the destination weather"*, *"are we above the
 minimum takeoff fuel"*, *"what time do we land"*. The rule: the utterance starts with one of
 the question lead-ins (what, how, when, tell me, are we, question…), is at least four words
-long, and matched no exact phrase — known phrases always win, so nothing you could say before
-changes. The FO answers in one or two sentences from what the app knows right now (phase,
+long, and matched no exact phrase — known phrases always win, so an exact phrase is never
+taken for a question. The FO answers in one or two sentences from what the app knows right now (phase,
 fuel and plan figures, weights, distance and ETA, block and flight times, the weather cards,
 the briefed minima, the OFP basics, open tech-log items) and from nothing else: *"I don't have
 that."* when the facts do not cover it. Every number in the answer is checked against those
@@ -66,8 +70,8 @@ line. A plain acknowledgement (*"no questions, thank you for the briefing"*, *"c
 acknowledgements with 'Roger'** on, otherwise nothing. The answer is only ever
 spoken — it is never read as a command, so an answer that happens to contain "set heading"
 does nothing. Below ten thousand feet in the climb, descent and approach (the sterile
-cockpit) a question is heard but not answered. Needs the LLM (same card) and the **LAN speech
-server** — the offline Windows engine only hears exact phrases.
+cockpit) a question is heard but not answered. Needs the LLM (the **LLM Styling** card on the
+same page) and the **LAN speech server** — the offline Windows engine only hears exact phrases.
 
 **Small talk and fun facts** (a second switch on the same card, off by default) lets you ask
 anything: *"who is better, Chelsea or Arsenal"*, *"tell me a fun fact"*, *"what is the
@@ -80,7 +84,7 @@ sentences; numbers there are trivia and are not verified, but a sentence about *
 with a figure in it is thrown away and you hear the fixed line instead. If the FO says *"Let
 me check."* the question turned out to be about the flight and the strict answer follows.
 
-**"What are we flying over?"** (a third switch on the card, off by default) answers the
+**"What are we flying over?"** (the fourth switch on the card, off by default) answers the
 question every passenger asks: *"what are we flying over"*, *"where are we"*, *"what is that
 city on the left"*, *"what country is this"*. The FO answers at once from an **atlas built
 into the app** — no internet needed — naming the country (and which part of it), the
@@ -92,7 +96,7 @@ small talk off. The position line never comes from the model, so it is always th
 same spot; "left" and "right" are relative to the track, so in a strong crosswind a town
 "ahead" may sit a few degrees off the nose.
 
-**Wikipedia facts** (a fourth switch, only with the one above) makes the FO take those facts
+**Wikipedia facts** (the fifth switch, only with the one above) makes the FO take those facts
 from a short Wikipedia summary of the nearest town instead of the model's memory: one small
 request to `en.wikipedia.org` per place, a three-second limit, cached after the first time,
 and nothing but the place name is sent. If the fetch fails or finds nothing, you still get the
@@ -126,12 +130,15 @@ capital and first-order seat; licensed [CC BY 4.0](https://creativecommons.org/l
 
 Say the checklist's start phrase (e.g. *"before start checklist"*). The FO reads each
 challenge and listens indefinitely for your response; wrong responses get an "are you sure?"
-and the FO never gives up — say **"skip"** to move past an item, **"say again"** to repeat,
-**"hold the checklist" / "resume"**, **"cancel checklist"** or **"restart checklist"**. Those words
-also count at the start or end of a longer transcript while a line waits ("… Celsius, skip" from
-the cabin PA with your "skip" at the end), and after 60 seconds of silence on an open
-line the FO reminds you once: *"Still waiting on Minimum, Captain — say the answer, or skip."*
-anytime. Items with a dataref condition verify against the aircraft; the visual runner on the
+and the FO never gives up — say **"skip"** (or **"skip item"**) to move past an item, **"say
+again"** (or **"repeat"**) to repeat, **"hold the checklist"** (or **"standby"**) to pause and
+**"resume checklist"** (or **"continue"**) to go on, **"cancel checklist"** or **"restart
+checklist"**. *Skip*, *skip item*, *say again*, *hold the checklist*, *cancel (the) checklist*,
+*resume checklist* and *restart checklist* also count at the start or end of a longer
+transcript while a line waits ("… Celsius, skip" from the cabin PA with your "skip" at the
+end); *repeat*, *standby* and *continue* must be said on their own. After 60 seconds of
+silence on an open line the FO reminds you once: *"Still waiting on Minimum, Captain — say
+the answer, or skip."* Items with a dataref condition verify against the aircraft; the visual runner on the
 Checklists page stays in sync. The flight-control check is fully monitored (your sweep is
 watched at 30 Hz, then the FO answers with the FO-side controls).
 
@@ -197,14 +204,15 @@ gear, flaps, autobrake, brakes, anti-ice, packs, fuel, lights, engines, spoilers
 transponder, TCAS, ADIRS and flight-control lines). When an open tech-log item is about that
 system — its **System** field on the Tech Log page, or a word of its title ("APU inoperative"
 matches `apu`) — the FO challenges the line as *"A P U — note, open tech log item: APU
-inoperative."*, once per item per run; the line still verifies exactly as before. Switch:
+inoperative."*, once per item per run; the line still verifies in the usual way. Switch:
 Settings → Crew & Company → Tech Log & Logbook → **Flag checklist lines**.
 
 ## Callouts & monitoring
 
 SOP callouts (thrust set, one hundred, V1, rotate, positive climb, transition, one-thousand-
 to-go, approach 1000/500, minimums, rollout calls) fire from live data; minimums arm only
-from the minima you enter on Settings → Voice First Officer → Status. Stabilized-approach gates call
+from the minima you enter on Settings → Voice First Officer → Status or confirm to the FO in
+the arrival briefing. Stabilized-approach gates call
 *"stabilized"* or *"unstable, go around"* at the 1000 ft gate. The gates are yours to set —
 airlines differ — on **Settings → Flight Deck → Callouts & Placards → Approach
 Gates**: per gate the height, whether the gear must be down, the minimum flap lever, the
@@ -237,15 +245,19 @@ and DITCHING ON lights — *"Packs off, ditching on — checked"*, or one remind
 is still wrong. When the crew leaves: *"De-icing complete — packs on, ditching off"* with the
 same check. Read-only: the FO never touches the switches. While the trucks spray, the PACK
 FAULT abnormals are held — packs off is the procedure, not a failure. The FO's own de-icing
-question (*"Captain, conditions call for de-icing — request it?"*) is answered with *yes* /
+question (*"Captain, conditions call for de-icing — … Request it?"*, with the outside air
+temperature and what the weather report shows) is answered with *yes* /
 *request de-icing* or *negative* / *no de-icing*; silence leaves it standing until the
 answer timeout.
 
 ### In-flight monitoring
 
-Five extra monitors live on the same page under **In-flight monitoring**. Each has its own
-switch and all are **off** until you turn them on; each needs the flight to be live (ProSim
-connected, real flight data).
+Six extra monitors live on the same page under **In-flight monitoring**: **Fuel check**,
+**Takeoff gross error check**, **Destination weather watch**, **Read-backs**, **Wind limits**
+and **Step-climb advice** (described at the end of this chapter). Each has its own switch and
+all are **off** until you turn them on; each needs the flight to be live (ProSim connected,
+real flight data). **Fuel decision and holding** in the list below has its switch on another
+page.
 
 - **Fuel check.** In the cruise, every 30 minutes (your interval) and whenever you say
   *"fuel check"*, the FO reads the last flight-plan fix you passed, the fuel on board, how far
@@ -268,7 +280,7 @@ connected, real flight data).
   destination at the current burn, minus the alternate and the final reserve, at the holding
   burn). The holding time also sits on the Fuel page and the Flight Status hero after every fuel
   check.
-- **Gross error check.** Once the final loadsheet has been sent and the FMS PERF TO page has
+- **Takeoff gross error check.** Once the final loadsheet has been sent and the FMS PERF TO page has
   V-speeds, the FO compares the aircraft's zero fuel weight and fuel with the loadsheet, and
   the FMS flaps, flex and V1/VR/V2 with the result on the **Takeoff** performance page —
   *"Gross error check: checked."* or each mismatch by name. Once per loadsheet; again if the
@@ -315,7 +327,7 @@ the MCDU RCVD MSGS and answers *ROGER DIVERSION, HANDLING ARRANGED LIRN, CALL ON
 
 ## Briefings, radios, FCU
 
-*"Tune the ILS"* enters the **ident** first (HL), so the RAD NAV page shows ident, frequency and
+*"Tune the ILS"* enters the **ident** first, so the RAD NAV page shows ident, frequency and
 the course the FMGC fills in from its database; only when ProSim answers NOT IN DATA BASE does
 the FO clear the scratchpad and enter the frequency instead.
 
@@ -356,9 +368,7 @@ comes from MSFS, not from the PC clock, and when MSFS is not running the FO open
   default; the same switch covers the debrief). Every sentence is checked before it is spoken
   — numbers written as words included — and if one is wrong, or the model stops, the plain
   template finishes the briefing without starting again. A safety callout (minimums, V1) cuts
-  a briefing short for good; ask again for a fresh one. Every number is verified against the
-  facts and the deterministic template is the
-  floor. With open tech-log items the departure briefing ends with *"Open tech log items:
+  a briefing short for good; ask again for a fresh one. With open tech-log items the departure briefing ends with *"Open tech log items:
   …"* (three titles, then "and N more"); the arrival briefing names only the items that
   bear on the landing — MEL category A or B, or anything about brakes, gear, spoilers,
   reversers, autobrake or anti-skid (Settings → Crew & Company → Tech Log & Logbook →
@@ -400,17 +410,19 @@ comes from MSFS, not from the PC clock, and when MSFS is not running the FO open
   request and clearance are yours — and takes them back in the climb (*"I have the
   radios"*); on the approach they are yours again for the landing, and the copilot has them
   once you are off the runway. *"I have the radios"* / *"you have the radios"* overrides at
-  any time. Every step is its own switch and every line is editable. The older *Departure
-  comms gate* is ignored while this is on.
-- FCU: hand the FO pilot-flying (*"you have controls"*) and instruct — headings, altitudes,
-  speeds, V/S, managed/selected modes. Announce → 3-second cancel window ("negative") →
-  action with verification. Take back controls instantly with *"I have controls"*.
+  any time. Every step is its own switch and every line is editable. **Departure comms gate
+  (legacy)** is ignored while this is on.
+- FCU: hand the FO pilot-flying (*"you have control"*, *"your aircraft"*, *"your controls"*
+  or *"you have the aircraft"*) and instruct — headings, altitudes, speeds, V/S,
+  managed/selected modes. Announce → 3-second cancel window ("negative") → action with
+  verification. Take back control instantly with *"I have control"*, *"my aircraft"*, *"I have
+  the aircraft"* or *"I have the controls"*.
 - ECAM abnormals are detected and read (memory drills auto-fire); tech-log raise/rectify
   and the spoken debrief run as guided dialogues.
 
 ## Persona
 
-Off by default — Settings → Voice First Officer → **FO Persona** (the `persona` section).
+Off by default — Settings → Voice First Officer → **FO Persona**.
 When enabled, the FO gets a personality:
 
 - **Name, experience** (junior/standard/senior), **formality** (casual/standard/formal),
@@ -425,11 +437,11 @@ When enabled, the FO gets a personality:
 - Say **"quiet please"** to silence chatter for the rest of the session (checklists and
   callouts are never chatter).
 - **Confidence** (nervous / steady / assured) is the fourth axis: a nervous FO double-checks
-  and asks, an assured one states; steady adds nothing, so an existing persona reads as before.
+  and asks, an assured one states; steady adds nothing.
 
 ### A different First Officer each day (the roster)
 
-Off by default — the **Roster** card on the same page (`persona.roster.mode`). With it on
+Off by default — the **Roster** card on the same page. With it on
 **daily**, a different FO is drawn each **sim calendar day** from
 `%LOCALAPPDATA%\ProsimCompanion\config\fo-roster.json` (six are shipped; edit the file to
 make your own crew — each entry has an `id`, `name`, `experience`, `formality`, `chattiness`,
@@ -438,14 +450,14 @@ first leg begins — the first OFP of the day is loaded (or, for an app started 
 at the first preflight) — on the sim's own date, not your PC's clock; it never repeats
 yesterday's FO and survives an app restart mid-day. **One FO per duty day**: once a
 duty day has flown a leg, its FO stays until you end the duty, whatever the sim's calendar
-does in a turnaround (a midnight rollover between legs no longer swaps your First Officer);
+does in a turnaround (a midnight rollover between legs does not swap your First Officer);
 a new plan after "end duty day" on the same sim date keeps the same FO, a new sim date draws
 a new one. **Pinned** keeps the FO you pin on the card until you press Release; **Draw
 again** draws now.
 
 - While the roster is on, the drawn FO's name, experience, formality, chattiness and
-  confidence replace the four persona fields above (they read "overridden by the roster" and
-  are greyed). The style switches and "quiet please" work as before.
+  confidence replace the five persona fields above (they read "Overridden by the roster" and
+  are greyed). The style switches and "quiet please" are not affected.
 - A `voice` of the form `provider:id` gives that FO their own voice for every FO line —
   Kokoro ids are the ones the Voices page lists (`kokoro:af_sky`, `kokoro:bm_lewis`, …),
   ElevenLabs ids work as `elevenlabs:<voiceId>`. No voice = the configured First Officer voice.
@@ -455,19 +467,18 @@ again** draws now.
   priority — anything operational talks over it.
 - Say **"who's flying with me today"** (or **"who's my first officer"**) for the name, the
   experience and the hours; **"new first officer"** draws a different FO now, after the FO
-  asks *"Change First Officer now, captain — are you sure?"* (yes / no, also on the open
-  questions card).
+  asks *"Change First Officer now, captain — are you sure?"* (yes / no, also on the
+  **Captain's Questions** card).
 - The FO's name is recorded on the leg: the logbook flight (and its CSV export, last column
   `foName`) and the Duty Day page's leg row.
 
 ### Small talk in the cruise
 
-Off by default — the **Small Talk** card on Flight Deck → Briefings & LLM
-(`smallTalk.enabled`). A few times per flight, in the cruise, after a stretch of silence, the
+Off by default — the **Small Talk** card on Settings → Flight Deck → Briefings & LLM. A few times per flight, in the cruise, after a stretch of silence, the
 FO says something that is not about the flight:
 
 - **Coffee offer** — *"Coffee, captain?"* It is a captain's question (yes / no by voice, or on
-  the open questions card). Say yes and the purser calls two to four minutes later: *"Flight
+  the **Captain's Questions** card). Say yes and the purser calls two to four minutes later: *"Flight
   deck, cabin — coffee's on its way up to you."*
 - **The view** — a town below from the built-in atlas, the sun getting low off one side (from
   the sim clock), or the cloud deck.
@@ -486,8 +497,7 @@ checked against the facts; otherwise the built-in line speaks.
 
 ### The walkaround
 
-Off by default — the **Walkaround** card on Crew & Company → Ground Crew
-(`groundCrew.walkaround.enabled`). Once per departure, when the aircraft is parked with the
+Off by default — the **Walkaround** card on Settings → Crew & Company → Ground Crew. Once per departure, when the aircraft is parked with the
 engines off and the ground preparation (jetway or stairs) has completed, the FO says *"I'll do
 the walkaround, captain"* and is away for six to ten minutes:
 
@@ -512,73 +522,32 @@ the walkaround, captain"* and is away for six to ten minutes:
   (**Allow no-go findings**, off) is raised regardless and the FO says so — nothing is
   blocked, you decide. A raised item is in the next briefing's open-items clause.
 
-A restart never repeats a walk already done, and never stops one that had not happened yet.
-
 ### Scenario mode — something goes wrong, rarely
 
-Off by default — the **Scenarios** card on Flight Deck → Abnormals & Drills
-(`scenario.enabled`). About one flight in ten (**Chance per flight**, 0.10) the app arms one
-minor failure in ProSim at a random moment: a pack fault, a bleed fault, a generator, a fuel
-pump low pressure, a hydraulic reservoir, an IR fault, hot brakes after landing. The FO
-detects it on the E/WD and works the ECAM with you exactly as for a failure you set on the
-IOS, then asks: *"We've lost generator 1 — I'd suggest we continue, we have generator 2 and the
-APU available. Your call, captain."* Say **continue**, **return** or **divert** (or use the
-open questions card); return and divert go through the diversion workflow. At shutdown the
-tech-log offer names the failure; the debrief says *"Scenario today: …"*.
-
-- **Allow major scenarios** (off) adds engine fire, engine failure and APU fire.
-  **Takeoff scenarios** (off) adds an engine fire on the roll and an engine failure after V1,
-  only with the RTO and EFATO features on.
-- Nothing is armed in flight below the **floor** (1,500 ft above ground), with an abnormal, a
-  drill or a no-go tech-log item open, or in a sterile moment. Everything armed is cleared
-  when the flight resets and when the app closes.
-- **"Clear all failures"** — by voice, the **CLEAR ALL** box on the diagnostics STATUS page,
-  the Stream Deck or the API — always works, scenario mode on or off, and also clears
-  failures you set on the IOS.
-- **Show the planned scenario** (off) names it on the STATUS page and answers *"any failures
-  planned?"* — for testing.
-- **Before the first scenario can fire**: the failures are armed through ProSim's own failure
-  list, and each entry in `%LOCALAPPDATA%\ProsimCompanion\config\scenarios.json` must name
-  that list's exact name and be marked `"verified": true`. The app ships them all unverified.
-  On your first flight with the mode on, the log line *"ProSim failure API: N failures
-  listed …"* (or the `scenario.listFailures` command) shows the names — edit the file, flip
-  the entries that match, and they become eligible. An unverified entry is never armed.
+Scenario mode gives you a surprise now and then: on about one flight in ten the app switches
+on one failure in ProSim at a moment you do not know. The FO notices it, works the ECAM with
+you, gives a suggestion and asks for your decision — say *"continue"*, *"return"* or
+*"divert"*. *"Clear all failures"* removes every active failure at any time. It is off by
+default (the **Scenarios** card on Settings → Flight Deck → Abnormals & Drills), and nothing
+happens until you have matched the failure names to your ProSim once. The setup, the
+settings and what happens in a flight: see [chapter 22](22-scenarios.md).
 
 ## Voices
 
-The FO, the purser and company ACARS each have their own voice (`speech` and `voices`
-settings). Voices are tried in order: Kokoro local neural first, then ElevenLabs (your own
-key, cached, budget-enforced), then Google Chirp HD (cached, budget-enforced), then Windows
-voices. Cabin reports arrive on the CAB channel with the interphone chime; company messages
-with the ACARS beep.
+The First Officer, the purser, the company and the ground crew each have their own voice.
+Voices are tried in order — Kokoro, then ElevenLabs, then Google, then the Windows voices —
+so the FO always speaks, also with no network. Cabin reports arrive on the CAB channel with
+the interphone chime; company messages with the ACARS beep. To connect the providers and
+pick the voices, see [chapter 10](10-voices.md); for ElevenLabs — key, plan, cost — the
+[ElevenLabs setup guide](06-elevenlabs.md).
 
 ### Picking voices
 
-**Settings → Voice First Officer → Voices** holds four dropdowns: the **First Officer**, the
-**purser**, the **company** voice and the **ground crew**. Each lists every voice from every
-connected provider, grouped by provider and then region ("Kokoro · British English",
-"Google · English (Australia)", "ElevenLabs · American", "Windows · English (United
-Kingdom)"), with a details line under the picker: region, gender, Kokoro's published quality
-grade (A down to F) where there is one, and whether the voice is billed or offline. Nothing is
-pre-filled: each list holds only what that service reports — read when the page opens, and
-again with **Refresh all voices** — so a name that does not exist on your server can never be
-offered. Until a service answers, the picker shows only the saved voice, marked "(saved)".
-*Other voice id* takes a typed `provider:id` for a voice the list does not show.
-
-A voice names its provider (`google:en-AU-Chirp3-HD-Aoede`, `kokoro:bm_george`). The named
-provider speaks that role first; when it is down, not configured or shut out by *Local only*,
-the chain falls back as before — Kokoro, ElevenLabs, Google, then the Windows voices — each
-with its own **fallback voice**. The fallback voices live on the provider tabs under
-**Voice Providers** (Kokoro | ElevenLabs | Google | Windows), beside that provider's
-connection settings and its own **Refresh voices** button. Picking an ElevenLabs or Google
-voice for the First Officer fills that provider's empty fallback field for you, so it counts
-as configured. Old plain names (`af_heart`, an ElevenLabs id) keep working: they are handed
-to whichever provider speaks. The British and American Kokoro voices make a usable First
-Officer; the other languages read English with their own sounds.
-
-![Voices page: the First Officer and crew voices over every provider](../img/voices.png)
-
-![Voice Providers page with one tab per provider](../img/voice-providers.png)
+You pick the four voices on Settings → Voice First Officer → **Voices**: each dropdown lists
+every voice from every connected provider. The providers themselves, each with its own
+**Fallback voice**, are on Settings → Voice First Officer → **Voice Providers**. Nothing is
+pre-filled; until a provider is connected the FO speaks with a Windows voice. The steps, the
+fallback rules and the troubleshooting table: see [chapter 10](10-voices.md).
 
 ### Ground crew
 
@@ -604,10 +573,11 @@ A third, quieter call closes the arrival: *"Cabin's empty, captain."* once GSX d
 completes — the moment the Flight Status card's TURNAROUND chip lights. Once per
 leg, no FO acknowledgement.
 
-**FO answers cabin calls** (Settings → Crew & Company → Cabin Crew; off by default):
-on the ground — during pushback, engine start and taxi-out — and/or in the air — descent and
-approach — the FO answers the call for you after the delay you set (4 s on the ground,
-2.5 s in the air), the report plays and the FO acknowledges it, then the FO deselects CAB
+**FO answers cabin calls** is two switches (Settings → Crew & Company → Cabin Crew; both off
+by default). With **FO answers cabin calls on the ground** — during pushback, engine start
+and taxi-out — and/or **FO answers cabin calls in the air** — descent and approach — the FO
+answers the call for you after the delay you set (4 s on the ground, 2.5 s in the air), the
+report plays and the FO acknowledges it, then the FO deselects CAB
 again. The answer is one write to the FO panel's CAB reception knob
 (`S_ASP2_CAB_REC_LATCH`; the captain's panel when you fly from the right seat) — nothing
 else on the ACP is touched. The FO never answers at the gate, in climb, cruise or after
@@ -632,10 +602,6 @@ a short list of likely replies instead. The call waits while another dialogue ha
 microphone (a hail, the tech log), a running spoken checklist holds
 and resumes around the window, and if the descent begins first there is no call that flight.
 The VOICE drawer's Cabin tab shows the replies it understands.
-
-To pick the First Officer and crew voices from every provider, follow [chapter 10](10-voices.md).
-To set up ElevenLabs — key, plan, cost — follow the
-[ElevenLabs setup guide](06-elevenlabs.md).
 
 ### Movement messages and delay codes
 
@@ -666,8 +632,8 @@ default) watches the aircraft's vertical acceleration and judges the ride: none,
 moderate or severe. A chip in the Flight Status hero shows the level while it is rough. The
 raw value's unit is not documented by ProSim, so the app learns it while you are parked: the
 reading at rest is about 1 for g, 9.8 for m/s², 32 for ft/s². If the chip is clearly wrong
-(rough in smooth air, or never rough), set **Acceleration unit** by hand; the three thresholds
-sit under Advanced and are in g.
+(rough in smooth air, or never rough), set **Acceleration unit** by hand — the list also has
+**G without gravity (about 0 at rest)**; the three thresholds sit under Advanced and are in g.
 
 Two cabin reactions, each its own switch and off by default:
 
@@ -680,7 +646,8 @@ Two cabin reactions, each its own switch and off by default:
   Silence for five minutes counts as no. At severe the crew seats itself and tells you.
   Two minutes after the ride settles the purser reports *"the cabin's back to normal"*.
 
-**"Captain, your PA" prompts** (same card, off by default) remind you of your own announcements:
+**"Captain, your PA" prompts** (Settings → Crew & Company → Cabin Crew → **Captain's PA**, off
+by default) remind you of your own announcements:
 ten minutes after take-off (setting), at the top-of-descent notice, and when you switch the
 seat-belt sign on in cruise turbulence. Each time the FO says *"Captain, your PA"* and a
 **Captain's PA** card appears in the Flight Status hero with a short airline-style script —
@@ -688,11 +655,12 @@ flight number, destination, flight time, cruise level, destination weather, ETA 
 read over the cabin PA. A fact the app does not have is left out. **Dismiss** hides the card;
 the **PA script** button brings it back. Nothing reads the script aloud: the captain is a human.
 
-**Purser PAs audible** (off by default) lets you hear the purser's own announcements from the
-cabin, in the purser voice through the cabin filter: *"Cabin crew, arm doors and cross-check"*
-when the beacon comes on, *"Cabin crew, prepare the cabin for landing"* passing 10,000 feet in
-the descent, *"Cabin crew, doors to manual"* with the engines off on stand. All eight new lines
-are editable under Cabin Wording.
+**Purser PAs audible** (the same **Captain's PA** card, off by default) lets you hear the
+purser's own announcements from the cabin, in the purser voice through the cabin filter:
+*"Cabin crew, arm doors and cross-check"* when the beacon comes on, *"Cabin crew, prepare the
+cabin for landing"* passing 10,000 feet in the descent, *"Cabin crew, doors to manual and
+cross-check"* with the engines off on stand. The five turbulence lines and the three purser
+PAs are editable under Cabin Wording.
 
 ### Rejected takeoff and engine failure after V1
 
@@ -716,8 +684,7 @@ below 400 feet, the FO calls *"engine failure"*, then *"rudder"*, *"rotate"* at 
 FAIL procedure line by line, as any cruise engine failure would. Each item waits for its cue in
 the flight data and moves on after 25 seconds if the cue never comes. Rehearse the items on the
 ground with *"engine failure after V1"*. The drill is a JSON file like the others
-(`drill-engine-failure-after-v1.json`); the two new fields it uses, the trigger *window* and the
-*sequencer*, are explained in the developer note `docs/integrations/abnormals.md`.
+(`drill-engine-failure-after-v1.json`).
 
 ### The FO's own side: altimeter, ND and the cross-check
 
@@ -737,7 +704,8 @@ is said.
   waits, sets it on its side and confirms. Change your QNH after an ATIS update and the FO copies
   it the same way. The FO never goes first: if the two sides already differed before you touched
   anything, it leaves them. You can also say *"QNH one zero one three"* or *"your side
-  standard"*; the bare *"set standard"* and *"set QNH"* keep working as before. If the FO's
+  standard"*; the bare *"set standard"* and *"set QNH"* are separate commands in your
+  `commands.json`. If the FO's
   altimeter is set to inches the FO says so and touches nothing. *"Unable — your altimeter"*
   means the value did not read back twice; the FO then leaves the altimeter alone for the rest
   of the flight.
@@ -747,11 +715,12 @@ is said.
   knob back; *"Unable — your ND"* if it did not take.
 - **ADIRS / FMGC cross-check** — say *"cross-check"* (or *"FMGC cross-check"*, *"ADIRS
   check"*), and the FO also does it once by itself when the FMGC init is in at the gate. It
-  reads: *"ADIRS one, two and three aligned. INIT page: Echo Golf Lima Lima to Lima India Romeo
-  Foxtrot. Cost index per the plan three five. Cruise flight level three seven zero. PERF: V one
+  reads: *"ADIRS one, two and three aligned. INIT page: Heathrow to Rome Fiumicino. Cost index
+  per the plan three five. Cruise flight level three seven zero. PERF: V one
   one four two, V R one four five, V two one four niner, flex five five. Cross-check complete."*
   A difference is named: *"The plan says … "*, *"The plan has flight level …"*, *"V one one four
-  two — the computed figure is one four five."* Cost index has no dataref, so it is read from the
+  two — the computed figure is one four five."* Airports are said by name, as everywhere; an
+  airport without a known name is spelled. Cost index has no dataref, so it is read from the
   plan, not checked. Nothing is pressed on the MCDU.
 
 With the pilot seat set to right (Settings → Voice First Officer → General), the FO's side is the
@@ -759,45 +728,14 @@ left one and all of this applies there.
 
 ### Check the box
 
-Say *"check the box"* (or *"box check"*, *"check the MCDU"*) and the FO checks its own MCDU
-the way a crew does, in the **D-I-F-S-R-I-P-P** order:
-
-| Letter | Pages | What the FO checks |
-|---|---|---|
-| **D** | DATA → A/C STATUS, IRS MONITOR, GPS MONITOR | The navigation database is valid today; the three IRS and both GPS are in NAV. |
-| **I** | INIT A | City pair, alternate, flight number, cost index and cruise level against the flight plan. |
-| **F** | F-PLN, scrolled to the end | Every discontinuity; the departure runway against the takeoff figures. |
-| **S** | SEC F-PLN | Empty, or holding a route. |
-| **R** | RAD NAV | Reads the ILS (no judgement). |
-| **I** | INIT B | ZFW and ZFWCG against the loadsheet (final, else preliminary). |
-| **P** | PERF TAKE OFF | V speeds, flex, flaps and runway against the computed takeoff figures; the trim entered. |
-| **P** | PROG | GPS PRIMARY and the navigation accuracy. |
-
-The FO answers *"Checking the box."*, takes about a minute, and reports: *"Box checked, no
-differences."* — or the differences one by one, then what is not entered yet. A field the
-crew fills later (V speeds before the loadsheet) is "not entered yet", not a difference.
-*"Stop the check"* stops it. The **MCDU CHECK** card on Flight Status and EFB INIT shows the
-eight letters — green, amber for a difference, grey for not entered or not read — with what
-the FO read, and a **Check the box** button.
-
-Then the FO offers to enter what it knows, one question at a time: *"Shall I enter cost index
-four five?"* Answer *yes* or *no* (or on the open-questions
-card); no answer within a minute is a no.
-
-| The FO can enter | How | Needs *Allow actuation* |
-|---|---|---|
-| ZFW, ZFWCG, block fuel | Written directly from the loadsheet | No |
-| V speeds, flex, flaps | Written directly from the computed figures (the trim is yours) | No |
-| Flight number, cost index, cruise level | Typed on INIT A, then read back | Yes |
-| Copy the active plan to the secondary | COPY ACTIVE on the SEC INDEX page | Yes |
-
-The route, the SID, an airport and a discontinuity are **reported and never changed**.
-
-The FO turns the pages with *Allow actuation* off: page keys and page links only, nothing that
-can enter or delete a value. Settings → Flight Deck → MCDU: **Check the box: time on each
-page** (5 s; the whole check is about ten times that) and **Check the box: offer to enter
-corrections** (on). A page the FO does not recognise — another ProSim version, or PERF in
-flight — is reported as *"I could not read …"*; nothing is guessed.
+Say *"check the box"* (or *"box check"*, *"check the MCDU"*) and the FO opens every page of
+its own MCDU in the **D-I-F-S-R-I-P-P** order, compares what is entered with your flight
+plan, the loadsheet and the computed takeoff figures, and reports the differences. Then it
+offers to enter what it knows, one question at a time; answer *yes* or *no*. The check works
+as soon as the MCDU voice features are on (Settings → Flight Deck → MCDU, **Enabled**, on by
+default); corrections that need MCDU keys also need **Allow actuation**, which is off by
+default. The pages, the report, the **MCDU CHECK** card and the corrections: see
+[chapter 19](19-mcdu-box-check.md).
 
 ### Step-climb advice and the FDP warning
 
@@ -810,7 +748,7 @@ captain."* With SayIntentions on, the FO adds *"say request climb when you want 
 *"request climb"* asks ATC for the planned level. Ask *"when is our next step?"* at any time for
 the level, the fix and the distance. The FO only advises; the climb is yours and ATC's.
 
-**FDP warning** (Settings → Crew & Company → Company & Debrief → Company day, off by default)
+**FDP warning** (Settings → Crew & Company → Company & Debrief → Company Day, off by default)
 estimates your flight duty period in day mode. The report time is the one in your rotation file,
 or the day's first session start minus the report lead (60 minutes unless you change it). The
 maximum is the EASA ORO.FTL.205 basic table for the report hour and the number of sectors

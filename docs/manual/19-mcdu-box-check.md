@@ -132,7 +132,7 @@ the active plan?"*
 - Say *"yes"*, *"enter it"* or *"go ahead"*: the FO answers *"Entering."*, enters the value
   and confirms, for example *"Cost index entered."*
 - Say *"no"*, *"leave it"* or *"I'll do it"*: the FO answers *"Left as it is."*
-- You can also answer on the open-questions card.
+- You can also answer on the **Captain's Questions** card.
 - No answer within a minute counts as no: *"No answer — I leave it."*
 
 | The FO can enter | From | Needs **Allow actuation** |
@@ -221,7 +221,7 @@ the zip.
 
 ## Related chapters
 
-- [Voice First Officer](03-voice-fo.md): "Check the box" and "The FO's own side" in the
+- [Voice First Officer](03-voice-fo.md): the full description of "The FO's own side", in the
   context of the whole flight.
 - [Settings reference](04-settings-reference.md).
 - [Diagnostics](13-diagnostics.md).
