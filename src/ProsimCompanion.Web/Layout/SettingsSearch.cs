@@ -130,7 +130,8 @@ public static class SettingsSearch
         {
             var groupLabel = Text(strings, group.LabelTextId, group.Label);
             entries.Add(new SettingsSearchEntry(group, null, groupLabel, group.Href, groupLabel.ToLowerInvariant(), true));
-            foreach (var item in group.Items)
+            // A one-page group is on the rail once, so it is in the index once.
+            foreach (var item in group.ShowsItems ? group.Items : [])
             {
                 var label = Text(strings, item.LabelTextId, item.Label);
                 entries.Add(new SettingsSearchEntry(group, item, label, item.Href, label.ToLowerInvariant(), true));

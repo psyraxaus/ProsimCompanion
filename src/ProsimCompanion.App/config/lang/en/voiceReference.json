@@ -44,7 +44,7 @@
       "groundServices": "{0} is off — Settings → Ground Services",
       "bare": "{0} is off",
       "gsxPillar": "GSX pillar not running",
-      "sayIntentions": "SayIntentions is off — Settings → Flight Deck → SayIntentions",
+      "sayIntentions": "SayIntentions is off — Settings → SayIntentions",
       "groundCrew": "{0} is off — Settings → Crew & Company → Ground Crew",
       "cabinCrew": "{0} is off — Settings → Crew & Company → Cabin Crew",
       "notInBuild": "not available in this build",

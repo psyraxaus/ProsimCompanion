@@ -99,7 +99,7 @@
       "unknown": "NO ASSIGNMENT",
       "noProsim": "PROSIM OFFLINE",
       "off": "SAYINTENTIONS OFF",
-      "offHint": "Switch SayIntentions on under Settings → Flight Deck → SayIntentions to see which frequency ATC expects",
+      "offHint": "Switch SayIntentions on under Settings → SayIntentions to see which frequency ATC expects",
       "noAssignment": "SayIntentions has not named a station yet",
       "tune": "Tune",
       "tuneTitle": "Set {0} on COM1 standby and swap it to active (ProSim datarefs)",

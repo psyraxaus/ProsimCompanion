@@ -44,7 +44,7 @@
       "groundServices": "{0} est désactivé — Réglages → Services au sol",
       "bare": "{0} est désactivé",
       "gsxPillar": "Le module GSX ne tourne pas",
-      "sayIntentions": "SayIntentions est désactivé — Réglages → Flight Deck → SayIntentions",
+      "sayIntentions": "SayIntentions est désactivé — Réglages → SayIntentions",
       "groundCrew": "{0} est désactivé — Réglages → Crew & Company → Équipe au sol",
       "cabinCrew": "{0} est désactivé — Réglages → Crew & Company → Équipage de cabine",
       "notInBuild": "indisponible dans cette version",

@@ -117,6 +117,7 @@
       "gsx.connection": "Connexion et délais",
       "speech": "Copilote vocal",
       "flightDeck": "Poste de pilotage",
+      "sayIntentions": "SayIntentions",
       "crew": "Équipage & compagnie",
       "speech.status": "État",
       "speech.general": "Général",

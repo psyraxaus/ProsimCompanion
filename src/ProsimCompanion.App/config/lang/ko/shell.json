@@ -117,6 +117,7 @@
       "gsx.connection": "연결 및 시간 제한",
       "speech": "음성 부기장",
       "flightDeck": "조종석",
+      "sayIntentions": "SayIntentions",
       "crew": "승무원 및 회사",
       "speech.status": "상태",
       "speech.general": "일반",

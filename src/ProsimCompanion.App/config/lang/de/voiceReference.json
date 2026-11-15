@@ -44,7 +44,7 @@
       "groundServices": "{0} ist aus — Einstellungen → Bodendienste",
       "bare": "{0} ist aus",
       "gsxPillar": "GSX-Modul läuft nicht",
-      "sayIntentions": "SayIntentions ist aus — Einstellungen → Flight Deck → SayIntentions",
+      "sayIntentions": "SayIntentions ist aus — Einstellungen → SayIntentions",
       "groundCrew": "{0} ist aus — Einstellungen → Crew & Company → Bodencrew",
       "cabinCrew": "{0} ist aus — Einstellungen → Crew & Company → Kabinencrew",
       "notInBuild": "in diesem Build nicht verfügbar",

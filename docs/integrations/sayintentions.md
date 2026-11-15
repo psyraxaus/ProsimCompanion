@@ -86,7 +86,7 @@ radio-clear gate.
 
 ## FO works the radios (owner request 2026-10-25, opt-in)
 
-`sayIntentions.foRadios.enabled` (default off; Flight Deck → SayIntentions → "FO works
+`sayIntentions.foRadios.enabled` (default off; Settings → SayIntentions → "FO works
 the radios"). `FoRadiosService` holds the SI copilot off (`SIAI_COPILOT` = 0 once per flight —
 SI resets it per flight — and again only when `L:SIAI_COPILOT` reads 1, at most every 30 s:
 `CopilotOffRule`. **Every setVar of `SIAI_COPILOT` makes the SayIntentions client play its

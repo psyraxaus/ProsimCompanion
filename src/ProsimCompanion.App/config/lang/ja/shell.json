@@ -117,6 +117,7 @@
       "gsx.connection": "接続とタイムアウト",
       "speech": "音声副操縦士",
       "flightDeck": "フライトデッキ",
+      "sayIntentions": "SayIntentions",
       "crew": "クルーと会社",
       "speech.status": "状態",
       "speech.general": "一般",

@@ -117,6 +117,7 @@
       "gsx.connection": "Verbinding & time-outs",
       "speech": "Spraak-First Officer",
       "flightDeck": "Cockpit",
+      "sayIntentions": "SayIntentions",
       "crew": "Crew & maatschappij",
       "speech.status": "Status",
       "speech.general": "Algemeen",

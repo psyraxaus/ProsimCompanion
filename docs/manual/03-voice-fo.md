@@ -166,7 +166,7 @@ squawks, frequencies, runways, speeds, wind and clock times are said digit by di
 zero one three"*, *"V one, one four zero"*, *"zero niner zero zero zulu"*). You may write
 plain figures in your own checklist and phrase files — `8700 kilograms`, `speed 230` — and
 the FO says them the same way. On the radio the FO follows the phraseology you pick under
-Settings → Voice First Officer → SayIntentions → **Phraseology** (ICAO, FAA or UK CAP 413);
+Settings → SayIntentions → **Phraseology** (ICAO, FAA or UK CAP 413);
 cockpit talk does not change with it.
 
 **How abbreviations are said.** Some abbreviations are said as a word — ECAM, SID, STAR,
@@ -322,7 +322,7 @@ without HL).
 
 ### FO works the radios (SayIntentions)
 
-Settings → Flight Deck → SayIntentions → **FO works the radios** (off by default). The
+Settings → SayIntentions → **FO works the radios** (off by default). The
 SayIntentions copilot is switched off and your FO does its job in one voice: every ATC
 instruction is read back and closed with your callsign (*"Climb FL140, Speedbird 850."*,
 *"Contacting Tower on 119.355, Speedbird 850."*), COM1 is tuned on a hand-off (standby first,
@@ -394,7 +394,7 @@ comes from MSFS, not from the PC clock, and when MSFS is not running the FO open
   server. **Arrival go-around brief** adds the missed-approach altitude, the MSA and *go around,
   flaps, positive climb gear up, navigation, …* with the published legs after the minimums.
 - Radio management: *"set one two one decimal nine"*, box selection, standby-then-swap only.
-- SayIntentions comms hand-over (Settings → Flight Deck → SayIntentions → **Comms
+- SayIntentions comms hand-over (Settings → SayIntentions → **Comms
   hand-over**, off by default): the SayIntentions copilot works the radios at the gate, on
   the taxi and in the cruise; the FO reads the taxi clearance and announces each hand-off.
   Close to the departure runway the FO says *"Comms are yours, Captain"* — the takeoff

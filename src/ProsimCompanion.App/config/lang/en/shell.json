@@ -117,6 +117,7 @@
       "gsx.connection": "Connection & Timeouts",
       "speech": "Voice First Officer",
       "flightDeck": "Flight Deck",
+      "sayIntentions": "SayIntentions",
       "crew": "Crew & Company",
       "speech.status": "Status",
       "speech.general": "General",

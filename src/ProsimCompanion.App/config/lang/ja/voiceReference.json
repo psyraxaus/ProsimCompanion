@@ -44,7 +44,7 @@
       "groundServices": "{0} はオフです — 設定 → 地上サービス",
       "bare": "{0} はオフです",
       "gsxPillar": "GSX モジュールが動作していません",
-      "sayIntentions": "SayIntentions はオフです — 設定 → Flight Deck → SayIntentions",
+      "sayIntentions": "SayIntentions はオフです — 設定 → SayIntentions",
       "groundCrew": "{0} はオフです — 設定 → Crew & Company → 地上クルー",
       "cabinCrew": "{0} はオフです — 設定 → Crew & Company → 客室乗務員",
       "notInBuild": "このビルドでは利用できません",

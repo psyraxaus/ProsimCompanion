@@ -19,7 +19,8 @@ public sealed partial class SettingsHubTests
     [InlineData("settings/speech/general", "speech", "general")]
     [InlineData("settings/speech/providers/kokoro", "speech", "providers")]
     [InlineData("settings/speech/callouts", "flightDeck", "callouts")]
-    [InlineData("settings/speech/sayIntentions", "flightDeck", "sayIntentions")]
+    [InlineData("settings/speech/sayIntentions", "sayIntentions", "sayIntentions")]
+    [InlineData("settings/speech/mcdu", "flightDeck", "mcdu")]
     [InlineData("settings/speech/groundCrew", "crew", "groundCrew")]
     [InlineData("settings/speech/techlog", "crew", "techlog")]
     [InlineData("settings/speech/no-such-section", "speech", "status")]
@@ -35,7 +36,7 @@ public sealed partial class SettingsHubTests
     }
 
     [Fact]
-    public void SpeechSections_AreTheThreeGroupsJoined_WithNoDuplicates()
+    public void SpeechSections_AreTheFourGroupsJoined_WithNoDuplicates()
     {
         var keys = SettingsNav.SpeechSections.Select(s => s.Key).ToList();
 
@@ -48,13 +49,37 @@ public sealed partial class SettingsHubTests
     }
 
     [Fact]
-    public void TheSpeechPillarNotice_CoversAllThreeGroups()
+    public void TheSpeechPillarNotice_CoversAllFourGroups()
     {
+        Assert.True(SettingsNav.IsSpeechGroup(SettingsNav.GroupFor("settings/speech/sayIntentions")));
         Assert.True(SettingsNav.IsSpeechGroup(SettingsNav.GroupFor("settings/speech")));
         Assert.True(SettingsNav.IsSpeechGroup(SettingsNav.GroupFor("settings/speech/callouts")));
         Assert.True(SettingsNav.IsSpeechGroup(SettingsNav.GroupFor("settings/speech/cabin")));
         Assert.False(SettingsNav.IsSpeechGroup(SettingsNav.GroupFor("settings/audio")));
         Assert.False(SettingsNav.IsSpeechGroup(null));
+    }
+
+    /// <summary>SayIntentions is its own rail group over a section of the shared route
+    /// (owner request 2026-11-16): one line on the rail and in the heading, after Flight Deck,
+    /// at the address it always had. Hardware keeps its item line (Skalarki Panels).</summary>
+    [Fact]
+    public void SayIntentions_IsItsOwnRailGroup_AfterFlightDeck_ShownAsOneLine_AtTheOldAddress()
+    {
+        var keys = SettingsNav.Groups.Select(g => g.Key).ToList();
+        var group = SettingsNav.Groups.Single(g => g.Key == "sayIntentions");
+
+        Assert.Equal(keys.IndexOf("flightDeck") + 1, keys.IndexOf("sayIntentions"));
+        Assert.Equal("settings/speech/sayIntentions", group.Href);
+        Assert.False(group.ShowsItems);
+        Assert.DoesNotContain(SettingsNav.FlightDeckSections, s => s.Key == "sayIntentions");
+        Assert.True(SettingsNav.Groups.Single(g => g.Key == "hardware").ShowsItems);
+        Assert.True(SettingsNav.Groups.Single(g => g.Key == "flightDeck").ShowsItems);
+        Assert.False(SettingsNav.Groups.Single(g => g.Key == "setup").ShowsItems);
+
+        var labels = SettingsSearch.Find(SettingsSearch.Build(English().Strings), "sayintentions").Where(h => h.IsNavLabel).ToList();
+        var label = Assert.Single(labels);
+        Assert.Equal("settings/speech/sayIntentions", label.Href);
+        Assert.Equal("sayIntentions", label.Group.Key);
     }
 
     // ---- SettingsSearch ----

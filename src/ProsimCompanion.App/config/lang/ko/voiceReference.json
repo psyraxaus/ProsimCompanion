@@ -44,7 +44,7 @@
       "groundServices": "{0}이(가) 꺼져 있습니다 — 설정 → 지상 서비스",
       "bare": "{0}이(가) 꺼져 있습니다",
       "gsxPillar": "GSX 모듈이 실행 중이 아닙니다",
-      "sayIntentions": "SayIntentions가 꺼져 있습니다 — 설정 → Flight Deck → SayIntentions",
+      "sayIntentions": "SayIntentions가 꺼져 있습니다 — 설정 → SayIntentions",
       "groundCrew": "{0}이(가) 꺼져 있습니다 — 설정 → Crew & Company → 지상 요원",
       "cabinCrew": "{0}이(가) 꺼져 있습니다 — 설정 → Crew & Company → 객실 승무원",
       "notInBuild": "이 빌드에서는 사용할 수 없습니다",

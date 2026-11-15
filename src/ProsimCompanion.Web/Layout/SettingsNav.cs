@@ -18,6 +18,14 @@ public sealed record SettingsNavGroup(string Key, string Label, string Href, IRe
     /// <summary>Language-pack text id of this group's label: <c>settings.nav.{group}</c>.</summary>
     public string LabelTextId => "settings.nav." + Key;
 
+    /// <summary>True when the rail and the heading show this group's items under it. A group
+    /// whose only item carries the group's own name is one page that happens to be a section
+    /// of a shared route (SayIntentions on the Voice First Officer route, 2026-11-16): it
+    /// lists the item so it owns the path, and shows one line, not "SayIntentions ›
+    /// SayIntentions".</summary>
+    public bool ShowsItems
+        => Items.Count > 1 || (Items.Count == 1 && !Items[0].Key.Equals(Key, StringComparison.OrdinalIgnoreCase));
+
     /// <summary>True when <paramref name="path"/> (base-relative, no query) is this group or
     /// one of its items. Only a group WITH items owns its sub-paths — the single-page Setup
     /// group at "settings" must not swallow "settings/gsx/…".</summary>
@@ -94,7 +102,13 @@ public static class SettingsNav
         ("callouts", "Callouts & Placards"),
         ("abnormals", "Abnormals & Drills"),
         ("briefing", "Briefings & LLM"),
-        ("mcdu", "MCDU"),
+        ("mcdu", "MCDU"));
+
+    /// <summary>SayIntentions: its own rail group since 2026-11-16 (owner request — a product
+    /// of its own with four cards, and nobody looked for it under Flight Deck). Still a section
+    /// of the Voice First Officer route, so the address settings/speech/sayIntentions and the
+    /// text id settings.nav.speech.sayIntentions did not move.</summary>
+    public static readonly SettingsNavItem[] SayIntentionsSections = Items("settings/speech",
         ("sayIntentions", "SayIntentions"));
 
     /// <summary>The other voices: ground crew, cabin crew, company, the paperwork.</summary>
@@ -104,9 +118,9 @@ public static class SettingsNav
         ("company", "Company & Debrief"),
         ("techlog", "Tech Log & Logbook"));
 
-    /// <summary>Every section the Voice First Officer page route accepts — the three rail
+    /// <summary>Every section the Voice First Officer page route accepts — the four rail
     /// groups' lists joined, in rail order (the page resolves <c>{Section?}</c> against it).</summary>
-    public static readonly SettingsNavItem[] SpeechSections = [.. SpeechCoreSections, .. FlightDeckSections, .. CrewSections];
+    public static readonly SettingsNavItem[] SpeechSections = [.. SpeechCoreSections, .. FlightDeckSections, .. SayIntentionsSections, .. CrewSections];
 
     public static readonly SettingsNavItem[] AudioSections = Items("settings/audio",
         ("status", "Status"),
@@ -133,6 +147,7 @@ public static class SettingsNav
         new("gsx", "Ground Services", "settings/gsx", GsxSections),
         new("speech", "Voice First Officer", "settings/speech", SpeechCoreSections),
         new("flightDeck", "Flight Deck", "settings/speech/callouts", FlightDeckSections),
+        new("sayIntentions", "SayIntentions", "settings/speech/sayIntentions", SayIntentionsSections),
         new("crew", "Crew & Company", "settings/speech/groundCrew", CrewSections),
         new("audio", "Audio Control", "settings/audio", AudioSections),
         // Cockpit switches (2026-10-24): the Stream Deck's Korry buttons, toggles and knobs.
@@ -160,7 +175,7 @@ public static class SettingsNav
 
     /// <summary>The groups that share the Voice First Officer page and its pillar switch.</summary>
     public static bool IsSpeechGroup(SettingsNavGroup? group)
-        => group?.Key is "speech" or "flightDeck" or "crew";
+        => group?.Key is "speech" or "flightDeck" or "sayIntentions" or "crew";
 
     /// <summary>Old routes that still resolve (bookmarks, the manual, Stream Deck docs) mapped
     /// onto their hub location so the rail highlights correctly.</summary>

@@ -99,7 +99,7 @@
       "unknown": "SIN ASIGNACIÓN",
       "noProsim": "PROSIM SIN CONEXIÓN",
       "off": "SAYINTENTIONS APAGADO",
-      "offHint": "Activa SayIntentions en Ajustes → Flight Deck → SayIntentions para ver la frecuencia que espera ATC",
+      "offHint": "Activa SayIntentions en Ajustes → SayIntentions para ver la frecuencia que espera ATC",
       "noAssignment": "SayIntentions aún no ha indicado una estación",
       "tune": "Sintonizar",
       "tuneTitle": "Poner {0} en COM1 standby y pasarla a activa (datarefs de ProSim)",

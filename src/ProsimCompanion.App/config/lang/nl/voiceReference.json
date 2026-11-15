@@ -44,7 +44,7 @@
       "groundServices": "{0} staat uit — Instellingen → Grondservices",
       "bare": "{0} staat uit",
       "gsxPillar": "GSX-module draait niet",
-      "sayIntentions": "SayIntentions staat uit — Instellingen → Flight Deck → SayIntentions",
+      "sayIntentions": "SayIntentions staat uit — Instellingen → SayIntentions",
       "groundCrew": "{0} staat uit — Instellingen → Crew & Company → Grondcrew",
       "cabinCrew": "{0} staat uit — Instellingen → Crew & Company → Cabinecrew",
       "notInBuild": "niet beschikbaar in deze build",

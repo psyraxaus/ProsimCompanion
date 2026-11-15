@@ -65,7 +65,7 @@
                 {
                     var isActive = group == _group;
                     <a class="rail-group @(isActive ? "active" : null)" href="@group.Href">@T[group.LabelTextId]</a>
-                    @if (isActive && group.Items.Count > 0)
+                    @if (isActive && group.ShowsItems)
                     {
                         @foreach (var item in group.Items)
                         {
@@ -86,7 +86,7 @@
                 {
                     <a class="settings-heading-group" href="settings">@T["settings.title"]</a>
                     <span class="settings-heading-sep" aria-hidden="true">›</span>
-                    @if (_item is not null && _group.Items.Count > 0)
+                    @if (_item is not null && _group.ShowsItems)
                     {
                         <a class="settings-heading-group" href="@_group.Href">@T[_group.LabelTextId]</a>
                         <span class="settings-heading-sep" aria-hidden="true">›</span>

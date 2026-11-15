@@ -160,7 +160,7 @@ public static class VoiceReferenceTextIds
     /// <summary>"GSX pillar not running".</summary>
     public const string OffGsxPillar = "voiceReference.off.gsxPillar";
 
-    /// <summary>"SayIntentions is off — Settings → Voice First Officer → SayIntentions".</summary>
+    /// <summary>"SayIntentions is off — Settings → SayIntentions".</summary>
     public const string OffSayIntentions = "voiceReference.off.sayIntentions";
 
     /// <summary>"switched off" — the drawer's own fallback.</summary>

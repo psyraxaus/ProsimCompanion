@@ -99,7 +99,7 @@
       "unknown": "GEEN TOEWIJZING",
       "noProsim": "PROSIM OFFLINE",
       "off": "SAYINTENTIONS UIT",
-      "offHint": "Zet SayIntentions aan onder Instellingen → Flight Deck → SayIntentions om te zien welke frequentie ATC verwacht",
+      "offHint": "Zet SayIntentions aan onder Instellingen → SayIntentions om te zien welke frequentie ATC verwacht",
       "noAssignment": "SayIntentions heeft nog geen station genoemd",
       "tune": "Afstemmen",
       "tuneTitle": "{0} op COM1 standby zetten en naar actief wisselen (ProSim-datarefs)",

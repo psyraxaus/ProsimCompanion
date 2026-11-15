@@ -99,7 +99,7 @@
       "unknown": "AUCUNE ASSIGNATION",
       "noProsim": "PROSIM HORS LIGNE",
       "off": "SAYINTENTIONS OFF",
-      "offHint": "Active SayIntentions dans Réglages → Flight Deck → SayIntentions pour voir la fréquence attendue par l’ATC",
+      "offHint": "Active SayIntentions dans Réglages → SayIntentions pour voir la fréquence attendue par l’ATC",
       "noAssignment": "SayIntentions n’a pas encore nommé de station",
       "tune": "Afficher",
       "tuneTitle": "Mettre {0} en standby COM1 puis basculer en actif (datarefs ProSim)",
