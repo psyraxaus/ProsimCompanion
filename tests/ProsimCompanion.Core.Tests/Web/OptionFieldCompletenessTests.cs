@@ -178,6 +178,29 @@ public sealed class OptionFieldCompletenessTests
         }
     }
 
+    /// <summary>Owner report 2026-11-16: the LLM API key (and the SayIntentions manual one) were
+    /// plain text fields, so a screenshot of the page showed the secret. A text field whose
+    /// property is a secret by name must be a password input.</summary>
+    [Fact]
+    public void EverySecretTextField_IsAPasswordInput()
+    {
+        string[] secretEndings = ["ApiKey", "Token", "Password"];
+        var shown = new List<string>();
+        foreach (var found in Walk())
+        {
+            var spec = found.Property.GetCustomAttribute<OptionFieldAttribute>();
+            if (spec is { Kind: FieldKind.Text, Password: false }
+                && secretEndings.Any(ending => found.Property.Name.EndsWith(ending, StringComparison.Ordinal)))
+            {
+                shown.Add(found.Name);
+            }
+        }
+
+        Assert.True(shown.Count == 0,
+            "These secret fields are shown in clear text; add Password = true to their [OptionField]:\n"
+            + string.Join('\n', shown.Distinct().OrderBy(n => n, StringComparer.Ordinal)));
+    }
+
     [Fact]
     public void EveryDescription_NamesKnownChoiceLists_FolderLists_AndResolvableDependencies()
     {

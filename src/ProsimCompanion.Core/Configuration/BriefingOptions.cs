@@ -197,7 +197,7 @@ public sealed class BriefingOptions : IOptionSection
     /// <c>http://localhost:11434</c> (no <c>/v1</c>).</summary>
     [OptionField(FieldKind.Text, "speechSettings.briefing.llm.baseUrl", Label = "speechSettings.common.baseUrl", TextKind = TextFieldKind.Url, Placeholder = "http://localhost:11434", DependsOn = "LlmEnabled", Normalize = FieldNormalization.Trim)]
     public string LlmBaseUrl { get; set; } = "http://localhost:3000/api";
-    [OptionField(FieldKind.Text, "speechSettings.common.apiKey", Hint = "speechSettings.briefing.llm.apiKeyHint", DependsOn = "LlmEnabled", Normalize = FieldNormalization.Trim)]
+    [OptionField(FieldKind.Text, "speechSettings.common.apiKey", Hint = "speechSettings.briefing.llm.apiKeyHint", Password = true, DependsOn = "LlmEnabled", Normalize = FieldNormalization.Trim)]
     public string LlmApiKey { get; set; } = "";
     [OptionField(FieldKind.Text, "speechSettings.common.model", Hint = "speechSettings.briefing.llm.modelHint", DependsOn = "LlmEnabled", Normalize = FieldNormalization.Trim)]
     public string LlmModel { get; set; } = "";

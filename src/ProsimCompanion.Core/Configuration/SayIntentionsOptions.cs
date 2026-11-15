@@ -17,7 +17,7 @@ public sealed class SayIntentionsOptions : IOptionSection
     [OptionField(FieldKind.Select, "speechSettings.common.apiKey", Hint = "speechSettings.sayIntentions.apiKeySourceHint", Choices = "apiKeySource", DependsOn = "Enabled", Normalize = FieldNormalization.TrimLower)]
     public string ApiKeySource { get; set; } = "auto";
 
-    [OptionField(FieldKind.Text, "speechSettings.sayIntentions.manualKey", DependsOn = "Enabled; ApiKeySource=manual", Normalize = FieldNormalization.Trim)]
+    [OptionField(FieldKind.Text, "speechSettings.sayIntentions.manualKey", Password = true, DependsOn = "Enabled; ApiKeySource=manual", Normalize = FieldNormalization.Trim)]
     public string ManualApiKey { get; set; } = "";
 
     /// <summary>Auto-tune the matched station frequency before transmitting a request.</summary>
