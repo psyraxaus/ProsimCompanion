@@ -412,3 +412,7 @@ Logos are yours, never shipped: Settings → Appearance takes a **theme logo** (
 header while that theme is active) and **airline logos keyed by ICAO airline code** (KLM, BAW,
 DLH…), which the Flight Monitor shows for the flight plan's airline. Both live under
 `%LOCALAPPDATA%\ProsimCompanion\config\themes\logos`.
+
+---
+
+**Next:** [Voice First Officer](03-voice-fo.md) · **See also:** [Voice First Officer](03-voice-fo.md), [Diagnostics](13-diagnostics.md) · [Manual contents](README.md)

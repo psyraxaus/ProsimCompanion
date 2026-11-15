@@ -115,3 +115,7 @@ On the **Stream Deck PC**, drag a **Camera View** key onto a page and pick the v
 | Leak valve shows **ON** while pushed | Rows from a build before rc.7. Press **Add the three leak measurement valves** again: it resets them to a lit **OFF** in Normal and dark while pushed. Save. |
 | vJoy relay pill **NO DRIVER** | vJoy is not installed on the sim PC, is not running, or the DLL path points at the 32-bit DLL — use the `x64` folder. |
 | **Press** says READY but ChasePlane does nothing | The view is not bound to that vJoy button in ChasePlane. Bind it while pressing **Press** (12.4 step 5). |
+
+---
+
+**Next:** [Screen & FOV](14-screen-fov.md) · **See also:** [Diagnostics](13-diagnostics.md), [Troubleshooting](05-troubleshooting.md) · [Manual contents](README.md)

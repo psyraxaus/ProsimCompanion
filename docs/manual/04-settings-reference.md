@@ -176,3 +176,7 @@ you edited the wrong copy.
 | `commands.json` | file-driven voice commands | yes |
 | `atc-requests.json` | SayIntentions request phrasebook | on start |
 | `themes\*.json` | airline themes | on switch |
+
+---
+
+**Next:** this is the last chapter · **See also:** [Troubleshooting](05-troubleshooting.md), [Diagnostics](13-diagnostics.md) · [Manual contents](README.md)

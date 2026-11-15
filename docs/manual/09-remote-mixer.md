@@ -180,3 +180,7 @@ you ([chapter 11](11-two-headsets.md), sections 11.3–11.4, says why).
 If one pilot PC is off, its block's pill goes amber and the footer dot reads *1 of 2
 agents connected*; the other pilot's knobs keep working, and the missing PC catches up on
 its own when it is back.
+
+---
+
+**Next:** [Two headsets](11-two-headsets.md) · **See also:** [Two headsets](11-two-headsets.md), [Loudspeaker dial](08-loudspeaker-dial.md) · [Manual contents](README.md)

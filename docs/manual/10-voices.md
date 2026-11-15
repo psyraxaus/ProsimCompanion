@@ -154,3 +154,7 @@ handed to whichever provider speaks.
 The **Logs** page shows the voice listing lines ("Kokoro voice list: 68 voices") and the
 reason a provider was skipped. **Export diagnostics** on that page packs them for a bug
 report.
+
+---
+
+**Next:** [ElevenLabs voices](06-elevenlabs.md) · **See also:** [ElevenLabs voices](06-elevenlabs.md), [Voice First Officer](03-voice-fo.md) · [Manual contents](README.md)

@@ -83,3 +83,7 @@ devices at different levels, so the speakers-and-headset wiring above needs Voic
 | Echo in the headset | The `Loudspeaker` strip is routed to the headset bus too. |
 | Howl | `B3` is on for the `Loudspeaker` strip. Switch it off. |
 | The voice First Officer hears ATC | The cockpit speakers reach your microphone. Lower the dial, or use push-to-talk. |
+
+---
+
+**Next:** [Remote mixer](09-remote-mixer.md) · **See also:** [Remote mixer](09-remote-mixer.md), [Two headsets](11-two-headsets.md) · [Manual contents](README.md)

@@ -94,3 +94,7 @@ Only the saved-camera `cameras.cfg` under your MSFS 2024 LocalCache folder is ed
 the `InitialZoom` (and optionally `InitialPbh` pitch) lines of the cockpit cameras in it.
 Aircraft package files under `Official` and `Community`, and ChasePlane's folder, are refused
 by the app itself. Every write makes a backup first.
+
+---
+
+**Next:** [Diagnostics](13-diagnostics.md) · **See also:** [Troubleshooting](05-troubleshooting.md), [Using the app](02-using-the-app.md) · [Manual contents](README.md)

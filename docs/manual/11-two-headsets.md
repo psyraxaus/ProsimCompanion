@@ -140,3 +140,7 @@ with the source bus that pilot's ATC bus and the destination that pilot PC's add
       VHF level.
 - [ ] VHF2 is not expected to control a separate radio unless a separate source exists.
 - [ ] Status → Remote Mixer shows every agent green before you judge a knob.
+
+---
+
+**Next:** [Tablet](07-tablet-install.md) · **See also:** [Remote mixer](09-remote-mixer.md), [Loudspeaker dial](08-loudspeaker-dial.md) · [Manual contents](README.md)

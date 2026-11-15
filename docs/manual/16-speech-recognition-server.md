@@ -179,3 +179,7 @@ the zip.
 - [Settings reference](04-settings-reference.md): the `speech` section.
 - [Diagnostics](13-diagnostics.md): the VOICE page and its cautions.
 - [Troubleshooting](05-troubleshooting.md).
+
+---
+
+**Next:** [Language model](15-language-model.md) · [Manual contents](README.md)

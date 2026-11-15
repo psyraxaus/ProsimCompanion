@@ -62,3 +62,7 @@ exempt. Regenerating the token invalidates previously connected devices.
   profile edits are preserved. The web UI shows a banner when a newer release is on GitHub.
 - Uninstalling removes the application folder only. Logs/sessions/logbook/tech log under
   `%LOCALAPPDATA%\ProsimCompanion` and the GSX profiles under `%APPDATA%\Virtuali` stay.
+
+---
+
+**Next:** [Using the app](02-using-the-app.md) · **See also:** [Tablet](07-tablet-install.md), [Troubleshooting](05-troubleshooting.md) · [Manual contents](README.md)

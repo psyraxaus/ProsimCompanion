@@ -177,3 +177,7 @@ the zip. Your key is never in the logs and is removed from the exported settings
 - [Settings reference](04-settings-reference.md): the `briefing` section.
 - [Diagnostics](13-diagnostics.md): the VOICE page and its cautions.
 - [Troubleshooting](05-troubleshooting.md).
+
+---
+
+**Next:** [Loudspeaker dial](08-loudspeaker-dial.md) · [Manual contents](README.md)

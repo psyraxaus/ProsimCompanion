@@ -117,3 +117,7 @@ wants.
 - The home-screen icon opens full-screen with the Companion logo.
 - Stop the app on the PC: the installed app shows the usual "reconnecting" state — no offline
   page, by design.
+
+---
+
+**Next:** [Stream Deck on another PC](12-remote-streamdeck.md) · **See also:** [Installation](01-installation.md), [Using the app](02-using-the-app.md) · [Manual contents](README.md)

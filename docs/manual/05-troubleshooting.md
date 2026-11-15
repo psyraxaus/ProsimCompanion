@@ -63,3 +63,7 @@ day's log from `%LOCALAPPDATA%\ProsimCompanion\logs\` and, for GSX behaviour, no
 decision-log lines around the event — they usually contain the answer. For a GSX door,
 menu or service problem, switch on `wireTrace` (App Settings → Logging) before you repeat
 it, then export.
+
+---
+
+**Next:** [Settings reference](04-settings-reference.md) · **See also:** [Diagnostics](13-diagnostics.md), [Settings reference](04-settings-reference.md) · [Manual contents](README.md)

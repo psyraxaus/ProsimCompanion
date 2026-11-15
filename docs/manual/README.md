@@ -18,24 +18,54 @@ kept there so a broken web configuration can always be repaired.
 
 ## Manual contents
 
+Read the groups from top to bottom. The chapter numbers in the file names are the order in which
+the chapters were written, not the reading order; every chapter ends with a link to the next one.
+
+### Getting started
+
 | Chapter | Covers |
 |---|---|
 | [Installation](01-installation.md) | Installer, prerequisites, first run, migrating from Prosim2GSX / Prosim2FO |
+
+### Flying with the app
+
+| Chapter | Covers |
+|---|---|
 | [Using the app](02-using-the-app.md) | Desktop shell, tray, web UI tour, a typical flight |
+
+### Voice First Officer and its servers
+
+| Chapter | Covers |
+|---|---|
 | [Voice First Officer](03-voice-fo.md) | PTT, spoken checklists, callouts, briefings, persona |
-| [Settings reference](04-settings-reference.md) | Every settings section, including the hand-editable ones |
-| [Troubleshooting](05-troubleshooting.md) | Logs, degraded subsystems, common problems |
 | [Voices: setting up the First Officer and crew voices](10-voices.md) | The Voices page and the provider tabs: connect Kokoro, ElevenLabs, Google or the Windows voices, pick the First Officer and crew voices from live lists, fallback voices, troubleshooting |
 | [ElevenLabs voices](06-elevenlabs.md) | Step-by-step setup: API key, voice, plan, crew voices, cost control |
-| [Tablet: HTTPS, home screen, keep-awake](07-tablet-install.md) | Your own certificate (mkcert), trusting the CA on the iPad, Add to Home Screen, the keep-awake switch; no offline mode |
+| [Speech recognition server: connecting whisper.cpp or faster-whisper](16-speech-recognition-server.md) | Pointing the app at a whisper.cpp server or the faster-whisper example server: which server flavour, the address exactly as it must be typed, the wrong-flavour trap where everything stays green, a check before and inside the app, troubleshooting |
+| [Language model (LLM): connecting your own server](15-language-model.md) | Pointing the app at Ollama, Open WebUI, LM Studio, llama-server or OpenAI: which API flavour, the Base URL exactly as it must be typed, the model name, thinking models, a check before and inside the app, troubleshooting |
+
+### Audio
+
+| Chapter | Covers |
+|---|---|
 | [Loudspeaker dial](08-loudspeaker-dial.md) | Headset sound on the cockpit speakers with the LOUD SPEAKER dial as their volume: the VoiceMeeter wiring (VBAN loop) and the mapping |
 | [Remote mixer](09-remote-mixer.md) | Voicemeeters on other PCs (the vPilot box, or one PC per pilot) driven from the cockpit through VoicemeeterBridge agents: setup on every PC, one agent block each, knob and REC-button mappings, the status card, the two-pilot-PC example |
 | [Two headsets](11-two-headsets.md) | The VoiceMeeter layout for two headsets with online ATC: one fader per strip or bus, a bus per headset, how to get INT on its own knob, why VHF2 cannot have its own bus |
-| [Diagnostics: the ECAM-style system pages](13-diagnostics.md) | The pages under Settings → Diagnostics (VOICE, SIM, REMOTE, GSX, STATUS, and PANELS for Skalarki hardware): how to read green / amber / red / `XX` / `- - -`, what the common cautions mean and what to do, the sidebar badge, the bundle |
-| [Screen & FOV: a life-size view on your TV](14-screen-fov.md) | Enter your screen's size and distance, see the true field of view, press one button to write it into MSFS 2024's saved pilot view (with a backup), and check it in Developer Mode; Multi Window rotations and the ChasePlane caveat |
+
+### Hardware and displays
+
+| Chapter | Covers |
+|---|---|
+| [Tablet: HTTPS, home screen, keep-awake](07-tablet-install.md) | Your own certificate (mkcert), trusting the CA on the iPad, Add to Home Screen, the keep-awake switch; no offline mode |
 | [Stream Deck on another PC: cockpit switches and camera views](12-remote-streamdeck.md) | Running the plugin on a second PC; Cockpit Switch keys that press ProSim switches you have no hardware for (Korry buttons, toggles, knobs, drawn like the real overhead); Camera View keys that change ChasePlane views through the vJoy relay |
-| [Language model (LLM): connecting your own server](15-language-model.md) | Pointing the app at Ollama, Open WebUI, LM Studio, llama-server or OpenAI: which API flavour, the Base URL exactly as it must be typed, the model name, thinking models, a check before and inside the app, troubleshooting |
-| [Speech recognition server: connecting whisper.cpp or faster-whisper](16-speech-recognition-server.md) | Pointing the app at a whisper.cpp server or the faster-whisper example server: which server flavour, the address exactly as it must be typed, the wrong-flavour trap where everything stays green, a check before and inside the app, troubleshooting |
+| [Screen & FOV: a life-size view on your TV](14-screen-fov.md) | Enter your screen's size and distance, see the true field of view, press one button to write it into MSFS 2024's saved pilot view (with a backup), and check it in Developer Mode; Multi Window rotations and the ChasePlane caveat |
+
+### Reference and troubleshooting
+
+| Chapter | Covers |
+|---|---|
+| [Diagnostics: the ECAM-style system pages](13-diagnostics.md) | The pages under Settings → Diagnostics (VOICE, SIM, REMOTE, GSX, STATUS, and PANELS for Skalarki hardware): how to read green / amber / red / `XX` / `- - -`, what the common cautions mean and what to do, the sidebar badge, the bundle |
+| [Troubleshooting](05-troubleshooting.md) | Logs, degraded subsystems, common problems |
+| [Settings reference](04-settings-reference.md) | Every settings section, including the hand-editable ones |
 
 ## Design principles (what to expect)
 

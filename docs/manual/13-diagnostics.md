@@ -174,3 +174,7 @@ second by default) and the short names shown above the VOICE boxes for each conf
 server. Both apply live.
 
 ![Diagnostics settings](../img/diagnostics-settings.png)
+
+---
+
+**Next:** [Troubleshooting](05-troubleshooting.md) · **See also:** [Troubleshooting](05-troubleshooting.md), [Settings reference](04-settings-reference.md) · [Manual contents](README.md)

@@ -821,3 +821,7 @@ at the turnaround the FO then adds one line: *"Flight duty check: the next secto
 extensions are not counted."* It is advisory only: report times are taken in UTC and
 acclimatisation, extensions, split duty and rest rules are not modelled. The table is
 `%LOCALAPPDATA%\ProsimCompanion\config\ftl-easa.json` — edit it for your operator's scheme.
+
+---
+
+**Next:** [Voices](10-voices.md) · **See also:** [Speech recognition server](16-speech-recognition-server.md), [Language model](15-language-model.md) · [Manual contents](README.md)

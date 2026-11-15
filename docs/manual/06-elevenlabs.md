@@ -146,3 +146,7 @@ the zip. Your key is never in the logs and is removed from the exported settings
 - Only the text the app is about to speak is sent to ElevenLabs. No flight data, no
   microphone audio.
 - *Local only* guarantees nothing is sent at all.
+
+---
+
+**Next:** [Speech recognition server](16-speech-recognition-server.md) · **See also:** [Voices](10-voices.md), [Troubleshooting](05-troubleshooting.md) · [Manual contents](README.md)
