@@ -6,8 +6,8 @@ from ProSim and sets the level of one VoiceMeeter strip or bus. The sound routin
 done once in VoiceMeeter; the app does not create it.
 
 You need **VoiceMeeter** (this guide uses Potato; Banana works the same way with fewer
-strips and buses) and the app's audio backend set to VoiceMeeter (Settings → Audio Control →
-Volume Control).
+strips and buses) and the app's audio backend set to VoiceMeeter: Settings → Audio Control →
+General, card **Volume Control**, **Backend** = *VoiceMeeter (strips/buses)*.
 
 ## 8.1 What the wiring does
 
@@ -16,7 +16,7 @@ and to the speakers has one fader for both. So the radio sound is sent a second 
 spare bus, and that copy goes to the speakers:
 
 ```
-ATC strip ──► A2 (headset)                      always, as before
+ATC strip ──► A2 (headset)                      always, unchanged
           └─► B3 (spare bus) ─ VBAN ─► "Loudspeaker" strip ──► speaker bus
                  ▲
                  └── the LOUD SPEAKER dial sets this level
@@ -24,7 +24,6 @@ ATC strip ──► A2 (headset)                      always, as before
 
 VoiceMeeter does not offer its own B outputs as a strip input, so the copy comes back in
 over **VBAN** (VoiceMeeter's built-in network audio) on the same PC. Nothing is installed.
-On the test rig the delay on the speakers was not noticeable.
 
 ## 8.2 Set up VoiceMeeter (once)
 
@@ -51,13 +50,14 @@ First Officer's voice, for example).
 
 ## 8.3 Map the dial in the app
 
-Settings → Audio Control → **VoiceMeeter** → **CPT Mappings** → *Add mapping*:
+Settings → Audio Control → **VoiceMeeter** → **CPT Mappings** → **Add mapping**:
 
 - **Channel**: `LOUDSPEAKER`
 - **Target**: `Bus 8` (that is B3 on a Potato — the list shows your own labels)
 
-Save. Use the F/O list for the first officer's dial. The observer has no loudspeaker dial,
-so the OBS list does not offer it.
+Save. Use the **F/O Mappings** list for the first officer's dial, and tick **Drive targets
+from the F/O ACP** on that card: without the tick the F/O list does nothing. The observer
+has no loudspeaker dial, so the OBS list does not offer it.
 
 How the dial behaves:
 
@@ -65,10 +65,15 @@ How the dial behaves:
 - **Fully down mutes the target.** The dial has no REC latch, so the Latch tick is shown
   ticked and greyed for this row.
 - It follows the essential buses: on a dark aircraft the level holds, and it catches up when
-  power returns. The AUDIO SWITCHING selector does not affect it.
+  power returns. The AUDIO SWITCHING selector does not affect it. With **Only while the
+  audio panel is powered** switched off (Settings → Audio Control → General) the dial
+  applies whatever the aircraft's electrical state.
 - A strip or bus can belong to one mapping only — do not also map an ACP knob to the same
-  target. The page warns under the mapping lists when two rows share one; the reason (one
-  fader per strip or bus) and the two-headset layout are in [chapter 11](11-two-headsets.md).
+  target. The page warns under the mapping lists when two rows share one. If you save it
+  that way, the app does not use the set: it drives the captain's panel only, and Settings
+  → Audio Control → Status shows *Mapping conflict: …* until you give each row its own
+  target. The reason (one fader per strip or bus) and the two-headset layout are in
+  [chapter 11](11-two-headsets.md).
 
 On the Windows-volumes backend (CoreAudio) `LOUDSPEAKER` is in the channel list too: it
 then sets one program's volume like any other knob. Windows cannot send one program to two

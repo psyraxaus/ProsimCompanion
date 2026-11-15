@@ -10,7 +10,7 @@ Available from **0.5.0-rc.12**.
 
 ## Before you start
 
-**How the app picks a voice.** Since 0.7.0-rc.6 every voice names its provider: you pick
+**How the app picks a voice.** Every voice names its provider: you pick
 the First Officer and the crew voices on **Settings → Voice First Officer → Voices** from
 one list over every connected provider, and the provider you picked speaks that role. So an
 ElevenLabs First Officer works even with a Kokoro server configured — Kokoro then only
@@ -18,8 +18,10 @@ covers when ElevenLabs is down, over budget or not answering, with its own fallb
 The full walk-through is [chapter 10](10-voices.md). Two things to know:
 
 - When ElevenLabs cannot speak, the chain covers in this order: Kokoro, Google, then the
-  Windows voices. The **Status** page shows which provider spoke last and why one was
-  skipped.
+  Windows voices. The **TTS Providers** table on the **Status** page shows the state of
+  each provider (*Healthy*, *Cooling down*, *Disabled*) with a short detail. The voice that
+  spoke last is on **Diagnostics**, page **VOICE**; the reason for a failure is on the
+  **Logs** page.
 - **Local only** (Settings → Voice First Officer → General) switches every network voice
   off, ElevenLabs included. Leave it unticked.
 
@@ -42,7 +44,7 @@ Creator is the realistic choice.
 1. **Get your API key.** Sign in at <https://elevenlabs.io>, open your profile, then
    **API keys**, and create a key. Copy it.
 2. In ProsimCompanion open **Settings → Voice First Officer → Voice Providers** and pick the
-   **ElevenLabs** tab (`http://localhost:5320/settings/speech/elevenlabs` still lands there).
+   **ElevenLabs** tab (`http://localhost:5320/settings/speech/providers/elevenlabs`).
 3. Paste the key into **API key**. The other fields unlock.
 4. Press **Refresh voices**. The ElevenLabs premade voices are read with the key, each with
    its accent and gender. Pick a **Fallback voice** — the voice ElevenLabs uses when it covers
@@ -50,8 +52,8 @@ Creator is the realistic choice.
    "ElevenLabs · …" groups; that is the voice that speaks.
    You can also paste a voice id by hand — for example a voice from your own ElevenLabs
    voice library.
-5. Leave **Model** on `eleven_flash_v2_5` and **Output format** on `mp3_44100_128`. These
-   work on every plan.
+5. Leave **Model** on "eleven_flash_v2_5 (fast, half cost)" and **Output format** on
+   "mp3_44100_128 (all plans)". These work on every plan.
 6. Set **Monthly character budget** for your plan (see "Keeping the cost down" below).
 7. Press **Save** in the bar at the bottom of the page.
 
@@ -61,11 +63,16 @@ ElevenLabs is active as soon as the key and a voice id are both saved. No restar
 
 1. Open **Settings → Voice First Officer → Status**.
 2. In the **TTS Providers** table find the `elevenlabs` row and press **Test**. The test
-   speaks with ElevenLabs only — there is no fallback, so if you hear the voice, it works.
+   speaks with ElevenLabs only, in the **Fallback voice** of the ElevenLabs tab — there is
+   no fallback, so if you hear the voice, it works.
 3. Use **Speak Test** lower on the page to hear the whole chain as the FO uses it in
-   flight. If Kokoro is still configured, this is where you will hear Kokoro instead.
+   flight. The provider that the First Officer voice names speaks first. You hear Kokoro
+   here only when the First Officer voice is empty or names Kokoro, or when ElevenLabs is
+   skipped.
 
-The footer of every page has a **TTS** dot. Green means a voice provider is ready.
+The **TTS** dot in the footer of every page shows Kokoro only (hold the mouse over it:
+"Voice (Kokoro): …"). With ElevenLabs and no Kokoro server it is not green; use the
+**TTS Providers** table instead.
 
 ## The settings, one by one
 
@@ -79,7 +86,7 @@ The footer of every page has a **TTS** dot. Green means a voice provider is read
 | Similarity | 0 to 1. How closely the output follows the original voice. | 0.75 |
 | Speed | 0.7 to 1.2. 1.0 is the voice's natural pace. | 1.0 |
 | Monthly character budget | ElevenLabs stops for the rest of the month at this many characters; the next voice in the chain takes over. 0 means no limit. | See below |
-| Max characters per request | A longer text (a long briefing) skips ElevenLabs and uses the next voice. 0 means no limit. | 2,500 on the Free plan |
+| Max characters per request | A longer text (a long briefing) skips ElevenLabs and uses the next voice. ElevenLabs is then skipped for 60 seconds for every sentence. 0 means no limit. | 2,500 on the Free plan |
 | Text normalisation | Lets ElevenLabs expand numbers itself. Leave it **off**: the app already writes "flight level three five zero" the spoken way, and the ElevenLabs normaliser gets aviation words wrong. | Off |
 | Base URL, Timeout | Advanced. Only for a proxy, or a slow connection. | Leave as they are |
 
@@ -108,8 +115,11 @@ needs Google; with ElevenLabs the ground crew keeps the voice you set here.
   the first flight or two most speech costs nothing.
 - **The app warms the cache.** When the app starts, and when you edit a checklist, it
   fetches the checklist and callout phrases in the background so that "V one" never waits
-  for the network. This spends characters once, the first time. On the Free plan it can
-  take a large share of the month's 10,000, and it stops at your budget.
+  for the network. The warm-up uses one provider only: Kokoro when a Kokoro server is
+  configured, ElevenLabs when it is not. With both configured, ElevenLabs phrases are
+  fetched the first time each one is spoken. A warm-up through ElevenLabs spends
+  characters once, the first time. On the Free plan it can take a large share of the
+  month's 10,000, and it stops at your budget.
 - **Changing the voice, the model or the format starts a new cache.** The old audio is
   kept, but new phrases are fetched again. Pick your voice before you fly a lot.
 - **Set the budget.** The budget counts characters sent to ElevenLabs (cache hits are not
@@ -119,22 +129,22 @@ needs Google; with ElevenLabs the ground crew keeps the voice you set here.
 - **Usage this month** is shown at the bottom of the ElevenLabs page. The counter is the
   file `usage.elevenlabs.json` in the speech cache folder.
 
-When the budget is reached the FO does not go silent. The next voice in the chain (Google
-or a Windows voice) takes over until the next month.
+When the budget is reached the FO does not go silent. The next voice in the chain (Kokoro
+when it is configured, then Google, then a Windows voice) takes over until the next month.
 
 ## If something is wrong
 
 | What you see | Why | What to do |
 |---|---|---|
 | "could not list voices — …" with 401 after **Refresh voices** | The key is wrong or was deleted at ElevenLabs. | Paste the key again and Save. |
-| The `elevenlabs` row on the Status page shows a failure after a 401 | Same. The app stops calling ElevenLabs until the settings change. | Paste a good key and Save. |
-| The Test works but the FO still sounds like before | The First Officer voice on the Voices page names another provider, or the phrase came from an older cache. | Pick an ElevenLabs voice for the First Officer on the Voices page. |
+| The `elevenlabs` row on the Status page reads *Cooling down*, "retry in …s", again and again after a 401 | Same. The app stops calling ElevenLabs until the settings change. | Paste a good key and Save. |
+| The Test works but the FO speaks in another voice | The First Officer voice on the Voices page names another provider. | Pick an ElevenLabs voice for the First Officer on the Voices page. |
 | No ElevenLabs voice at all | *Local only* is ticked, or no fallback voice is set. | Untick Local only; pick a fallback voice on the ElevenLabs tab; Save. |
 | The purser or ground crew has the wrong voice | The crew voice names a provider that is down, over budget or not configured, so the chain covered with a fallback voice. | Check the Status page pills; pick the voice again on the Voices page. |
 | ElevenLabs stopped mid-month | The monthly budget was reached. | Raise the budget, or wait for the new month. |
-| Long briefings use another voice | The text is longer than *Max characters per request*. | Raise the figure if your plan allows longer generations. |
+| Long briefings use another voice, and so do the sentences in the minute after | The text is longer than *Max characters per request*. ElevenLabs is then skipped for 60 seconds. | Raise the figure if your plan allows longer generations. |
 | An error after you chose `pcm_24000` | Your plan does not include PCM output. | Go back to `mp3_44100_128`. |
-| "API key … re-enter it and save" under the field | `settings.json` was copied from another PC or Windows account. | Paste the key again and Save. |
+| "Stored key can't be decrypted on this PC/user (settings copied from elsewhere) — re-enter it and save." under the field | `settings.json` was copied from another PC or Windows account. | Paste the key again and Save. |
 
 For anything else: reproduce it, then use **Export diagnostics** on the Logs page and send
 the zip. Your key is never in the logs and is removed from the exported settings.

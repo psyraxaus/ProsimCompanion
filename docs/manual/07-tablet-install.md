@@ -28,19 +28,35 @@ private key** as a PFX, and have the CA's root certificate ready for the tablet.
 
 ## 7.2 Turn on HTTPS in the app
 
-Settings → Setup → **Web Interface → HTTPS (optional)**:
+Settings → Setup → **Web Interface**:
+
+- **Allow other devices (LAN)**: on. With it off, both addresses answer on the sim PC only
+  and the desktop window shows no QR code.
+
+Then, on the same card, under **HTTPS (optional)**:
 
 - **Enable HTTPS**: on.
-- **HTTPS port**: 5321 (open it on the sim PC's firewall like 5320).
+- **HTTPS port**: 5321 (open it on the sim PC's firewall like 5320). It must differ from the
+  HTTP port and be free on the sim PC.
 - **Certificate file (PFX)**: the file from 7.1.
 - **Certificate password**: `changeit` for mkcert. It is stored encrypted on this PC.
 
-Save, restart the app. The **Status** pill reads `HTTPS ON` with the address; the desktop
-window's QR code now carries the HTTPS address, and the hint under it lists the plain HTTP
-address too. If the pill reads `HTTPS FAILED`, the reason is next to it and in the banner at
-the top of every page: file not found, wrong password, no private key. HTTP keeps working
-whatever happens to HTTPS, so you can never lock yourself out. An **expired** certificate
-still answers, with a warning — renew it.
+Save, restart the app. The **Status** pill reads `HTTPS ON`, with the address in the hint
+beside it; the desktop window's QR code carries the HTTPS address, and the hint under it
+lists the plain HTTP address too.
+
+| Pill | Meaning |
+|---|---|
+| `HTTPS ON` | The secure address answers. |
+| `HTTPS ON · WARNING` | It answers, but the certificate is expired or not valid yet; browsers will warn. Renew the certificate. |
+| `HTTPS FAILED` | HTTPS is enabled but did not start. The reason is in the hint beside the pill. |
+| `HTTPS OFF` | **Enable HTTPS** is off. |
+
+The reasons for `HTTPS FAILED`: no certificate file set, file not found, wrong password, no
+private key in the file, or a port that is the same as the HTTP port or already in use. The
+same reason is in the warning banner on the Flight Status and Checklists pages, and under the
+QR code in the desktop window. HTTP keeps working whatever happens to HTTPS, so you can never
+lock yourself out.
 
 ## 7.3 Trust the CA on the iPad
 
@@ -78,7 +94,8 @@ footer.
 Android / Chrome: open the address, menu (⋮) → **Install app** or **Add to Home screen**.
 
 Settings → Appearance → **Screen & Install** shows `INSTALLED` when the app is running from
-the home-screen icon, and the "This device" line says which browser and address it has.
+the home-screen icon and `IN BROWSER` otherwise. The "This device" line says which browser
+and device it is, `http` or `https`, and `standalone` or `browser tab`.
 
 ## 7.6 Keep the screen awake
 
@@ -91,7 +108,7 @@ reads:
 | `OFF` | The switch is off on this device. |
 | `NEEDS HTTPS` | You opened the app over plain HTTP — go through 7.1 to 7.4. |
 | `NOT SUPPORTED` | This browser has no Screen Wake Lock (iOS needs Safari 16.4 or newer). |
-| `REQUESTING` | The browser refused for now (often a low battery); it tries again when you return to the page. |
+| `REQUESTING` | The browser refused for now (often a low battery); it tries again when you return to the page or tap it. |
 
 The choice is stored **on that device** (the browser's local storage), not in `settings.json`
 — each tablet decides for itself, **and per address**: switching it on at `http://…:5320`
@@ -100,10 +117,10 @@ drops the lock when you switch apps or lock the tablet, and the app takes it aga
 come back (or on your first tap). Closing the tab releases it.
 
 **If the screen still sleeps** with the pill reading `ACTIVE`: switch off **Low Power Mode**
-(iPadOS ignores every wake lock in it) and check Guided Access / Screen Time limits. The
-**Lock diagnostics** line under the switch shows how many times the lock was requested, when
-it was granted, when the browser let it go, and the text of the last refusal — send that line
-with a bug report. **Request again** asks for the lock from a tap, which Safari sometimes
+(iPadOS ignores every wake lock in it) and check Guided Access / Screen Time limits. While
+the switch is on, the **Lock diagnostics** line at the bottom of the card shows how many times
+the lock was requested, when it was granted, when the browser let it go, and the text of the
+last refusal — send that line with a bug report. **Request again** asks for the lock from a tap, which Safari sometimes
 wants.
 
 ## 7.7 Checks after setup
@@ -114,7 +131,7 @@ wants.
 - Leave the tablet alone for longer than its auto-lock time with the app open: the screen
   stays on.
 - Switch to another app and back: the pill returns to `ACTIVE` within a second.
-- The home-screen icon opens full-screen with the Companion logo.
+- The home-screen icon is named **Companion** and opens full-screen.
 - Stop the app on the PC: the installed app shows the usual "reconnecting" state — no offline
   page, by design.
 

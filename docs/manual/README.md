@@ -66,7 +66,7 @@ the chapters were written, not the reading order; every chapter ends with a link
 | [Stream Deck on another PC: cockpit switches and camera views](12-remote-streamdeck.md) | Running the plugin on a second PC; Cockpit Switch keys that press ProSim switches you have no hardware for (Korry buttons, toggles, knobs, drawn like the real overhead); Camera View keys that change ChasePlane views through the vJoy relay |
 | [Cockpit Switches: the switches your Stream Deck keys can press](24-cockpit-switches.md) | The Cockpit Switches settings page: building the list of ProSim switches for Stream Deck keys, picking a switch, look and press mode, lamps and colours, which switches are allowed, testing a line, how saved lines reach the plugin |
 | [Skalarki hardware: connecting the app to the SkalarkiIO Profiler](23-skalarki.md) | The link behind the Diagnostics PANELS page: your own SDK folder, the Profiler PC and port 53000, Test connection, choosing and naming boards, what is still unverified on hardware, troubleshooting |
-| [Screen & FOV: a life-size view on your TV](14-screen-fov.md) | Enter your screen's size and distance, see the true field of view, press one button to write it into MSFS 2024's saved pilot view (with a backup), and check it in Developer Mode; Multi Window rotations and the ChasePlane caveat |
+| [Screen & FOV: a life-size view on your TV](14-screen-fov.md) | Enter your screen's size and distance, see the true field of view, press one button to write it into MSFS 2024's saved cockpit camera (with a backup), and check it in Developer Mode; Multi Window rotations and the ChasePlane caveat |
 
 ### Reference and troubleshooting
 
@@ -83,7 +83,7 @@ the chapters were written, not the reading order; every chapter ends with a link
 - **Degrade, not fail** — ProSim, MSFS, GSX, VoiceMeeter, the network: any of them can be
   absent. The affected feature disables itself with guidance in the log; the app keeps running.
 - **Decision log** — every automation action (and every deliberate non-action) is recorded
-  with its reason on the GSX status page. When something didn't happen, the reason is there.
+  with its reason in the card **Automation Decisions** (Settings → Ground Services → Status). When something didn't happen, the reason is there.
 - **Your files survive** — checklists, abnormals, phrases, themes and `settings.json` are
   plain JSON beside the app, editable and hot-reloaded where noted.
 

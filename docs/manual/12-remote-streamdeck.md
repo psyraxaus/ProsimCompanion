@@ -26,46 +26,21 @@ On the **Stream Deck PC**:
    link** from the ProsimCompanion desktop window on the sim PC (`http://<sim-pc>:5320/?token=…`).
    All ProsimCompanion keys share that one connection.
 
-Keys showing *connecting* mean the sim PC does not answer: check the address, the port, the
-firewall and that LAN access is on. *re-pair* means the token was changed — paste a fresh link.
+Keys showing *connecting* or *offline* mean the sim PC does not answer: check the address, the
+port, the firewall and that LAN access is on. *re-pair* means the token was changed — paste a
+fresh link. *API off* means **Command API** is switched off on the sim PC (step 3); the keys
+recover by themselves once it is on. *set up* on every key means the plugin has no connection
+yet (step 6).
 
 ## 12.2 Cockpit switches: set up the rows
 
-Settings → **Cockpit Switches** on the sim PC's web UI.
-
-![Cockpit Switches settings page with the three leak measurement valves](../img/cockpit-switches.png)
-
-1. Press **Add the three leak measurement valves** if you want them: three lines appear (or
-   existing ones are reset to the preset) — blue / green / yellow bezels, the lamp follows the
-   button itself (no aircraft power needed) the way the real OFF light does: a lit **OFF** in
-   the Normal position, nothing while pushed. Save. Prefer the real overhead LED instead? Put
-   `system.indicators.I_OH_HYD_LMV_BLUE_L` (etc.) into **Lower lamp from** in the fold-out.
-2. For any other switch press **Add switch** and pick it from the **ProSim switch** column. The
-   list is ProSim's own, grouped by panel (overhead, pedestal, FCU, …). The **Key id**, **Key
-   title** and a sensible **Look** fill in by themselves. The line holds what you touch every
-   time; **▸** at its end folds out the rare fields (key id, legends, lamp datarefs, the upper
-   lamp colour, a test **Press**). Change what you like:
-   - **Look**: Korry two lamps / one lamp, toggle switch, rotary knob, guarded switch.
-   - **Press does**: *Toggle* flips between the first two positions (most Korry buttons).
-     *Momentary push* presses and releases (buttons that spring back, like EXT PWR).
-     *Cycle positions* for knobs: short press next, long press back.
-   - **Legends**: the words in the lamps (FAULT / OFF, AVAIL / ON).
-   - **Legend while dark** (in the fold-out): on = the word stays faintly readable while the
-     lamp is dark, like a real engraved Korry; off = the lamp is truly extinguished and the
-     word appears only when lit. The leak-valve preset uses "off" with the legend **OFF**: a lit
-     OFF while Normal, nothing while pushed.
-   - **Lower lamp lit at** (in the fold-out): most Korrys light while pushed; the leak valves
-     light in the Normal position (0) instead. Greyed out when a **Lower lamp from** dataref is
-     named — ProSim then decides.
-   - **Lamps from**: optional `system.indicators.I_…` datarefs. The lower lamp otherwise lights
-     while the switch is pushed (or at 0 with the setting above). Start typing `I_` to see the list.
-   - **Colours**: upper lamp (amber FAULT, green AVAIL), lower lamp (white OFF, blue ON), bezel
-     (grey, or a system colour).
-3. Save. The **Live state** pill on each line shows what ProSim reports; **Press** (in the
-   fold-out) presses the switch from the page so you can see ProSim react before you build a
-   key. **The aircraft must have electrical power** (batteries or external power) for ProSim to
-   light any lamp or move any valve — with a cold and dark aircraft every lamp stays dark, which
-   is correct.
+A key can press only a switch that is a saved line on Settings → **Cockpit Switches** in the
+sim PC's web UI. Each line is one ProSim switch: press **Add switch**, pick it in **ProSim
+switch**, set **Key title**, **Look** and **Press does**, then **Save**. **Add the three leak
+measurement valves** adds those three lines in one click. If you want their lamp to follow the
+real overhead light, type `system.indicators.I_OH_HYD_LMV_BLUE_L` (and the green and yellow
+ones) into **Lower lamp from**. Every field, the lamps and colours, the test **Press** and what
+to do when a line does not work: see [chapter 24](24-cockpit-switches.md).
 
 ## 12.3 Cockpit switches: the keys
 
@@ -76,7 +51,9 @@ settings. The list is the rows you saved. The key:
 - lights a lamp as an outlined box in its colour with the legend inside, the real-world way;
 - shows a short blue ring when a press went through and an amber ring with the reason when
   ProsimCompanion refused (switch off, ProSim away, a row no longer saved);
-- dims with a note while unpaired, offline, or before ProSim sent a value.
+- dims with a note (*switches off*, *prosim away*, *no value*) while presses are switched off,
+  ProSim is away, or ProSim has not sent a value yet;
+- shows a plain plate with a dash and the connection word while the plugin has no connection.
 
 On a knob key, hold the key to step backwards.
 
@@ -89,11 +66,12 @@ On the **sim PC**:
 
 1. Install the vJoy driver. In **vJoyConf** create one device, for example device 1 with 32
    buttons. Restart ProsimCompanion.
-2. Settings → Setup → **vJoy relay**: switch it on. Leave the DLL path empty unless vJoy is not
-   in `C:\Program Files\vJoy\x64`. Device: the number from vJoyConf. Save.
+2. Settings → Setup → **vJoy relay**: switch it on. Leave **vJoyInterface.dll** empty unless
+   vJoy is not in `C:\Program Files\vJoy\x64`. **vJoy device**: the number from vJoyConf. Save.
 3. Press **Check**. The pill goes READY and shows the button count. *NO DRIVER* means the DLL
    was not found or vJoy is not running; *NO DEVICE* means the number does not exist in
    vJoyConf; *DEVICE BUSY* means another program owns it — pick another device number.
+   *OFF* means the relay is switched off; *FAILED* shows the reason beside it.
 4. **Add view** once per ChasePlane view: a name (`wing`, `cockpit`, `tail`) and a vJoy button
    number. Save.
 5. In ChasePlane, bind each view to that vJoy button: open the view's controls, press the
@@ -106,13 +84,16 @@ On the **Stream Deck PC**, drag a **Camera View** key onto a page and pick the v
 
 | Symptom | Meaning / fix |
 |---|---|
-| Key says **set up** | No switch or view picked yet — open the key's settings. |
-| Key says **not found** | The row was renamed or removed in ProsimCompanion. Pick again. |
-| Key says **switches off** | Settings → Cockpit Switches → the master switch is off. |
+| Key says **set up** | On one key: no switch or view picked yet — open the key's settings. On every key: the plugin is not paired yet — paste the onboarding link (12.1 step 6). |
+| Key says **connecting** or **offline** | The sim PC does not answer. Check the address, the port, the firewall and that LAN access is on. |
+| Key says **re-pair** | The token was changed. Paste a fresh onboarding link into any key's settings. |
+| Key says **API off** | **Command API** is off on the sim PC: Settings → Setup → **Stream Deck & External Tools**. The keys recover by themselves once it is on. |
+| Key says **not found** | The switch line or the view was renamed or removed in ProsimCompanion. Pick again. |
+| Key says **switches off** | Settings → Cockpit Switches: the tick box **Cockpit switches** is off. The key still shows the state; every press is refused. |
+| Key says **relay off** | Settings → Setup → **vJoy relay** is switched off. Switch it on and save. |
 | Key says **prosim away** / **no value** | ProSim is not connected, or it has not sent this switch's value yet. |
-| Amber ring + a reason | ProsimCompanion refused the press; the reason is the app's own words. The same press from the page's **Press** button shows the full text. |
-| Lamp never lights | Check the row's **Lower lamp from**: the indicator name must exist (start typing `I_`); empty means "lit while pushed", or "lit at 0" when **Lower lamp lit at** says so. |
-| Leak valve shows **ON** while pushed | Rows from a build before rc.7. Press **Add the three leak measurement valves** again: it resets them to a lit **OFF** in Normal and dark while pushed. Save. |
+| Amber ring + a reason | ProsimCompanion refused the press; the reason is the app's own words. |
+| Lamp never lights, or a leak valve shows **ON** while pushed | See "If it does not work" in [chapter 24](24-cockpit-switches.md). |
 | vJoy relay pill **NO DRIVER** | vJoy is not installed on the sim PC, is not running, or the DLL path points at the 32-bit DLL — use the `x64` folder. |
 | **Press** says READY but ChasePlane does nothing | The view is not bound to that vJoy button in ChasePlane. Bind it while pressing **Press** (12.4 step 5). |
 

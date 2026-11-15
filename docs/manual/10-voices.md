@@ -17,8 +17,9 @@ Available from **0.7.0-rc.6**.
 - You connect the providers you want on the **Voice Providers** page. It has one tab per
   provider.
 - You pick who sounds like what on the **Voices** page. Each dropdown lists every voice from
-  every connected provider, grouped by provider and then region. Nothing is pre-filled: the
-  lists hold only what each service reports.
+  every connected provider, grouped by provider and then region. The lists are not
+  pre-filled: they hold only what each service reports. On a new install the three crew
+  voices are set to Kokoro voices (`kokoro:af_heart`, `kokoro:am_onyx`, `kokoro:am_michael`).
 - A voice names its provider. The purser can be an ElevenLabs voice while the First Officer
   is a Kokoro voice. If a provider is down, the next one covers with its **fallback voice**.
 
@@ -30,12 +31,12 @@ Open **Settings → Voice First Officer → Voice Providers**. Pick a tab.
 
 ### Kokoro (free, local network)
 
-1. Run a Kokoro server ([kokoro-fastapi](https://github.com/remsky/Kokoro-FastAPI)) on this PC
-   or another PC in your network.
-2. Put its address in **Base URL**, for example `http://192.168.1.50:8880`.
-3. Press **Refresh voices**. The note beside the button reads "68 voices" or similar.
-4. Pick a **Fallback voice** (more on fallbacks below). `George (male)` is a good British
-   First Officer; `Heart (female)` is Kokoro's showcase voice.
+Kokoro needs a Kokoro server that you run yourself, on this PC or another PC in your
+network. On the **Kokoro** tab you type the server address in **Base URL**, press
+**Refresh voices** and pick a **Fallback voice** (more on fallbacks below). "George (male),
+grade C" is a good British First Officer; "Heart (female), grade A" is Kokoro's showcase
+voice. The server, the exact address and the checks are in
+[chapter 18](18-kokoro.md).
 
 The grade beside each Kokoro name (A down to F) is Kokoro's own estimate of how much and how
 clean the training audio was. British and American voices make a usable First Officer. The
@@ -86,12 +87,13 @@ works.
 5. Press **Save** in the bar at the bottom.
 6. Go to **Status** (top of the same rail). In the **TTS Providers** table the provider you
    picked reads *Untried* or *Healthy*, not *Disabled*. Press **Test** on that row. The sample
-   plays in that voice and the pill turns *Healthy*.
+   plays in that provider's **Fallback voice** (the one on its tab, not the voice you picked
+   here) and the pill turns *Healthy*.
 
 ![Voice First Officer status with the provider table](../img/first-officer.png)
 
 Leave **First Officer** on "Pick a voice…" and every provider speaks with its own fallback
-voice, in chain order — the behaviour of earlier versions.
+voice, in chain order.
 
 ## Step 3 — pick the crew voices
 
@@ -101,7 +103,7 @@ On the same **Voices** page, under **Crew Voices**:
 |---|---|---|
 | **Purser voice** | Cabin reports on the cabin interphone ("cabin secure", boarding updates) | A different gender from the First Officer makes the cabin easy to tell apart |
 | **Company voice** | Dispatch and ACARS messages read out | Any voice; the ACARS beep marks it |
-| **Ground crew voice** | The ground crew on the interphone | With **Accent Localization** on, Google speaks the ground crew in the airport's accent instead |
+| **Ground crew voice** | The ground crew on the interphone | With **Accent Localization** on, a Google ground crew voice speaks in the airport's accent. The provider this voice names still speaks first: a Kokoro voice changes to British George at British, Australian and Indian airports, an ElevenLabs voice stays as set |
 
 Each dropdown lists the same voices as the First Officer's. **Same voice as the First
 Officer** (blank) is always allowed. The intercom filter ticks give the purser and the ground
@@ -123,9 +125,9 @@ Two consequences:
 
 - Set a sensible fallback voice on every provider you connect, even the ones you do not plan
   to hear. The Windows tab is the floor — it always works.
-- Picking an ElevenLabs or Google voice for the First Officer also fills that provider's
-  empty fallback field for you, because those two providers need a voice to count as
-  configured.
+- Kokoro, ElevenLabs and Google each need a fallback voice to count as configured. Kokoro
+  and Google come with one filled in; ElevenLabs starts empty. Picking a voice for the First
+  Officer also fills that provider's empty fallback field for you when you save.
 
 ## Typing a voice id
 
@@ -133,23 +135,23 @@ Every dropdown ends with **Other voice id…**. It opens a text box for a voice 
 not show — a blended Kokoro voice you just created, or an ElevenLabs voice outside the
 premade set. On the Voices page type it as `provider:id`, for example
 `elevenlabs:EXAVITQu4vr4xnSDxMaL` or `kokoro:af_sky`. On a provider tab type the bare id.
-Settings from earlier versions with plain names (`af_heart`) keep working: a plain name is
-handed to whichever provider speaks.
+A plain name without a provider (`af_heart`) also works: it is handed to whichever provider
+speaks.
 
 ## Troubleshooting
 
 | What you see | Why | What to do |
 |---|---|---|
 | A dropdown shows only "… (saved)" and a yellow hint | No provider has answered yet, or none is connected | Connect a provider on Voice Providers and press Refresh voices; then Refresh all voices on the Voices page |
-| "Kokoro: could not list voices — …" | The server did not answer on that address | Check the Base URL and that the Kokoro server is running; try `http://<address>/v1/audio/voices` in a browser |
-| "ElevenLabs: could not list voices — HTTP 401" | The key is wrong or was deleted | Paste the key again and Save |
+| "Kokoro: could not list voices — …" | The server did not answer on that address | Check the Base URL and that the Kokoro server is running; the checks are in [chapter 18](18-kokoro.md) |
+| "ElevenLabs: could not list voices — ElevenLabs voices HTTP 401: …" | The key is wrong or was deleted | Paste the key again and Save |
 | "Google: could not list voices — …" | The key file path is wrong, or the file is not a service-account key | Check the path; the file must be a service-account JSON key |
 | The FO speaks, but in another voice than the one picked | The picked provider is down, cooling down or over budget, so the chain covered | Status page → TTS Providers: the row reads *Cooling down* or *Disabled*; fix that provider, or pick a voice from a provider that is up |
 | The purser sounds like the First Officer | The purser voice is blank, or its provider is down | Pick a purser voice; check the Status page |
-| Status page says *Disabled — not configured* for a provider you set up | The provider needs a voice to count as configured (ElevenLabs, Google) | Pick a fallback voice on its tab, or pick one of its voices for the First Officer; Save |
-| Test plays but the FO in flight does not use that provider | **Local only** is ticked (General page) — it shuts out every network provider | Untick Local only |
+| Status page reads *Disabled*, "not configured" for a provider you set up | The provider needs a fallback voice to count as configured (Kokoro, ElevenLabs, Google) | Pick a fallback voice on its tab, or pick one of its voices for the First Officer; Save |
+| Status page reads *Disabled*, "local-only mode" for Kokoro, ElevenLabs or Google, and **Test** answers "… is excluded by local-only mode." | **Local only** is ticked (General page) — it shuts out every network provider | Untick Local only |
 | A voice from the list reads English badly | A non-English Kokoro voice | Pick an American or British Kokoro voice for anything the crew says |
-| A one-word Kokoro callout ("Checked") sounds clipped or mumbled | Kokoro cannot time a lone word; since 0.7.0-rc.9 short callouts are sent with a little padding, but clips rendered by an older build are still on disk | Close the app and delete the `kokoro` folder under the TTS cache folder (Voice First Officer → Voice Providers → **Cache**, advanced **TTS cache folder**; default `%LOCALAPPDATA%\ProsimCompanion\cache\tts`); the callouts render again on the next flight |
+| A one-word Kokoro callout ("Checked") sounds clipped or mumbled | An old clip is still on disk | Delete the `kokoro` folder in the **TTS cache folder**; see [chapter 18](18-kokoro.md) |
 
 The **Logs** page shows the voice listing lines ("Kokoro voice list: 68 voices") and the
 reason a provider was skipped. **Export diagnostics** on that page packs them for a bug
@@ -157,4 +159,4 @@ report.
 
 ---
 
-**Next:** [ElevenLabs voices](06-elevenlabs.md) · **See also:** [ElevenLabs voices](06-elevenlabs.md), [Voice First Officer](03-voice-fo.md) · [Manual contents](README.md)
+**Next:** [ElevenLabs voices](06-elevenlabs.md) · **See also:** [Kokoro voice server](18-kokoro.md), [Voice First Officer](03-voice-fo.md) · [Manual contents](README.md)

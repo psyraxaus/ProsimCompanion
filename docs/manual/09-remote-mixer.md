@@ -6,12 +6,12 @@ or bus gain, a REC push-button mutes it, and a status card shows what the mixer 
 with a Mute button per channel. This works through **VoicemeeterBridge**, a small agent
 that runs in the tray of the mixer PC and talks to its Voicemeeter for us.
 
-Since 0.8 the app can talk to **several** agents at once — one per PC. A two-pilot cockpit
+The app can talk to **several** agents at once — one per PC. A two-pilot cockpit
 with a PC per pilot drives both (section 9.7).
 
 This is separate from the VoiceMeeter backend of Audio Control (Settings → Audio Control →
-Volume Control), which drives the Voicemeeter on the **sim PC** through its DLL. You can use
-both at the same time.
+General, **Backend**), which drives the Voicemeeter on the **sim PC** through its DLL. You
+can use both at the same time.
 
 ![Remote Mixer settings](../img/remote-mixer.png)
 
@@ -49,23 +49,28 @@ Click **Add agent** for the first one (or the next one).
    paste it.
 2. Click **Test connection** in that block. A green pill reads *Connected. Voicemeeter
    potato 3.1.1.2 is running.* (your edition and version). A red pill names the problem:
-   *unauthorized* is a wrong token, *No answer* is the address, port or firewall.
+   *Agent refused the hello: unauthorized* is a wrong token; *Could not connect: …* means
+   nothing answers on that address and port (agent not running, wrong port, firewall);
+   *No answer from … within 5 s.* means the address is wrong or the firewall drops the
+   connection.
 3. Tick **Enable remote mixer** at the top and **Save**.
 
 The pill beside each Test button then shows the live state of that saved link. One
 `Mixer` dot joins the footer while the feature is on; with several agents it is green only
-when every agent is connected, and its tooltip reads *1 of 2 agents connected* when one is
-not. Each link reconnects by itself when its PC is off or restarts; the first failure is
-logged, later retries are quiet. One agent being down does not slow the others.
+when every agent is connected. When one is not, the dot is red and its tooltip reads
+*Mixer: 1 of 2 agents connected*. Each link reconnects by itself when its PC is off or
+restarts; the first failure is logged, later retries are quiet. One agent being down does
+not slow the others.
 
 **Enable this agent** inside a block keeps the block without opening a connection — handy
 for a PC that is not on today.
 
 Every token is stored encrypted in `settings.json` and never written to the log.
 
-**Upgrading from a single-agent version:** the first time you open the page your saved
-host, port and token appear as agent block 1, named *Mixer PC*, with a hint saying so. Save
-once to keep the new layout. Your mapping rows keep working without a change.
+**If your settings hold one connection without a name:** the page shows it as an agent
+block named *Mixer PC*, with the hint *The saved connection was moved into this agent
+block. Save to keep the new layout.* Save once. Your mapping rows keep working without a
+change.
 
 ## 9.4 Pick the strips and buses for the status card
 
@@ -92,10 +97,10 @@ up the pill is green and the rows show the real labels, gains and mute states.)
 Settings → Audio Control → Remote Mixer → **Mappings**. The editor works like the local
 VoiceMeeter one: one row per audio-panel channel.
 
-1. Click **Add mapping**. The row comes filled in: *Captain*, the first channel not yet
+1. Click **Add mapping**. The row comes filled in: *CPT*, the first channel not yet
    mapped (VHF1 to start), the first strip of the first agent, **Latch** ticked.
-2. **Panel**: Captain, First Officer or Observer. **Channel**: VHF1 … PA, or LOUDSPEAKER
-   on the captain's and first officer's panels.
+2. **Panel**: CPT (captain), F/O (first officer) or OBS (observer). **Channel**: VHF1 … PA,
+   or LOUDSPEAKER on the CPT and F/O panels.
 3. **Strip / bus**: pick the target by its Voicemeeter name — *Strip 3 — vPilot*,
    *Bus A1 — Headset*. The names come from the mixer PC; before the first connect the
    list shows plain numbers. With more than one agent every entry starts with the PC's
@@ -108,13 +113,15 @@ VoiceMeeter one: one row per audio-panel channel.
 Save. Turn the knob: the **Live** column shows the gain last sent and the mute state, for
 example `-17.0 dB · open`, and, if the agent refused the write, why (`unknown parameter`
 means the strip or bus does not exist in that Voicemeeter edition; `no_agent` means the
-row names a PC that is not in the list any more; `agent_off` means that agent's block, or
-the whole feature, is switched off).
+row names a PC that is not in the list any more; `agent_off` means **Enable this agent**
+is unticked in that agent's block, or its host is empty). With **Enable remote mixer** off
+the column shows a dash for every row.
 
 Under the table the page warns when two rows drive the same strip or bus on the same PC:
-*Bus A2 is driven by Captain VHF1, First Officer VHF1. One target has one volume — give
-each knob its own strip or bus.* It does not stop you saving; it tells you the two knobs
-will fight ([chapter 11](11-two-headsets.md) explains the one-fader rule).
+*Bus A2 is driven by CPT VHF1, F/O VHF1. One target has one volume — give each knob its
+own strip or bus.* It does not stop you saving, and both rows stay in use: the two knobs
+fight and the last one to move wins ([chapter 11](11-two-headsets.md) explains the
+one-fader rule).
 
 ### Fine-tuning
 
@@ -134,13 +141,14 @@ will fight ([chapter 11](11-two-headsets.md) explains the one-fader rule).
 
 | Symptom | Check |
 |---|---|
-| Test says *No answer* | Address and port; firewall on the mixer PC; the agent is running (tray icon). Try the `/health` page from 9.2. |
-| Test says *unauthorized* | Copy the token again from the agent's tray menu and paste it fresh. |
+| Test says *No answer from … within 5 s.* or *Could not connect: …* | Address and port; firewall on the mixer PC; the agent is running (tray icon). Try the `/health` page from 9.2. |
+| Test says *Agent refused the hello: unauthorized* | Copy the token again from the agent's tray menu and paste it fresh. |
+| Test says *Enter a host first.* | The **Host** field of that block is empty. |
 | Pill says *Connected — Voicemeeter not running on the mixer PC* | Start Voicemeeter there. The agent reconnects to it by itself and the pill turns green. |
-| Pill says *Off* on a block | **Enable this agent** is unticked in that block, or **Enable remote mixer** at the top is off, or the host is empty. |
-| Footer dot amber, tooltip *1 of 2 agents connected* | One PC is off or unreachable. The other keeps working; look at the block whose pill is not green. |
+| Pill says *Off* or *Off — no host* on a block | *Off*: **Enable this agent** is unticked in that block, or **Enable remote mixer** at the top is off. *Off — no host*: the **Host** field is empty. |
+| Footer dot red, tooltip *Mixer: 1 of 2 agents connected* | One PC is off or unreachable. The other keeps working; look at the block whose pill is not green. |
 | Status card shows `—` for a channel | That strip or bus number does not exist in this Voicemeeter edition (Standard has 3 strips, Banana 5, Potato 8). The log says `Mixer [PC1]: parameter Strip[7].Gain cannot be read`. |
-| Knob moves, nothing happens | Is the row **On**? Does the **Live** column show a value? `not_connected` means that agent's link is down; `no_agent` / `agent_off` mean the row's PC is missing or off; `unknown parameter` means that strip or bus does not exist in this Voicemeeter edition; a dash means no knob value has arrived from ProSim yet. |
+| Knob moves, nothing happens | Is the row **On**? Does the **Live** column show a value? Is that agent's pill green? While its link is down the app sends nothing and keeps the value for the reconnect; `not_connected` appears only when the link dropped during a write. `no_agent` / `agent_off` mean the row's PC is missing or off; `unknown parameter` means that strip or bus does not exist in this Voicemeeter edition; a dash means no knob value has arrived from ProSim yet. |
 | The REC button does not mute | Is **Latch** ticked on that row? The LOUDSPEAKER dial has no button: it mutes fully down. |
 | The level jumps between two values | Two rows send to the same parameter on the same PC — the page shows a warning under the table. Keep one. |
 | A knob moves the wrong PC | Open the row's **Strip / bus** list and check the PC name in front of the entry. |
@@ -150,7 +158,7 @@ brackets. The wire trace channel is `Mixer/<name>` if support asks for frames.
 
 ## 9.7 Two pilot PCs: INT and VHF on separate knobs
 
-The case this was built for: a main PC with ProSim, ProsimCompanion and VoiceMeeter Banana,
+The typical case: a main PC with ProSim, ProsimCompanion and VoiceMeeter Banana,
 plus one PC per pilot running ProSim Audio 2 and VoiceMeeter Potato. Headset audio goes
 main → pilot PC over VBAN; on each pilot PC the online-ATC audio lands on one strip (the
 VBAN strip) and ProSim Audio 2 (intercom, callouts) on another (the VAIO strip). Two strips,
@@ -165,10 +173,10 @@ you ([chapter 11](11-two-headsets.md), sections 11.3–11.4, says why).
 
 | Panel | Channel | Strip / bus |
 |---|---|---|
-| Captain | INT | PC1 · Strip 6 — Voicemeeter Input (the VAIO strip, ProSim Audio 2) |
-| Captain | VHF1 | PC1 · Strip 1 — the strip the VBAN stream from the main PC lands on |
-| First Officer | INT | PC2 · Strip 6 — Voicemeeter Input |
-| First Officer | VHF1 | PC2 · Strip 1 — the VBAN strip |
+| CPT | INT | PC1 · Strip 6 — Voicemeeter Input (the VAIO strip, ProSim Audio 2) |
+| CPT | VHF1 | PC1 · Strip 1 — the strip the VBAN stream from the main PC lands on |
+| F/O | INT | PC2 · Strip 6 — Voicemeeter Input |
+| F/O | VHF1 | PC2 · Strip 1 — the VBAN strip |
 
    (Strip numbers as on your Potato; the list shows your own labels once each agent is
    connected.)
@@ -177,8 +185,8 @@ you ([chapter 11](11-two-headsets.md), sections 11.3–11.4, says why).
    VHF1 knob: only PC2's VBAN strip moves. Status → Remote Mixer shows both agents green;
    tick the four strips in the two blocks' **Status Panel** to watch them.
 
-If one pilot PC is off, its block's pill goes amber and the footer dot reads *1 of 2
-agents connected*; the other pilot's knobs keep working, and the missing PC catches up on
+If one pilot PC is off, its block's pill goes amber, the footer dot goes red and its
+tooltip reads *Mixer: 1 of 2 agents connected*; the other pilot's knobs keep working, and the missing PC catches up on
 its own when it is back.
 
 ---

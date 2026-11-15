@@ -7,7 +7,7 @@ knob work?"* and *"can VHF2 go on its own bus?"*. The short answers: the INT kno
 today, but only once INT has a bus of its own; VHF2 cannot have its own bus because the
 online client sends COM1 and COM2 as one stream.
 
-The layout was worked out with a two-pilot cockpit (support thread, October 2026): a main
+The layout was worked out with a two-pilot cockpit: a main
 PC running ProSim and ProsimCompanion with VoiceMeeter Banana, and one PC per pilot with
 ProSim Audio 2 and VoiceMeeter Potato. A single-PC cockpit uses the same ideas with fewer
 boxes.
@@ -18,7 +18,7 @@ VoiceMeeter has one volume control per strip and one per bus. A knob on the audi
 sets one of those faders. So:
 
 - Two headsets on one bus have **one** volume. The captain's knob and the first officer's
-  knob would fight over the same fader; the last one to move wins.
+  knob would pull on the same fader.
 - INT and VHF arriving on the same headset bus share **one** volume. An INT knob mapped to
   that bus turns the ATC audio down with it.
 - A strip that feeds both headsets cannot be loud for one and quiet for the other.
@@ -26,9 +26,15 @@ sets one of those faders. So:
 Per-headset volume therefore needs **a bus per headset**, and a separate INT level needs
 **a separate path for the intercom audio** on top of that. Both editors in the app warn you
 when two rows share a strip or bus (Settings → Audio Control → VoiceMeeter, and → Remote
-Mixer → Mappings): *"Bus A2 is driven by Captain VHF1, First Officer VHF1. One target has
-one volume"*. The warning does not block saving; it tells you which fader two knobs are
-pulling on.
+Mixer → Mappings): *"Bus A2 is driven by CPT VHF1, F/O VHF1. One target has one volume"*
+(the VoiceMeeter page names the same bus *Bus 2*, with your own label). The warning does
+not block saving; it tells you which fader two knobs are pulling on. What happens after
+the save differs:
+
+- **Remote Mixer**: both rows stay in use, and the last knob to move wins.
+- **VoiceMeeter** (the mixer on the main PC): the app does not use a set with a shared
+  strip or bus. It drives the captain's panel only, and Settings → Audio Control → Status
+  shows *Mapping conflict: …* until every row has its own target.
 
 ## 11.2 The main PC (VoiceMeeter Banana)
 
@@ -51,12 +57,16 @@ Online ATC client (IVAO/vPilot) ──► a virtual cable ──► hardware str
 4. Microphones come in on hardware strips and go to the online client the way you already
    do it (B1 as the client's microphone device, for example). Nothing here changes.
 
-Map the knobs (Settings → Audio Control → VoiceMeeter):
+Map the knobs (Settings → Audio Control → VoiceMeeter). Each panel has its own card, and
+this page numbers the buses: A2 is *Bus 2*, A3 is *Bus 3*.
 
-| Panel | Channel | Target | What it does |
+| Card | Channel | Target | What it does |
 |---|---|---|---|
-| Captain | VHF1 | Bus A2 | The captain's headset volume. ATC *and* intercom together — one bus, one fader (11.1). |
-| First Officer | VHF1 | Bus A3 | The same for the first officer. |
+| **CPT Mappings** | VHF1 | Bus 2 (A2) | The captain's headset volume. ATC *and* intercom together — one bus, one fader (11.1). |
+| **F/O Mappings** | VHF1 | Bus 3 (A3) | The same for the first officer. |
+
+Tick **Drive targets from the F/O ACP** on the **F/O Mappings** card: without the tick the
+F/O list does nothing.
 
 This is the layout most two-headset cockpits end up with. It gives each pilot a headset
 volume. It does **not** give a separate INT level: INT arrives on the same bus as the ATC
@@ -80,8 +90,8 @@ means a second physical or virtual output into the same device, or the loop tric
 [chapter 8](08-loudspeaker-dial.md) (a bus sent back in over VBAN onto a strip that feeds
 the headset bus, with the knob on the looped bus). It works; it costs a bus, a strip and a
 little latency per pilot. If you have Potato on the main PC and spare buses, this is the
-cheapest route. Map **Captain INT → Bus A4** and **Captain VHF1 → Bus A2** (and the first
-officer's pair likewise) and the two knobs drive two faders.
+cheapest route. In **CPT Mappings** map INT → *Bus 4* (A4) and VHF1 → *Bus 2* (A2), and
+the first officer's pair likewise in **F/O Mappings**, and the two knobs drive two faders.
 
 ## 11.4 INT on its own: drive each pilot's PC (Remote Mixer)
 
@@ -94,10 +104,10 @@ the **Remote Mixer** does with one VoicemeeterBridge agent per pilot PC
 
 | Panel | Channel | Agent · target |
 |---|---|---|
-| Captain | INT | PC1 · Strip 6 (VAIO, ProSim Audio 2) |
-| Captain | VHF1 | PC1 · Strip 1 (the VBAN strip carrying ATC) |
-| First Officer | INT | PC2 · Strip 6 |
-| First Officer | VHF1 | PC2 · Strip 1 |
+| CPT | INT | PC1 · Strip 6 (VAIO, ProSim Audio 2) |
+| CPT | VHF1 | PC1 · Strip 1 (the VBAN strip carrying ATC) |
+| F/O | INT | PC2 · Strip 6 |
+| F/O | VHF1 | PC2 · Strip 1 |
 
 The main PC's VoiceMeeter keeps doing the routing; no spare buses are needed there. One
 pilot PC being off does not affect the other — each agent reconnects on its own.
