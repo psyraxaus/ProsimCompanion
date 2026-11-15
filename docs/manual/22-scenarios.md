@@ -150,6 +150,8 @@ drills: [Voice First Officer](03-voice-fo.md).
 - Open **Diagnostics**, page **STATUS** (`http://localhost:5320/diagnostics/status`), and
   click the box **FAILURES / CLEAR ALL** at the bottom right. Under the box you then read,
   for example, "1 failure(s) cleared."
+- From your own tool: send the command `scenario.clearAll` through the Command API (see
+  [chapter 27](27-command-telemetry-api.md)).
 
 Both clear **every** active failure in ProSim, also the ones you set on the IOS.
 

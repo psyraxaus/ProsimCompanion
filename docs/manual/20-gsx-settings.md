@@ -137,6 +137,13 @@ between flights, not during a departure.
 **Check it:** load a flight plan and start the services. On the Status page the rows of the
 **Departure Status Board** move from **Waiting** to **Called** and on to **Completed**.
 
+**Turnarounds.** With **Ground preparation start** on **Voice on a cold start, automatic on a
+turnaround**, the first leg waits for your "commence ground services" and a turnaround starts
+by itself: the next flight plan must be loaded at the stand, with the engines off, for the
+time in **Turnaround auto-start delay**. Tick **Ask before a turnaround starts** and the
+First Officer asks *"Next plan loaded — commence ground services?"* first and starts on your
+"yes".
+
 ## Refuel & Boarding
 
 How the fuel truck is called, how fast the tanks fill, and how passengers and bags arrive
@@ -195,6 +202,22 @@ not yet verified live. Leave it off unless you want to try it.
 **Check it:** after parking and switching the beacon off, the chocks go in, the jetway or
 stairs connect and deboarding starts without a click.
 
+**How the arrival gate reaches GSX.** You type the gate on the OFP page the way ATC or the
+plan names it. The app tries three names in this order: the stand's number in the scenery,
+the name GSX uses for it, then your text. So a stand that GSX prints under another name is
+still found.
+
+- To send the gate, the app has GSX load the destination through GSX's own **Select
+  airport** menu in flight. That list shows only a few airports per page, so the app turns
+  its pages (**Airport list pages to search**). It tries at most three times in a flight,
+  ten minutes apart.
+- A "no airport loaded" answer from GSX only means the destination is still loading. The
+  gate goes out when it has loaded.
+- When the scenery has your gate only as two stands with a letter (36A and 36B for "W36"),
+  the app takes the letter you typed, else the one with a jetway. Otherwise it asks you
+  (**Ask which stand when GSX splits the gate**, on by default), and takes the first one at
+  taxi-in if nobody answers.
+
 ## Operators & Hubs
 
 Which handling company GSX uses, and which airports count as your airline's hubs.
@@ -220,6 +243,15 @@ The pop-up questions GSX asks, and de-icing.
 
 **Check it:** during a turnaround no crew or Follow-Me question stays open in the sim. A
 question the app leaves for you appears as buttons in the **GSX menu** card.
+
+**When the de-icing question comes.** With **Request de-icing from the weather** on
+**Ask me**, the question comes when the de-icing step has its turn (see **When to ask**).
+If you say nothing, the question stays open. Say *"request de-icing"* or *"no de-icing"* at
+any time until the **Answer timeout** ends; only the end of that time counts as a no.
+
+**The GSX menu card and the automation.** The card does not take your click while the
+automation is answering the same menu. A line that moved before your click arrived is not
+sent. Every answer, and every menu left for you, is in the decision log.
 
 ## Voices
 

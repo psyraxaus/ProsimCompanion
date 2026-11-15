@@ -247,6 +247,19 @@ W&B: the figures are in the unit you chose.
 | The Flight Status tiles are in a strange order | Somebody changed the order on the Flight Status page. It is saved for every device. | Press **Reset** beside **Tile layout**, then **Save**. |
 | After an app restart in flight the flight plan and times are gone | **Remember the flight across a restart** is unticked, or the saved flight is older than the limit, or the aircraft or the plan in the EFB changed. | Tick it. Load the flight plan again for this flight. |
 
+**What comes back after a restart in flight.** With **Remember the flight across a
+restart** ticked, the app takes back: the flight plan as it was imported (nothing is written
+to the EFB again), the off-blocks and takeoff times with their fuel, the Fuel Log rows
+already stamped, the arrival minima you entered, the running chrono, and the things that
+happen once per flight and already happened (the cabin-secure report, the final loadsheet
+notification). It does this only when ProSim reports the same aircraft and the same flight
+plan, and the saved flight is not older than the limit on the card (18 hours as installed).
+A restart in a turnaround comes back as a turnaround. Without a saved flight the app does
+not guess: the debrief and the Logbook say "takeoff time unknown (app started in flight)"
+and the Fuel Log marks the earlier fixes "not recorded". After a restart the gate monitor
+believes the cabin, not GSX's counter: a boarding that GSX calls completed over an empty
+cabin belongs to the leg before and reads *Not called*.
+
 ## Related chapters
 
 - [Using the app](02-using-the-app.md): the settings menu, phone notifications, themes.
