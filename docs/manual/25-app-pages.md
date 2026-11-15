@@ -160,7 +160,7 @@ page of the [Diagnostics](13-diagnostics.md) shows the flight phase too.
 
 ## Aircraft Profiles
 
-![Aircraft Profiles page](../img/aircraft-profiles.png)
+![Aircraft Profiles page with no profile yet](../img/aircraft-profiles.png)
 
 **What it is for.** A profile keeps a set of Ground Services settings for one aircraft,
 livery or airline. The page says: "A profile holds the Ground Services settings. Saving on

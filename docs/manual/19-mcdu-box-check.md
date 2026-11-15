@@ -107,7 +107,7 @@ read."*
 
 ### The card
 
-![MCDU CHECK card](../img/box-check-card.png)
+![MCDU CHECK card before a check](../img/box-check-card.png)
 
 The **MCDU CHECK** card shows the eight letters, and under them, for each page, the lines the
 FO read and found. The lines are in English in every language.

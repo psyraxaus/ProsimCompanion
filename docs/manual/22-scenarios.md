@@ -16,7 +16,7 @@ this mode, and only rc.6 writes the file with ProSim's failure names that you ne
 > **Not yet confirmed in flight.** This mode has not been flown from start to end. It also
 > does nothing until you have done the one-time file edit in "Set it up", part 1.
 
-![Scenarios settings](../img/scenarios.png)
+![Scenarios settings, switched off](../img/scenarios.png)
 
 ## Before you start
 

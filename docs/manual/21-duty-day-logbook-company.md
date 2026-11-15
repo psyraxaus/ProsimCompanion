@@ -10,7 +10,7 @@ In every version since **0.3.0-beta.30**. The Logbook page arrived in **0.6.0-rc
 messages, delay codes and the FDP warning in **0.8.0-rc.1**, the FO's end-of-duty question in
 **1.0.0-rc.2** (the duty day is on by default since then), **Discard this day** in **1.0.0-rc.6**.
 
-![Duty Day page](../img/duty-day.png)
+![Duty Day page with no duty day open](../img/duty-day.png)
 
 ## Before you start
 
