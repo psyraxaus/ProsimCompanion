@@ -15,8 +15,8 @@ and registration (from the OFP), the flight number and the SIM/UTC clock on spli
 displays, a theme picker and the ProSim connection dot. Home cockpits that never touch the
 INT/RAD switch can add a **NEXT SERVICE** button to the header (Settings → Appearance): it
 names the next departure service, why it is holding, and calls it on a click — on every page.
-The cockpit switch itself is the **Hardware next-service button** (Settings → GSX →
-Automation): turn it off when your panel or audio bridge keys the interphone mic on INT, or
+The cockpit switch itself is the **Hardware next-service button** (Settings → Ground Services →
+Departure Services → Automation): turn it off when your panel or audio bridge keys the interphone mic on INT, or
 pick another switch under the advanced fields. The **Trigger switch** list is grouped by
 panel (overhead, pedestal, audio panels, FCU, …) and shows each switch with its ProSim
 description; the **Trigger value** then offers that switch's positions (INT / Off / RAD).
@@ -47,7 +47,7 @@ running version.
 
 | Page | What it does |
 |---|---|
-| **Flight Status** | Route hero with two weather cards (local weather / weather at destination: sky graphic, wind, visibility, ceiling, temperature, QNH, ATIS letter, METAR time), a LIGHT / MODERATE / SEVERE TURBULENCE chip beside the phase while the ride is rough, a TURNAROUND / AWAITING PLAN chip beside the phase during a turnaround (deboarding complete, then the FMS cleared; it goes when the next OFP lands — the leg boundary of ADR-0019, a separate state from the flight phase) and the **Captain's PA** script card when the FO has prompted your announcement (both under Settings → Crew & Company → Cabin Crew), the gate monitor strip (Gate Closed → Gate Open → Boarding → Final Call → Gate Closed, with the passenger count and the STD countdown) and its **Pop out** button, the live ground speed / altitude / vertical speed / heading / fuel figures, the distance row (to go, flown, ETA, top of descent — direct distances, see the Flight Monitor notes below), the **Radios** tile (COM1 active and standby beside the frequency SayIntentions ATC expects — ON FREQUENCY / WRONG FREQUENCY — with a Tune button and the local airport's stations as tap-to-tune chips, standby-then-swap through ProSim datarefs; the last ATC line underneath), the flight sequence with the phase-engine controls, then the Sim/App/GSX/Services cards with state pills. **Edit layout** lets you drag the tiles into your own order (see below). Final-call thresholds, the weather refresh cadence and the top-of-descent notice live under Settings → Display & Flight Data → Flight Status card |
+| **Flight Status** | Route hero with two weather cards (local weather / weather at destination: sky graphic, wind, visibility, ceiling, temperature, QNH, ATIS letter, METAR time), a LIGHT / MODERATE / SEVERE TURBULENCE chip beside the phase while the ride is rough, a TURNAROUND / AWAITING PLAN chip beside the phase during a turnaround (deboarding complete, then the FMS cleared; it goes when the next OFP lands — the leg boundary, a separate state from the flight phase) and the **Captain's PA** script card when the FO has prompted your announcement (both under Settings → Crew & Company → Cabin Crew), the gate monitor strip (Gate Closed → Gate Open → Boarding → Final Call → Gate Closed, with the passenger count and the STD countdown) and its **Pop out** button, the live ground speed / altitude / vertical speed / heading / fuel figures, the distance row (to go, flown, ETA, top of descent — direct distances, see the Flight Monitor notes below), the **Radios** tile (COM1 active and standby beside the frequency SayIntentions ATC expects — ON FREQUENCY / WRONG FREQUENCY — with a Tune button and the local airport's stations as tap-to-tune chips, standby-then-swap through ProSim datarefs; the last ATC line underneath), the flight sequence with the phase-engine controls, then the Sim/App/GSX/Services cards with state pills. **Edit layout** lets you drag the tiles into your own order (see below). Final-call thresholds, the weather refresh cadence and the top-of-descent notice live under Settings → Display & Flight Data → Flight Status card |
 | **Flight Monitor** (pop-out) | A second-monitor board opened from the gate strip's Pop out button (or at `/monitor`) — see below |
 | **INIT** | MCDU-style OFP display: fetch the SimBrief OFP, per-field overrides (ZFW, fuel, pax, cargo), SYNC TO FMS, confirm fuel (orders the fuel truck — unless the fuel on board already meets the figure, then it answers "Refueling is not needed" and no truck comes), two resets: **RESET FLIGHT (SOFT)** restarts the leg on the same OFP (overrides and loadsheet cycle only), **UNLOAD OFP (FULL)** clears the plan from the ProSim EFB — seat map, pax, planned fuel and cargo, loadsheets — and resets the flight cycle so nothing is called until you fetch a new OFP; both need a second press within 3 s |
 | **OFP** | Flight-plan hero, arrival-gate assignment, weather (METAR/TAF/ATIS), **NOTAM highlights** (runway / taxiway closures, ILS, lighting, PAPI and displaced-threshold NOTAMs from the plan — the full list stays on your SimBrief briefing), pushback-direction Korry buttons, de-ice holdover card; the **Diversion** card (Settings → Display & Flight Data → Diversion, off by default): "Divert to {alternate}" or an ICAO and a reason, then the new destination, the FO's offers and Cancel — the whole app follows the new destination |
@@ -57,7 +57,7 @@ running version.
 | **Fuel Log** | The paper OFP's fuel column: plan vs actual at your point on the navlog, estimated landing fuel, a burn chart, the waypoint table that fills in as you pass each fix, and the First Officer's spoken fuel checks — see below |
 | **Performance** | Takeoff and Landing switch — airport/runway card with runway chips, runway diagram and wind components, weather, aircraft config, FMGC figures, FMS PERF uplink; a **wind row** on both pages judges the components (gust included) against your aircraft limits (Settings → Display & Flight Data → Aircraft limits) — green within limits, amber within 5 kt, red beyond; the Landing page's condition strip (Dry / Wet / RWYCC 5…1) feeds the calculator, picks the crosswind limit and is remembered for the flight |
 | **Checklists** | ECAM-style interactive checklists with a completion bar and the checklist sequence rail (visual runner; the voice FO runs beside it) |
-| **Tech Log / Duty Day** | MEL & tech log, multi-leg company day mode with a legs timeline — each leg begins when its OFP is loaded — the next leg of a turnaround starts on the new plan, never on the Preflight edge after deboarding (ADR-0019) — takes its FROM / TO and flight number from that plan, and keeps whatever you actually flew once the leg is on blocks; after the day's last landing the page shows the day in turnaround with no next-leg row; **end of duty is yours** (ADR-0019): say *end duty day*, press **End duty day** on the page, or answer *yes* when the FO asks *"Captain, is that the end of our duty day?"* — asked once, ten minutes after the aircraft has gone cold and dark with no new plan (Settings → Crew & Company → Company & Debrief → *FO offers to end the day after*; 0 = never ask); *no* or silence leaves the day open, and a backstop closes it 300 minutes after deboarding completed (else on-blocks) if nothing happens — phase changes and app restarts do not reset that clock; ending the day speaks the debrief (sectors, block and duty, schedule, approaches, abnormals, **fuel used**, the **tech-log entries raised today by name**), writes `<dayId>.summary.txt` beside the session logs, folds the logbook day record, clears the restart memory and the departure cycle (ground services wait for a new plan) and releases the First Officer for the next sim day; a plan loaded after the end starts a new duty day with the same FO; **a flight you gave up** (a sim crash, you stopped part-way) leaves the day open with no end, so (2026-11-14, #239) the app does not continue such a day forever: at start, an open day that was last saved more than **12 hours** ago in real time is **discarded as abandoned** instead of resumed — one log line, no debrief, the unfinished leg is not logged, legs you completed before stay in the logbook as that day — and a restart inside 12 hours resumes the day as before; to drop the open day yourself press **Discard this day** beside *End duty day* (two presses: the second confirms) or call the `day.discard` command — unlike *End duty day* it speaks no debrief and records no leg for the unfinished sector, and like it the departure cycle is cleared and ground services wait for a new plan; with the FDP warning on, the day card shows the flight duty period against the EASA basic maximum and turns red when the next sector would run past it (advisory, see the Voice FO chapter) |
+| **Tech Log / Duty Day** | The MEL & tech log, and the multi-leg company day with its legs timeline: each leg begins when its OFP is loaded, the end of duty is yours, and a day you gave up is discarded after twelve hours — see [chapter 21](21-duty-day-logbook-company.md) |
 | **Logbook** | Your flights: totals (flights, block hours, landings, stable-approach rate, average touchdown rate), the touchdown-rate trend, a table you can sort by any column, the detail of one flight (times, runways, touchdown rate / speed / pitch, bounces, abnormals), delete (two clicks) and **Export CSV** — see below |
 | **⚙ Settings** | Everything you configure, on one rail (below) |
 
@@ -193,7 +193,7 @@ its own address, so a refresh or a link from a warning banner lands on the right
 | Rail entry | What it holds |
 |---|---|
 | **Setup** | The three master switches (GSX ground services, voice First Officer, audio control), the ProSim host/SDK path, the **ProSim Setup Check** card (below), nav data, **Weather Sources** (ActiveSky), web port/LAN access, **Wake-on-LAN** (one row per PC the app should power on at startup — the language-model box, the speech server, any other — each with a Send now button), the Stream Deck command API, the **vJoy relay** for Camera View keys ([chapter 12](12-remote-streamdeck.md)), the update check |
-| **Ground Services** | Status board (departure services with hold/skip reasons, decision log, gate control, the live GSX menu card) and all GSX behaviour: doors & jetway, ground equipment, departure services, refuel & boarding, pushback, arrival, operators & hubs, GSX questions, connection & timeouts |
+| **Ground Services** | Status board (departure services with hold/skip reasons, decision log, gate control, the live GSX menu card) and all GSX behaviour: doors & jetway, ground equipment, departure services, refuel & boarding, pushback, arrival, operators & hubs, GSX questions, voices, connection & timeouts — see [chapter 20](20-gsx-settings.md) |
 | **Voice First Officer** | Status (provider tests, minima card, speak test, Wake PCs), general, FO persona, listening & PTT, sterile cockpit, voices, voice providers (ElevenLabs, Kokoro, Google, Windows) |
 | **Flight Deck** | What the FO does at the controls and on the radios: callouts & placards (with the transition reminders), abnormals & drills, briefings & LLM, MCDU |
 | **SayIntentions** | Online ATC: the API key, radio requests, who works the radios, push-to-talk from the cockpit, weather — see [chapter 17](17-sayintentions.md) |
@@ -203,10 +203,10 @@ its own address, so a refresh or a link from a warning banner lands on the right
 | **Screen & FOV** | Your physical screens (size, aspect, distance, yaw, height) and the life-size field of view they imply; **Apply FOV** writes it into MSFS 2024's saved pilot view with a backup; Multi Window rotations and the ChasePlane caveat — [chapter 14](14-screen-fov.md) |
 | **Hardware** | Skalarki cockpit hardware: the SkalarkiIO Profiler's SDK server address and your own SDK folder, feeding the PANELS diagnostics page — [chapter 13](13-diagnostics.md) |
 | **Display & Flight Data** | Units, split-flap animation, loadsheet automation, the Flight Status card (final-call thresholds, weather refresh, top-of-descent notice), checklist ticks, **Aircraft limits** (wind), **Fuel decision**, **Diversion**, **Last-Minute Changes** |
-| **Appearance** | Theme swatches, the header NEXT SERVICE button toggle, your theme logos for the header, your airline logos for the Flight Monitor |
+| **Appearance** | Language, theme swatches, the header NEXT SERVICE button toggle, your theme logos for the header, your airline logos for the Flight Monitor |
 | **Notifications** | ntfy / Discord / webhook targets and the per-event switches ([below](#notifications-on-your-phone)) |
 | **Aircraft Profiles** | Per-aircraft settings profiles with automatic matching |
-| **Advanced** | Flight phase engine thresholds, the live log viewer with capture settings |
+| **Advanced** | Flight phase engine thresholds, the live log viewer with capture settings, the Diagnostics pages' two settings |
 
 **Show advanced settings** (top of the rail) reveals the tuning fields — timeouts, intervals,
 thresholds — that most users never touch. Greyed-out fields belong to a switch that is off.
@@ -291,17 +291,17 @@ card off.
    jetway → ground equipment → pushback, with crew-realistic random delays.
 5. **Pushback.** The cabin crew report "cabin secure" a random while after the doors are
    closed and the beacon is on — a minimum wait plus up to a second per passenger, so a full
-   cabin can still be securing at the holding point (Settings → Crew & Company → Cabin Crew
+   cabin can still be securing at the holding point (Settings → Crew & Company → Cabin
    Crew). Until then a "cockpit to cabin" hail gets "still securing".
    **Pushback direction** is decided per flight, not by a saved setting: tell the FO what ATC
    said — *"push back facing north"*, *"tail left"*, *"tail right"*, *"straight back"* — or
-   press a Korry button on the OFP page. With nothing said, the default mode (Settings → GSX →
-   Pushback Direction) applies: **Auto** works out which push faces the departure runway from
+   press a Korry button on the OFP page. With nothing said, the default mode (Settings → Ground Services →
+   Pushback → Pushback Direction) applies: **Auto** works out which push faces the departure runway from
    the stand's GSX profile routes, the stand heading and the runway position (the OFP page
    shows *Suggested: TAIL RIGHT … for runway 22L*) and applies it when confident; when it is
    not sure the FO asks *"Pushback — tail left or tail right?"* and GSX's menu waits for your
    answer. **Ask** always asks. Ask *"which way is the pushback"* any time.
-   **De-icing** can be the app's call too (Settings → Ground Services → Questions →
+   **De-icing** can be the app's call too (Settings → Ground Services → GSX Questions →
    De-Icing, off by default): when the de-icing step's turn comes — every other departure
    service done, or at boarding complete if you prefer — it reads the outside air
    temperature and the departure METAR, and in cold precipitation, freezing fog or
@@ -328,14 +328,14 @@ card off.
    (EFHK prints Gate W40 as "Gate 40"). The send uses the stand's scenery identity (its
    number) first, then GSX's own name, then your text, so the renamed stand is found.
    Profiles are read from GSX's folder (`%APPDATA%\Virtuali\GSX\MSFS`) and from inside the
-   scenery packages; the scenery's own parking list comes from the simulator (Settings → GSX
+   scenery packages; the scenery's own parking list comes from the simulator (Settings → Ground Services
    → Arrival → Stand Knowledge). To send it, the app first has GSX load the destination
    through GSX's own in-flight **Select airport** menu. GSX sometimes shows no menu at all in
-   flight until its toolbar panel has been opened once (issue #141): the app then asks for the
+   flight until its toolbar panel has been opened once: the app then asks for the
    menu a second way by itself. If the Status section still says *"menu did not appear"*, open
    the GSX menu from the MSFS toolbar once after takeoff and the next attempt (every few
    minutes) goes through. The airport list shows only the planned airport and the nearest
-   fields on its first page, so the app turns its pages (Settings → GSX → *Airport list
+   fields on its first page, so the app turns its pages (Settings → Ground Services, *Airport list
    pages to search*); it walks the list at most three times per flight, ten minutes apart,
    and a *"no airport loaded"* answer from GSX only means the destination is still loading —
    the gate goes out when it has. When the scenery has your gate only as suffix variants
@@ -346,7 +346,7 @@ card off.
    Should GSX settle on one of the variants itself, the app adopts it and raises no parking
    warning. If GSX then asks **Select Position at
    …** itself after landing, the switch **Answer GSX's position menu with the arrival gate**
-   (Settings → GSX) lets the app pick your gate in that menu by name; off, the menu is yours.
+   (Settings → Ground Services) lets the app pick your gate in that menu by name; off, the menu is yours.
    The voice FO runs callouts, monitors flows, and briefs on request.
 7. **Arrival.** Once stably parked (engines off, brake set, beacon off): fuel is remembered
    for next session, chocks go in after a crew-realistic delay, jetway/stairs connect,
@@ -363,7 +363,7 @@ it is restored only when ProSim reports the same aircraft and the same plan — 
 app already holds, else the EFB's imported flag not contradicted by another route in the
 MCDU, else the MCDU route itself — and never when the file is older than the limit on
 **Settings → Display & Flight Data → After a restart in flight** (18 hours by default; the
-card also has the switch). **A restart in a turnaround** (ADR-0019) comes back the same way:
+card also has the switch). **A restart in a turnaround** comes back the same way:
 the TURNAROUND / AWAITING PLAN state is the one part of that file that outlives the flight
 — kept through the shutdown and a cold-and-dark power-down, dropped by the next plan or the
 end of duty — so the app never reads "PREFLIGHT with nothing" between legs; with no file at
@@ -404,9 +404,9 @@ minute (its status pill reads `FAILED` until the next good send).
 
 Thirteen built-in themes — KLM Royal Dutch (the default), Lufthansa, Swiss International,
 British Airways, Air France, Singapore Airlines, Emirates, Qatar Airways, United Airlines,
-Qantas, Finnair, Light and Dark — switch live from the header picker or from Display & Flight
-Data; both write the same setting. Drop your own JSON themes in `config/themes` (Prosim2GSX
-theme format). Weight displays follow the app unit setting or the aircraft's own unit
+Qantas, Finnair, Light and Dark — switch live on Settings → Appearance.
+Your own JSON themes go in `%LOCALAPPDATA%\ProsimCompanion\config\themes`
+(see [chapter 25](25-app-pages.md)). Weight displays follow the app unit setting or the aircraft's own unit
 selection (kg/lb); settings entry fields stay in kg.
 
 Logos are yours, never shipped: Settings → Appearance takes a **theme logo** (shown in the
@@ -416,4 +416,4 @@ DLH…), which the Flight Monitor shows for the flight plan's airline. Both live
 
 ---
 
-**Next:** [Voice First Officer](03-voice-fo.md) · **See also:** [Voice First Officer](03-voice-fo.md), [Diagnostics](13-diagnostics.md) · [Manual contents](README.md)
+**Next:** [Ground Services: the GSX settings](20-gsx-settings.md) · **See also:** [Voice First Officer](03-voice-fo.md), [Diagnostics](13-diagnostics.md) · [Manual contents](README.md)

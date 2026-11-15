@@ -133,7 +133,7 @@ No restart is needed. The next request uses the new values.
 3. A good result reads like this (your time will differ):
    `LLM: Connected — replied "OK" in 850 ms.`
 
-Then look at **Settings → Diagnostics**, page **VOICE**: the **LLM** box is green and, after
+Then look at **Diagnostics** in the sidebar, page **VOICE**: the **LLM** box is green and, after
 the first briefing, shows the time to the first word. With Ollama the VRAM figure fills in.
 See [chapter 13](13-diagnostics.md).
 

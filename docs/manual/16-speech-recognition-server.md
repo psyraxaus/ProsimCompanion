@@ -141,7 +141,7 @@ server again every 30 seconds.
    that proves the flavour is right. The lights in steps 2 and 3 are green with the wrong
    flavour too.
 
-On **Settings → Diagnostics**, page **VOICE**, the **STT** box shows the server and the time
+On **Diagnostics** in the sidebar, page **VOICE**, the **STT** box shows the server and the time
 of the last round trip, and the top right shows the last thing the app heard. See
 [chapter 13](13-diagnostics.md).
 

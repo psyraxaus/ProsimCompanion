@@ -167,4 +167,4 @@ the zip. Your key is never in the logs and is removed from the exported settings
 
 ---
 
-**Next:** [Loudspeaker dial](08-loudspeaker-dial.md) · [Manual contents](README.md)
+**Next:** [MCDU: "Check the box"](19-mcdu-box-check.md) · [Manual contents](README.md)

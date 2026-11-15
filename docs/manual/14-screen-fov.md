@@ -97,4 +97,4 @@ by the app itself. Every write makes a backup first.
 
 ---
 
-**Next:** [Diagnostics](13-diagnostics.md) · **See also:** [Troubleshooting](05-troubleshooting.md), [Using the app](02-using-the-app.md) · [Manual contents](README.md)
+**Next:** [General settings](25-app-pages.md) · **See also:** [Troubleshooting](05-troubleshooting.md), [Using the app](02-using-the-app.md) · [Manual contents](README.md)

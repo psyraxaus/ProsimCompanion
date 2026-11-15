@@ -72,7 +72,7 @@ The footer of every page has a **TTS** dot. Green means a voice provider is read
 | Setting | What it does | Suggested value |
 |---|---|---|
 | API key | Your ElevenLabs key. Empty switches ElevenLabs off. | — |
-| Voice id | The First Officer's voice. | Pick with Fetch voices |
+| Fallback voice | The voice ElevenLabs uses when it covers for another provider. The First Officer's own voice is picked on the Voices page. | Pick after **Refresh voices** |
 | Model | `eleven_flash_v2_5` is fast and costs half. `eleven_v3` is more expressive, slower and full price. | Flash |
 | Output format | `mp3_44100_128` works on every plan. `pcm_24000` needs a paid plan that allows PCM output; it saves a small decode step. | MP3 |
 | Stability | 0 to 1. Higher is steadier and less expressive. | 0.6 |
@@ -126,7 +126,7 @@ or a Windows voice) takes over until the next month.
 
 | What you see | Why | What to do |
 |---|---|---|
-| "Fetch failed: … 401" | The key is wrong or was deleted at ElevenLabs. | Paste the key again and Save. |
+| "could not list voices — …" with 401 after **Refresh voices** | The key is wrong or was deleted at ElevenLabs. | Paste the key again and Save. |
 | The `elevenlabs` row on the Status page shows a failure after a 401 | Same. The app stops calling ElevenLabs until the settings change. | Paste a good key and Save. |
 | The Test works but the FO still sounds like before | The First Officer voice on the Voices page names another provider, or the phrase came from an older cache. | Pick an ElevenLabs voice for the First Officer on the Voices page. |
 | No ElevenLabs voice at all | *Local only* is ticked, or no fallback voice is set. | Untick Local only; pick a fallback voice on the ElevenLabs tab; Save. |
@@ -149,4 +149,4 @@ the zip. Your key is never in the logs and is removed from the exported settings
 
 ---
 
-**Next:** [Speech recognition server](16-speech-recognition-server.md) · **See also:** [Voices](10-voices.md), [Troubleshooting](05-troubleshooting.md) · [Manual contents](README.md)
+**Next:** [Kokoro voice server](18-kokoro.md) · **See also:** [Voices](10-voices.md), [Troubleshooting](05-troubleshooting.md) · [Manual contents](README.md)

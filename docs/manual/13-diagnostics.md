@@ -1,6 +1,6 @@
 # Diagnostics: the ECAM-style system pages
 
-The **Diagnostics** item under Settings in the sidebar opens five pages drawn like the
+The **Diagnostics** item under Settings in the sidebar opens five pages (six with PANELS, when Skalarki hardware is switched on) drawn like the
 aircraft's ECAM system displays. They answer one question at a glance: what is the app doing
 right now, and which link is unhappy? The badge on the sidebar item shows how many cautions
 are up (amber), or turns red when one of them is a warning.
@@ -58,7 +58,7 @@ simvar bus bars, with the update rate beside each feed and the number of subscri
 stale values under each bar. The four cells show the aircraft as the app sees it: flight phase
 and gate, on ground or airborne with the park brake, electrical power, doors. The rows below
 are the plan (origin, destination, runway — with the leg-boundary word TURNAROUND / AWAITING PLAN
-beside it during a turnaround, ADR-0019), the load (pax, zero-fuel weight, block fuel) and the
+beside it during a turnaround), the load (pax, zero-fuel weight, block fuel) and the
 weather the app is working from. The PHASE cell in the memo strip carries the FMGC's own phase
 word (`FMGC DONE`, `FMGC PREFLIGHT`) as a qualifier when ProSim serves it — a witness beside the
 app's phase, never an input to it.
@@ -82,7 +82,7 @@ services around it, each box wired to where that service meets the aircraft: abo
 **pushback** (the tug at the nose tip) and **GPU** (the cable on the forward right fuselage);
 on the left, **boarding** at the top (tied to the jetway, and to the stairs when they are in
 use), the **jetway** to door 1L, the **stairs** to door 4L; on the right, **catering** beside the service door your GSX profile uses (1R at
-the top, or 4R at the bottom: Settings → Ground Services → Doors → Catering door is **Auto**
+the top, or 4R at the bottom: Settings → Ground Services → Doors & Jetway → Catering door is **Auto**
 by default and learns the door the first time GSX opens it; Forward / Aft pin it by hand),
 **refuel** to the right wing and **de-icing**. Each box shows the GSX stage (`AVAIL`,
 `REQ`, `CONN`, `PROG`, `DONE`, or `- - -` when not required) with a detail line. The three
@@ -98,7 +98,7 @@ Shown only when **Settings → Hardware → Skalarki Panels** is switched on (it
 SkalarkiIO Profiler and its SDK folder; see that page). The page is your Skalarki cockpit
 hardware as the Profiler sees it.
 
-![Diagnostics PANELS page before the SDK folder is set](../img/diagnostics-panels.png)
+![Diagnostics PANELS page with the link up](../img/diagnostics-panels.png)
 
 ![Skalarki Panels settings page](../img/hardware-skalarki.png)
 
@@ -129,7 +129,7 @@ hardware as the Profiler sees it.
   on its own.
 - **HW RESET** appears under a lost board. It sends the Profiler's reset for that board: click
   once to arm (the line reads **CONFIRM?**), once more to send. Use it only when a board has
-  stopped answering. On the owner's rig (2026-10-27) a reset of the overhead made the Profiler
+  stopped answering. On the test cockpit a reset of the overhead made the Profiler
   drop its SDK link for several minutes before it came back; expect the PANELS page to go amber
   and recover on its own.
 - Memo strip: **DEVICES** connected / watched (amber when a watched board is missing),

@@ -239,7 +239,7 @@ payload. Release process: [docs/VERSIONING.md](docs/VERSIONING.md); installer:
 
 ## Documentation
 
-- [User manual](docs/manual/README.md) — 14 chapters, from installation to Screen & FOV
+- [User manual](docs/manual/README.md) — 27 chapters, from installation to the Command API
 - [Architecture](docs/ARCHITECTURE.md) · [decision records](docs/decisions/) (19 ADRs) ·
   [glossary](CONTEXT.md)
 - [Roadmap](docs/ROADMAP.md) · [feature inventory](docs/feature-inventory.md) ·

@@ -1,13 +1,13 @@
 # ProsimCompanion — User Manual
 
 ProsimCompanion is a single Windows companion application for the **ProSim A320 (A322)** in
-MSFS 2020/2024. It consolidates three predecessor apps into one:
+MSFS 2020/2024. It brings together in one app:
 
-- **GSX ground automation** (from Prosim2GSX) — departure services, refuel/boarding sync,
+- **GSX ground automation** — departure services, refuel/boarding sync,
   doors, jetway/stairs, pushback, arrival handling, loadsheets, web EFB
 - **Flight data & EFB** — SimBrief OFP, weight & balance, takeoff/landing performance,
   ECAM-style checklists
-- **Voice First Officer** (from Prosim2FO) — spoken checklists, SOP callouts, briefings,
+- **Voice First Officer** — spoken checklists, SOP callouts, briefings,
   ECAM abnormals, radio/FCU voice control, cabin crew and company immersion
 - **Audio control** — ACP knobs/latches and the loudspeaker dial driving Windows per-app
   volumes or VoiceMeeter, and a Voicemeeter on another PC through VoicemeeterBridge
@@ -25,7 +25,7 @@ the chapters were written, not the reading order; every chapter ends with a link
 
 | Chapter | Covers |
 |---|---|
-| [Installation](01-installation.md) | Installer, prerequisites, first run, migrating from Prosim2GSX / Prosim2FO |
+| [Installation](01-installation.md) | Installer, prerequisites, first run, importing the settings of the earlier apps |
 
 ### Flying with the app
 
@@ -73,7 +73,7 @@ the chapters were written, not the reading order; every chapter ends with a link
 | Chapter | Covers |
 |---|---|
 | [General settings: notifications, appearance, flight phases, aircraft profiles, display & flight data](25-app-pages.md) | Five pages: phone notifications (ntfy, Discord, webhook), Appearance (language, themes, logos), the Advanced Flight Phase Engine page, Aircraft Profiles and how the active one is chosen, Display & Flight Data (units, loadsheets, limits) |
-| [Diagnostics: the ECAM-style system pages](13-diagnostics.md) | The pages under Settings → Diagnostics (VOICE, SIM, REMOTE, GSX, STATUS, and PANELS for Skalarki hardware): how to read green / amber / red / `XX` / `- - -`, what the common cautions mean and what to do, the sidebar badge, the bundle |
+| [Diagnostics: the ECAM-style system pages](13-diagnostics.md) | The pages under **Diagnostics** in the sidebar (VOICE, SIM, REMOTE, GSX, STATUS, and PANELS for Skalarki hardware): how to read green / amber / red / `XX` / `- - -`, what the common cautions mean and what to do, the sidebar badge, the bundle |
 | [Troubleshooting](05-troubleshooting.md) | Logs, degraded subsystems, common problems |
 | [Settings reference](04-settings-reference.md) | Every settings section, including the hand-editable ones |
 | [Command API and Telemetry API: driving the app from your own tools](27-command-telemetry-api.md) | The two HTTP interfaces for your own tools: switching them on, the access token, commands with curl, the answer and status codes, live state, the telemetry addresses and the session event log, a check, troubleshooting |

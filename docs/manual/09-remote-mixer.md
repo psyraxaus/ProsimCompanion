@@ -145,7 +145,7 @@ will fight ([chapter 11](11-two-headsets.md) explains the one-fader rule).
 | The level jumps between two values | Two rows send to the same parameter on the same PC — the page shows a warning under the table. Keep one. |
 | A knob moves the wrong PC | Open the row's **Strip / bus** list and check the PC name in front of the entry. |
 
-The log (Settings → Logs) prefixes every line with `Mixer [name]`, the agent's name in
+The log (Settings → Advanced → Logs) prefixes every line with `Mixer [name]`, the agent's name in
 brackets. The wire trace channel is `Mixer/<name>` if support asks for frames.
 
 ## 9.7 Two pilot PCs: INT and VHF on separate knobs

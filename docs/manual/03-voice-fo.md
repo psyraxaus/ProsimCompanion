@@ -42,7 +42,7 @@ command to add. The hint under the list names the file for each kind (`commands.
 `%LOCALAPPDATA%\ProsimCompanion\config`. Words absorbed during the takeoff roll, rotation,
 short final and the landing roll are counted but never listed — those were callouts. The
 session log keeps every one as `voice.unmatched`; the switch is Settings → Voice First
-Officer → Recognition & Push-to-Talk → **Track phrases the FO did not understand** (on by
+Officer → Listening & PTT → **Track phrases the FO did not understand** (on by
 default).
 
 ### Ask the First Officer
@@ -129,7 +129,7 @@ challenge and listens indefinitely for your response; wrong responses get an "ar
 and the FO never gives up — say **"skip"** to move past an item, **"say again"** to repeat,
 **"hold the checklist" / "resume"**, **"cancel checklist"** or **"restart checklist"**. Those words
 also count at the start or end of a longer transcript while a line waits ("… Celsius, skip" from
-the cabin PA with your "skip" at the end, 2026-10-25), and after 60 seconds of silence on an open
+the cabin PA with your "skip" at the end), and after 60 seconds of silence on an open
 line the FO reminds you once: *"Still waiting on Minimum, Captain — say the answer, or skip."*
 anytime. Items with a dataref condition verify against the aircraft; the visual runner on the
 Checklists page stays in sync. The flight-control check is fully monitored (your sweep is
@@ -151,7 +151,7 @@ yet reported, and every line without a dataref condition still wait for your rep
 you"*, *"thanks"* or *"cheers"* within 20 seconds of the FO's last word or action and it answers
 *"You're welcome, Captain."* (three wordings, in turn). Never on the takeoff roll, in the initial
 climb or on the rollout, and never for a transcript the speech engine was unsure of. The switch
-is off by default because Whisper writes *"Thank you."* for a breath (issue #120) — a bare
+is off by default because Whisper writes *"Thank you."* for a breath — a bare
 courtesy outside the window is absorbed in silence, never a "say again".
 
 A `confirmCallout` in your checklist file may carry a live value: `{fuel}` (or
@@ -204,7 +204,7 @@ Settings → Crew & Company → Tech Log & Logbook → **Flag checklist lines**.
 
 SOP callouts (thrust set, one hundred, V1, rotate, positive climb, transition, one-thousand-
 to-go, approach 1000/500, minimums, rollout calls) fire from live data; minimums arm only
-from the minima you enter on the First Officer page. Stabilized-approach gates call
+from the minima you enter on Settings → Voice First Officer → Status. Stabilized-approach gates call
 *"stabilized"* or *"unstable, go around"* at the 1000 ft gate. The gates are yours to set —
 airlines differ — on **Settings → Flight Deck → Callouts & Placards → Approach
 Gates**: per gate the height, whether the gear must be down, the minimum flap lever, the
@@ -230,7 +230,7 @@ please"* when there is none). The figures come from your Navigraph database for 
 the FO waits past the crossing before speaking; set the altimeter inside that and nothing is
 said. One reminder per crossing; a go-around re-arms both.
 
-**De-icing packs procedure** (Settings → Ground Services → Questions → De-Icing → *Packs
+**De-icing packs procedure** (Settings → Ground Services → GSX Questions → De-Icing → *Packs
 procedure*, off by default): when the GSX de-icing crew is called the FO says *"De-icing
 starting — packs off, ditching on"*, waits twenty seconds and checks the overhead PACK OFF
 and DITCHING ON lights — *"Packs off, ditching on — checked"*, or one reminder naming what
@@ -317,8 +317,7 @@ the MCDU RCVD MSGS and answers *ROGER DIVERSION, HANDLING ARRANGED LIRN, CALL ON
 
 *"Tune the ILS"* enters the **ident** first (HL), so the RAD NAV page shows ident, frequency and
 the course the FMGC fills in from its database; only when ProSim answers NOT IN DATA BASE does
-the FO clear the scratchpad and enter the frequency instead (owner report 2026-10-25: 109.10
-without HL).
+the FO clear the scratchpad and enter the frequency instead.
 
 ### FO works the radios (SayIntentions)
 
@@ -326,7 +325,7 @@ Settings → SayIntentions → **FO works the radios** (off by default). The
 SayIntentions copilot is switched off and your FO does its job in one voice: every ATC
 instruction is read back and closed with your callsign (*"Climb FL140, Speedbird 850."*,
 *"Contacting Tower on 119.355, Speedbird 850."*), COM1 is tuned on a hand-off (standby first,
-then swap), and eight seconds later the FO checks in on the new frequency: *"Good evening,
+then swap), and four seconds later the FO checks in on the new frequency: *"Good evening,
 Finnair 962, climbing through FL180 for FL210 on KEMA5C."* — the greeting from the sim's local
 clock, the level from ProSim, the cleared level from ATC's last instruction, the SID or STAR from
 SayIntentions. Broadcasts to all aircraft (an ATIS change) get no read-back; ATC's own plans and
@@ -437,7 +436,7 @@ make your own crew — each entry has an `id`, `name`, `experience`, `formality`
 `confidence`, `hoursOnType`, `base` and an optional `voice`). The draw happens when the day's
 first leg begins — the first OFP of the day is loaded (or, for an app started after the plan,
 at the first preflight) — on the sim's own date, not your PC's clock; it never repeats
-yesterday's FO and survives an app restart mid-day. **One FO per duty day** (ADR-0019): once a
+yesterday's FO and survives an app restart mid-day. **One FO per duty day**: once a
 duty day has flown a leg, its FO stays until you end the duty, whatever the sim's calendar
 does in a turnaround (a midnight rollover between legs no longer swaps your First Officer);
 a new plan after "end duty day" on the same sim date keeps the same FO, a new sim date draws
@@ -493,7 +492,7 @@ engines off and the ground preparation (jetway or stairs) has completed, the FO 
 the walkaround, captain"* and is away for six to ten minutes:
 
 - The FO does not go outside once boarding has started (any Boarding stage from Called on).
-  An app restart is invisible (ADR-0019): a walk that was in progress ends with the FO
+  An app restart is invisible: a walk that was in progress ends with the FO
   simply back in the seat (no report), a walk already done is never repeated, and a
   departure whose walk had not happened yet still gets it once the aircraft is ready.
 - While away, your questions get *"The First Officer is on the walkaround, captain."*
@@ -596,12 +595,13 @@ lists every phrase live.
 
 ### Cabin crew
 
-The purser calls the flight deck twice a flight: *"cabin secure"* a random while after the
+After boarding the purser reports *"boarding complete, N on board, doors closed"* (**Boarding
+complete report**, on by default). Then the purser calls the flight deck twice a flight: *"cabin secure"* a random while after the
 doors close with the beacon on, and *"cabin secure for landing"* on approach. Each call
 rings the interphone chime, the header shows CABIN CALLING, and the purser waits until CAB
 is selected on an audio panel (or the grace runs out) before speaking; the FO acknowledges.
 A third, quieter call closes the arrival: *"Cabin's empty, captain."* once GSX deboarding
-completes — the moment the Flight Status card's TURNAROUND chip lights (ADR-0019). Once per
+completes — the moment the Flight Status card's TURNAROUND chip lights. Once per
 leg, no FO acknowledgement.
 
 **FO answers cabin calls** (Settings → Crew & Company → Cabin Crew; off by default):
@@ -725,7 +725,7 @@ Three switches under Settings → Flight Deck → MCDU → **FO-side duties**, a
 default. They let the FO do what a pilot monitoring does on their own side — and nothing on
 yours.
 
-One line needs no switch (ADR-0019): load the next leg's OFP at a turnaround while the FMS
+One line needs no switch: load the next leg's OFP at a turnaround while the FMS
 still holds the plan you just flew, and the FO says once *"Captain, the FMS still holds the
 previous flight plan."* Clear the FMS first (the IOS **Reset FMS**, or ProSim's *Reset FMS
 after landing or failure* option) or program the new route before the plan lands, and nothing
@@ -780,8 +780,8 @@ crew fills later (V speeds before the loadsheet) is "not entered yet", not a dif
 eight letters — green, amber for a difference, grey for not entered or not read — with what
 the FO read, and a **Check the box** button.
 
-Then the FO offers to enter what it knows, one question at a time: *"Cost index is five, the
-plan says four five. Shall I enter it?"* Answer *yes* or *no* (or on the open-questions
+Then the FO offers to enter what it knows, one question at a time: *"Shall I enter cost index
+four five?"* Answer *yes* or *no* (or on the open-questions
 card); no answer within a minute is a no.
 
 | The FO can enter | How | Needs *Allow actuation* |

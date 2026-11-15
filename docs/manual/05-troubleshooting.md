@@ -30,13 +30,13 @@
 | Doors reopen, GPU connects by itself, fuel or passengers load twice | ProSim's own options are doing the same job. Settings → Setup → **ProSim Setup Check**: amber rows show which (Door logic, Automatic ground power, Datalink loading, Refuelling rate). Click **Apply recommended**, or follow **Show me how** in ProSim System. |
 | No services before pushback | The OFP gate: with *wait for OFP* enabled nothing is called until the SimBrief plan is imported or an MCDU plan exists. The status board shows the hold reason. |
 | Fuel won't load | Refuel runs only while GSX's hose is connected; the decision log shows target latching and any defuel guard hold. |
-| "Confirm fuel" brings no truck | The fuel on board already meets the plan (tankering): the decision log shows "skip Refueling — FOB … already meets planned … (tankering) — GSX refuel not called". This is intended; the preliminary loadsheet is still made. To force the truck, switch off *Skip refuel on tankering* (GSX settings → Refuel) or raise FUEL RAMP on the INIT page. |
+| "Confirm fuel" brings no truck | The fuel on board already meets the plan (tankering): the decision log shows "skip Refueling — FOB … already meets planned … (tankering) — GSX refuel not called". This is intended; the preliminary loadsheet is still made. To force the truck, switch off *Skip refuel when FOB exceeds plan* (GSX settings → Refuel) or raise FUEL RAMP on the INIT page. |
 | Speech settings page shows an error and reloads (0.5.0-rc.9 only) | A fault in that build's Gear Limits section; fixed in 0.5.0-rc.11. Update — your settings are not affected. |
 | Audio knobs do nothing | Audio page: is the mapped app running (elevated apps can't be controlled unless ProsimCompanion is elevated too)? Use **Write Debug Info** on the Audio settings page — it dumps devices/sessions to `logs\AudioDebug.txt`. Device-filter selects are troubleshooting-only. |
 | Remote mixer: Test connection fails | *No answer*: address, port, firewall on the mixer PC, agent running (tray icon) — try `http://<mixer-pc>:5088/health` in a browser. *unauthorized*: copy the token again from the agent's tray menu. Full walk-through in [chapter 9](09-remote-mixer.md). |
 | Remote mixer: knob moves, mixer does nothing | Remote Mixer section → Mappings: is the row **On**, and what does the **Live** column say? `not_connected` = link down; `unknown parameter` = that strip or bus does not exist in this Voicemeeter edition; a dash = no knob value from ProSim yet. REC button does nothing = **Latch** not ticked. |
-| FO talks to itself (answers its own lines) | Its voice reaches your microphone — speakers, or a Voicemeeter route that loops the FO strip back in (a strip on the B3/VBAN loudspeaker loop, 2026-10-10). Fix the routing. The app also ignores the mic while the FO speaks and drops a transcript that repeats the FO's words (Voice First Officer → Listening & PTT, "Ignore the microphone while the FO speaks", on); the session log shows `asr.self-echo` for each dropped one. |
-| FO doesn't hear me | Input device on the First Officer page; PTT bound and held; LAN ASR endpoint reachable (falls back to offline recognition automatically). |
+| FO talks to itself (answers its own lines) | Its voice reaches your microphone — speakers, or a Voicemeeter route that loops the FO strip back in (a strip on the B3/VBAN loudspeaker loop). Fix the routing. The app also ignores the mic while the FO speaks and drops a transcript that repeats the FO's words (Voice First Officer → Listening & PTT, "Ignore the microphone while the FO speaks", on); the session log shows `asr.self-echo` for each dropped one. |
+| FO doesn't hear me | **Input device** on Settings → Voice First Officer → Listening & PTT; PTT bound and held; the speech recognition server reachable (the app falls back to offline recognition automatically) — see [chapter 16](16-speech-recognition-server.md). |
 | FO voice robotic / silent / wrong | The provider the voice names is down, not configured or shut out by Local only, so the chain covered with a fallback voice (Status page pills say which). Provider failures cool down 60 s then retry. Walk-through: [chapter 10](10-voices.md). |
 | No update banner | The check needs internet + a published GitHub release; it fails silently offline (by design, `updateCheck` section). |
 | Web UI unreachable from phone | LAN binding enabled + restart? Token in the URL (scan the QR again after regenerating)? Windows Firewall may prompt on first LAN bind. |
@@ -48,7 +48,7 @@
 
 - **Settings**: stop the app and delete keys/sections from `config\settings.json` — missing
   keys are rewritten with defaults on start. Deleting the `predecessorImport` section re-runs
-  the Prosim2GSX/Prosim2FO config import.
+  the import of the earlier apps' settings (see [Installation](01-installation.md)).
 - **Flight state**: INIT page → RESET FLIGHT (two-click confirm) clears the plan, loadsheets
   and overrides for a fresh turnaround.
 - **Web lockout**: the desktop window always keeps the web-server card (port, LAN, token) —
@@ -61,7 +61,7 @@ Issues: <https://github.com/psyraxaus/ProsimCompanion/issues>. The quickest way 
 records and your settings (keys and tokens removed). Attach that zip. Without it, attach the
 day's log from `%LOCALAPPDATA%\ProsimCompanion\logs\` and, for GSX behaviour, note the
 decision-log lines around the event — they usually contain the answer. For a GSX door,
-menu or service problem, switch on `wireTrace` (App Settings → Logging) before you repeat
+menu or service problem, switch on the wire trace (Settings → Advanced → Logs) before you repeat
 it, then export.
 
 ---

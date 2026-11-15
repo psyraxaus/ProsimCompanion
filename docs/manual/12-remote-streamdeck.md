@@ -12,7 +12,7 @@ well, and two key types let it do things you have no hardware for:
 
 On the **sim PC**:
 
-1. Settings → Setup → **Web server**: turn on **LAN access**. Restart ProsimCompanion.
+1. Settings → Setup → **Web Interface**: turn on **Allow other devices (LAN)**. Restart ProsimCompanion.
 2. Allow inbound TCP **5320** in Windows Firewall (private network). Windows may ask on the
    first LAN start; if it did not, add the rule yourself.
 3. Settings → Setup → **Stream Deck & External Tools**: turn on **Command API**.
@@ -118,4 +118,4 @@ On the **Stream Deck PC**, drag a **Camera View** key onto a page and pick the v
 
 ---
 
-**Next:** [Screen & FOV](14-screen-fov.md) · **See also:** [Diagnostics](13-diagnostics.md), [Troubleshooting](05-troubleshooting.md) · [Manual contents](README.md)
+**Next:** [Cockpit Switches](24-cockpit-switches.md) · **See also:** [Diagnostics](13-diagnostics.md), [Troubleshooting](05-troubleshooting.md) · [Manual contents](README.md)
