@@ -33,6 +33,20 @@ public static class McduControls
         return KeyPrefix + suffix;
     }
 
+    /// <summary>The keys that only change what the FO's screen shows: the page keys and the
+    /// slew arrows. These — and a page link checked against the screen text
+    /// (<c>IMcduActuator.FollowLinkAsync</c>) — are all the MCDU check may press without
+    /// <c>mcdu.allowActuation</c> (owner decision 2026-11-15). No LSK, no letter, no digit, no
+    /// CLEAR: nothing in this set can enter or delete a value.</summary>
+    private static readonly HashSet<string> NavigationKeys = new(StringComparer.Ordinal)
+    {
+        "DATA", "INIT", "FPLN", "SEC_FPLN", "RAD_NAV", "PERF", "PROG",
+        "ARROW_LEFT", "ARROW_RIGHT", "ARROW_UP", "ARROW_DOWN",
+    };
+
+    /// <summary>True for a page key or slew arrow (see the navigation allow-list).</summary>
+    public static bool IsNavigationSuffix(string? suffix) => suffix is not null && NavigationKeys.Contains(suffix);
+
     /// <summary>True when <paramref name="suffix"/> is a plausible CDU2 key suffix
     /// (non-empty, upper-case letters/digits/underscore only).</summary>
     public static bool IsValidSuffix(string? suffix)

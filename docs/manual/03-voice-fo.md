@@ -756,6 +756,48 @@ is said.
 With the pilot seat set to right (Settings → Voice First Officer → General), the FO's side is the
 left one and all of this applies there.
 
+### Check the box
+
+Say *"check the box"* (or *"box check"*, *"check the MCDU"*) and the FO checks its own MCDU
+the way a crew does, in the **D-I-F-S-R-I-P-P** order:
+
+| Letter | Pages | What the FO checks |
+|---|---|---|
+| **D** | DATA → A/C STATUS, IRS MONITOR, GPS MONITOR | The navigation database is valid today; the three IRS and both GPS are in NAV. |
+| **I** | INIT A | City pair, alternate, flight number, cost index and cruise level against the flight plan. |
+| **F** | F-PLN, scrolled to the end | Every discontinuity; the departure runway against the takeoff figures. |
+| **S** | SEC F-PLN | Empty, or holding a route. |
+| **R** | RAD NAV | Reads the ILS (no judgement). |
+| **I** | INIT B | ZFW and ZFWCG against the loadsheet (final, else preliminary). |
+| **P** | PERF TAKE OFF | V speeds, flex, flaps and runway against the computed takeoff figures; the trim entered. |
+| **P** | PROG | GPS PRIMARY and the navigation accuracy. |
+
+The FO answers *"Checking the box."*, takes about a minute, and reports: *"Box checked, no
+differences."* — or the differences one by one, then what is not entered yet. A field the
+crew fills later (V speeds before the loadsheet) is "not entered yet", not a difference.
+*"Stop the check"* stops it. The **MCDU CHECK** card on Flight Status and EFB INIT shows the
+eight letters — green, amber for a difference, grey for not entered or not read — with what
+the FO read, and a **Check the box** button.
+
+Then the FO offers to enter what it knows, one question at a time: *"Cost index is five, the
+plan says four five. Shall I enter it?"* Answer *yes* or *no* (or on the open-questions
+card); no answer within a minute is a no.
+
+| The FO can enter | How | Needs *Allow actuation* |
+|---|---|---|
+| ZFW, ZFWCG, block fuel | Written directly from the loadsheet | No |
+| V speeds, flex, flaps | Written directly from the computed figures (the trim is yours) | No |
+| Flight number, cost index, cruise level | Typed on INIT A, then read back | Yes |
+| Copy the active plan to the secondary | COPY ACTIVE on the SEC INDEX page | Yes |
+
+The route, the SID, an airport and a discontinuity are **reported and never changed**.
+
+The FO turns the pages with *Allow actuation* off: page keys and page links only, nothing that
+can enter or delete a value. Settings → Flight Deck → MCDU: **Check the box: time on each
+page** (5 s; the whole check is about ten times that) and **Check the box: offer to enter
+corrections** (on). A page the FO does not recognise — another ProSim version, or PERF in
+flight — is reported as *"I could not read …"*; nothing is guessed.
+
 ### Step-climb advice and the FDP warning
 
 **Step-climb advice** (Settings → Flight Deck → Callouts & Placards → In-flight

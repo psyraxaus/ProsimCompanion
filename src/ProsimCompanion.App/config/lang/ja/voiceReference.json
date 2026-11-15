@@ -144,6 +144,11 @@
         "title": "MCDU — 到着滑走路",
         "change": "FO が到着滑走路と ILS を変更します（LAT REV → ARRIVAL → insert）。"
       },
+      "mcduBoxCheck": {
+        "title": "MCDU — ボックス確認",
+        "check": "FO が MCDU の全ページ(D-I-F-S-R-I-P-P)を開き、プラン、ロードシート、離陸データと照合して相違を報告し、分かっている値の入力を提案します。",
+        "stop": "確認を中止します。"
+      },
       "briefings": {
         "title": "ブリーフィング",
         "departure": "FMS プラン、ナビデータ、実況気象からの出発ブリーフィングです。",

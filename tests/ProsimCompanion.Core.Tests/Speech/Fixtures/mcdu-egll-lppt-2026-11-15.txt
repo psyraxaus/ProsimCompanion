@@ -1,0 +1,850 @@
+=== DATA | data index
+<root>
+  <title>     DATA INDEX   s1/2l £¢</title>
+  <line>s POSITION               </line>
+  <line>&lt;MONITOR                </line>
+  <line>s IRS                    </line>
+  <line>&lt;MONITOR                </line>
+  <line>s GPS                    </line>
+  <line>&lt;MONITOR                </line>
+  <line>s                        </line>
+  <line>&lt;A/C STATUS             </line>
+  <line>s CLOSEST                </line>
+  <line>&lt;AIRPORTS               </line>
+  <line>s EQUITIME           AOC </line>
+  <line>&lt;POINT         FUNCTION&gt;</line>
+  <scratchpad>WIND DATA UPLINK        </scratchpad>
+</root>
+=== LSK4L | a/c status
+<root>
+  <title>        A320-200        </title>
+  <line>s ENG                    </line>
+  <line>gV2527-A5w                </line>
+  <line>sc ACTIVE NAV DATA BASEw   </line>
+  <line>c 29OCT26-25NOV26w        </line>
+  <line>sc SECOND NAV DATA BASEw   </line>
+  <line>c£s29OCT26-25NOV26lw        </line>
+  <line>s                        </line>
+  <line>                        </line>
+  <line>sCHG CODE                </line>
+  <line>c[ ]w                     </line>
+  <line>sIDLE/PERF               </line>
+  <line>gs+0.0l/s+0.0lw               </line>
+  <scratchpad>WIND DATA UPLINK        </scratchpad>
+</root>
+=== DATA | data index
+<root>
+  <title>     DATA INDEX   s1/2l £¢</title>
+  <line>s POSITION               </line>
+  <line>&lt;MONITOR                </line>
+  <line>s IRS                    </line>
+  <line>&lt;MONITOR                </line>
+  <line>s GPS                    </line>
+  <line>&lt;MONITOR                </line>
+  <line>s                        </line>
+  <line>&lt;A/C STATUS             </line>
+  <line>s CLOSEST                </line>
+  <line>&lt;AIRPORTS               </line>
+  <line>s EQUITIME           AOC </line>
+  <line>&lt;POINT         FUNCTION&gt;</line>
+  <scratchpad>WIND DATA UPLINK        </scratchpad>
+</root>
+=== LSK1L | position monitor
+<root>
+  <title>    POSITION MONITOR    </title>
+  <line>s                        </line>
+  <line>sFMGC1l   g5128.5N/00029.3Ww</line>
+  <line>s      3IRS              </line>
+  <line>sFMGC2l   g5128.5N/00029.3Ww</line>
+  <line>s      3IRS              </line>
+  <line>sGPIRSl   g5128.5N/00029.3Ww</line>
+  <line>s                        </line>
+  <line>sMIX IRSl g5128.4N/00029.3Ww</line>
+  <line>s  IRS1    IRS2    IRS3  </line>
+  <line>gsNAV 0.0 NAV 0.0 NAV 0.0 lw</line>
+  <line>s                    SEL </line>
+  <line>c£FREEZEw         NAVAIDS&gt;</line>
+  <scratchpad>WIND DATA UPLINK        </scratchpad>
+</root>
+=== DATA | data index
+<root>
+  <title>     DATA INDEX   s1/2l £¢</title>
+  <line>s POSITION               </line>
+  <line>&lt;MONITOR                </line>
+  <line>s IRS                    </line>
+  <line>&lt;MONITOR                </line>
+  <line>s GPS                    </line>
+  <line>&lt;MONITOR                </line>
+  <line>s                        </line>
+  <line>&lt;A/C STATUS             </line>
+  <line>s CLOSEST                </line>
+  <line>&lt;AIRPORTS               </line>
+  <line>s EQUITIME           AOC </line>
+  <line>&lt;POINT         FUNCTION&gt;</line>
+  <scratchpad>WIND DATA UPLINK        </scratchpad>
+</root>
+=== LSK2L | irs monitor
+<root>
+  <title>      IRS MONITOR       </title>
+  <line>saw                        </line>
+  <line>&lt;IRS1                   </line>
+  <line>sg NAVw                    </line>
+  <line>&lt;IRS2                   </line>
+  <line>sg NAVw                    </line>
+  <line>&lt;IRS3                   </line>
+  <line>sg NAVw                    </line>
+  <line>                        </line>
+  <line>s                        </line>
+  <line>                        </line>
+  <line>s                        </line>
+  <line>                        </line>
+  <scratchpad>WIND DATA UPLINK        </scratchpad>
+</root>
+=== DATA | data index
+<root>
+  <title>     DATA INDEX   s1/2l £¢</title>
+  <line>s POSITION               </line>
+  <line>&lt;MONITOR                </line>
+  <line>s IRS                    </line>
+  <line>&lt;MONITOR                </line>
+  <line>s GPS                    </line>
+  <line>&lt;MONITOR                </line>
+  <line>s                        </line>
+  <line>&lt;A/C STATUS             </line>
+  <line>s CLOSEST                </line>
+  <line>&lt;AIRPORTS               </line>
+  <line>s EQUITIME           AOC </line>
+  <line>&lt;POINT         FUNCTION&gt;</line>
+  <scratchpad>WIND DATA UPLINK        </scratchpad>
+</root>
+=== LSK3L | gps monitor
+<root>
+  <title>      GPS MONITOR       </title>
+  <line>sGPS1 POSITION           </line>
+  <line>g51°28.5N/000°29.3Ww      </line>
+  <line>sTTRK     UTC          GS</line>
+  <line>g     08:34:07        0w  </line>
+  <line>sMERIT  GPS ALT  MODE/SAT</line>
+  <line>g100M       49    NAV/6w  </line>
+  <line>sGPS2 POSITION           </line>
+  <line>g51°28.5N/000°29.2Ww      </line>
+  <line>sTTRK     UTC          GS</line>
+  <line>g     08:34:07        0w  </line>
+  <line>sMERIT  GPS ALT  MODE/SAT</line>
+  <line>g100M       49    NAV/6w  </line>
+  <scratchpad>WIND DATA UPLINK        </scratchpad>
+</root>
+=== INIT | init a
+<root>
+  <title>          INIT        £¢</title>
+  <line>sCO RTE         FROM/TO  </line>
+  <line>cNONEw           cEGLL/LPPTw</line>
+  <line>sALTN/CO RTE             </line>
+  <line>cLPFRw                    </line>
+  <line>sFLT NBR                 </line>
+  <line>cBAW504w         IRS INIT&gt;</line>
+  <line>s                        </line>
+  <line>                   WIND&gt;</line>
+  <line>sCOST INDEX         TROPO</line>
+  <line>c5w                  c34421w</line>
+  <line>sCRZ FL/TEMP     GND TEMP</line>
+  <line>cFL370 /-55°w         cs+15°lw</line>
+  <scratchpad>WIND DATA UPLINK        </scratchpad>
+</root>
+=== ARROW_RIGHT | init b
+<root>
+  <title> INIT FUEL PREDICTION £¢</title>
+  <line>sTAXI           ZFW/ZFWCG</line>
+  <line>cs0.2lw          c 53.9/w c25.3w</line>
+  <line>sTRIP/TIME          BLOCK</line>
+  <line>gs  6.2/0225lw           c8.5w</line>
+  <line>sRTE RSV/%               </line>
+  <line>cs  0.3l/5.0w               </line>
+  <line>sALTN/TIME      TOW/   LW</line>
+  <line>  cs0.8lw/gs0023lw    gs62.2lw/ gs56.3lw</line>
+  <line>sFINAL/TIME     TRIP WIND</line>
+  <line>cs  1.0l/0030w         -----</line>
+  <line>sMIN DEST FOB  EXTRA/TIME</line>
+  <line>c  s1.8lw         gs  0.2/0006lw</line>
+  <scratchpad>WIND DATA UPLINK        </scratchpad>
+</root>
+=== SEC_FPLN | sec index
+<root>
+  <title>       SEC INDEX        </title>
+  <line>s                        </line>
+  <line>c£COPY ACTIVEw       INIT&gt;</line>
+  <line>s                        </line>
+  <line>£SEC F-PLN              </line>
+  <line>s                        </line>
+  <line>                        </line>
+  <line>s                        </line>
+  <line>                        </line>
+  <line>s                        </line>
+  <line>                        </line>
+  <line>s                        </line>
+  <line>                        </line>
+  <scratchpad>WIND DATA UPLINK        </scratchpad>
+</root>
+=== LSK2L | sec f-pln
+<root>
+  <title> sFROMl         sBAW504 l £¢</title>
+  <line>s        TIME  SPD/ALT   </line>
+  <line>------END OF F-PLN------</line>
+  <line>s                        </line>
+  <line>------NO ALTN F-PLN-----</line>
+  <line>s                        </line>
+  <line>                        </line>
+  <line>s                        </line>
+  <line>                        </line>
+  <line>s                        </line>
+  <line>                        </line>
+  <line>s DEST   TIME  DIST  EFOB</line>
+  <line>------- s----l  s---- -----l</line>
+  <scratchpad>WIND DATA UPLINK        </scratchpad>
+</root>
+=== PROG | prog
+<root>
+  <title>   gPREFLIGHT wBAW504     </title>
+  <line>s CRZ      OPT    REC MAX</line>
+  <line>cFL370w    gFL360w    mFL390w </line>
+  <line>s                        </line>
+  <line>&lt;REPORT                 </line>
+  <line>s                        </line>
+  <line>                        </line>
+  <line>s  BRG /DIST             </line>
+  <line> ---° /---.- sTOs c[      ]wsl</line>
+  <line>s PREDICTIVE             </line>
+  <line>&lt;GPS         gGPS PRIMARYw</line>
+  <line>sREQUIRED ACCUR ESTIMATED</line>
+  <line> sc1.0wNMl   gHIGHs     0.03NMlw</line>
+  <scratchpad>WIND DATA UPLINK        </scratchpad>
+</root>
+=== FPLN | f-pln top
+<root>
+  <title> sFROMl         sBAW504 l £¢</title>
+  <line>s        TIME  SPD/ALT   </line>
+  <line>gEGLL27Rwg 0000w g s140l/    77w</line>
+  <line>s C268°  BRG268°   2     </line>
+  <line>INTCPT  s0001l  ss160sl/s m*w1710l</line>
+  <line>s C255°  gBRG255°w   g5w     </line>
+  <line>gD255G&amp; wg s0003lw g ss183sl/s  5136lw</line>
+  <line>s C268°  gBRG262°w   g2w     </line>
+  <line>gD257I  wg s0003lw g ss194sl/s m*g6000lw</line>
+  <line>s C268°  gBRG268°w   g4wNM   </line>
+  <line>gD260M&amp; wg s0004lw g ss213sl/s m*g6000lw</line>
+  <line>s DEST   TIME  DIST  EFOB</line>
+  <line>LPPT    s0226l   s937   2.3l</line>
+  <scratchpad>WIND DATA UPLINK       ¤</scratchpad>
+</root>
+=== ARROW_UP | f-pln scroll 1
+<root>
+  <title>              sBAW504 l £¢</title>
+  <line>s        TIME  SPD/ALT   </line>
+  <line>INTCPT  s0001l  ss160sl/s m*w1710l</line>
+  <line>s C255°  gBRG255°w   g5w     </line>
+  <line>gD255G&amp; wg s0003lw g ss183sl/s  5136lw</line>
+  <line>s C268°  gBRG262°w   g2w     </line>
+  <line>gD257I  wg s0003lw g ss194sl/s m*g6000lw</line>
+  <line>s C268°  gBRG268°w   g4w     </line>
+  <line>gD260M&amp; wg s0004lw g ss213sl/s m*g6000lw</line>
+  <line>s C212°  gBRG221°w   g3wNM   </line>
+  <line>gSAM33  wg s0005lw g ss230sl/s m*g6000lw</line>
+  <line>s DEST   TIME  DIST  EFOB</line>
+  <line>LPPT    s0226l   s937   2.3l</line>
+  <scratchpad>WIND DATA UPLINK      ¥¤</scratchpad>
+</root>
+=== ARROW_UP | f-pln scroll 2
+<root>
+  <title>              sBAW504 l £¢</title>
+  <line>s        TIME  SPD/ALT   </line>
+  <line>gD255G&amp; wg s0003lw g ss183sl/s  5136lw</line>
+  <line>s C268°  gBRG262°w   g2w     </line>
+  <line>gD257I  wg s0003lw g ss194sl/s m*g6000lw</line>
+  <line>s C268°  gBRG268°w   g4w     </line>
+  <line>gD260M&amp; wg s0004lw g ss213sl/s m*g6000lw</line>
+  <line>s C212°  gBRG221°w   g3w     </line>
+  <line>gSAM33  wg s0005lw g ss230sl/s m*g6000lw</line>
+  <line>s GOGS2F gTRK212°w   g3wNM   </line>
+  <line>gSAM30  wg s0006lw g ss246sl/s m*g6000lw</line>
+  <line>s DEST   TIME  DIST  EFOB</line>
+  <line>LPPT    s0226l   s937   2.3l</line>
+  <scratchpad>WIND DATA UPLINK      ¥¤</scratchpad>
+</root>
+=== ARROW_UP | f-pln scroll 3
+<root>
+  <title>              sBAW504 l £¢</title>
+  <line>s        TIME  SPD/ALT   </line>
+  <line>gD257I  wg s0003lw g ss194sl/s m*g6000lw</line>
+  <line>s C268°  gBRG268°w   g4w     </line>
+  <line>gD260M&amp; wg s0004lw g ss213sl/s m*g6000lw</line>
+  <line>s C212°  gBRG221°w   g3w     </line>
+  <line>gSAM33  wg s0005lw g ss230sl/s m*g6000lw</line>
+  <line>s GOGS2F gTRK212°w   g3w     </line>
+  <line>gSAM30  wg s0006lw g ss246sl/s m*g6000lw</line>
+  <line>s GOGS2F gTRK213°w   g6wNM   </line>
+  <line>gGOGSI  wg s0007lw g ss250sl/s m*g6000lw</line>
+  <line>s DEST   TIME  DIST  EFOB</line>
+  <line>LPPT    s0226l   s937   2.3l</line>
+  <scratchpad>WIND DATA UPLINK      ¥¤</scratchpad>
+</root>
+=== ARROW_UP | f-pln scroll 4
+<root>
+  <title>              sBAW504 l £¢</title>
+  <line>s        TIME  SPD/ALT   </line>
+  <line>gD260M&amp; wg s0004lw g ss213sl/s m*g6000lw</line>
+  <line>s C212°  gBRG221°w   g3w     </line>
+  <line>gSAM33  wg s0005lw g ss230sl/s m*g6000lw</line>
+  <line>s GOGS2F gTRK212°w   g3w     </line>
+  <line>gSAM30  wg s0006lw g ss246sl/s m*g6000lw</line>
+  <line>s GOGS2F gTRK213°w   g6w     </line>
+  <line>gGOGSI  wg s0007lw g ss250sl/s m*g6000lw</line>
+  <line>s        gw                </line>
+  <line>---F-PLN DISCONTINUITY--</line>
+  <line>s DEST   TIME  DIST  EFOB</line>
+  <line>LPPT    s0226l   s937   2.3l</line>
+  <scratchpad>WIND DATA UPLINK      ¥¤</scratchpad>
+</root>
+=== ARROW_UP | f-pln scroll 5
+<root>
+  <title>              sBAW504 l £¢</title>
+  <line>s        TIME  SPD/ALT   </line>
+  <line>gSAM33  wg s0005lw g ss230sl/s m*g6000lw</line>
+  <line>s GOGS2F gTRK212°w   g3w     </line>
+  <line>gSAM30  wg s0006lw g ss246sl/s m*g6000lw</line>
+  <line>s GOGS2F gTRK213°w   g6w     </line>
+  <line>gGOGSI  wg s0007lw g ss250sl/s m*g6000lw</line>
+  <line>s        gw                </line>
+  <line>---F-PLN DISCONTINUITY--</line>
+  <line>s N866   gw          g5wNM   </line>
+  <line>gGASGU  wg s0008lw g  " /s FL093lw</line>
+  <line>s DEST   TIME  DIST  EFOB</line>
+  <line>LPPT    s0226l   s937   2.3l</line>
+  <scratchpad>WIND DATA UPLINK      ¥¤</scratchpad>
+</root>
+=== ARROW_UP | f-pln scroll 6
+<root>
+  <title>              sBAW504 l £¢</title>
+  <line>s        TIME  SPD/ALT   </line>
+  <line>gSAM30  wg s0006lw g ss246sl/s m*g6000lw</line>
+  <line>s GOGS2F gTRK213°w   g6w     </line>
+  <line>gGOGSI  wg s0007lw g ss250sl/s m*g6000lw</line>
+  <line>s        gw                </line>
+  <line>---F-PLN DISCONTINUITY--</line>
+  <line>s N866   gw          g5w     </line>
+  <line>gGASGU  wg s0008lw g  " /s FL093lw</line>
+  <line>s (SPD)  gw          g1wNM   </line>
+  <line>g(LIM)  wg s0009lw gsm*g250/ FL100lw</line>
+  <line>s DEST   TIME  DIST  EFOB</line>
+  <line>LPPT    s0226l   s937   2.3l</line>
+  <scratchpad>WIND DATA UPLINK      ¥¤</scratchpad>
+</root>
+=== ARROW_UP | f-pln scroll 7
+<root>
+  <title>              sBAW504 l £¢</title>
+  <line>s        TIME  SPD/ALT   </line>
+  <line>gGOGSI  wg s0007lw g ss250sl/s m*g6000lw</line>
+  <line>s        gw                </line>
+  <line>---F-PLN DISCONTINUITY--</line>
+  <line>s N866   gw          g5w     </line>
+  <line>gGASGU  wg s0008lw g  " /s FL093lw</line>
+  <line>s (SPD)  gw          g1w     </line>
+  <line>g(LIM)  wg s0009lw gsm*g250/ FL100lw</line>
+  <line>s N866   gTRK223°w   g20wNM  </line>
+  <line>gSAM    wg s0012lw g ss297sl/s FL189lw</line>
+  <line>s DEST   TIME  DIST  EFOB</line>
+  <line>LPPT    s0226l   s937   2.3l</line>
+  <scratchpad>WIND DATA UPLINK      ¥¤</scratchpad>
+</root>
+=== ARROW_UP | f-pln scroll 8
+<root>
+  <title>              sBAW504 l £¢</title>
+  <line>s        TIME  SPD/ALT   </line>
+  <line>---F-PLN DISCONTINUITY--</line>
+  <line>s N866   gw          g5w     </line>
+  <line>gGASGU  wg s0008lw g  " /s FL093lw</line>
+  <line>s (SPD)  gw          g1w     </line>
+  <line>g(LIM)  wg s0009lw gsm*g250/ FL100lw</line>
+  <line>s N866   gTRK223°w   g20w    </line>
+  <line>gSAM    wg s0012lw g ss297sl/s FL189lw</line>
+  <line>s M195   gTRK212°w   g31wNM  </line>
+  <line>gIBNID  wg s0017lw g  " /s FL269lw</line>
+  <line>s DEST   TIME  DIST  EFOB</line>
+  <line>LPPT    s0226l   s937   2.3l</line>
+  <scratchpad>WIND DATA UPLINK      ¥¤</scratchpad>
+</root>
+=== ARROW_UP | f-pln scroll 9
+<root>
+  <title>              sBAW504 l £¢</title>
+  <line>s        TIME  SPD/ALT   </line>
+  <line>gGASGU  wg s0008lw g  " /s FL093lw</line>
+  <line>s (SPD)  gw          g1w     </line>
+  <line>g(LIM)  wg s0009lw gsm*g250/ FL100lw</line>
+  <line>s N866   gTRK223°w   g20w    </line>
+  <line>gSAM    wg s0012lw g ss297sl/s FL189lw</line>
+  <line>s M195   gTRK212°w   g31w    </line>
+  <line>gIBNID  wg s0017lw g  " /s FL269lw</line>
+  <line>s M195   gw          g20wNM  </line>
+  <line>gMARUK  wg s0020lw g ss.77sl/s FL306lw</line>
+  <line>s DEST   TIME  DIST  EFOB</line>
+  <line>LPPT    s0226l   s937   2.3l</line>
+  <scratchpad>WIND DATA UPLINK      ¥¤</scratchpad>
+</root>
+=== ARROW_UP | f-pln scroll 10
+<root>
+  <title>              sBAW504 l £¢</title>
+  <line>s        TIME  SPD/ALT   </line>
+  <line>g(LIM)  wg s0009lw gsm*g250/ FL100lw</line>
+  <line>s N866   gTRK223°w   g20w    </line>
+  <line>gSAM    wg s0012lw g ss297sl/s FL189lw</line>
+  <line>s M195   gTRK212°w   g31w    </line>
+  <line>gIBNID  wg s0017lw g  " /s FL269lw</line>
+  <line>s M195   gw          g20w    </line>
+  <line>gMARUK  wg s0020lw g ss.77sl/s FL306lw</line>
+  <line>s M195   gTRK211°w   g22wNM  </line>
+  <line>gLORKU  wg s0023lw g  " /s FL341lw</line>
+  <line>s DEST   TIME  DIST  EFOB</line>
+  <line>LPPT    s0226l   s937   2.3l</line>
+  <scratchpad>WIND DATA UPLINK      ¥¤</scratchpad>
+</root>
+=== ARROW_UP | f-pln scroll 11
+<root>
+  <title>              sBAW504 l £¢</title>
+  <line>s        TIME  SPD/ALT   </line>
+  <line>gSAM    wg s0012lw g ss297sl/s FL189lw</line>
+  <line>s M195   gTRK212°w   g31w    </line>
+  <line>gIBNID  wg s0017lw g  " /s FL269lw</line>
+  <line>s M195   gw          g20w    </line>
+  <line>gMARUK  wg s0020lw g ss.77sl/s FL306lw</line>
+  <line>s M195   gTRK211°w   g22w    </line>
+  <line>gLORKU  wg s0023lw g  " /s FL341lw</line>
+  <line>s        gw          g53wNM  </line>
+  <line>g(T/C)  wg s0031lw gs  " / FL387lw</line>
+  <line>s DEST   TIME  DIST  EFOB</line>
+  <line>LPPT    s0226l   s937   2.3l</line>
+  <scratchpad>WIND DATA UPLINK      ¥¤</scratchpad>
+</root>
+=== ARROW_UP | f-pln scroll 12
+<root>
+  <title>              sBAW504 l £¢</title>
+  <line>s        TIME  SPD/ALT   </line>
+  <line>gIBNID  wg s0017lw g  " /s FL269lw</line>
+  <line>s M195   gw          g20w    </line>
+  <line>gMARUK  wg s0020lw g ss.77sl/s FL306lw</line>
+  <line>s M195   gTRK211°w   g22w    </line>
+  <line>gLORKU  wg s0023lw g  " /s FL341lw</line>
+  <line>s        gw          g53w    </line>
+  <line>g(T/C)  wg s0031lw gs  " / FL387lw</line>
+  <line>s        gTRK212°w   g96wNM  </line>
+  <line>gEBOMO  wg s0045lw g  " /s FL400lw</line>
+  <line>s DEST   TIME  DIST  EFOB</line>
+  <line>LPPT    s0226l   s937   2.3l</line>
+  <scratchpad>WIND DATA UPLINK      ¥¤</scratchpad>
+</root>
+=== ARROW_UP | f-pln scroll 13
+<root>
+  <title>              sBAW504 l £¢</title>
+  <line>s        TIME  SPD/ALT   </line>
+  <line>gMARUK  wg s0020lw g ss.77sl/s FL306lw</line>
+  <line>s M195   gTRK211°w   g22w    </line>
+  <line>gLORKU  wg s0023lw g  " /s FL341lw</line>
+  <line>s        gw          g53w    </line>
+  <line>g(T/C)  wg s0031lw gs  " / FL387lw</line>
+  <line>s        gTRK212°w   g96w    </line>
+  <line>gEBOMO  wg s0045lw g  " /s FL400lw</line>
+  <line>s        gTRK197°w   g46wNM  </line>
+  <line>gIBISU  wg s0051lw g  " /   "  w</line>
+  <line>s DEST   TIME  DIST  EFOB</line>
+  <line>LPPT    s0226l   s937   2.3l</line>
+  <scratchpad>WIND DATA UPLINK      ¥¤</scratchpad>
+</root>
+=== ARROW_UP | f-pln scroll 14
+<root>
+  <title>              sBAW504 l £¢</title>
+  <line>s        TIME  SPD/ALT   </line>
+  <line>gLORKU  wg s0023lw g  " /s FL341lw</line>
+  <line>s        gw          g53w    </line>
+  <line>g(T/C)  wg s0031lw gs  " / FL387lw</line>
+  <line>s        gTRK212°w   g96w    </line>
+  <line>gEBOMO  wg s0045lw g  " /s FL400lw</line>
+  <line>s        gTRK197°w   g46w    </line>
+  <line>gIBISU  wg s0051lw g  " /   "  w</line>
+  <line>s        gTRK195°w   g154wNM </line>
+  <line>gBALDA  wg s0113lw g  " /   "  w</line>
+  <line>s DEST   TIME  DIST  EFOB</line>
+  <line>LPPT    s0226l   s937   2.3l</line>
+  <scratchpad>WIND DATA UPLINK      ¥¤</scratchpad>
+</root>
+=== ARROW_UP | f-pln scroll 15
+<root>
+  <title>              sBAW504 l £¢</title>
+  <line>s        TIME  SPD/ALT   </line>
+  <line>g(T/C)  wg s0031lw gs  " / FL387lw</line>
+  <line>s        gTRK212°w   g96w    </line>
+  <line>gEBOMO  wg s0045lw g  " /s FL400lw</line>
+  <line>s        gTRK197°w   g46w    </line>
+  <line>gIBISU  wg s0051lw g  " /   "  w</line>
+  <line>s        gTRK195°w   g154w   </line>
+  <line>gBALDA  wg s0113lw g  " /   "  w</line>
+  <line>s        gTRK204°w   g187wNM </line>
+  <line>gABUPI  wg s0140lw g  " /   "  w</line>
+  <line>s DEST   TIME  DIST  EFOB</line>
+  <line>LPPT    s0226l   s937   2.3l</line>
+  <scratchpad>WIND DATA UPLINK      ¥¤</scratchpad>
+</root>
+=== ARROW_UP | f-pln scroll 16
+<root>
+  <title>              sBAW504 l £¢</title>
+  <line>s        TIME  SPD/ALT   </line>
+  <line>gEBOMO  wg s0045lw g  " /s FL400lw</line>
+  <line>s        gTRK197°w   g46w    </line>
+  <line>gIBISU  wg s0051lw g  " /   "  w</line>
+  <line>s        gTRK195°w   g154w   </line>
+  <line>gBALDA  wg s0113lw g  " /   "  w</line>
+  <line>s        gTRK204°w   g187w   </line>
+  <line>gABUPI  wg s0140lw g  " /   "  w</line>
+  <line>s        gTRK211°w   g119wNM </line>
+  <line>gXAMAX  wg s0157lw g  " /   "  w</line>
+  <line>s DEST   TIME  DIST  EFOB</line>
+  <line>LPPT    s0226l   s937   2.3l</line>
+  <scratchpad>WIND DATA UPLINK      ¥¤</scratchpad>
+</root>
+=== ARROW_UP | f-pln scroll 17
+<root>
+  <title>              sBAW504 l £¢</title>
+  <line>s        TIME  SPD/ALT   </line>
+  <line>gIBISU  wg s0051lw g  " /   "  w</line>
+  <line>s        gTRK195°w   g154w   </line>
+  <line>gBALDA  wg s0113lw g  " /   "  w</line>
+  <line>s        gTRK204°w   g187w   </line>
+  <line>gABUPI  wg s0140lw g  " /   "  w</line>
+  <line>s        gTRK211°w   g119w   </line>
+  <line>gXAMAX  wg s0157lw g  " /   "  w</line>
+  <line>s        gw          g55wNM  </line>
+  <line>g(T/D)  wg s0205lw gs  " /   "  lw</line>
+  <line>s DEST   TIME  DIST  EFOB</line>
+  <line>LPPT    s0226l   s937   2.3l</line>
+  <scratchpad>WIND DATA UPLINK      ¥¤</scratchpad>
+</root>
+=== ARROW_UP | f-pln scroll 18
+<root>
+  <title>              sBAW504 l £¢</title>
+  <line>s        TIME  SPD/ALT   </line>
+  <line>gBALDA  wg s0113lw g  " /   "  w</line>
+  <line>s        gTRK204°w   g187w   </line>
+  <line>gABUPI  wg s0140lw g  " /   "  w</line>
+  <line>s        gTRK211°w   g119w   </line>
+  <line>gXAMAX  wg s0157lw g  " /   "  w</line>
+  <line>s        gw          g55w    </line>
+  <line>g(T/D)  wg s0205lw gs  " /   "  lw</line>
+  <line>s        gw                </line>
+  <line>---F-PLN DISCONTINUITY--</line>
+  <line>s DEST   TIME  DIST  EFOB</line>
+  <line>LPPT    s0226l   s937   2.3l</line>
+  <scratchpad>WIND DATA UPLINK      ¥¤</scratchpad>
+</root>
+=== ARROW_UP | f-pln scroll 19
+<root>
+  <title>              sBAW504 l £¢</title>
+  <line>s        TIME  SPD/ALT   </line>
+  <line>gABUPI  wg s0140lw g  " /   "  w</line>
+  <line>s        gTRK211°w   g119w   </line>
+  <line>gXAMAX  wg s0157lw g  " /   "  w</line>
+  <line>s        gw          g55w    </line>
+  <line>g(T/D)  wg s0205lw gs  " /   "  lw</line>
+  <line>s        gw                </line>
+  <line>---F-PLN DISCONTINUITY--</line>
+  <line>s        gw          g54wNM  </line>
+  <line>g(DECEL)wg s0218lw gs s249s/ FL119lw</line>
+  <line>s DEST   TIME  DIST  EFOB</line>
+  <line>LPPT    s0226l   s937   2.3l</line>
+  <scratchpad>WIND DATA UPLINK      ¥¤</scratchpad>
+</root>
+=== ARROW_UP | f-pln scroll 20
+<root>
+  <title>              sBAW504 l £¢</title>
+  <line>s        TIME  SPD/ALT   </line>
+  <line>gXAMAX  wg s0157lw g  " /   "  w</line>
+  <line>s        gw          g55w    </line>
+  <line>g(T/D)  wg s0205lw gs  " /   "  lw</line>
+  <line>s        gw                </line>
+  <line>---F-PLN DISCONTINUITY--</line>
+  <line>s        gw          g54w    </line>
+  <line>g(DECEL)wg s0218lw gs s249s/ FL119lw</line>
+  <line>s (SPD)  gw          g5wNM   </line>
+  <line>g(LIM)  wg s0219lw gsm*g250/ FL100lw</line>
+  <line>s DEST   TIME  DIST  EFOB</line>
+  <line>LPPT    s0226l   s937   2.3l</line>
+  <scratchpad>WIND DATA UPLINK      ¥¤</scratchpad>
+</root>
+=== ARROW_UP | f-pln scroll 21
+<root>
+  <title>              sBAW504 l £¢</title>
+  <line>s        TIME  SPD/ALT   </line>
+  <line>g(T/D)  wg s0205lw gs  " /   "  lw</line>
+  <line>s        gw                </line>
+  <line>---F-PLN DISCONTINUITY--</line>
+  <line>s        gw          g54w    </line>
+  <line>g(DECEL)wg s0218lw gs s249s/ FL119lw</line>
+  <line>s (SPD)  gw          g5w     </line>
+  <line>g(LIM)  wg s0219lw gsm*g250/ FL100lw</line>
+  <line>s        gw          g22wNM  </line>
+  <line>gLPPT   wg s0226lw g ss130sl/s   380lw</line>
+  <line>s DEST   TIME  DIST  EFOB</line>
+  <line>LPPT    s0226l   s937   2.3l</line>
+  <scratchpad>WIND DATA UPLINK      ¥¤</scratchpad>
+</root>
+=== ARROW_UP | f-pln scroll 22
+<root>
+  <title>              sBAW504 l £¢</title>
+  <line>s        TIME  SPD/ALT   </line>
+  <line>---F-PLN DISCONTINUITY--</line>
+  <line>s        gw          g54w    </line>
+  <line>g(DECEL)wg s0218lw gs s249s/ FL119lw</line>
+  <line>s (SPD)  gw          g5w     </line>
+  <line>g(LIM)  wg s0219lw gsm*g250/ FL100lw</line>
+  <line>s        gw          g22w    </line>
+  <line>gLPPT   wg s0226lw g ss130sl/s   380lw</line>
+  <line>s        gw                </line>
+  <line>------END OF F-PLN------</line>
+  <line>s DEST   TIME  DIST  EFOB</line>
+  <line>LPPT    s0226l   s937   2.3l</line>
+  <scratchpad>WIND DATA UPLINK      ¥¤</scratchpad>
+</root>
+=== ARROW_UP | f-pln scroll 23
+<root>
+  <title>              sBAW504 l £¢</title>
+  <line>s        TIME  SPD/ALT   </line>
+  <line>g(DECEL)wg s0218lw gs s249s/ FL119lw</line>
+  <line>s (SPD)  gw          g5w     </line>
+  <line>g(LIM)  wg s0219lw gsm*g250/ FL100lw</line>
+  <line>s        gw          g22w    </line>
+  <line>gLPPT   wg s0226lw g ss130sl/s   380lw</line>
+  <line>s        gw                </line>
+  <line>------END OF F-PLN------</line>
+  <line>s        cw                </line>
+  <line>cLPPT   w ---- c w---c/ w-----cw</line>
+  <line>s DEST   TIME  DIST  EFOB</line>
+  <line>LPPT    s0226l   s937   2.3l</line>
+  <scratchpad>WIND DATA UPLINK      ¥¤</scratchpad>
+</root>
+=== ARROW_UP | f-pln scroll 24
+<root>
+  <title>              sBAW504 l £¢</title>
+  <line>s        TIME  SPD/ALT   </line>
+  <line>g(LIM)  wg s0219lw gsm*g250/ FL100lw</line>
+  <line>s        gw          g22w    </line>
+  <line>gLPPT   wg s0226lw g ss130sl/s   380lw</line>
+  <line>s        gw                </line>
+  <line>------END OF F-PLN------</line>
+  <line>s        cw                </line>
+  <line>cLPPT   w ---- c w---c/ w-----cw</line>
+  <line>s        cw                </line>
+  <line>---F-PLN DISCONTINUITY--</line>
+  <line>s DEST   TIME  DIST  EFOB</line>
+  <line>LPPT    s0226l   s937   2.3l</line>
+  <scratchpad>WIND DATA UPLINK      ¥¤</scratchpad>
+</root>
+=== ARROW_UP | f-pln scroll 25
+<root>
+  <title>              sBAW504 l £¢</title>
+  <line>s        TIME  SPD/ALT   </line>
+  <line>gLPPT   wg s0226lw g ss130sl/s   380lw</line>
+  <line>s        gw                </line>
+  <line>------END OF F-PLN------</line>
+  <line>s        cw                </line>
+  <line>cLPPT   w ---- c w---c/ w-----cw</line>
+  <line>s        cw                </line>
+  <line>---F-PLN DISCONTINUITY--</line>
+  <line>s        cw                </line>
+  <line>cDUZOP  w ---- c sw---cl/s w-----clw</line>
+  <line>s DEST   TIME  DIST  EFOB</line>
+  <line>LPPT    s0226l   s937   2.3l</line>
+  <scratchpad>WIND DATA UPLINK      ¥¤</scratchpad>
+</root>
+=== ARROW_UP | f-pln scroll 26
+<root>
+  <title>              sBAW504 l £¢</title>
+  <line>s        TIME  SPD/ALT   </line>
+  <line>------END OF F-PLN------</line>
+  <line>s        cw                </line>
+  <line>cLPPT   w ---- c w---c/ w-----cw</line>
+  <line>s        cw                </line>
+  <line>---F-PLN DISCONTINUITY--</line>
+  <line>s        cw                </line>
+  <line>cDUZOP  w ---- c sw---cl/s w-----clw</line>
+  <line>s        cw                </line>
+  <line>---F-PLN DISCONTINUITY--</line>
+  <line>s DEST   TIME  DIST  EFOB</line>
+  <line>LPPT    s0226l   s937   2.3l</line>
+  <scratchpad>WIND DATA UPLINK      ¥¤</scratchpad>
+</root>
+=== ARROW_UP | f-pln scroll 27
+<root>
+  <title>              sBAW504 l £¢</title>
+  <line>s        TIME  SPD/ALT   </line>
+  <line>cLPPT   w ---- c w---c/ w-----cw</line>
+  <line>s        cw                </line>
+  <line>---F-PLN DISCONTINUITY--</line>
+  <line>s        cw                </line>
+  <line>cDUZOP  w ---- c sw---cl/s w-----clw</line>
+  <line>s        cw                </line>
+  <line>---F-PLN DISCONTINUITY--</line>
+  <line>s        cw                </line>
+  <line>cLPFR   w ---- c sw---cl/s w-----clw</line>
+  <line>s DEST   TIME  DIST  EFOB</line>
+  <line>LPPT    s0226l   s937   2.3l</line>
+  <scratchpad>WIND DATA UPLINK      ¥¤</scratchpad>
+</root>
+=== ARROW_UP | f-pln scroll 28
+<root>
+  <title>              sBAW504 l £¢</title>
+  <line>s        TIME  SPD/ALT   </line>
+  <line>---F-PLN DISCONTINUITY--</line>
+  <line>s        cw                </line>
+  <line>cDUZOP  w ---- c sw---cl/s w-----clw</line>
+  <line>s        cw                </line>
+  <line>---F-PLN DISCONTINUITY--</line>
+  <line>s        cw                </line>
+  <line>cLPFR   w ---- c sw---cl/s w-----clw</line>
+  <line>s        gw                </line>
+  <line>---END OF ALTN F-PLN----</line>
+  <line>s DEST   TIME  DIST  EFOB</line>
+  <line>LPPT    s0226l   s937   2.3l</line>
+  <scratchpad>WIND DATA UPLINK      ¥¤</scratchpad>
+</root>
+=== ARROW_UP | f-pln scroll 29
+<root>
+  <title>              sBAW504 l £¢</title>
+  <line>s        TIME  SPD/ALT   </line>
+  <line>cDUZOP  w ---- c sw---cl/s w-----clw</line>
+  <line>s        cw                </line>
+  <line>---F-PLN DISCONTINUITY--</line>
+  <line>s        cw                </line>
+  <line>cLPFR   w ---- c sw---cl/s w-----clw</line>
+  <line>s        gw                </line>
+  <line>---END OF ALTN F-PLN----</line>
+  <line>s                        </line>
+  <line>gEGLL27Rwg 0000w g s140l/    77w</line>
+  <line>s DEST   TIME  DIST  EFOB</line>
+  <line>LPPT    s0226l   s937   2.3l</line>
+  <scratchpad>WIND DATA UPLINK      ¥¤</scratchpad>
+</root>
+=== ARROW_UP | f-pln scroll 30
+<root>
+  <title>              sBAW504 l £¢</title>
+  <line>s        TIME  SPD/ALT   </line>
+  <line>---F-PLN DISCONTINUITY--</line>
+  <line>s        cw                </line>
+  <line>cLPFR   w ---- c sw---cl/s w-----clw</line>
+  <line>s        gw                </line>
+  <line>---END OF ALTN F-PLN----</line>
+  <line>s                        </line>
+  <line>gEGLL27Rwg 0000w g s140l/    77w</line>
+  <line>s C268°  BRG268°   2NM   </line>
+  <line>INTCPT  s0001l  ss160sl/s m*w1710l</line>
+  <line>s DEST   TIME  DIST  EFOB</line>
+  <line>LPPT    s0226l   s937   2.3l</line>
+  <scratchpad>WIND DATA UPLINK      ¥¤</scratchpad>
+</root>
+=== ARROW_UP | f-pln scroll 31
+<root>
+  <title>              sBAW504 l £¢</title>
+  <line>s        TIME  SPD/ALT   </line>
+  <line>cLPFR   w ---- c sw---cl/s w-----clw</line>
+  <line>s        gw                </line>
+  <line>---END OF ALTN F-PLN----</line>
+  <line>s                        </line>
+  <line>gEGLL27Rwg 0000w g s140l/    77w</line>
+  <line>s C268°  BRG268°   2     </line>
+  <line>INTCPT  s0001l  ss160sl/s m*w1710l</line>
+  <line>s C255°  gBRG255°w   g5wNM   </line>
+  <line>gD255G&amp; wg s0003lw g ss183sl/s  5136lw</line>
+  <line>s DEST   TIME  DIST  EFOB</line>
+  <line>LPPT    s0226l   s937   2.3l</line>
+  <scratchpad>WIND DATA UPLINK      ¥¤</scratchpad>
+</root>
+=== ARROW_UP | f-pln scroll 32
+<root>
+  <title>              sBAW504 l £¢</title>
+  <line>s        TIME  SPD/ALT   </line>
+  <line>---END OF ALTN F-PLN----</line>
+  <line>s                        </line>
+  <line>gEGLL27Rwg 0000w g s140l/    77w</line>
+  <line>s C268°  BRG268°   2     </line>
+  <line>INTCPT  s0001l  ss160sl/s m*w1710l</line>
+  <line>s C255°  gBRG255°w   g5w     </line>
+  <line>gD255G&amp; wg s0003lw g ss183sl/s  5136lw</line>
+  <line>s C268°  gBRG262°w   g2wNM   </line>
+  <line>gD257I  wg s0003lw g ss194sl/s m*g6000lw</line>
+  <line>s DEST   TIME  DIST  EFOB</line>
+  <line>LPPT    s0226l   s937   2.3l</line>
+  <scratchpad>WIND DATA UPLINK       ¥</scratchpad>
+</root>
+=== ARROW_UP | f-pln scroll 33
+<root>
+  <title> sFROMl         sBAW504 l £¢</title>
+  <line>s        TIME  SPD/ALT   </line>
+  <line>gEGLL27Rwg 0000w g s140l/    77w</line>
+  <line>s C268°  BRG268°   2     </line>
+  <line>INTCPT  s0001l  ss160sl/s m*w1710l</line>
+  <line>s C255°  gBRG255°w   g5w     </line>
+  <line>gD255G&amp; wg s0003lw g ss183sl/s  5136lw</line>
+  <line>s C268°  gBRG262°w   g2w     </line>
+  <line>gD257I  wg s0003lw g ss194sl/s m*g6000lw</line>
+  <line>s C268°  gBRG268°w   g4wNM   </line>
+  <line>gD260M&amp; wg s0004lw g ss213sl/s m*g6000lw</line>
+  <line>s DEST   TIME  DIST  EFOB</line>
+  <line>LPPT    s0226l   s937   2.3l</line>
+  <scratchpad>WIND DATA UPLINK       ¤</scratchpad>
+</root>
+=== FPLN | f-pln back to top
+<root>
+  <title> sFROMl         sBAW504 l £¢</title>
+  <line>s        TIME  SPD/ALT   </line>
+  <line>gEGLL27Rwg 0000w g s140l/    77w</line>
+  <line>s C268°  BRG268°   2     </line>
+  <line>INTCPT  s0001l  ss160sl/s m*w1710l</line>
+  <line>s C255°  gBRG255°w   g5w     </line>
+  <line>gD255G&amp; wg s0003lw g ss183sl/s  5136lw</line>
+  <line>s C268°  gBRG262°w   g2w     </line>
+  <line>gD257I  wg s0003lw g ss194sl/s m*g6000lw</line>
+  <line>s C268°  gBRG268°w   g4wNM   </line>
+  <line>gD260M&amp; wg s0004lw g ss213sl/s m*g6000lw</line>
+  <line>s DEST   TIME  DIST  EFOB</line>
+  <line>LPPT    s0226l   s937   2.3l</line>
+  <scratchpad>WIND DATA UPLINK       ¤</scratchpad>
+</root>
+=== RAD_NAV | rad nav
+<root>
+  <title>       RADIO NAV        </title>
+  <line>sVOR1/FREQ      FREQ/VOR2</line>
+  <line>c[  ]/[   .]w  c[   .]/[  ]w</line>
+  <line>sCRS                  CRS</line>
+  <line>c[ ]w                  c[ ]w</line>
+  <line>sILS /FREQ               </line>
+  <line>csIRR/110.30lw              </line>
+  <line>sCRS                     </line>
+  <line>csF268  lw                  </line>
+  <line>sADF1/FREQ      FREQ/ADF2</line>
+  <line>c[  ]/[   .]w  c[   .]/[  ]w</line>
+  <line>s                        </line>
+  <line>                        </line>
+  <scratchpad>WIND DATA UPLINK        </scratchpad>
+</root>
+=== PERF | perf takeoff
+<root>
+  <title>    TAKE OFF RWY g27R    </title>
+  <line>s V1  FLP RETR           </line>
+  <line>a###w     F=g143w           </line>
+  <line>s VR  SLT RETR  TO SHIFT </line>
+  <line>a###w     S=g187w   [sMl]c[  ]*w</line>
+  <line>s V2     CLEAN  FLAPS/THS</line>
+  <line>a###w     O=g205w   c[]/[   ]w</line>
+  <line>sTRANS ALT   FLEX TO TEMP</line>
+  <line>cs6000lw               c[  ]°w</line>
+  <line>sTHR RED/ACC  ENG OUT ACC</line>
+  <line>c s1578l/s1578lw          cs1578lw</line>
+  <line>s                   NEXT </line>
+  <line>                  PHASE&gt;</line>
+  <scratchpad>WIND DATA UPLINK        </scratchpad>
+</root>

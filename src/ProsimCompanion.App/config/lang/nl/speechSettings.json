@@ -1133,11 +1133,20 @@
       "actuation": {
         "label": "Bediening toestaan",
         "hint": "Laat de FO MCDU-toetsen indrukken.",
-        "more": "Uit: alleen lezen. Commando's antwoorden dat toetsdrukken uit staan."
+        "more": "Uit: alleen lezen. De FO bladert nog wel voor “check the box”, maar voert niets in."
       },
       "verifyPause": {
         "label": "Verificatiepauze",
         "hint": "De FO kondigt de wijziging aan en wacht dan zo lang zodat je kunt annuleren."
+      },
+      "boxCheckPage": {
+        "label": "Check de box: tijd per pagina",
+        "hint": "Hoe lang de FO elke MCDU-pagina leest tijdens “check the box”. De hele check duurt ongeveer tien keer zo lang."
+      },
+      "boxCheckOfferFixes": {
+        "label": "Check de box: correcties aanbieden",
+        "hint": "Na de check vraagt de FO het eerst, voordat hij een bekende waarde invoert.",
+        "more": "Gewichten en startsnelheden hebben geen toetsdruk nodig. Vluchtnummer, cost index, kruishoogte en het secundaire plan hebben “Bediening toestaan” nodig. De route wordt nooit gewijzigd."
       }
     },
     "foSide": {

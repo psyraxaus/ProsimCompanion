@@ -60,6 +60,30 @@
       "softDone": "FLUG ZURÜCKGESETZT — OFP BEHALTEN",
       "unloadDone": "OFP ENTLADEN — ZUM FORTFAHREN EIN NEUES OFP LADEN",
       "incomplete": "RESET UNVOLLSTÄNDIG — PROSIM VERWEIGERTE {0}"
+    },
+    "boxCheck": {
+      "title": "MCDU-CHECK",
+      "run": "Box prüfen",
+      "running": "PRÜFT…",
+      "notRun": "NICHT GELAUFEN",
+      "ranAt": "GEPRÜFT {0}Z",
+      "hint": "Der FO öffnet jede MCDU-Seite, vergleicht sie mit dem Plan und meldet. Sprache: „check the box“.",
+      "item": {
+        "data": "Data",
+        "initA": "Init A",
+        "fpln": "Flugplan",
+        "sec": "Sekundärplan",
+        "radNav": "Rad Nav",
+        "initB": "Init B (Kraftstoff)",
+        "perf": "Perf Takeoff",
+        "prog": "Progress"
+      },
+      "state": {
+        "ok": "OK",
+        "difference": "ABWEICHUNG",
+        "notEntered": "NICHT EINGEGEBEN",
+        "notChecked": "NICHT GELESEN"
+      }
     }
   }
 }

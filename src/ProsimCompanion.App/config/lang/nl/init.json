@@ -60,6 +60,30 @@
       "softDone": "VLUCHT GERESET — OFP BEHOUDEN",
       "unloadDone": "OFP ONTLADEN — HAAL EEN NIEUWE OFP OP OM VERDER TE GAAN",
       "incomplete": "RESET ONVOLLEDIG — PROSIM WEIGERDE {0}"
+    },
+    "boxCheck": {
+      "title": "MCDU-CHECK",
+      "run": "Check de box",
+      "running": "BEZIG…",
+      "notRun": "NIET UITGEVOERD",
+      "ranAt": "GECONTROLEERD {0}Z",
+      "hint": "De FO opent elke MCDU-pagina, vergelijkt die met het plan en meldt. Spraak: “check the box”.",
+      "item": {
+        "data": "Data",
+        "initA": "Init A",
+        "fpln": "Vliegplan",
+        "sec": "Secundair plan",
+        "radNav": "Rad nav",
+        "initB": "Init B (brandstof)",
+        "perf": "Perf take-off",
+        "prog": "Progress"
+      },
+      "state": {
+        "ok": "OK",
+        "difference": "VERSCHIL",
+        "notEntered": "NIET INGEVOERD",
+        "notChecked": "NIET GELEZEN"
+      }
     }
   }
 }

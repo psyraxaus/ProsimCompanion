@@ -219,6 +219,11 @@ public static class CoreServiceCollectionExtensions
         services.AddSingleton<EndOfDutyOfferStore>();
         services.AddSingleton<ICaptainsQuestionStore>(p => p.GetRequiredService<EndOfDutyOfferStore>());
         services.AddSingleton<Day.DutyDaySignals>();
+        // The FO's MCDU check (D-I-F-S-R-I-P-P, 2026-11-15): the result for the web card and
+        // the "Shall I enter it?" offer the FO dialogue and the open-questions card answer.
+        services.AddSingleton<BoxCheckStore>();
+        services.AddSingleton<BoxCheckFixStore>();
+        services.AddSingleton<ICaptainsQuestionStore>(p => p.GetRequiredService<BoxCheckFixStore>());
         // "Any other threats, captain?" after the emergency half of the takeoff briefing
         // (issue #180): the briefing asks, the FO dialogue takes the free-text answer.
         services.AddSingleton<ThreatsQuestionStore>();

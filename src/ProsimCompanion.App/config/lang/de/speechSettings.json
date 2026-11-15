@@ -1133,11 +1133,20 @@
       "actuation": {
         "label": "Betätigung erlauben",
         "hint": "Der FO darf MCDU-Tasten drücken.",
-        "more": "Aus: nur lesen. Befehle antworten, dass Tastendrücke aus sind."
+        "more": "Aus: nur lesen. Der FO blättert für „check the box“ weiterhin die Seiten, gibt aber nichts ein."
       },
       "verifyPause": {
         "label": "Prüfpause",
         "hint": "Der FO kündigt die Änderung an und wartet dann so lange, damit du abbrechen kannst."
+      },
+      "boxCheckPage": {
+        "label": "Box prüfen: Zeit je Seite",
+        "hint": "Wie lange der FO bei „check the box“ jede MCDU-Seite liest. Der ganze Check dauert etwa zehnmal so lange."
+      },
+      "boxCheckOfferFixes": {
+        "label": "Box prüfen: Korrekturen anbieten",
+        "hint": "Nach dem Check fragt der FO, bevor er einen bekannten Wert eingibt.",
+        "more": "Gewichte und Startgeschwindigkeiten brauchen keinen Tastendruck. Flugnummer, Cost Index, Reiseflughöhe und Sekundärplan brauchen „Betätigung erlauben“. Die Route wird nie geändert."
       }
     },
     "foSide": {

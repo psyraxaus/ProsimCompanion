@@ -130,6 +130,11 @@ public static class SpeechServiceCollectionExtensions
         services.AddSingleton<Mcdu.IMcduActuator, Mcdu.McduActuator>();
         services.AddVoiceFeature<Mcdu.McduRadNavTuner>();
         services.AddVoiceFeature<Mcdu.McduArrivalChanger>();
+        // "Check the box" (2026-11-15): the D-I-F-S-R-I-P-P check that reads each page, reports
+        // the differences and offers to enter what it knows; also the mcdu.checkBox command seam.
+        services.AddVoiceFeature<Mcdu.McduBoxCheckService>();
+        services.AddSingleton<Core.State.IBoxCheckControl>(p => p.GetRequiredService<Mcdu.McduBoxCheckService>());
+        services.AddSingleton(Mcdu.BoxCheckFixPhrases.Table);
         services.AddSingleton<Briefings.DfdNavDataProvider>();
         // ICAO → spoken airport name (issue #70): curated short names + the DFD's
         // airport_name column. Optional everywhere it is consumed, so a missing DFD just

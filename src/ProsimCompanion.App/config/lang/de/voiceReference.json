@@ -144,6 +144,11 @@
         "title": "MCDU — Landebahn",
         "change": "Der FO ändert Landebahn und ILS (LAT REV → ARRIVAL → insert)."
       },
+      "mcduBoxCheck": {
+        "title": "MCDU — Box prüfen",
+        "check": "Der FO öffnet jede MCDU-Seite (D-I-F-S-R-I-P-P), vergleicht sie mit dem Plan, dem Loadsheet und den Startwerten, meldet die Abweichungen und bietet an, bekannte Werte einzugeben.",
+        "stop": "Bricht den Check ab."
+      },
       "briefings": {
         "title": "Briefings",
         "departure": "Departure-Briefing aus FMS-Plan, Navdata und Live-Wetter.",

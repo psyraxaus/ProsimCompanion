@@ -60,6 +60,30 @@
       "softDone": "비행 재설정됨 — OFP 유지",
       "unloadDone": "OFP 언로드됨 — 계속하려면 새 OFP를 가져오세요",
       "incomplete": "재설정 미완료 — PROSIM이 {0} 거부"
+    },
+    "boxCheck": {
+      "title": "MCDU 점검",
+      "run": "박스 점검",
+      "running": "점검 중…",
+      "notRun": "미실행",
+      "ranAt": "점검 완료 {0}Z",
+      "hint": "FO가 MCDU의 각 페이지를 열어 계획과 비교하고 보고합니다. 음성: “check the box”.",
+      "item": {
+        "data": "데이터",
+        "initA": "초기 설정 A",
+        "fpln": "비행 계획",
+        "sec": "보조 계획",
+        "radNav": "무선 항법",
+        "initB": "초기 설정 B (연료)",
+        "perf": "Perf 이륙",
+        "prog": "진행"
+      },
+      "state": {
+        "ok": "OK",
+        "difference": "차이 있음",
+        "notEntered": "미입력",
+        "notChecked": "읽지 못함"
+      }
     }
   }
 }

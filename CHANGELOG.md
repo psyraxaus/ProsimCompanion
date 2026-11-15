@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.0.0-rc.9
+
+Feature build, 2026-11-15, over 1.0.0-rc.8. **Not flown yet**, and not yet run against ProSim: it is tested against the MCDU screens captured from the owner's rig the same day.
+
+- New: **"check the box" reads the MCDU** (#247, owner request). Until now the phrase ran a key macro: the FO turned eight pages in five seconds, read nothing and said "Checked" — and never opened the fuel page, because its "arrow right" was pressed on RAD NAV. Now:
+  - **The FO answers "Checking the box."** and opens the pages in the D-I-F-S-R-I-P-P order at a reading pace: DATA (A/C STATUS, IRS and GPS monitors), INIT A, the F-PLN scrolled to its end, the secondary plan, RAD NAV, INIT B, PERF and PROG. About a minute in all; Settings → Flight Deck → MCDU → *Check the box: time on each page* (5 s).
+  - **The FO compares** each page with the flight plan (city pair, alternate, flight number, cost index, cruise level), the loadsheet (ZFW, ZFWCG), the computed takeoff figures (V speeds, flex, flaps, runway) and the sim date (navigation database cycle), and finds every discontinuity in the active plan.
+  - **The FO reports**: "Box checked, two differences. A discontinuity after GOGSI. … Not entered yet: the V speeds and the trim." — or "Box checked, no differences."
+  - **The FO offers to enter what it knows**, one question at a time, and enters only on a yes: "Cost index is five, the plan says four five. Shall I enter it?" Weights and takeoff figures are written directly; flight number, cost index, cruise level and "copy the active plan to the secondary" press MCDU keys and are offered only with *Allow actuation* on. The route, the SID and a discontinuity are reported and never changed. Switch: *Check the box: offer to enter corrections* (on).
+  - **A card** on Flight Status and EFB INIT shows the eight letters green / amber / grey with what was read and found, and a button that starts the check. "Stop the check" stops it. Command `mcdu.checkBox`.
+- Changed: **the FO turns MCDU pages for the check with *Allow actuation* off** (owner decision). Page keys, the slew arrows and page links checked against the screen text only — no key that can enter or delete a value.
+- Changed: the key macro "check the box" is removed from the shipped `commands.json`. A `commands.json` you have edited keeps its macro; the new check takes the phrase first while the MCDU features are on.
+- Probe `mcdu-box-check`. Not done: the check does not run by itself (the ADIRS / FMGC cross-check still does); block fuel and RAD NAV are read and not judged; the SID and the route are not compared with the plan; the trim is not entered; the item lines on the card are English in every language; the page layouts of ProSim 1.74 / 1.75 and of the pages in flight are not captured — a page the reader does not know is reported "could not read", never guessed.
+
 ## 1.0.0-rc.8
 
 Fix build, 2026-11-15, from the owner's flight LOWW–EGLL on 1.0.0-rc.7 the same day. **Not flown yet.**

@@ -60,6 +60,30 @@
       "softDone": "FLIGHT RESET — OFP KEPT",
       "unloadDone": "OFP UNLOADED — FETCH A NEW OFP TO CONTINUE",
       "incomplete": "RESET INCOMPLETE — PROSIM REFUSED {0}"
+    },
+    "boxCheck": {
+      "title": "MCDU CHECK",
+      "run": "Check the box",
+      "running": "CHECKING…",
+      "notRun": "NOT RUN",
+      "ranAt": "CHECKED {0}Z",
+      "hint": "The FO opens each MCDU page, compares it with the plan and reports. Voice: “check the box”.",
+      "item": {
+        "data": "Data",
+        "initA": "Init A",
+        "fpln": "Flight plan",
+        "sec": "Secondary plan",
+        "radNav": "Rad nav",
+        "initB": "Init B (fuel)",
+        "perf": "Perf takeoff",
+        "prog": "Progress"
+      },
+      "state": {
+        "ok": "OK",
+        "difference": "DIFFERENCE",
+        "notEntered": "NOT ENTERED",
+        "notChecked": "NOT READ"
+      }
     }
   }
 }

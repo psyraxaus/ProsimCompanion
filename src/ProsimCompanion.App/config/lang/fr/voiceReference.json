@@ -144,6 +144,11 @@
         "title": "MCDU — piste d'arrivée",
         "change": "L'OPL change la piste d'arrivée et l'ILS (LAT REV → ARRIVAL → insert)."
       },
+      "mcduBoxCheck": {
+        "title": "MCDU — vérifier la boîte",
+        "check": "Le FO ouvre chaque page du MCDU (D-I-F-S-R-I-P-P), la compare au plan, à la feuille de chargement et aux données de décollage, annonce les écarts et propose de saisir ce qu’il connaît.",
+        "stop": "Arrête la vérification."
+      },
       "briefings": {
         "title": "Briefings",
         "departure": "Briefing départ à partir du plan FMS, de la navdata et de la météo en direct.",

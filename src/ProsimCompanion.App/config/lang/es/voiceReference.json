@@ -144,6 +144,11 @@
         "title": "MCDU — pista de llegada",
         "change": "El FO cambia la pista de llegada y el ILS (LAT REV → ARRIVAL → insert)."
       },
+      "mcduBoxCheck": {
+        "title": "MCDU — comprobar la caja",
+        "check": "El FO abre cada página de la MCDU (D-I-F-S-R-I-P-P), la compara con el plan, la hoja de carga y los datos de despegue, informa de las diferencias y ofrece introducir lo que conoce.",
+        "stop": "Detiene la comprobación."
+      },
       "briefings": {
         "title": "Briefings",
         "departure": "Briefing de salida a partir del plan del FMS, la navdata y el tiempo en vivo.",

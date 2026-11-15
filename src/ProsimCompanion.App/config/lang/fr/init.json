@@ -60,6 +60,30 @@
       "softDone": "VOL RÉINITIALISÉ — OFP CONSERVÉ",
       "unloadDone": "OFP DÉCHARGÉ — RÉCUPÈRE UN NOUVEL OFP POUR CONTINUER",
       "incomplete": "RÉINITIALISATION INCOMPLÈTE — PROSIM A REFUSÉ {0}"
+    },
+    "boxCheck": {
+      "title": "VÉRIFICATION MCDU",
+      "run": "Vérifier la boîte",
+      "running": "VÉRIFICATION…",
+      "notRun": "NON LANCÉE",
+      "ranAt": "VÉRIFIÉ {0}Z",
+      "hint": "Le FO ouvre chaque page du MCDU, la compare au plan et rend compte. Voix : « check the box ».",
+      "item": {
+        "data": "Data",
+        "initA": "Init A",
+        "fpln": "Plan de vol",
+        "sec": "Plan secondaire",
+        "radNav": "Rad nav",
+        "initB": "Init B (carburant)",
+        "perf": "Perf décollage",
+        "prog": "Progress"
+      },
+      "state": {
+        "ok": "OK",
+        "difference": "ÉCART",
+        "notEntered": "NON SAISI",
+        "notChecked": "NON LU"
+      }
     }
   }
 }

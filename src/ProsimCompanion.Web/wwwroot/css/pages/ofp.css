@@ -192,3 +192,11 @@
 .diversion-offers { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .diversion-controls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .diversion-icao { width: 6ch; text-transform: uppercase; }
+
+/* The MCDU check card (D-I-F-S-R-I-P-P) on Flight Status and EFB INIT. */
+.box-check-card .section-body { display: flex; flex-direction: column; gap: 10px; }
+.box-check-letters { display: flex; gap: 6px; flex-wrap: wrap; }
+.box-check-letter { min-width: 2.2em; justify-content: center; font-weight: 700; }
+.box-check-item { display: grid; grid-template-columns: minmax(120px, max-content) max-content; column-gap: 10px; row-gap: 2px; align-items: baseline; }
+.box-check-lines { grid-column: 1 / -1; margin: 0; padding-left: 18px; color: var(--text-secondary); font-size: 12px; }
+.box-check-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }

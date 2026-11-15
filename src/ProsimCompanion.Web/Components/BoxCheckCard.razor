@@ -1,0 +1,102 @@
+@* The MCDU check card (2026-11-15) on Flight Status and EFB INIT: the eight letters of the FO's
+   "check the box" (D-I-F-S-R-I-P-P), each green / amber / grey, the lines the FO read and found,
+   and a button that starts the same run as the voice command (mcdu.checkBox). The FO's
+   "Shall I enter it?" is answered on the open-questions card or by voice. Hidden while
+   mcdu.enabled is off. The item lines are the FO's own English, like every FO line. *@
+@using System.Globalization
+@using ProsimCompanion.Core.Commands
+@inherits StoreObserverComponent
+@inject BoxCheckStore BoxCheck
+@inject IOptionsMonitor<McduOptions> Options
+@inject CommandRegistry Commands
+@inject IStringLocalizer T
+
+@if (Options.CurrentValue.Enabled)
+{
+    <section class="section box-check-card">
+        <div class="section-header">
+            <h3 class="section-title">@T["init.boxCheck.title"]</h3>
+            <span class="pill @(_check.Running ? "tone-active" : _check.RanAtUtc is null ? "tone-neutral" : Tone(Worst()))">@StatusText()</span>
+        </div>
+        <div class="section-body">
+            <div class="box-check-letters" role="list">
+                @foreach (var item in _check.Items)
+                {
+                    <span role="listitem" class="pill box-check-letter @(item.Id == _check.CurrentItemId ? "tone-active" : Tone(item.State))"
+                          title="@($"{T[$"init.boxCheck.item.{item.Id}"].Value} — {T[$"init.boxCheck.state.{StateId(item.State)}"].Value}")">@item.Letter</span>
+                }
+            </div>
+            @foreach (var item in _check.Items.Where(i => i.Lines.Count > 0))
+            {
+                <div class="box-check-item">
+                    <span class="label-caps">@T[$"init.boxCheck.item.{item.Id}"]</span>
+                    <span class="pill @Tone(item.State)">@T[$"init.boxCheck.state.{StateId(item.State)}"]</span>
+                    <ul class="box-check-lines">
+                        @foreach (var line in item.Lines)
+                        {
+                            <li>@line</li>
+                        }
+                    </ul>
+                </div>
+            }
+            <div class="box-check-actions">
+                <button type="button" class="btn secondary" disabled="@(_busy || _check.Running)" @onclick="RunAsync">@T["init.boxCheck.run"]</button>
+                <span class="field-hint">@(_message ?? T["init.boxCheck.hint"].Value)</span>
+            </div>
+        </div>
+    </section>
+}
+
+@code {
+    private BoxCheckSnapshot _check = BoxCheckSnapshot.Empty;
+    private bool _busy;
+    private string? _message;
+
+    protected override void OnInitialized() => Watch(BoxCheck, snapshot => _check = snapshot);
+
+    private string StatusText()
+        => _check.Running ? T["init.boxCheck.running"].Value
+            : _check.RanAtUtc is { } at ? T["init.boxCheck.ranAt", at.ToString("HH:mm", CultureInfo.InvariantCulture)].Value
+            : T["init.boxCheck.notRun"].Value;
+
+    private BoxCheckItemState Worst()
+        => _check.Items.Any(i => i.State == BoxCheckItemState.Difference) ? BoxCheckItemState.Difference
+            : _check.Items.Any(i => i.State == BoxCheckItemState.NotEntered) ? BoxCheckItemState.NotEntered
+            : _check.Items.Any(i => i.State == BoxCheckItemState.NotChecked) ? BoxCheckItemState.NotChecked
+            : BoxCheckItemState.Ok;
+
+    /// <summary>Green = read and nothing to say, amber = a difference, grey = not entered yet or not read.</summary>
+    public static string Tone(BoxCheckItemState state) => state switch
+    {
+        BoxCheckItemState.Ok => "tone-ok",
+        BoxCheckItemState.Difference => "tone-warn",
+        _ => "tone-neutral",
+    };
+
+    public static string StateId(BoxCheckItemState state) => state switch
+    {
+        BoxCheckItemState.Ok => "ok",
+        BoxCheckItemState.Difference => "difference",
+        BoxCheckItemState.NotEntered => "notEntered",
+        _ => "notChecked",
+    };
+
+    private async Task RunAsync()
+    {
+        _busy = true;
+        _message = null;
+        try
+        {
+            var result = await Commands.ExecuteAsync<EmptyCommandRequest, CommandResult>("mcdu.checkBox", new EmptyCommandRequest(), source: "web");
+            _message = result.Outcome == CommandOutcome.Success ? null : result.Reason;
+        }
+        catch (Exception ex)
+        {
+            _message = ex.Message;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

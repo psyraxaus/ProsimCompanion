@@ -58,5 +58,7 @@ public static class CommandsBootstrap
         ScenarioCommandHandlers.Register(registry, services.GetService<IScenarioControl>());
         // Discard an abandoned duty day (issue #239): the Speech pillar owns the day.
         DayCommandHandlers.Register(registry, services.GetService<Day.IDayControl>());
+        // The FO's MCDU check (2026-11-15): the Speech pillar implements the seam.
+        McduCommandHandlers.Register(registry, services.GetService<IBoxCheckControl>());
     }
 }

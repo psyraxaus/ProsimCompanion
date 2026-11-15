@@ -60,6 +60,30 @@
       "softDone": "フライトをリセットしました — OFP は保持",
       "unloadDone": "OFP をアンロードしました — 続けるには新しい OFP を取得",
       "incomplete": "リセット未完了 — PROSIM が {0} を拒否"
+    },
+    "boxCheck": {
+      "title": "MCDU チェック",
+      "run": "ボックスを確認",
+      "running": "確認中…",
+      "notRun": "未実行",
+      "ranAt": "確認済み {0}Z",
+      "hint": "FO が MCDU の各ページを開き、プランと照合して報告します。音声:「check the box」。",
+      "item": {
+        "data": "データ",
+        "initA": "初期設定 A",
+        "fpln": "フライトプラン",
+        "sec": "セカンダリプラン",
+        "radNav": "無線航法",
+        "initB": "初期設定 B(燃料)",
+        "perf": "Perf 離陸",
+        "prog": "進捗"
+      },
+      "state": {
+        "ok": "OK",
+        "difference": "相違あり",
+        "notEntered": "未入力",
+        "notChecked": "未読"
+      }
     }
   }
 }

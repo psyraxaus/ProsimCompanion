@@ -1133,11 +1133,20 @@
       "actuation": {
         "label": "Permitir actuación",
         "hint": "Dejar que el FO pulse teclas del MCDU.",
-        "more": "Apagado: solo lectura. Los comandos responden que las pulsaciones están apagadas."
+        "more": "Desactivado: solo lectura. El FO sigue pasando páginas para «check the box», pero no introduce nada."
       },
       "verifyPause": {
         "label": "Pausa de verificación",
         "hint": "El FO anuncia el cambio y espera este tiempo para que puedas cancelar."
+      },
+      "boxCheckPage": {
+        "label": "Comprobar la caja: tiempo por página",
+        "hint": "Cuánto tiempo lee el FO cada página de la MCDU en «check the box». La comprobación completa dura unas diez veces este valor."
+      },
+      "boxCheckOfferFixes": {
+        "label": "Comprobar la caja: ofrecer correcciones",
+        "hint": "Tras la comprobación, el FO pregunta antes de introducir un valor que conoce.",
+        "more": "Los pesos y las velocidades de despegue no necesitan teclas. El número de vuelo, el cost index, el nivel de crucero y el plan secundario necesitan «Permitir actuación». La ruta nunca se cambia."
       }
     },
     "foSide": {

@@ -144,6 +144,11 @@
         "title": "MCDU — arrival runway",
         "change": "The FO changes the arrival runway and ILS (LAT REV → ARRIVAL → insert)."
       },
+      "mcduBoxCheck": {
+        "title": "MCDU — check the box",
+        "check": "The FO opens every MCDU page (D-I-F-S-R-I-P-P), compares it with the plan, the loadsheet and the takeoff figures, reports the differences and offers to enter what it knows.",
+        "stop": "Stops the check."
+      },
       "briefings": {
         "title": "Briefings",
         "departure": "Departure briefing from the FMS plan, navdata and live weather.",

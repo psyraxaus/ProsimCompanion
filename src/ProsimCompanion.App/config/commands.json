@@ -101,21 +101,6 @@
       ]
     },
     {
-      "//": "MCDU: page-cycle / check sequence carried from the predecessor's FS2Crew script. Rename or remove the phrase as you like.",
-      "phrases": [ "check the box" ],
-      "say": "Checked",
-      "steps": [
-        { "dataref": "system.switches.S_CDU2_KEY_DATA",        "press": 1, "restore": 0, "holdMs": 120, "delayMs": 250 },
-        { "dataref": "system.switches.S_CDU2_KEY_INIT",        "press": 1, "restore": 0, "holdMs": 120, "delayMs": 250 },
-        { "dataref": "system.switches.S_CDU2_KEY_FPLN",        "press": 1, "restore": 0, "holdMs": 120, "delayMs": 250 },
-        { "dataref": "system.switches.S_CDU2_KEY_SEC_FPLN",    "press": 1, "restore": 0, "holdMs": 120, "delayMs": 250 },
-        { "dataref": "system.switches.S_CDU2_KEY_RAD_NAV",     "press": 1, "restore": 0, "holdMs": 120, "delayMs": 250 },
-        { "dataref": "system.switches.S_CDU2_KEY_ARROW_RIGHT", "press": 1, "restore": 0, "holdMs": 120, "delayMs": 250 },
-        { "dataref": "system.switches.S_CDU2_KEY_PERF",        "press": 1, "restore": 0, "holdMs": 120, "delayMs": 250 },
-        { "dataref": "system.switches.S_CDU2_KEY_FPLN",        "press": 1, "restore": 0, "holdMs": 120, "delayMs": 250 }
-      ]
-    },
-    {
       "//": "MCDU: copy active to secondary — SEC F-PLN page, then LSK1L (COPY ACTIVE).",
       "phrases": [ "copy active to secondary" ],
       "say": "Active copied to secondary",

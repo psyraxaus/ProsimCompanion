@@ -19,6 +19,21 @@ public interface IMcduActuator
     /// is pressed.</summary>
     bool IsArmed { get; }
 
+    /// <summary>Enabled and the display arriving — enough to turn pages
+    /// (<see cref="NavigateAsync"/>, <see cref="FollowLinkAsync"/>); actuation need not be armed.</summary>
+    bool CanNavigate { get; }
+
+    /// <summary>Presses one page key or slew arrow (the fixed navigation allow-list in
+    /// <see cref="McduControls"/>). Allowed without <c>mcdu.allowActuation</c>: it changes the
+    /// page shown and nothing else. False when refused.</summary>
+    Task<bool> NavigateAsync(string suffix, CancellationToken cancellationToken = default);
+
+    /// <summary>Follows a page link: presses the LSK of <paramref name="row"/> only when the
+    /// settled screen shows <paramref name="rowMustContain"/> on that row's data line — so the
+    /// key is known to be a link ("&lt;A/C STATUS") and not a data field before it is pressed.
+    /// Allowed without <c>mcdu.allowActuation</c>. False when the row reads anything else.</summary>
+    Task<bool> FollowLinkAsync(int row, bool right, string rowMustContain, CancellationToken cancellationToken = default);
+
     /// <summary>Presses one CDU2 key by suffix (e.g. "FPLN", "LSK1R", "1", "DOT"). No
     /// verification. False when refused (not armed / bad suffix).</summary>
     Task<bool> PressKeyAsync(string suffix, CancellationToken cancellationToken = default);
@@ -98,6 +113,38 @@ public sealed class McduActuator : IMcduActuator, IDisposable
         }
     }
 
+    public bool CanNavigate => _options.CurrentValue.Enabled && _reader.IsDisplayAvailable;
+
+    public Task<bool> NavigateAsync(string suffix, CancellationToken cancellationToken = default)
+    {
+        if (!McduControls.IsNavigationSuffix(suffix) || !CanNavigate)
+        {
+            _logger.LogInformation("MCDU page key {Suffix} refused (navigation key: {Known}, can navigate: {Can})",
+                suffix, McduControls.IsNavigationSuffix(suffix), CanNavigate);
+            return Task.FromResult(false);
+        }
+
+        return PressGatedAsync(suffix, cancellationToken);
+    }
+
+    public async Task<bool> FollowLinkAsync(int row, bool right, string rowMustContain, CancellationToken cancellationToken = default)
+    {
+        if (row is < 1 or > 6 || string.IsNullOrWhiteSpace(rowMustContain) || !CanNavigate)
+        {
+            return false;
+        }
+
+        var page = _reader.Read();
+        var shown = page.Rows.FirstOrDefault(r => r.Row == row)?.Data ?? "";
+        if (!shown.Contains(rowMustContain, StringComparison.Ordinal))
+        {
+            _logger.LogInformation("MCDU link on row {Row} refused — the row reads {Shown}, not {Expected}", row, shown, rowMustContain);
+            return false;
+        }
+
+        return await PressGatedAsync($"LSK{row}{(right ? "R" : "L")}", cancellationToken).ConfigureAwait(false);
+    }
+
     public async Task<bool> PressKeyAsync(string suffix, CancellationToken cancellationToken = default)
     {
         if (!Guard(suffix) || !McduControls.IsValidSuffix(suffix))
@@ -105,6 +152,11 @@ public sealed class McduActuator : IMcduActuator, IDisposable
             return false;
         }
 
+        return await PressGatedAsync(suffix, cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task<bool> PressGatedAsync(string suffix, CancellationToken cancellationToken)
+    {
         await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {

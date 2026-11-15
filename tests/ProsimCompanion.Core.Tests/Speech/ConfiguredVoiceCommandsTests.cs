@@ -171,11 +171,11 @@ public sealed class ConfiguredVoiceCommandsTests
     [Fact]
     public void Parse_ShippedFile_LoadsEveryCommandFamily()
     {
-        // The repo's shipped config — guards the schema and the 15 command families.
+        // The repo's shipped config — guards the schema and the 14 command families (the "check the box" key macro left with #247).
         var path = Path.Combine(FindRepoRoot(), "src", "ProsimCompanion.App", "config", "commands.json");
         var result = VoiceCommandConfigParser.Parse(File.ReadAllText(path));
 
-        Assert.Equal(15, result.Set.Commands.Count);
+        Assert.Equal(14, result.Set.Commands.Count);
         Assert.Empty(result.Warnings);
         Assert.Contains("set standard", result.Set.Phrases);
         Assert.Contains("set qnh", result.Set.Phrases);

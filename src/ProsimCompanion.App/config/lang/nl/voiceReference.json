@@ -144,6 +144,11 @@
         "title": "MCDU — aankomstbaan",
         "change": "De FO wijzigt de aankomstbaan en de ILS (LAT REV → ARRIVAL → insert)."
       },
+      "mcduBoxCheck": {
+        "title": "MCDU — check de box",
+        "check": "De FO opent elke MCDU-pagina (D-I-F-S-R-I-P-P), vergelijkt die met het plan, het loadsheet en de startgegevens, meldt de verschillen en biedt aan in te voeren wat hij weet.",
+        "stop": "Stopt de check."
+      },
       "briefings": {
         "title": "Briefings",
         "departure": "Vertrekbriefing uit het FMS-plan, navdata en live weer.",

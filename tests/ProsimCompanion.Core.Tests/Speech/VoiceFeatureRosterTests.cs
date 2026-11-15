@@ -43,6 +43,7 @@ public sealed partial class VoiceFeatureRosterTests
         (typeof(ProsimCompanion.Speech.Fcu.FcuExecutor), 60),
         (typeof(ProsimCompanion.Speech.FoSide.FoSideDutiesService), 65), // the FO's own baro / EFIS (issue #188)
         (typeof(ProsimCompanion.Speech.FoSide.FmgcCrossCheckService), 66),
+        (typeof(ProsimCompanion.Speech.Mcdu.McduBoxCheckService), 67), // before the key macros: an edited commands.json may still carry "check the box"
         (typeof(ProsimCompanion.Speech.Commands.ConfiguredVoiceCommands), 70),
         (typeof(ProsimCompanion.Speech.Callouts.EngineFlapCallFeature), 80),
         (typeof(ProsimCompanion.Speech.Callouts.AntiIceCallFeature), 85), // "engine anti-ice on" checked against the overhead (2026-10-25)

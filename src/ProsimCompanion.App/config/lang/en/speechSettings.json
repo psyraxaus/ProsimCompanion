@@ -1133,11 +1133,20 @@
       "actuation": {
         "label": "Allow actuation",
         "hint": "Let the FO press MCDU keys.",
-        "more": "Off: read only. Commands answer that key presses are off."
+        "more": "Off: read only. The FO still turns pages for “check the box”, but enters nothing."
       },
       "verifyPause": {
         "label": "Verify pause",
         "hint": "The FO announces the change, then waits this long so you can cancel."
+      },
+      "boxCheckPage": {
+        "label": "Check the box: time on each page",
+        "hint": "How long the FO reads each MCDU page during “check the box”. The whole check takes about ten times this."
+      },
+      "boxCheckOfferFixes": {
+        "label": "Check the box: offer to enter corrections",
+        "hint": "After the check the FO asks before it enters a value it knows.",
+        "more": "Weights and takeoff speeds need no key press. Flight number, cost index, cruise level and the secondary plan need “Allow actuation”. The route is never changed."
       }
     },
     "foSide": {

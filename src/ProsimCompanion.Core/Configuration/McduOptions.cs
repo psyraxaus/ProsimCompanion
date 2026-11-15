@@ -25,4 +25,19 @@ public sealed class McduOptions : IOptionSection
     /// "negative"/"disregard"/"my aircraft" during the pause aborts.</summary>
     [OptionField(FieldKind.Number, "speechSettings.mcdu.verifyPause", Suffix = "s", Min = "0", DependsOn = "Enabled; AllowActuation")]
     public double VerifyPauseSeconds { get; set; } = 3.0;
+
+    /// <summary>How long the FO stays on each page of the MCDU check ("check the box") before
+    /// the next page key, in seconds; each page varies a quarter around it, and the sub-pages
+    /// of DATA take half. The check turns pages without <see cref="AllowActuation"/> (owner
+    /// decision 2026-11-15): a page key changes what the FO's own screen shows and nothing
+    /// in the aircraft — the predecessor's "check the box" macro pressed the same keys.</summary>
+    [OptionField(FieldKind.Number, "speechSettings.mcdu.boxCheckPage", Suffix = "s", Min = "1", Max = "20", DependsOn = "Enabled")]
+    public double BoxCheckPageSeconds { get; set; } = 5.0;
+
+    /// <summary>After the MCDU check the FO offers to correct what it knows the answer to
+    /// ("Cost index is 30, the plan says 45. Shall I enter it?"). Off: the FO reports only.
+    /// Weights and takeoff speeds are written as datarefs; an entry that needs MCDU keys is
+    /// offered only while <see cref="AllowActuation"/> is on.</summary>
+    [OptionField(FieldKind.Bool, "speechSettings.mcdu.boxCheckOfferFixes", DependsOn = "Enabled")]
+    public bool BoxCheckOfferFixes { get; set; } = true;
 }

@@ -144,6 +144,11 @@
         "title": "MCDU — 도착 활주로",
         "change": "FO가 도착 활주로와 ILS를 변경합니다(LAT REV → ARRIVAL → insert)."
       },
+      "mcduBoxCheck": {
+        "title": "MCDU — 박스 점검",
+        "check": "FO가 MCDU의 모든 페이지(D-I-F-S-R-I-P-P)를 열어 계획, 로드시트, 이륙 수치와 비교하고 차이를 보고하며 알고 있는 값의 입력을 제안합니다.",
+        "stop": "점검을 중지합니다."
+      },
       "briefings": {
         "title": "브리핑",
         "departure": "FMS 계획, 항법 데이터, 실시간 기상으로 출발 브리핑을 합니다.",

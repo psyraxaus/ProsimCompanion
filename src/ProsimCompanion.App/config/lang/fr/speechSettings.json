@@ -1133,11 +1133,20 @@
       "actuation": {
         "label": "Autoriser l'actionnement",
         "hint": "Laisser le copilote appuyer sur les touches du MCDU.",
-        "more": "Désactivé : lecture seule. Les commandes répondent que les appuis de touches sont désactivés."
+        "more": "Désactivé : lecture seule. Le FO tourne toujours les pages pour « check the box », mais ne saisit rien."
       },
       "verifyPause": {
         "label": "Pause de vérification",
         "hint": "Le copilote annonce le changement, puis attend ce temps pour que tu puisses annuler."
+      },
+      "boxCheckPage": {
+        "label": "Vérifier la boîte : temps par page",
+        "hint": "Durée de lecture de chaque page du MCDU pendant « check the box ». La vérification complète dure environ dix fois cette valeur."
+      },
+      "boxCheckOfferFixes": {
+        "label": "Vérifier la boîte : proposer les corrections",
+        "hint": "Après la vérification, le FO demande avant de saisir une valeur qu’il connaît.",
+        "more": "Les masses et les vitesses de décollage ne demandent aucune touche. Le numéro de vol, le cost index, le niveau de croisière et le plan secondaire demandent « Autoriser l’actionnement ». La route n’est jamais modifiée."
       }
     },
     "foSide": {

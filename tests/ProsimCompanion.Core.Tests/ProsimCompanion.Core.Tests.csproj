@@ -24,6 +24,7 @@
          phase engine by FlightReplayTests — every real flight dropped here is a regression test. -->
     <None Include="Flight\Recordings\**" CopyToOutputDirectory="PreserveNewest" />
     <None Include="Prosim\Fixtures\**" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="Speech\Fixtures\**" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>
