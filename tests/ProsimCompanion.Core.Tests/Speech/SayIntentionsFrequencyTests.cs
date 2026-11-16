@@ -85,7 +85,7 @@ public sealed class SayIntentionsFrequencyTests
         Assert.Equal(883498018, flightId);
         Assert.Equal(3, entries.Count);
         Assert.Equal(new CommEntry(81242944, "COM1", "Contact Tower on 119.7. Have a Good morning",
-            "Finnair-one-two-two-one, Contact Tower on 119.7. Have a Good morning"), entries[1]);
+            "Finnair-one-two-two-one, Contact Tower on 119.7. Have a Good morning", FrequencyKhz: 118_125), entries[1]);
         Assert.Null(entries[2].Outgoing);
     }
 

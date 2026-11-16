@@ -35,9 +35,10 @@ public sealed record RadioAssignment(string Station, int Khz, RadioAssignmentSou
 /// station lists and the last ATC line from the SayIntentions frequency monitor in the
 /// Speech pillar. Kept in Core so the Web project can render it without a pillar reference.
 /// </summary>
-/// <param name="Com1ActiveKhz">COM1 active in kHz, 0 until ProSim pushes it.</param>
+/// <param name="Com1ActiveKhz">COM1 active in kHz by the one read rule (<see cref="Com1Reading"/>:
+/// the radio's own frequency, else the R_ input), 0 while neither has one.</param>
 /// <param name="Com1StandbyKhz">COM1 standby in kHz, 0 until ProSim pushes it.</param>
-/// <param name="Com1Live">False while the COM1 datarefs are absent or stale (ProSim gone).</param>
+/// <param name="Com1Live">False while every COM1 dataref is absent or stale (ProSim gone).</param>
 /// <param name="Assigned">What ATC expects, or null while nothing is known.</param>
 /// <param name="Airports">Station lists fetched so far (at most the two OFP airports).</param>
 /// <param name="LastAtcLine">The last ATC → pilot COM1 line SayIntentions logged, or empty.</param>

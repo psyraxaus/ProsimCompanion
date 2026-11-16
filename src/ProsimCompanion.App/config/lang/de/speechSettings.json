@@ -885,11 +885,16 @@
       "wrongFreq": {
         "label": "Meldung falscher Frequenz",
         "hint": "Der FO sagt dir, wenn COM1 nicht auf der Frequenz steht, die ATC dir gegeben hat.",
-        "more": "Nutzt die letzte 'Contact … on …'-Anweisung von ATC und sagt es einmal. Am Gate ist es still, ebenso wenn es die Anweisung nicht lesen kann."
+        "more": "Nutzt die letzte 'Contact … on …'-Anweisung von ATC und sagt es einmal. Am Gate gilt jede Station deines Flughafens (ATIS, Delivery, Ground, Tower) als richtig; jede andere Frequenz wird gemeldet. Es ist still, wenn es die Anweisung, COM1 oder die Stationsliste des Flughafens nicht lesen kann."
       },
       "waitBefore": {
         "label": "Wartezeit vor der Meldung",
         "hint": "Wie lange COM1 zunächst auf einer anderen Frequenz bleiben darf."
+      },
+      "offerToTune": {
+        "label": "Einstellen anbieten",
+        "hint": "Der FO fragt 'Shall I tune it?', statt es dir nur zu sagen.",
+        "more": "Sagst du Ja, stellt der FO COM1 auf die Frequenz, die ATC erwartet. Sagst du Nein oder antwortest du eine Minute lang nicht, ändert sich nichts. Der FO fragt auch sofort, wenn du auf einer falschen Frequenz die ATC-Sprechtaste drückst. Aus: Der FO sagt es dir nur, wie bisher. Gilt auch, wenn der FO den Funk übernimmt; nach einem Hand-off, den der FO selbst einstellt, fragt er nicht."
       },
       "arrivalGate": {
         "label": "Ankunftsgate von ATC",

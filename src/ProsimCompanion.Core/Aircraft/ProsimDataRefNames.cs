@@ -1020,6 +1020,19 @@ public static class ProsimDataRefNames
     // COM radio frequency read-backs (spoken radio commands verify against these).
     public static readonly DataRef<double> RadioCom1Standby = new("system.analog.R_COM1_STANDBY", DataRefTier.Normal, 0.0);
     public static readonly DataRef<double> RadioCom1Active = new("system.analog.R_COM1_ACTIVE", DataRefTier.Normal, 0.0);
+    // 2026-11-16, owner's rig at EGLL (1.0.0-rc.9), two recordings on the gateway:
+    // (1) at stand 313 R_COM1_ACTIVE and R_COM1_STANDBY both read 0 while the real radio was
+    //     on 124.850 — N_FREQ_COM1 read 124850. After the app's Radios-tile tune ("COM1 tune to
+    //     121705 kHz (station) -> Tuned") R_COM1_ACTIVE and N_FREQ_COM1 both read 121705.
+    // (2) about 00:57Z, taxiing: the pilot turned the hardware radio panel to 119.000 —
+    //     N_FREQ_COM1 read 119000, R_COM1_ACTIVE still read 121705 (the app's own write). The
+    //     app saw "on the assigned frequency" and the FO said nothing.
+    // So R_COM1_ACTIVE is the last value SOFTWARE wrote (or 0), not the live radio.
+    // N_FREQ_COM1 (read-only, kHz) is the live radio: it follows the hardware knob and a
+    // software write alike. It is read FIRST (Com1Reading); the R_ input is the fallback.
+    // Never written: a tune still goes through the R_ pair. The catalogue has no numerical
+    // twin for the standby frequency.
+    public static readonly DataRef<double> RadioCom1Frequency = new("system.numerical.N_FREQ_COM1", DataRefTier.Normal, 0.0);
     public static readonly DataRef<double> RadioCom2Standby = new("system.analog.R_COM2_STANDBY", DataRefTier.Normal, 0.0);
     public static readonly DataRef<double> RadioCom2Active = new("system.analog.R_COM2_ACTIVE", DataRefTier.Normal, 0.0);
 

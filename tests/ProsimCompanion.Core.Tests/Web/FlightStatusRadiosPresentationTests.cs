@@ -86,6 +86,23 @@ public sealed class FlightStatusRadiosPresentationTests
         Assert.False(view.CanTuneAssigned);
     }
 
+    /// <summary>2026-11-16: the tile said PROSIM OFFLINE with ProSim connected, because COM1 read 0.</summary>
+    [Fact]
+    public void ProsimConnected_ButCom1NotRead_SaysCom1NotRead_NotProsimOffline()
+    {
+        var notLive = FlightStatusPresentation.Radios(Live(0, Ground) with { Com1Live = false }, "EFHK", prosimConnected: true);
+        var zero = FlightStatusPresentation.Radios(Live(0, Ground), "EFHK", prosimConnected: true);
+
+        Assert.Equal("unknown", notLive.StateClass);
+        Assert.Equal("flightStatus.radios.com1NotRead", notLive.StateTextId);
+        Assert.Equal("flightStatus.radios.com1NotRead", zero.StateTextId);
+        Assert.False(zero.CanTuneAssigned);
+
+        // Not connected keeps the old word; a read COM1 keeps its verdict.
+        Assert.Equal("flightStatus.radios.noProsim", FlightStatusPresentation.Radios(Live(0, Ground), "EFHK", prosimConnected: false).StateTextId);
+        Assert.Equal("flightStatus.radios.mismatch", FlightStatusPresentation.Radios(Live(121_800, Ground), "EFHK", prosimConnected: true).StateTextId);
+    }
+
     [Fact]
     public void Stations_DedupeByFrequency_MarkActiveAndAssigned_UseCallsignOrTypeWord()
     {

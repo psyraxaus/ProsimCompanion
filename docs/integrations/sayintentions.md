@@ -35,11 +35,106 @@
 
 ## Assigned frequency (wrong-frequency report)
 
-`SayIntentionsFrequencyMonitor` compares ProSim's COM1 active (`system.analog.R_COM1_ACTIVE`,
-integer kHz) with the frequency ATC last assigned and has the FO say once *"Captain, we should
-be on Tallinn Control, one three four decimal three two five."* Settings:
-`sayIntentions.frequencyMonitorEnabled` (true), `frequencyMonitorWaitSeconds` (60, floor 10).
-Runs from pushback to taxi-in, SI copilot on or off (owner decision 2026-10-05).
+`SayIntentionsFrequencyMonitor` compares ProSim's COM1 active (integer kHz, the value of
+`RadioStore` — see "COM1 read rule" below) with the frequency ATC last assigned. Settings:
+`sayIntentions.frequencyMonitorEnabled` (true), `frequencyMonitorWaitSeconds` (60, floor 10),
+`offerToTune` (true, since 2026-11-16). SI copilot on or off (owner decision 2026-10-05).
+
+### Rules since 2026-11-16 (owner flight EGLL stand 313, 1.0.0-rc.9)
+
+What was recorded: `sayintentions.frequency-assigned {station: "GROUND", khz: 121705, source:
+"CorrectFrequency"}` at 00:22:52Z; Preflight from 00:22:47Z, Departure from 00:30:35Z. The
+gateway read `system.analog.R_COM1_ACTIVE` = 0 and `R_COM1_STANDBY` = 0 while
+`system.numerical.N_FREQ_COM1` = 124850 (the radio, 124.850). After the pilot tuned the radio
+both `R_COM1_ACTIVE` and `N_FREQ_COM1` read 121705. The FO said nothing and the Radios tile
+showed "PROSIM OFFLINE" with ProSim connected. Three causes: the report was quiet at the gate
+by design, COM1 read 0, and the report was a statement with no offer.
+
+- **Second recording, same day, about 00:57Z** (TaxiOut, `foRadios.enabled` on): the app had
+  written 121705 through the Radios tile ("COM1 tune to 121705 kHz (station) -> Tuned"; both
+  datarefs then read 121705). The pilot turned the hardware radio panel to 119.000:
+  `N_FREQ_COM1` = 119000, `R_COM1_ACTIVE` still 121705. The first build of this fix read the
+  R_ input first, saw a match with Ground and stayed silent. **`R_COM1_ACTIVE` is the last
+  value software wrote (or 0), not the live radio. `N_FREQ_COM1` is the live radio: it follows
+  the hardware knob and a software write alike.**
+- **COM1 read rule** (`Core.Radios.Com1Reading`, one place: `Com1PanelService` → `RadioStore`
+  and `IRadioTuner.ActiveKhz`): `N_FREQ_COM1` when it is live and above 0, else `R_COM1_ACTIVE`
+  when the R_ pair is live and it is above 0. The monitor reads the store (`Com1Live ?
+  Com1ActiveKhz : 0`); it has no subscription of its own any more. `N_FREQ_COM1` is read only.
+  The catalogue has no numerical twin for the standby frequency, so standby is the R_ value
+  alone. A tune still writes the R_ pair through `IRadioTuner.TuneCom1Async` (standby, verify,
+  swap); "already on it", the frequency that goes to standby (`fromKhz`) and the verification
+  after the swap all use the same reading, so a tune is `Tuned` when the radio itself shows
+  the frequency (read up to 8 times, 250 ms apart) and the knob case above is tuned, not
+  skipped as a no-op.
+- **The judgement** (`FrequencyJudgement`, pure):
+  - At the gate (ColdAndDark, Preflight, Departure) on a live flight: COM1 on the assigned
+    frequency or on ANY station of the local airport's list (the Radios tile's list — getWX
+    `with_comms=1`, see "Radios tile") is correct; any other in-band frequency is wrong. No
+    station list for the local airport (not fetched, empty, no OFP) = not judged — never a
+    false alarm. SI names Ground from the moment the flight is filed, which is why the
+    assignment alone cannot be the rule there.
+  - PushbackAndStart to TaxiIn on a live flight: COM1 must be the assigned frequency
+    (unchanged; 5 kHz tolerance for the 8.33 kHz channel names).
+  - `foRadios.enabled` on: the same rules, the same question and the same push-to-talk trigger
+    (owner's rig 2026-11-16 — he flies with the FO on the radios). Read-backs, hand-off tuning
+    and check-ins are untouched. `FoHandoffTuneWindow` keeps the FO's own hand-off out of it:
+    `FoRadiosService` opens it before the hand-off read-back goes out and closes it when the
+    tune and the check-in are over (or given up); while it is open, and for 10 s after,
+    nothing is judged — the wait restarts and the push-to-talk does not ask. A hand-off tune
+    that did not take is asked about after the normal wait.
+  - Unknown, Shutdown, no live flight, no assignment (unreadable hand-off, 90 s without a good
+    history poll), COM1 not read or out of band: not judged.
+- **The wait** (`FrequencyWatchCore`, unchanged): COM1 on ONE wrong frequency for the whole
+  wait; anything not judged wrong resets it.
+- **What the FO does** (`Com1TuneOfferService`): with `offerToTune` on it raises a captain's
+  question on `Core.Radios.Com1TuneOfferStore` (topic `com1TuneOffer`, yes/no, 60 s, no answer
+  counts as no) — *"Captain, COM one is on one two four decimal eight five. Ground is one two one
+  decimal seven zero five. Shall I tune it?"* — voiced by the shared `CaptainsQuestionDialogue`
+  (table `Com1TuneOfferPhrases`) and shown on the open-questions card. Yes →
+  `TuneCom1Async(assignedKhz, "fo-offer")`, then *"Ground tuned."* on `Tuned`, else *"Unable to
+  tune COM1, Captain. The radio is yours."* No / timeout → nothing. One question at a time; one
+  question per (assigned kHz, COM1 kHz) pair until another pair was asked or the flight cycle
+  resets (`TuneOfferMemory`). The statement *"Captain, we should be on Ground, one two one
+  decimal seven zero five."* is kept when `offerToTune` is off, when `gsx.voiceControlEnabled`
+  is off (the dialogue would not voice the question) and when no tuner is composed in.
+- **The station COM1 is on** (`Com1StationNames`, owner request 2026-11-16: on 119.000 at
+  Heathrow SayIntentions answered as "Scottish Control"). With a name the lines are *"Captain,
+  COM1 is on Scottish Control, one one niner decimal zero. We should be on Ground, one two one
+  decimal seven zero five. Shall I tune it?"* and, on the card, "COM1 is on Scottish Control,
+  119.000. We should be on Ground, 121.705. Shall I tune it?"; without one they stay as above.
+  Sources, in order, nothing guessed: (1) SayIntentions' own — every getCommsHistory COM1
+  record carries `frequency` and `station_name` (the 2026-10-05 capture above), so the newest
+  COM1 record whose `frequency` is the one COM1 is on now (5 kHz tolerance) names it; the seed
+  backlog counts, a new `flight_id` forgets; (2) the local airport's station list (callsign,
+  else the type as a word); (3) no name. The lookup is by the frequency COM1 is on at the
+  moment of the report, so a name never outlives a frequency change. Not used: the
+  getCurrentFrequencies `frequencies[]` list (the nearest airport's — the trap below) and
+  `L:SIAI_COM1_POSITION` (only "0 = unknown station" is documented). **Unverified live:** that
+  the history record of a call on a wrong frequency carries that frequency and the answering
+  station's `station_name` (the one capture is of a call on the right frequency), and how soon
+  after the first call the record exists — before any exchange on the frequency there is no
+  SayIntentions name. Events carry `com1Station`.
+- **ATC push-to-talk** (`IAtcPttSignal`: the press edge of `SayIntentionsPttRelay`'s ProSim
+  switch and of `PushToTalkService`'s ATC binding — no new input polling): while COM1 is judged
+  wrong by the same rules, the question is raised at once, without the wait. Offer only: with
+  `offerToTune` off the push-to-talk does nothing here.
+- **Session events**: `fo.wrong-frequency-advisory` {text, station, assignedKhz, com1Khz,
+  source, waitedSec, trigger: wait|ptt, atGate, offered} when the report fires (question or
+  statement); `fo.wrong-frequency-question` from the dialogue (raised / accepted / declined /
+  unanswered, with `subject` = `assignedKhz|com1Khz|station|com1Station`); `fo.wrong-frequency-offer`
+  {assignedKhz, com1Khz, com1Station, station, trigger, atGate, accepted, outcome, answeredBy} with outcome
+  `Tuned|NotConnected|OutOfBand|Failed|Unverified` after a yes, `declined` or `timeout`; the
+  tune itself is a `radio.tile-tune` with reason `fo-offer`. Probe `si-wrong-frequency-offer`.
+- **Radios tile**: unknown verdict with an assignment reads "PROSIM OFFLINE" only when ProSim
+  is not connected; connected with COM1 not read it is "COM1 NOT READ"
+  (`flightStatus.radios.com1NotRead`). The tile's own verdict is still COM1 against the
+  assignment — at the gate on ATIS it shows WRONG FREQUENCY while the FO stays quiet.
+
+Unverified live: whether `N_FREQ_COM1` is pushed through the SDK subscription as it reads on
+the gateway, how fast it follows a write to the R_ pair, and the question itself against a
+live microphone. Seen live 2026-11-16: a write to the R_ pair while it read 0 took (the tile
+tune), and `N_FREQ_COM1` followed it.
 
 Reply shapes — live captures 2026-10-05, EFHK→LKPR (the SAPI docs show no sample):
 
@@ -76,7 +171,8 @@ Empirical rules (2026-10-05) — keep these:
   134.325). Never treat it as the set of valid frequencies.
 - A hand-off that cannot be read ("Contact departure.") makes the assignment unknown and the
   report silent. "Radar contact" is not a hand-off.
-- No report at the gate: SI names Ground from the moment the flight is filed.
+- SI names Ground from the moment the flight is filed. Until 2026-11-16 that meant no report
+  at the gate; now the gate has its own rule (above).
 
 Not yet seen live: hand-off wording on arrival and in FAA phraseology, `since_id` behaviour,
 `L:SIAI_COPILOT` (documented: 1 = copilot has comms) and `L:SIAI_COM1_POSITION` (0 = unknown
@@ -194,16 +290,19 @@ legacy departure gate are inert) and answers every ATC COM1 line the frequency m
 ## Radios tile (owner request 2026-10-25)
 
 The Flight Status **Radios** tile (and a one-line mirror on the `/monitor` board) shows COM1
-active/standby from ProSim (`system.analog.R_COM1_ACTIVE` / `_STANDBY`, push read model, Core
-`Com1PanelService`) beside the frequency SayIntentions ATC expects, so the pilot never has to
+active/standby from ProSim (`system.analog.R_COM1_ACTIVE` / `_STANDBY`, with
+`system.numerical.N_FREQ_COM1` read FIRST for active since 2026-11-16 — the R_ input is the
+last software write, not the radio, and is only the fallback; push read
+model, Core `Com1PanelService`) beside the frequency SayIntentions ATC expects, so the pilot never has to
 bring the SayIntentions window forward. The data path is `Core.Radios.RadioStore`, written by:
 
 - `SayIntentionsFrequencyMonitor` — the same hand-off / `correct_frequency` tracker as the
   wrong-frequency report. For the tile the polls (getCommsHistory 20 s, getCurrentFrequencies
   30 s until the first hand-off) run whenever the SayIntentions pillar is on and an API key is
   found — at the gate and without a live MSFS session too. The SPOKEN features keep their
-  gates: the advisory and the comms hand-over readouts still fire only pushback→taxi-in on a
-  live flight (`_voiceWanted`). Side effect: `sayintentions.frequency-assigned` is now also
+  gates: the comms hand-over readouts still fire only pushback→taxi-in on a live flight
+  (`_voiceWanted`); the wrong-frequency report needs a live flight and, since 2026-11-16,
+  also runs at the gate by its own rule. Side effect: `sayintentions.frequency-assigned` is now also
   logged at the gate (SI names Ground from the moment the flight is filed).
 - The station list: `getWX?icao=<local>&with_comms=1` for the local airport (OFP origin until
   Descent, destination from then on — the hero weather rule), on an airport change and every

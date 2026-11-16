@@ -75,6 +75,7 @@ public static class SpeechServiceCollectionExtensions
         services.AddStartupModule<TtsPrewarmService>();
         services.AddStartupModule<PushToTalkService>();
         services.AddSingleton<IPttInputCapture>(p => p.GetRequiredService<PushToTalkService>());
+        services.AddSingleton<IAtcPttSignal>(p => p.GetRequiredService<PushToTalkService>());
         services.AddSingleton<RecognitionController>();
         // The controller's listening-window surface + the exclusive-mic seam over it (guided
         // dialogues borrow the mic; normal routing stands down while borrowed).
@@ -189,7 +190,11 @@ public static class SpeechServiceCollectionExtensions
         services.AddStartupModule<Day.DayAbandonSignalModule>();
         services.AddStartupModule<SayIntentions.SayIntentionsService>();
         services.AddVoiceFeature<SayIntentions.SayIntentionsService>();
-        // Wrong-frequency report: COM1 against the frequency SayIntentions ATC last assigned.
+        // Wrong-frequency report: COM1 against the frequency SayIntentions ATC last assigned;
+        // what the FO says — the statement or the "Shall I tune it?" question (2026-11-16).
+        services.AddSingleton<SayIntentions.Com1TuneOfferService>();
+        services.AddSingleton<SayIntentions.FoHandoffTuneWindow>();
+        services.AddSingleton(SayIntentions.Com1TuneOfferPhrases.Table);
         services.AddStartupModule<SayIntentions.SayIntentionsFrequencyMonitor>();
         // The FO works the radios (owner request 2026-10-25): read-backs, hand-off tune, check-in.
         services.AddStartupModule<SayIntentions.FoRadiosService>();
@@ -200,6 +205,7 @@ public static class SpeechServiceCollectionExtensions
             p => p.GetRequiredService<SayIntentions.PushClearanceRadio>());
         // PTT relay (2026-10-10): a ProSim push-to-talk switch keys the SI control LVAR.
         services.AddStartupModule<SayIntentions.SayIntentionsPttRelay>();
+        services.AddSingleton<IAtcPttSignal>(p => p.GetRequiredService<SayIntentions.SayIntentionsPttRelay>());
         // Weather/CPDLC pulls are on-demand only (web Weather page) — no bootstrap Start,
         // and deliberately NOT an IVoiceFeature.
         services.AddSingleton<SayIntentions.SayIntentionsWeatherService>();

@@ -98,6 +98,7 @@
       "mismatch": "VERKEERDE FREQUENTIE",
       "unknown": "GEEN TOEWIJZING",
       "noProsim": "PROSIM OFFLINE",
+      "com1NotRead": "COM1 NIET GELEZEN",
       "off": "SAYINTENTIONS UIT",
       "offHint": "Zet SayIntentions aan onder Instellingen → SayIntentions om te zien welke frequentie ATC verwacht",
       "noAssignment": "SayIntentions heeft nog geen station genoemd",

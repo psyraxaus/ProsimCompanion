@@ -77,7 +77,7 @@
                 @T["monitor.radios.com1"] <span class="figure">@RadioFrequency.Format(_radio.Com1Live ? _radio.Com1ActiveKhz : 0)</span>
                 @if (_radio.Assigned is { } assigned)
                 {
-                    <span class="mon-radios-sep">·</span> @T["monitor.radios.atc"] @assigned.Station <span class="figure">@RadioFrequency.Format(assigned.Khz)</span>
+                    <span class="mon-radios-sep">·</span> @T["monitor.radios.atc"] <span class="mon-radios-station">@assigned.Station</span> <span class="figure">@RadioFrequency.Format(assigned.Khz)</span>
                     @if (_radio.OnAssignedFrequency is { } onFrequency)
                     {
                         <span class="mon-radios-state @(onFrequency ? "ok" : "warn")">@T[onFrequency ? "monitor.radios.onFreq" : "monitor.radios.wrongFreq"]</span>

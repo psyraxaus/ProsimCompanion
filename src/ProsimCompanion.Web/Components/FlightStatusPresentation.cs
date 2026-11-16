@@ -746,8 +746,10 @@ public static class FlightStatusPresentation
 
     /// <summary>The tile from the radio store: COM1, what ATC expects, the verdict class and
     /// the local airport's tap-to-tune stations. The verdict never claims "wrong" without
-    /// both sides known: no SayIntentions, no assignment or no ProSim each have their own word.</summary>
-    public static RadiosTileView Radios(RadioSnapshot radio, string? localIcao)
+    /// both sides known: no SayIntentions, no assignment, no ProSim and "ProSim is there but
+    /// COM1 is not read" each have their own word (2026-11-16: the tile said PROSIM OFFLINE
+    /// with ProSim connected, because COM1 read 0).</summary>
+    public static RadiosTileView Radios(RadioSnapshot radio, string? localIcao, bool prosimConnected = false)
     {
         ArgumentNullException.ThrowIfNull(radio);
 
@@ -756,7 +758,7 @@ public static class FlightStatusPresentation
         {
             (false, _, _) => ("off", "flightStatus.radios.off", "flightStatus.radios.offHint"),
             (true, null, _) => ("unknown", "flightStatus.radios.unknown", "flightStatus.radios.noAssignment"),
-            (true, not null, null) => ("unknown", "flightStatus.radios.noProsim", null),
+            (true, not null, null) => ("unknown", prosimConnected ? "flightStatus.radios.com1NotRead" : "flightStatus.radios.noProsim", null),
             (true, not null, true) => ("match", "flightStatus.radios.match", null),
             (true, not null, false) => ("mismatch", "flightStatus.radios.mismatch", null),
         };

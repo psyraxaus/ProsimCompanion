@@ -885,11 +885,16 @@
       "wrongFreq": {
         "label": "Wrong-frequency report",
         "hint": "The FO tells you when COM1 is not on the frequency ATC gave you.",
-        "more": "It uses ATC's last 'Contact … on …' instruction and says it once. It is quiet at the gate, and when it cannot read the instruction."
+        "more": "It uses ATC's last 'Contact … on …' instruction and says it once. At the gate any station of your airport (ATIS, Delivery, Ground, Tower) counts as correct; any other frequency is reported. It is quiet when it cannot read the instruction, COM1 or the airport's station list."
       },
       "waitBefore": {
         "label": "Wait before the report",
         "hint": "How long COM1 may stay on another frequency first."
+      },
+      "offerToTune": {
+        "label": "Offer to tune",
+        "hint": "The FO asks 'Shall I tune it?' instead of only telling you.",
+        "more": "Say yes and the FO sets COM1 to the frequency ATC expects. Say no, or give no answer for a minute, and nothing changes. The FO also asks at once when you press the ATC push-to-talk on a wrong frequency. Off: the FO only tells you, as before. It also works while the FO works the radios; the FO does not ask about a hand-off it is tuning itself."
       },
       "arrivalGate": {
         "label": "Arrival gate from ATC",

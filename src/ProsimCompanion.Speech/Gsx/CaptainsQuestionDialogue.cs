@@ -218,7 +218,12 @@ public sealed class CaptainsQuestionDialogue : IStartupModule, IDisposable
                 // (#166). The FO says so once and gives the mic back.
                 var asking = store.Asking;
                 _eventLog.Record(table.EventName, table.UnansweredPayload(question, asking));
-                await _arbiter.SpeakAsync(table.UnansweredPhrase(question, asking), SpeechPriority.Normal, cancellationToken).ConfigureAwait(false);
+                // A table may have nothing to say here (the tune offer, 2026-11-16: no answer = nothing).
+                var unanswered = table.UnansweredPhrase(question, asking);
+                if (!string.IsNullOrWhiteSpace(unanswered))
+                {
+                    await _arbiter.SpeakAsync(unanswered, SpeechPriority.Normal, cancellationToken).ConfigureAwait(false);
+                }
             }
         }
         catch (OperationCanceledException)

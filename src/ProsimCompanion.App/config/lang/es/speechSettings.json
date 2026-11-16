@@ -885,11 +885,16 @@
       "wrongFreq": {
         "label": "Aviso de frecuencia equivocada",
         "hint": "El FO te avisa cuando COM1 no está en la frecuencia que te dio ATC.",
-        "more": "Usa la última instrucción 'Contact … on …' de ATC y lo dice una vez. Calla en la puerta y cuando no puede leer la instrucción."
+        "more": "Usa la última instrucción 'Contact … on …' de ATC y lo dice una vez. En la puerta, cualquier estación de tu aeropuerto (ATIS, Delivery, Ground, Tower) cuenta como correcta; cualquier otra frecuencia se avisa. Calla cuando no puede leer la instrucción, COM1 o la lista de estaciones del aeropuerto."
       },
       "waitBefore": {
         "label": "Espera antes del aviso",
         "hint": "Cuánto puede seguir COM1 en otra frecuencia antes."
+      },
+      "offerToTune": {
+        "label": "Ofrecer sintonizar",
+        "hint": "El FO pregunta 'Shall I tune it?' en lugar de solo avisarte.",
+        "more": "Si dices que sí, el FO pone COM1 en la frecuencia que espera ATC. Si dices que no, o no respondes en un minuto, no cambia nada. El FO también pregunta enseguida cuando pulsas el PTT de ATC en una frecuencia equivocada. Desactivado: el FO solo te avisa, como antes. También funciona cuando el FO lleva las radios; no pregunta por un cambio de frecuencia que él mismo está sintonizando."
       },
       "arrivalGate": {
         "label": "Puerta de llegada desde ATC",

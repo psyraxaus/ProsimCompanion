@@ -50,7 +50,8 @@ choose **Manual (entered below)** and paste the key.
 5. **Phraseology**: how the FO says numbers on the radio. Leave ICAO, or choose FAA or UK
    for flights there.
 6. Leave **FO speaks the transmission** ticked.
-7. Leave **Wrong-frequency report** ticked and **Wait before the report** on `60` s.
+7. Leave **Wrong-frequency report** ticked, **Wait before the report** on `60` s and
+   **Offer to tune** ticked. See "When COM1 is on the wrong frequency" below.
 8. Leave the rest as it is.
 9. Press **Save** in the bar at the bottom of the page.
 
@@ -77,6 +78,58 @@ the full list in the app. The phrases and the wording of each call are in the fi
 `atc-requests.json` in `%LOCALAPPDATA%\ProsimCompanion\config\`; you can add your own.
 
 **Auto-tune frequency** (off): tick it and the FO tunes the station on COM1 before a request.
+
+## When COM1 is on the wrong frequency
+
+SayIntentions does not tell you when you are on the wrong frequency. The FO does, with
+**Wrong-frequency report** ticked.
+
+**What counts as wrong.**
+
+| Where you are | COM1 is right when it is on | COM1 is wrong when it is on |
+|---|---|---|
+| At the gate, before pushback | Any station of your airport: ATIS, Delivery, Ground, Tower and the others in the **Radios** tile's station list | A frequency that belongs to no station of your airport |
+| From pushback to the taxi in | The frequency ATC gave you (its last "Contact … on …") | Any other frequency |
+
+The FO says nothing when the app cannot read what ATC expects, cannot read COM1, or (at the
+gate) has no station list for your airport.
+
+**What the FO asks.** After COM1 has stayed on one wrong frequency for the time in **Wait
+before the report**, the FO asks, for example:
+
+*"Captain, COM1 is on Scottish Control, one one niner decimal zero. We should be on Ground,
+one two one decimal seven zero five. Shall I tune it?"*
+
+SayIntentions answers on any frequency: it connects you to the station that owns it. The FO
+names that station when SayIntentions has already spoken to you on that frequency, or when
+it is a station of your airport. When the app does not know the station, the FO says only
+the frequency: *"Captain, COM1 is on one two four decimal eight five. Ground is one two one
+decimal seven zero five. Shall I tune it?"*
+
+| You | What happens |
+|---|---|
+| Say *"yes"*, *"affirm"* or *"tune it"*, or press **Yes** on the question card | The FO sets COM1 to that frequency and says *"Ground tuned."* The frequency you were on goes to standby. If the radio does not take it, the FO says *"Unable to tune COM1, Captain. The radio is yours."* |
+| Say *"no"*, *"negative"* or *"leave it"*, or press **No** | Nothing changes. |
+| Give no answer for one minute | Nothing changes. |
+
+The question card is on the **OFP** page and in the Status section of **Settings → GSX**.
+The FO asks once for the same pair of frequencies. It asks again when COM1 or the frequency
+ATC expects changes.
+
+**When you press your ATC button.** If you press your ATC push-to-talk while COM1 is on a
+wrong frequency, the FO asks at once and does not wait. For this the app must know your ATC
+button: see "Push-to-talk from the cockpit" below, or bind **ATC push-to-talk (mute)** on
+**Settings → Voice First Officer → Listening & PTT**.
+
+**Offer to tune** unticked: the FO only tells you, once, after the wait: *"Captain, we
+should be on Ground, one two one decimal seven zero five."* It does not ask and does not
+react to the ATC button. The FO also only tells you while **Voice requests for ground
+services** on **Settings → GSX** is unticked.
+
+**With FO works the radios ticked** all of this works the same. When ATC hands you to a new
+station the FO tunes it itself; it does not ask about that change, and your ATC button does
+not make it ask, until the FO has finished the hand-off. If COM1 is still wrong after that,
+the FO asks after the wait.
 
 ## Who works the radios
 
@@ -128,7 +181,8 @@ still **Off**. This is what keeps the FO from hearing your ATC calls.
 
 1. Open the **Flight Status** page and look at the **Radios** tile. With SayIntentions on and
    a flight active it shows COM1 and, beside **ATC expects**, the frequency ATC gave you.
-   Before ATC has named one it reads "SayIntentions has not named a station yet".
+   Before ATC has named one it reads "SayIntentions has not named a station yet". The word
+   at the top right of the tile is **ON FREQUENCY** or **WRONG FREQUENCY**.
 2. With a flight active in SayIntentions, hold your FO key and say *"request clearance"*.
    You hear *"Roger — calling Clearance Delivery."* and then the call. SayIntentions ATC
    answers.
@@ -147,7 +201,11 @@ still **Off**. This is what keeps the FO from hearing your ATC calls.
 | You hear every call twice | The FO says it and SayIntentions plays it too. | Untick **FO speaks the transmission**. |
 | The FO answers "Roger — calling …" and then waits | The FO waits until nobody talks on the frequency, at most 20 seconds. | Nothing. This is normal. |
 | The FO reacts when you talk to ATC | The FO does not know your ATC button. | Set up "Push-to-talk from the cockpit", or bind **ATC push-to-talk (mute)** on **Listening & PTT**. |
-| The Radios tile shows **WRONG FREQUENCY**, or the FO tells you COM1 is on another frequency | COM1 is not on the frequency of ATC's last "Contact … on …". | Press **Tune** on the tile, or tune it yourself. |
+| The Radios tile shows **WRONG FREQUENCY**, or the FO asks "Shall I tune it?" | COM1 is not on the frequency ATC expects. At the gate the tile compares COM1 with Ground only; the FO also accepts ATIS, Delivery and the other stations of your airport. | Say *"yes"*, press **Tune** on the tile, or tune it yourself. At the gate on ATIS or Delivery: nothing, this is normal. |
+| The Radios tile shows **PROSIM OFFLINE** | ProSim is not connected, so the app cannot read COM1. | Start ProSim. Check the ProSim rows on the **Flight Status** page. |
+| The Radios tile shows **COM1 NOT READ** | ProSim is connected but gives the app no COM1 frequency, for example with the radio switched off. | Switch the radio on and set a frequency. If the tile still reads this, send the diagnostics (see below). |
+| At the gate the FO never asks about a wrong frequency | The app has no station list for your airport (the **Radios** tile shows no **Stations at …** row), or no flight plan is loaded, or SayIntentions has not named a station yet. | Fetch the flight plan on the INIT page and start the flight in SayIntentions. Without a station list the FO stays quiet on purpose. |
+| The FO asked once and does not ask again | It asks once for the same pair of frequencies. | Tune the radio, or press **Tune** on the tile. |
 | COM1 jumps back to another frequency about a second after you change it, or your squawk code changes by itself | MSFS's own ATC helper is tuning the radio. | In MSFS, Assistance options, switch **AI Radio Communications (ATC)** off. |
 | The cockpit push-to-talk does nothing | MSFS is not running, the button is not bound to the switch in ProSim, or the LVAR option in SayIntentions is off. | Check the three steps in "Push-to-talk from the cockpit". |
 | With **Comms hand-over** on, you never get the radios at the holding point | The app does not know the departure runway. | Enter the runway in the FMS before you taxi. Say *"I have the radios"* to take them now. |

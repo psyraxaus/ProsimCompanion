@@ -98,6 +98,7 @@
       "mismatch": "주파수 불일치",
       "unknown": "지정 없음",
       "noProsim": "PROSIM 오프라인",
+      "com1NotRead": "COM1 읽기 불가",
       "off": "SAYINTENTIONS 꺼짐",
       "offHint": "ATC가 지정한 주파수를 보려면 설정 → SayIntentions에서 SayIntentions를 켜세요",
       "noAssignment": "SayIntentions가 아직 관제석을 지정하지 않았습니다",

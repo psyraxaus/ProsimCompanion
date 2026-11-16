@@ -22,7 +22,7 @@ namespace ProsimCompanion.Speech.Recognition;
 /// start/stop must never run on the hook thread. Doubles as <see cref="IPttInputCapture"/>
 /// for the settings card's Set-button capture and pressed-state lamps.
 /// </summary>
-public sealed class PushToTalkService : Core.Hosting.IStartupModule, IDisposable, IPttInputCapture
+public sealed class PushToTalkService : Core.Hosting.IStartupModule, IDisposable, IPttInputCapture, IAtcPttSignal
 {
     private const int MaxJoysticks = 16;
 
@@ -245,6 +245,15 @@ public sealed class PushToTalkService : Core.Hosting.IStartupModule, IDisposable
     public event Action<bool>? OwnPttChanged;
 
     public event Action<bool>? AtcPttChanged;
+
+    // Explicit: the class already has an AtcPttPressed state property.
+    private Action? _atcPttPressedEdge;
+
+    event Action? IAtcPttSignal.AtcPttPressed
+    {
+        add => _atcPttPressedEdge += value;
+        remove => _atcPttPressedEdge -= value;
+    }
 
     /// <summary>Any pressed-state edge — the settings card's lamps re-render on this.</summary>
     public event EventHandler? PressedChanged;
@@ -686,6 +695,10 @@ public sealed class PushToTalkService : Core.Hosting.IStartupModule, IDisposable
                 try
                 {
                     AtcPttChanged?.Invoke(atc);
+                    if (atc)
+                    {
+                        _atcPttPressedEdge?.Invoke();
+                    }
                 }
                 catch (Exception ex)
                 {

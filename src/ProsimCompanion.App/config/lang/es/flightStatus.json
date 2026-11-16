@@ -98,6 +98,7 @@
       "mismatch": "FRECUENCIA INCORRECTA",
       "unknown": "SIN ASIGNACIÓN",
       "noProsim": "PROSIM SIN CONEXIÓN",
+      "com1NotRead": "COM1 SIN LECTURA",
       "off": "SAYINTENTIONS APAGADO",
       "offHint": "Activa SayIntentions en Ajustes → SayIntentions para ver la frecuencia que espera ATC",
       "noAssignment": "SayIntentions aún no ha indicado una estación",

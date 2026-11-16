@@ -60,8 +60,11 @@ public sealed class PttEdgeTracker
 /// polling anywhere on this path. Off (source <c>none</c>, or SayIntentions off) binds
 /// nothing. MSFS down: the write fails, one warning per episode, the next edge retries.
 /// </summary>
-public sealed class SayIntentionsPttRelay : IStartupModule, IDisposable
+public sealed class SayIntentionsPttRelay : IStartupModule, IDisposable, Recognition.IAtcPttSignal
 {
+    /// <inheritdoc />
+    public event Action? AtcPttPressed;
+
     private readonly IOptionsMonitor<SayIntentionsOptions> _options;
     private readonly IProsimDataRefs _prosim;
     private readonly ISimVars? _simVars;
@@ -176,6 +179,18 @@ public sealed class SayIntentionsPttRelay : IStartupModule, IDisposable
         if (edge != PttEdgeTracker.Edge.None)
         {
             _ = WriteAsync(edge == PttEdgeTracker.Edge.Pressed);
+        }
+
+        if (edge == PttEdgeTracker.Edge.Pressed)
+        {
+            try
+            {
+                AtcPttPressed?.Invoke();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "ATC push-to-talk handler threw");
+            }
         }
     }
 

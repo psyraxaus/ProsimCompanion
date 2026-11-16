@@ -30,7 +30,8 @@ internal sealed record CommEntry(
     string? OutgoingEnglish,
     string? StationName = null,
     string? Incoming = null,
-    DateTimeOffset? StampUtc = null)
+    DateTimeOffset? StampUtc = null,
+    int? FrequencyKhz = null)
 {
     /// <summary>A COM1 entry — the only channel ATC speaks to the flight deck on
     /// (INTERCOM is the ramp crew, ACARS the clearance).</summary>
@@ -166,7 +167,8 @@ internal static class CommHistory
                     Str(node["outgoing_message_english"]),
                     Str(node["station_name"]),
                     string.IsNullOrWhiteSpace(incoming) ? null : incoming,
-                    Stamp(node["stamp_zulu"])));
+                    Stamp(node["stamp_zulu"]),
+                    HandoffParser.ToKhz(Str(node["frequency"]))));
             }
 
             return (flightId, entries);
@@ -443,5 +445,274 @@ internal sealed class FrequencyWatchCore
     {
         _mismatchSince = null;
         _reported = false;
+    }
+}
+
+/// <summary>Which rule the wrong-frequency report judges COM1 by.</summary>
+internal enum FrequencyWatchRule
+{
+    /// <summary>Not judged: no live flight, or a phase outside the watch.</summary>
+    None,
+
+    /// <summary>COM1 must be on the frequency ATC assigned (pushback to taxi-in).</summary>
+    Assigned,
+
+    /// <summary>At the gate: COM1 on any station of the local airport is correct.</summary>
+    AirportStations,
+}
+
+/// <summary>The judgement of COM1 against what ATC expects.</summary>
+internal enum Com1Verdict
+{
+    /// <summary>One side cannot be read — the FO says nothing.</summary>
+    Unknown,
+
+    Correct,
+
+    Wrong,
+}
+
+/// <summary>
+/// The judgement half of the wrong-frequency report, pure for tests (owner flight 2026-11-16,
+/// EGLL stand 313: the report was quiet at the gate by design and the pilot sat on a wrong
+/// frequency unnoticed).
+/// <list type="bullet">
+/// <item>At the gate (cold and dark, preflight, departure) SayIntentions names Ground from the
+/// moment the flight is filed, while the crew is rightly on ATIS or Delivery. So there COM1 on
+/// ANY station of the local airport's list is correct, and only a frequency that belongs to no
+/// station of the airport is wrong. No station list — no judgement, never a false alarm.</item>
+/// <item>From pushback to taxi-in COM1 must be on the assigned frequency (the 2026-10-05 rule).</item>
+/// <item>The same rules with the FO on the radios (owner's rig, 2026-11-16: he flies that way
+/// and wants the advice there too). The FO's own hand-off tune is kept out of the judgement by
+/// <see cref="FoHandoffTuneWindow"/>.</item>
+/// </list>
+/// </summary>
+internal static class FrequencyJudgement
+{
+    public static FrequencyWatchRule Rule(bool flightLive, Core.Flight.FlightPhase phase)
+    {
+        if (!flightLive)
+        {
+            return FrequencyWatchRule.None;
+        }
+
+        if (Core.Flight.FlightPhaseExtensions.IsAtGate(phase))
+        {
+            return FrequencyWatchRule.AirportStations;
+        }
+
+        return SayIntentionsFrequencyMonitor.IsWatchedPhase(phase) ? FrequencyWatchRule.Assigned : FrequencyWatchRule.None;
+    }
+
+    /// <param name="com1Khz">COM1 active by the app's one read rule; 0 = not read.</param>
+    /// <param name="airportStationsKhz">The local airport's station frequencies; null or empty
+    /// when the list is not known. Read only under <see cref="FrequencyWatchRule.AirportStations"/>.</param>
+    public static Com1Verdict Judge(
+        FrequencyWatchRule rule, AssignedFrequency? assigned, int com1Khz, IReadOnlyCollection<int>? airportStationsKhz)
+    {
+        if (rule == FrequencyWatchRule.None || assigned is null || com1Khz is < 118_000 or > 137_000)
+        {
+            return Com1Verdict.Unknown;
+        }
+
+        if (SameChannel(com1Khz, assigned.Khz))
+        {
+            return Com1Verdict.Correct;
+        }
+
+        if (rule == FrequencyWatchRule.Assigned)
+        {
+            return Com1Verdict.Wrong;
+        }
+
+        if (airportStationsKhz is null || airportStationsKhz.Count == 0)
+        {
+            return Com1Verdict.Unknown;
+        }
+
+        return airportStationsKhz.Any(khz => SameChannel(com1Khz, khz)) ? Com1Verdict.Correct : Com1Verdict.Wrong;
+    }
+
+    private static bool SameChannel(int a, int b) => Math.Abs(a - b) <= FrequencyWatchCore.ToleranceKhz;
+}
+
+/// <summary>
+/// One question per assignment and COM1 frequency: the pair the FO last asked about is not
+/// asked about again — whether the captain said no, did not answer, or the wait and the
+/// push-to-talk both fired for it. Any other pair re-arms. Not thread-safe; the owner locks.
+/// </summary>
+internal sealed class TuneOfferMemory
+{
+    private (int AssignedKhz, int Com1Khz)? _last;
+
+    /// <summary>True when this pair was not the last one asked about — it is now.</summary>
+    public bool TryClaim(int assignedKhz, int com1Khz)
+    {
+        if (_last == (assignedKhz, com1Khz))
+        {
+            return false;
+        }
+
+        _last = (assignedKhz, com1Khz);
+        return true;
+    }
+
+    /// <summary>Gives the pair back when the question could not be raised after all.</summary>
+    public void Release(int assignedKhz, int com1Khz)
+    {
+        if (_last == (assignedKhz, com1Khz))
+        {
+            _last = null;
+        }
+    }
+
+    public void Reset() => _last = null;
+}
+
+/// <summary>One firing of the wrong-frequency report: after the wait, or at once on the ATC
+/// push-to-talk.</summary>
+/// <param name="Trigger"><c>wait</c> or <c>ptt</c>.</param>
+/// <param name="Com1Station">The station that owns the frequency COM1 is on, when known
+/// (<see cref="Com1StationNames"/>); null otherwise.</param>
+internal sealed record WrongFrequencyReport(AssignedFrequency Assigned, int Com1Khz, TimeSpan Waited, string Trigger, bool AtGate, string? Com1Station = null)
+{
+    public const string WaitTrigger = "wait";
+    public const string PttTrigger = "ptt";
+}
+
+/// <summary>
+/// "The FO is changing COM1 itself": open from the moment the FO takes a hand-off to read back
+/// until its tune and check-in wait are over, and for <see cref="Grace"/> after. While it is
+/// open the wrong-frequency report judges nothing — neither the wait nor the push-to-talk may
+/// ask "Shall I tune it?" about a frequency change the FO is in the middle of making
+/// (owner request 2026-11-16). Thread-safe; the clock is passed in.
+/// </summary>
+public sealed class FoHandoffTuneWindow
+{
+    /// <summary>After the hand-off is done: the radio's own frequency and the store settle.</summary>
+    public static readonly TimeSpan Grace = TimeSpan.FromSeconds(10);
+
+    private readonly object _gate = new();
+    private int _pending;
+    private DateTimeOffset _closedUtc = DateTimeOffset.MinValue;
+
+    public void Begin()
+    {
+        lock (_gate)
+        {
+            _pending++;
+        }
+    }
+
+    public void End(DateTimeOffset nowUtc)
+    {
+        lock (_gate)
+        {
+            if (_pending > 0)
+            {
+                _pending--;
+            }
+
+            _closedUtc = nowUtc;
+        }
+    }
+
+    public bool IsOpen(DateTimeOffset nowUtc)
+    {
+        lock (_gate)
+        {
+            return _pending > 0 || nowUtc - _closedUtc < Grace;
+        }
+    }
+}
+
+/// <summary>
+/// The name of the station COM1 is really on (owner's rig 2026-11-16: on 119.000 at Heathrow
+/// SayIntentions answered as "Scottish Control" — it never objects to a frequency, it connects
+/// the pilot to whoever owns it; the FO should say who that is). Only names the evidence
+/// supports, in this order:
+/// <list type="number">
+/// <item>SayIntentions' own: every getCommsHistory COM1 record carries <c>frequency</c> and
+/// <c>station_name</c> (capture 2026-10-05: <c>"frequency":"118.125","station_name":"Helsinki
+/// Ground"</c>). The newest record on a frequency names it.</item>
+/// <item>The local airport's station list (getWX comms, the Radios tile's chips): the callsign,
+/// else the station type as a word.</item>
+/// </list>
+/// No match — no name; nothing is guessed. The name is looked up by the frequency COM1 is on
+/// at that moment, so it cannot outlive a frequency change. Not used: the
+/// getCurrentFrequencies <c>frequencies[]</c> list (it is the nearest airport's, see the
+/// integration doc) and <c>L:SIAI_COM1_POSITION</c> (its values are not documented beyond
+/// "0 = unknown"). Thread-safe: the tick writes, the push-to-talk reads.
+/// </summary>
+internal sealed class Com1StationNames
+{
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<int, string> _heard = new();
+
+    /// <summary>Takes the frequency → station pairs out of a history poll (in id order, so the
+    /// newest record on a frequency wins).</summary>
+    public void Note(IEnumerable<CommEntry> entries)
+    {
+        ArgumentNullException.ThrowIfNull(entries);
+        foreach (var entry in entries.OrderBy(e => e.Id))
+        {
+            // SayIntentions writes the station of a frequency nobody owns as "Unknown" (owner's
+            // rig 2026-11-16 01:21Z on 118.000: the FO said "COM one is on Unknown, …"). That is
+            // not a name; the line then gives the frequency alone.
+            if (entry.IsCom1 && entry.FrequencyKhz is { } khz && IsARealName(entry.StationName))
+            {
+                _heard[khz] = entry.StationName.Trim();
+            }
+        }
+    }
+
+    /// <summary>A new SayIntentions flight: the old flight's stations are forgotten.</summary>
+    public void Reset() => _heard.Clear();
+
+    /// <summary>False for an empty name and for SayIntentions' placeholders for "no station".</summary>
+    internal static bool IsARealName(string? stationName)
+    {
+        var name = stationName?.Trim();
+        return !string.IsNullOrEmpty(name)
+            && !name.Equals("Unknown", StringComparison.OrdinalIgnoreCase)
+            && !name.Equals("None", StringComparison.OrdinalIgnoreCase)
+            && !name.Equals("N/A", StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>The station on <paramref name="com1Khz"/>, or null when no source names it.</summary>
+    public string? Resolve(int com1Khz, Core.Radios.AirportStations? localAirport)
+        => Resolve(com1Khz, _heard, localAirport);
+
+    /// <summary>Pure, for tests.</summary>
+    public static string? Resolve(int com1Khz, IEnumerable<KeyValuePair<int, string>> heard, Core.Radios.AirportStations? localAirport)
+    {
+        ArgumentNullException.ThrowIfNull(heard);
+        if (com1Khz <= 0)
+        {
+            return null;
+        }
+
+        foreach (var (khz, name) in heard.OrderBy(h => Math.Abs(h.Key - com1Khz)))
+        {
+            if (Math.Abs(khz - com1Khz) <= FrequencyWatchCore.ToleranceKhz)
+            {
+                return name;
+            }
+
+            break; // the nearest is not this channel: none is
+        }
+
+        if (localAirport is not null)
+        {
+            foreach (var station in localAirport.Stations)
+            {
+                if (Math.Abs(station.Khz - com1Khz) <= FrequencyWatchCore.ToleranceKhz)
+                {
+                    var name = station.Callsign.Trim().Length > 0 ? station.Callsign.Trim() : station.Type.Trim();
+                    return name.Length > 0 ? name : null;
+                }
+            }
+        }
+
+        return null;
     }
 }

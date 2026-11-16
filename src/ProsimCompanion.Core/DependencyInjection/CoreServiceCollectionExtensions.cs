@@ -224,6 +224,10 @@ public static class CoreServiceCollectionExtensions
         services.AddSingleton<BoxCheckStore>();
         services.AddSingleton<BoxCheckFixStore>();
         services.AddSingleton<ICaptainsQuestionStore>(p => p.GetRequiredService<BoxCheckFixStore>());
+        // "Shall I tune it?" — the FO's offer when COM1 is off the frequency ATC expects
+        // (2026-11-16): the wrong-frequency report asks, the FO dialogue or the card answers.
+        services.AddSingleton<Radios.Com1TuneOfferStore>();
+        services.AddSingleton<ICaptainsQuestionStore>(p => p.GetRequiredService<Radios.Com1TuneOfferStore>());
         // "Any other threats, captain?" after the emergency half of the takeoff briefing
         // (issue #180): the briefing asks, the FO dialogue takes the free-text answer.
         services.AddSingleton<ThreatsQuestionStore>();

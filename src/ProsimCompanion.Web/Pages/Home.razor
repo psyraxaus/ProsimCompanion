@@ -251,7 +251,7 @@
         // expects, so the pilot never has to bring the SayIntentions window forward in
         // preflight. The stations are the local airport's getWX comms list; every chip and the
         // Tune button go through the Core tuner — ProSim datarefs, standby then swap.
-        var radios = FlightStatusPresentation.Radios(_radio, _weather.Local.Icao.Length > 0 ? _weather.Local.Icao : _ofp?.OriginIcao);
+        var radios = FlightStatusPresentation.Radios(_radio, _weather.Local.Icao.Length > 0 ? _weather.Local.Icao : _ofp?.OriginIcao, Links.ProsimConnected);
         <section class="section fs-radios @radios.StateClass">
             <div class="fs-radios-head">
                 <span class="label-caps fs-radios-title"><AppIcon Name="radio-tower" Size="14" /> @T["flightStatus.radios.label"]</span>

@@ -98,6 +98,7 @@
       "mismatch": "周波数不一致",
       "unknown": "指定なし",
       "noProsim": "PROSIM 未接続",
+      "com1NotRead": "COM1 読取不可",
       "off": "SAYINTENTIONS オフ",
       "offHint": "ATC が指定する周波数を見るには、設定 → SayIntentions で SayIntentions をオンにしてください",
       "noAssignment": "SayIntentions はまだ局を指定していません",

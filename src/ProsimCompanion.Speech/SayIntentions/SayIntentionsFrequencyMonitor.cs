@@ -5,7 +5,6 @@ using ProsimCompanion.Core.Aircraft;
 using ProsimCompanion.Core.Configuration;
 using ProsimCompanion.Core.EventLog;
 using ProsimCompanion.Core.Flight;
-using ProsimCompanion.Speech.Arbiter;
 
 namespace ProsimCompanion.Speech.SayIntentions;
 
@@ -20,8 +19,14 @@ namespace ProsimCompanion.Speech.SayIntentions;
 /// the timing from <see cref="FrequencyWatchCore"/>; this class only polls, reads COM1 and
 /// speaks. Everything fails silent: no API key, no fresh history, an unreadable hand-off,
 /// ProSim absent or stale — no report.</para>
-/// <para>Quiet at the gate by design: SI names Ground as the correct station from the moment
-/// the flight is filed, long before the crew has any reason to be on it.</para>
+/// <para>At the gate SI names Ground as the correct station from the moment the flight is
+/// filed, long before the crew has any reason to be on it — so there COM1 on any station of the
+/// local airport counts as correct (<see cref="FrequencyJudgement"/>, 2026-11-16; until then the
+/// report was quiet at the gate and the pilot sat on a wrong frequency at EGLL stand 313 with
+/// the FO silent). COM1 is the value the Radios tile shows (<see cref="Core.Radios.Com1Reading"/>
+/// through the radio store) — one read rule, no second subscription here. What is said, a
+/// statement or the "Shall I tune it?" question, is <see cref="Com1TuneOfferService"/>'s; the
+/// ATC push-to-talk asks at once (<see cref="Recognition.IAtcPttSignal"/>).</para>
 /// </summary>
 public sealed class SayIntentionsFrequencyMonitor : Core.Hosting.IStartupModule, IDisposable
 {
@@ -54,16 +59,18 @@ public sealed class SayIntentionsFrequencyMonitor : Core.Hosting.IStartupModule,
     private int _tickFailures;
 
     private readonly IOptionsMonitor<SayIntentionsOptions> _options;
-    private readonly IProsimDataRefs _dataRefs;
     private readonly IFlightPhaseSource _flight;
-    private readonly ISpeechArbiter _arbiter;
     private readonly JsonlEventLog _eventLog;
     private readonly ILogger<SayIntentionsFrequencyMonitor> _logger;
     private readonly AssignedFrequencyTracker _tracker = new();
     private readonly FrequencyWatchCore _watch = new();
     private readonly CancellationTokenSource _shutdown = new();
 
-    private IDataRefSubscription<double>? _com1Active;
+    private readonly Com1TuneOfferService _reports;
+    private readonly FoHandoffTuneWindow? _handoffWindow;
+    private readonly Com1StationNames _stationNames = new();
+    private readonly IReadOnlyList<Recognition.IAtcPttSignal> _pttSignals;
+    private volatile AssignedFrequency? _currentAssignment;
     private Timer? _timer;
     private int _ticking;
 
@@ -101,28 +108,29 @@ public sealed class SayIntentionsFrequencyMonitor : Core.Hosting.IStartupModule,
 
     public SayIntentionsFrequencyMonitor(
         IOptionsMonitor<SayIntentionsOptions> options,
-        IProsimDataRefs dataRefs,
         IFlightPhaseSource flight,
-        ISpeechArbiter arbiter,
+        Com1TuneOfferService reports,
         JsonlEventLog eventLog,
         ILogger<SayIntentionsFrequencyMonitor> logger,
         Core.Radios.RadioStore? radioStore = null,
         Core.Aircraft.Ofp.OfpStore? ofp = null,
-        ISimVars? simVars = null)
+        ISimVars? simVars = null,
+        IEnumerable<Recognition.IAtcPttSignal>? pttSignals = null,
+        FoHandoffTuneWindow? handoffWindow = null)
     {
+        _handoffWindow = handoffWindow;
         ArgumentNullException.ThrowIfNull(options);
-        ArgumentNullException.ThrowIfNull(dataRefs);
         ArgumentNullException.ThrowIfNull(flight);
-        ArgumentNullException.ThrowIfNull(arbiter);
+        ArgumentNullException.ThrowIfNull(reports);
         ArgumentNullException.ThrowIfNull(eventLog);
         ArgumentNullException.ThrowIfNull(logger);
 
         _options = options;
-        _dataRefs = dataRefs;
         _flight = flight;
-        _arbiter = arbiter;
+        _reports = reports;
         _eventLog = eventLog;
         _logger = logger;
+        _pttSignals = [.. pttSignals ?? []];
         _radioStore = radioStore;
         _ofp = ofp;
         _simVars = simVars;
@@ -130,8 +138,12 @@ public sealed class SayIntentionsFrequencyMonitor : Core.Hosting.IStartupModule,
 
     public void Start()
     {
-        _com1Active = _dataRefs.Subscribe(ProsimDataRefNames.RadioCom1Active);
         _timer = new Timer(_ => _ = TickAsync(), null, TickMs, TickMs);
+        foreach (var signal in _pttSignals)
+        {
+            signal.AtcPttPressed += OnAtcPttPressed;
+        }
+
         if (_simVars is null)
         {
             return;
@@ -154,7 +166,11 @@ public sealed class SayIntentionsFrequencyMonitor : Core.Hosting.IStartupModule,
     {
         _timer?.Dispose();
         _shutdown.Cancel();
-        _com1Active?.Dispose();
+        foreach (var signal in _pttSignals)
+        {
+            signal.AtcPttPressed -= OnAtcPttPressed;
+        }
+
         if (_com1Receiving is not null)
         {
             _com1Receiving.ValueChanged -= OnCom1ReceivingChanged;
@@ -189,8 +205,9 @@ public sealed class SayIntentionsFrequencyMonitor : Core.Hosting.IStartupModule,
         _ = TickAsync();
     }
 
-    /// <summary>Pushback to taxi-in: the window in which the crew is working ATC. At the
-    /// gate SI already names Ground while the crew is still on ATIS or delivery.</summary>
+    /// <summary>Pushback to taxi-in: the window in which COM1 must be on the assigned
+    /// frequency. At the gate SI already names Ground while the crew is still on ATIS or
+    /// delivery — the gate has its own rule (<see cref="FrequencyJudgement"/>).</summary>
     internal static bool IsWatchedPhase(FlightPhase phase)
         => !phase.IsAtGate() && phase is not (FlightPhase.Unknown or FlightPhase.Shutdown);
 
@@ -201,11 +218,110 @@ public sealed class SayIntentionsFrequencyMonitor : Core.Hosting.IStartupModule,
         ArgumentNullException.ThrowIfNull(assigned);
 
         var station = SpeakableStation(assigned.Station);
-        var frequency = Callouts.Aviation.ToDigits(
-            (assigned.Khz / 1000.0).ToString("F3", CultureInfo.InvariantCulture).TrimEnd('0').TrimEnd('.'));
+        var frequency = SpokenFrequency(assigned.Khz);
         return station.Length > 0
             ? $"Captain, we should be on {station}, {frequency}."
             : $"Captain, we should be on {frequency}.";
+    }
+
+    /// <summary>121705 → "one two one decimal seven zero five"; 124850 → "… decimal eight
+    /// five"; 119000 → "one one niner decimal zero" (trailing zeros are not said, one decimal
+    /// always is). Cockpit talk: the same in every phraseology style.</summary>
+    internal static string SpokenFrequency(int khz)
+    {
+        var text = (khz / 1000.0).ToString("F3", CultureInfo.InvariantCulture).TrimEnd('0');
+        return Callouts.Aviation.ToDigits(text.EndsWith('.') ? text + "0" : text);
+    }
+
+    /// <summary>What COM1 is judged against right now: the rule for the phase, COM1 as the
+    /// radio store reads it, and — at the gate — the local airport's station list. Null unless
+    /// the verdict is <see cref="Com1Verdict.Wrong"/>. Pure over its arguments, for tests.</summary>
+    internal static WrongFrequencyReport? JudgeWrong(
+        SayIntentionsOptions options,
+        bool flightLive,
+        FlightPhase phase,
+        AssignedFrequency? assigned,
+        Core.Radios.RadioSnapshot? radio,
+        string? origin,
+        string? destination,
+        string trigger,
+        Com1StationNames? stationNames = null)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        if (!options.FrequencyMonitorEnabled)
+        {
+            return null;
+        }
+
+        var rule = FrequencyJudgement.Rule(flightLive, phase);
+        var com1Khz = radio is { Com1Live: true } ? radio.Com1ActiveKhz : 0;
+        var local = radio?.StationsFor(LocalIcao(phase, origin, destination));
+        IReadOnlyCollection<int>? stations = rule == FrequencyWatchRule.AirportStations
+            ? local?.Stations.Select(s => s.Khz).ToList()
+            : null;
+        if (FrequencyJudgement.Judge(rule, assigned, com1Khz, stations) != Com1Verdict.Wrong)
+        {
+            return null;
+        }
+
+        // Who COM1 is really on, looked up for the frequency it is on now.
+        var com1Station = stationNames is null
+            ? Com1StationNames.Resolve(com1Khz, [], local)
+            : stationNames.Resolve(com1Khz, local);
+        return new WrongFrequencyReport(assigned!, com1Khz, TimeSpan.Zero, trigger, phase.IsAtGate(), com1Station);
+    }
+
+    private WrongFrequencyReport? JudgeWrongNow(SayIntentionsOptions options, AssignedFrequency? assigned, string trigger)
+    {
+        // The FO is tuning a hand-off itself: nothing to judge until it is done.
+        if (_handoffWindow?.IsOpen(DateTimeOffset.UtcNow) == true)
+        {
+            return null;
+        }
+
+        var ofp = _ofp?.Current;
+        return JudgeWrong(
+            options, _flight.IsLive, _flight.CurrentPhase, assigned, _radioStore?.Snapshot(),
+            ofp?.OriginIcao, ofp?.DestinationIcao, trigger, _stationNames);
+    }
+
+    /// <summary>The pilot keyed ATC (the ProSim PTT switch behind <c>sayIntentions.pttSource</c>,
+    /// or the ATC push-to-talk binding): on a wrong frequency the question is asked at once,
+    /// without the wait (owner request 2026-11-16). Off the caller's thread — the edge comes
+    /// from a dataref push or the input hook.</summary>
+    private void OnAtcPttPressed()
+    {
+        if (_shutdown.IsCancellationRequested)
+        {
+            return;
+        }
+
+        _ = Task.Run(() =>
+        {
+            try
+            {
+                HandleAtcPtt(_currentAssignment);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "Wrong-frequency question on the push-to-talk failed");
+            }
+        });
+    }
+
+    /// <summary>The push-to-talk decision: judged by the same rules as the wait, against the
+    /// assignment the last tick knew. Returns what the report did (<c>question</c> / <c>none</c>).</summary>
+    internal string HandleAtcPtt(AssignedFrequency? assigned)
+    {
+        var options = _options.CurrentValue;
+        if (!options.Enabled || !options.OfferToTune)
+        {
+            return "none";
+        }
+
+        return JudgeWrongNow(options, assigned, WrongFrequencyReport.PttTrigger) is { } report
+            ? _reports.Report(report)
+            : "none";
     }
 
     /// <summary>Letters, digits and spaces only; an all-caps position code from
@@ -233,6 +349,7 @@ public sealed class SayIntentionsFrequencyMonitor : Core.Hosting.IStartupModule,
             var apiKey = options.Enabled ? ResolveSapiCredential(options) : null;
             if (apiKey is null)
             {
+                _currentAssignment = null;
                 _watch.Reset();
                 _radioStore?.Update(s => s.SayIntentionsOn || s.Assigned is not null
                     ? s with { SayIntentionsOn = false, Assigned = null }
@@ -256,6 +373,7 @@ public sealed class SayIntentionsFrequencyMonitor : Core.Hosting.IStartupModule,
             _voiceWanted = (watched && historyWanted) || foRadios;
             if (!_voiceWanted && _radioStore is null)
             {
+                _currentAssignment = null;
                 _watch.Reset();
                 return;
             }
@@ -285,20 +403,16 @@ public sealed class SayIntentionsFrequencyMonitor : Core.Hosting.IStartupModule,
             NoteAssignment(assigned);
             PublishAssignment(assigned, now);
 
-            if (!_voiceWanted || !options.FrequencyMonitorEnabled)
-            {
-                _watch.Reset();
-                return;
-            }
+            _currentAssignment = assigned;
 
-            // A stale subscription means ProSim is gone — never judge a held-over frequency.
-            var com1Khz = _com1Active is { IsStale: false, RawValue: not null } com1
-                ? (int)Math.Round(com1.Value)
-                : 0;
+            // One judgement for the wait and the push-to-talk: the rule of the phase (the gate
+            // has its own), COM1 as the radio store reads it (not live = ProSim gone — never
+            // judge a held-over frequency). Anything but "wrong" resets the wait.
+            var wrong = JudgeWrongNow(options, assigned, WrongFrequencyReport.WaitTrigger);
             var wait = TimeSpan.FromSeconds(Math.Max(10, options.FrequencyMonitorWaitSeconds));
-            if (_watch.Step(now, assigned, com1Khz, wait) is { } advisory)
+            if (_watch.Step(now, wrong?.Assigned, wrong?.Com1Khz ?? 0, wait) is { } advisory && wrong is not null)
             {
-                Speak(advisory);
+                _reports.Report(wrong with { Waited = advisory.Waited });
             }
         }
         catch (OperationCanceledException) when (_shutdown.IsCancellationRequested)
@@ -435,6 +549,13 @@ public sealed class SayIntentionsFrequencyMonitor : Core.Hosting.IStartupModule,
             var body = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
             var (flightId, entries) = CommHistory.Parse(body);
             var fresh = _tracker.ApplyHistory(flightId, entries);
+            if (_tracker.LastApplyReset)
+            {
+                _stationNames.Reset();
+            }
+
+            // frequency → station_name of every COM1 record: who owns the frequency COM1 is on.
+            _stationNames.Note(entries);
             _lastHistoryOkUtc = DateTimeOffset.UtcNow;
             if (_historyFailures > 0)
             {
@@ -613,27 +734,5 @@ public sealed class SayIntentionsFrequencyMonitor : Core.Hosting.IStartupModule,
             khz = assigned.Khz,
             source = assigned.Source.ToString(),
         });
-    }
-
-    private void Speak(WrongFrequencyAdvisory advisory)
-    {
-        var text = ComposeAdvisory(advisory.Assigned);
-        _logger.LogInformation(
-            "Wrong-frequency report: COM1 on {Com1Khz} kHz, assigned {AssignedKhz} kHz ({Station}) for {WaitedSec} s",
-            advisory.Com1Khz, advisory.Assigned.Khz, advisory.Assigned.Station, (int)advisory.Waited.TotalSeconds);
-        _eventLog.Record("fo.wrong-frequency-advisory", new
-        {
-            text,
-            station = advisory.Assigned.Station,
-            assignedKhz = advisory.Assigned.Khz,
-            com1Khz = advisory.Com1Khz,
-            source = advisory.Assigned.Source.ToString(),
-            waitedSec = (int)advisory.Waited.TotalSeconds,
-        });
-
-        // Advisory band with a shelf life: said late, behind a long ATC exchange, the radio
-        // has usually moved on and the line would be wrong.
-        _ = _arbiter.EnqueueAsync(new SpeechRequest(
-            text, SpeechPriority.Normal, Ttl: TimeSpan.FromSeconds(30), Tag: "fo.wrong-frequency"));
     }
 }

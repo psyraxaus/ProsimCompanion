@@ -885,11 +885,16 @@
       "wrongFreq": {
         "label": "Melding verkeerde frequentie",
         "hint": "De FO vertelt je wanneer COM1 niet op de frequentie staat die ATC je gaf.",
-        "more": "Gebruikt de laatste 'Contact … on …'-instructie van ATC en zegt het eenmaal. Hij zwijgt aan de gate, en wanneer hij de instructie niet kan lezen."
+        "more": "Gebruikt de laatste 'Contact … on …'-instructie van ATC en zegt het eenmaal. Aan de gate telt elk station van je luchthaven (ATIS, Delivery, Ground, Tower) als juist; elke andere frequentie wordt gemeld. Hij zwijgt wanneer hij de instructie, COM1 of de stationslijst van de luchthaven niet kan lezen."
       },
       "waitBefore": {
         "label": "Wachttijd voor de melding",
         "hint": "Hoe lang COM1 eerst op een andere frequentie mag blijven."
+      },
+      "offerToTune": {
+        "label": "Afstemmen aanbieden",
+        "hint": "De FO vraagt 'Shall I tune it?' in plaats van het je alleen te vertellen.",
+        "more": "Zeg je ja, dan zet de FO COM1 op de frequentie die ATC verwacht. Zeg je nee, of antwoord je een minuut lang niet, dan verandert er niets. De FO vraagt het ook meteen wanneer je op een verkeerde frequentie de ATC-PTT indrukt. Uit: de FO vertelt het je alleen, zoals voorheen. Werkt ook terwijl de FO de radio's bedient; hij vraagt niets over een hand-off die hij zelf aan het afstemmen is."
       },
       "arrivalGate": {
         "label": "Aankomstgate van ATC",

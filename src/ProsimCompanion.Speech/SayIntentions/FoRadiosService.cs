@@ -33,6 +33,7 @@ public sealed class FoRadiosService : Core.Hosting.IStartupModule, IDisposable
     private readonly JsonlEventLog _eventLog;
     private readonly ILogger<FoRadiosService> _logger;
     private readonly IRadioTuner? _tuner;
+    private readonly FoHandoffTuneWindow? _handoffWindow;
     private readonly IFlightPhaseSource? _phase;
     private readonly IFlightDataSource? _flightData;
     private readonly ISimLocalTime? _localTime;
@@ -85,8 +86,10 @@ public sealed class FoRadiosService : Core.Hosting.IStartupModule, IDisposable
         RunwayLocator? runways = null,
         IDepartureRunwaySource? departureRunway = null,
         Core.Aircraft.Ofp.OfpStore? ofp = null,
-        Core.Weather.HeroWeatherStore? weather = null)
+        Core.Weather.HeroWeatherStore? weather = null,
+        FoHandoffTuneWindow? handoffWindow = null)
     {
+        _handoffWindow = handoffWindow;
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(monitor);
         ArgumentNullException.ThrowIfNull(arbiter);
@@ -422,6 +425,16 @@ public sealed class FoRadiosService : Core.Hosting.IStartupModule, IDisposable
 
         await _transmitGate.WaitAsync(_shutdown.Token).ConfigureAwait(false);
         var holdsGate = true;
+
+        // From the read-back to the end of this hand-off the FO changes COM1 itself: the
+        // wrong-frequency question must not ask about it (2026-11-16). Opened before the
+        // read-back goes out — the assignment has already changed by now.
+        var handoffOpen = readback.Kind == ReadbackKind.Handoff && readback.HandoffKhz is not null;
+        if (handoffOpen)
+        {
+            _handoffWindow?.Begin();
+        }
+
         try
         {
             await TransmitAsync(apiKey, readback, options, "sayintentions.readback", new
@@ -435,6 +448,7 @@ public sealed class FoRadiosService : Core.Hosting.IStartupModule, IDisposable
             {
                 return;
             }
+
 
             // The gate serialises TRANSMISSIONS, not the hand-off's waits: holding it through
             // the frequency-clear wait, the tune and the COM1 wait queued every later read-back
@@ -527,6 +541,11 @@ public sealed class FoRadiosService : Core.Hosting.IStartupModule, IDisposable
         }
         finally
         {
+            if (handoffOpen)
+            {
+                _handoffWindow?.End(DateTimeOffset.UtcNow);
+            }
+
             if (holdsGate)
             {
                 _transmitGate.Release();

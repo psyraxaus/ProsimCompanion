@@ -98,6 +98,7 @@
       "mismatch": "FALSCHE FREQUENZ",
       "unknown": "KEINE ZUWEISUNG",
       "noProsim": "PROSIM OFFLINE",
+      "com1NotRead": "COM1 NICHT GELESEN",
       "off": "SAYINTENTIONS AUS",
       "offHint": "Schalte SayIntentions unter Einstellungen → SayIntentions ein, um die von ATC erwartete Frequenz zu sehen",
       "noAssignment": "SayIntentions hat noch keine Station genannt",

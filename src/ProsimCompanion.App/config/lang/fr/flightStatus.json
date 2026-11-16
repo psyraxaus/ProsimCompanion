@@ -98,6 +98,7 @@
       "mismatch": "MAUVAISE FRÉQUENCE",
       "unknown": "AUCUNE ASSIGNATION",
       "noProsim": "PROSIM HORS LIGNE",
+      "com1NotRead": "COM1 NON LU",
       "off": "SAYINTENTIONS OFF",
       "offHint": "Active SayIntentions dans Réglages → SayIntentions pour voir la fréquence attendue par l’ATC",
       "noAssignment": "SayIntentions n’a pas encore nommé de station",

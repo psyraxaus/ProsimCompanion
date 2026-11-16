@@ -62,7 +62,9 @@ public sealed class SayIntentionsOptions : IOptionSection
     /// <summary>The FO says once when COM1 has stayed off the frequency SayIntentions ATC
     /// last assigned (its "Contact … on …" instruction). SayIntentions itself never objects —
     /// it lets you check in with whichever station you tuned (live capture 2026-10-05).
-    /// Quiet at the gate and whenever the assignment cannot be read.</summary>
+    /// At the gate any station of the local airport counts as correct (2026-11-16: the report
+    /// was quiet there and the pilot sat on a wrong frequency unnoticed). Quiet whenever the
+    /// assignment, COM1 or — at the gate — the station list cannot be read.</summary>
     [OptionField(FieldKind.Bool, "speechSettings.sayIntentions.wrongFreq", DependsOn = "Enabled")]
     public bool FrequencyMonitorEnabled { get; set; } = true;
 
@@ -70,6 +72,15 @@ public sealed class SayIntentionsOptions : IOptionSection
     /// for a normal hand-off and for dialling through channels. Floor 10 s.</summary>
     [OptionField(FieldKind.Number, "speechSettings.sayIntentions.waitBefore", Suffix = "s", Min = "10", DependsOn = "Enabled; FrequencyMonitorEnabled")]
     public int FrequencyMonitorWaitSeconds { get; set; } = 60;
+
+    /// <summary>The report is a question with an offer — "… Shall I tune it?" — instead of a
+    /// statement (owner request 2026-11-16). Yes tunes COM1 through the ProSim datarefs
+    /// (standby, verify, swap); no, or no answer within a minute, leaves the radio alone. Also
+    /// asked at once when the ATC push-to-talk is pressed on a wrong frequency. Off = the old
+    /// statement. Works with the FO on the radios too (owner's rig 2026-11-16); a hand-off the
+    /// FO is tuning itself is never asked about.</summary>
+    [OptionField(FieldKind.Bool, "speechSettings.sayIntentions.offerToTune", DependsOn = "Enabled; FrequencyMonitorEnabled")]
+    public bool OfferToTune { get; set; } = true;
 
     // ---- Arrival gate from ATC ----
 

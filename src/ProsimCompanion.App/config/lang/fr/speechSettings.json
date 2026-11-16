@@ -885,11 +885,16 @@
       "wrongFreq": {
         "label": "Signalement de mauvaise fréquence",
         "hint": "Le copilote te dit quand COM1 n'est pas sur la fréquence que l'ATC t'a donnée.",
-        "more": "Il utilise la dernière instruction 'Contact … on …' de l'ATC et le dit une fois. Il se tait à la porte, et quand il ne peut pas lire l'instruction."
+        "more": "Il utilise la dernière instruction 'Contact … on …' de l'ATC et le dit une fois. À la porte, toute station de ton aéroport (ATIS, Delivery, Ground, Tower) compte comme correcte ; toute autre fréquence est signalée. Il se tait quand il ne peut pas lire l'instruction, COM1 ou la liste des stations de l'aéroport."
       },
       "waitBefore": {
         "label": "Attente avant le signalement",
         "hint": "Combien de temps COM1 peut d'abord rester sur une autre fréquence."
+      },
+      "offerToTune": {
+        "label": "Proposer de régler",
+        "hint": "Le copilote demande 'Shall I tune it?' au lieu de seulement te le dire.",
+        "more": "Si tu dis oui, le copilote règle COM1 sur la fréquence que l'ATC attend. Si tu dis non, ou si tu ne réponds pas pendant une minute, rien ne change. Le copilote demande aussi tout de suite quand tu appuies sur l'alternat ATC sur une mauvaise fréquence. Désactivé : le copilote te le dit seulement, comme avant. Fonctionne aussi quand le copilote gère la radio ; il ne demande rien pour un transfert qu'il est en train de régler lui-même."
       },
       "arrivalGate": {
         "label": "Porte d'arrivée depuis l'ATC",
