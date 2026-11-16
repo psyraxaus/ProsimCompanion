@@ -202,7 +202,7 @@ public sealed class McduArrivalChanger : IVoiceFeature, IDisposable
         // Degraded-mode ladder: explain the most fundamental missing piece first.
         if (!_reader.IsDisplayAvailable)
         {
-            Speak("Unable — I can't see the M C D U; ProSim isn't connected.");
+            Speak("Unable — I can't see the M C D U. ProSim is not sending its display.");
             _eventLog.Record("mcdu.arrival.refused", new { reason = "no-display", runway = rwy });
             return;
         }

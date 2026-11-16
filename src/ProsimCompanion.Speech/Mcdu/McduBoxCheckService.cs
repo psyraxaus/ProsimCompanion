@@ -167,7 +167,7 @@ public sealed class McduBoxCheckService : IVoiceFeature, IBoxCheckControl, IDisp
                 Speak("Still checking.");
                 break;
             case BoxCheckStart.Unavailable:
-                Speak("Unable — I can't see the M C D U; ProSim isn't connected.");
+                Speak("Unable — I can't see the M C D U. ProSim is not sending its display.");
                 _eventLog.Record(EventName, new { source = "voice", ok = false, reason = "no-display" });
                 break;
         }

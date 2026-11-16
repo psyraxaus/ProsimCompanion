@@ -297,6 +297,30 @@ public sealed class McduVoiceTests
         Assert.Empty(disabledArbiter.Requests);
     }
 
+    /// <summary>Owner's flight 2026-11-16: the first "check the box" of the session was refused
+    /// with "ProSim isn't connected" because the display was subscribed at that first use and had
+    /// no value yet. The reader subscribes when it is built, so the value is there before anyone asks.</summary>
+    [Fact]
+    public void Reader_SubscribesToTheDisplay_WhenItIsBuilt_NotAtFirstUse()
+    {
+        var subscription = new Mock<IDataRefSubscription>();
+        subscription.SetupGet(s => s.Name).Returns(ProsimDataRefNames.Mcdu2Display.Name);
+        var dataRefs = new Mock<IProsimDataRefs>();
+        dataRefs.Setup(d => d.SubscribeDynamic(ProsimDataRefNames.Mcdu2Display.Name, It.IsAny<DataRefTier>()))
+            .Returns(subscription.Object);
+        var options = new Mock<IOptionsMonitor<McduOptions>>();
+        options.SetupGet(o => o.CurrentValue).Returns(new McduOptions { Enabled = true });
+
+        var reader = new McduReader(
+            dataRefs.Object, options.Object, new FakeArbiter(),
+            SpeechTestSupport.TempEventLog(), NullLogger<McduReader>.Instance);
+
+        dataRefs.Verify(d => d.SubscribeDynamic(ProsimDataRefNames.Mcdu2Display.Name, It.IsAny<DataRefTier>()), Times.Once);
+        _ = reader.IsDisplayAvailable;
+        _ = reader.IsDisplayAvailable;
+        dataRefs.Verify(d => d.SubscribeDynamic(ProsimDataRefNames.Mcdu2Display.Name, It.IsAny<DataRefTier>()), Times.Once);
+    }
+
     private static (McduReader Reader, FakeArbiter Arbiter) MakeReader(string? displayXml, bool enabled = true)
     {
         var subscription = new Mock<IDataRefSubscription>();

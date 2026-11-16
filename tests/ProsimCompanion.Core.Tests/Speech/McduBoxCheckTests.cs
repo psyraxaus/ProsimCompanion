@@ -435,7 +435,7 @@ public sealed class McduBoxCheckTests
 
         Assert.Equal(BoxCheckStart.Unavailable, rig.Service.Start("test"));
         Assert.True(rig.Service.TryHandle("check the box"));
-        Assert.Equal(["Unable — I can't see the M C D U; ProSim isn't connected."], rig.Spoken());
+        Assert.Equal(["Unable — I can't see the M C D U. ProSim is not sending its display."], rig.Spoken());
     }
 
     [Fact]

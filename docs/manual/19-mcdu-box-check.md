@@ -203,7 +203,7 @@ own side".
 | What you see or hear | Why | What to do |
 |---|---|---|
 | There is no **MCDU CHECK** card | **Enabled** is unticked in the **MCDU** card. | Tick it and **Save**. |
-| The FO says "Unable — I can't see the M C D U; ProSim isn't connected." | The app gets no MCDU screen from ProSim. | Start ProSim and wait until the app shows it as connected. |
+| The FO says "Unable — I can't see the M C D U. ProSim is not sending its display." | The app gets no MCDU screen from ProSim. | Start ProSim and wait until the app shows it as connected. |
 | Under the button: "The MCDU is off in Settings, or its display is not arriving from ProSim." | The same, when you pressed the button. | The same. |
 | Under the button: "The voice First Officer is not running." | The voice FO is switched off. | Switch it on under **Settings → Voice First Officer**. |
 | The FO says "Still checking." | A check is already running. | Wait for the report, or say *"stop the check"*. |

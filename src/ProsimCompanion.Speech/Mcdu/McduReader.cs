@@ -78,6 +78,19 @@ public sealed class McduReader : IMcduReader, IVoiceFeature, IDisposable
         _eventLog = eventLog;
         _logger = logger;
         _speech = speech;
+
+        // The display is subscribed at start, not at first use (owner's flight 2026-11-16, EGLL
+        // preflight): the first "check the box" of the session created the subscription and
+        // asked for its value in the same instant, found none, and the FO said ProSim was not
+        // connected while it was. A value that is asked for must already be on its way.
+        try
+        {
+            _ = Display();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "MCDU display subscription at start failed; the first use tries again");
+        }
     }
 
     /// <summary>Roster declaration (see <see cref="VoiceFeatureDeclaration"/>). The MCDU trio
@@ -149,7 +162,7 @@ public sealed class McduReader : IMcduReader, IVoiceFeature, IDisposable
         // Degraded mode: explain instead of going silent when ProSim isn't feeding us.
         if (!IsDisplayAvailable)
         {
-            Speak("Unable — I can't see the M C D U; ProSim isn't connected.");
+            Speak("Unable — I can't see the M C D U. ProSim is not sending its display.");
             _eventLog.Record("mcdu.read.unavailable", new { scope = scratchpadOnly ? "scratchpad" : "page" });
             return true;
         }
