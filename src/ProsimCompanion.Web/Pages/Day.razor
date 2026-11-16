@@ -105,13 +105,13 @@
                         @T["day.fdp.soFar", DayMath.FormatClock(fdp.FdpSoFarMinutes), DayMath.FormatClock(fdp.MaxFdpMinutes), fdp.ReportUtc.ToString("HH:mm", System.Globalization.CultureInfo.InvariantCulture), fdp.SectorsWithNext]
                         @if (fdp.Exceeds && fdp.ProjectedEndUtc is { } end)
                         {
-                            <span class="ops-bad"> @T["day.fdp.exceeds", end.ToString("HH:mm", System.Globalization.CultureInfo.InvariantCulture), DayMath.FormatClock(-(fdp.MarginMinutes ?? 0))]</span>
+                            @(" ")<span class="ops-bad">@T["day.fdp.exceeds", end.ToString("HH:mm", System.Globalization.CultureInfo.InvariantCulture), DayMath.FormatClock(-(fdp.MarginMinutes ?? 0))]</span>
                         }
                         else if (fdp.MarginMinutes is { } margin)
                         {
-                            <span> @T["day.fdp.margin", DayMath.FormatClock(margin)]</span>
+                            @(" ")<span>@T["day.fdp.margin", DayMath.FormatClock(margin)]</span>
                         }
-                        <span class="ops-item-sub"> @T["day.fdp.caveat"]</span>
+                        @(" ")<span class="ops-item-sub">@T["day.fdp.caveat"]</span>
                     </div>
                 }
 

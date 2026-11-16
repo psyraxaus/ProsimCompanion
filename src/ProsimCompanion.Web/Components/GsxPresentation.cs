@@ -129,7 +129,10 @@ public static class GsxPresentation
     public static DisplayText GateRequest(GsxDiagnosticsSnapshot view)
     {
         ArgumentNullException.ThrowIfNull(view);
-        return DisplayText.RawOrNull(view.GateRequest) ?? DisplayText.Id("gsxSettings.arrivalGate.noRequest");
+        // The summary carries the request status by its code name; the one name that is not a
+        // plain word is written out for the page (seen at LPPT 2026-11-16).
+        var request = view.GateRequest?.Replace(": AssignedUnconfirmed", ": Assigned, not confirmed", StringComparison.Ordinal);
+        return DisplayText.RawOrNull(request) ?? DisplayText.Id("gsxSettings.arrivalGate.noRequest");
     }
 
     // The suffix-variant buttons (issue #156) are the gate instance of the open-question card

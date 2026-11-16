@@ -806,7 +806,10 @@ public static class FlightStatusPresentation
     private static string TitleCase(string station)
     {
         var trimmed = station.Trim();
-        return trimmed.Length > 1 && trimmed.All(c => !char.IsLetter(c) || char.IsUpper(c))
+        // One case all through ("GROUND", or SayIntentions' own "ground", seen 2026-11-16 at LPPT) is
+        // not a written name; mixed case ("Brest Control") is kept as it came.
+        return trimmed.Length > 1
+            && (trimmed.All(c => !char.IsLetter(c) || char.IsUpper(c)) || trimmed.All(c => !char.IsLetter(c) || char.IsLower(c)))
             ? CultureInfo.InvariantCulture.TextInfo.ToTitleCase(trimmed.ToLowerInvariant())
             : trimmed;
     }

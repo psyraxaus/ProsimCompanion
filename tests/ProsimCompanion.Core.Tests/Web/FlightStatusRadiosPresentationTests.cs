@@ -32,6 +32,14 @@ public sealed class FlightStatusRadiosPresentationTests
     private static readonly RadioAssignment Ground = new("GROUND", 118_125, RadioAssignmentSource.CorrectFrequency, Now);
 
     [Fact]
+    public void AStationInSmallLetters_IsWrittenAsAName()
+    {
+        var view = FlightStatusPresentation.Radios(Live(118_125, Ground with { Station = "ground" }), "EFHK");
+
+        Assert.Equal("Ground", view.AssignedStation);
+    }
+
+    [Fact]
     public void OnFrequency_IsMatch_WithTheTuneButtonHidden()
     {
         var view = FlightStatusPresentation.Radios(Live(118_125, Ground), "EFHK");

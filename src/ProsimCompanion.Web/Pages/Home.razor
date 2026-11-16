@@ -268,7 +268,7 @@
                     @if (radios.AssignedFrequency is { } assignedFrequency)
                     {
                         <span class="figure fs-radios-freq">@assignedFrequency</span>
-                        <span class="fs-radios-station">@radios.AssignedStation @if (radios.AssignedSince is { } assignedSince) { <span class="muted">@Text(assignedSince)</span> }</span>
+                        <span class="fs-radios-station">@radios.AssignedStation@if (radios.AssignedSince is { } assignedSince) { @(" ") <span class="muted">@Text(assignedSince)</span> }</span>
                         @if (radios.CanTuneAssigned)
                         {
                             <button type="button" class="btn primary fs-radios-tune" disabled="@_tuning"

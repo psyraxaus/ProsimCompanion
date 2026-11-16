@@ -98,6 +98,7 @@ public sealed class GsxPresentationTests
     {
         Assert.Equal("gsxSettings.arrivalGate.noRequest", GsxPresentation.GateRequest(GsxDiagnosticsSnapshot.Empty).TextId);
         Assert.Equal("B12: Confirmed — confirmed as B12", GsxPresentation.GateRequest(GsxDiagnosticsSnapshot.Empty with { GateRequest = "B12: Confirmed — confirmed as B12" }).Literal);
+        Assert.Equal("B12: Assigned, not confirmed — readback window expired", GsxPresentation.GateRequest(GsxDiagnosticsSnapshot.Empty with { GateRequest = "B12: AssignedUnconfirmed — readback window expired" }).Literal);
     }
 
     // The gate suffix-variant buttons are the gate instance of the open-question card (C2):

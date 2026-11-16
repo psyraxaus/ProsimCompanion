@@ -7,7 +7,7 @@ minima become possible. It costs nothing, but you need a PC or Mac on your netwo
 the server. You need its address and you must know which of the two server types it is.
 
 In every version since **0.3.0-beta.30**. The two server types have the names in this chapter
-from the version after **1.0.0-rc.9**; before that they were "faster-whisper wrapper
+from **1.0.0-rc.10**; before that they were "faster-whisper wrapper
 (/transcribe)" and "whisper.cpp server (/v1/audio/transcriptions)".
 
 ![Speech Recognition Server settings](../img/speech-recognition-server.png)
