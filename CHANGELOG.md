@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.0.0-rc.10
+
+Pre-release build, 2026-11-16, over 1.0.0-rc.9. Flown the same day by the owner, EGLL–LPPT, on the builds that led to it; the three small text corrections at the end were made after the flight.
+
+- New: **the FO tells you when COM1 is not on the frequency ATC gave, and offers to tune it** (owner request, with SayIntentions). "COM one is on one one eight decimal zero. Ground is one two one decimal seven five five. Shall I tune it?" — "yes" tunes COM1 and the FO reads the radio back; "no" leaves the radio to you. The FO asks after a wait on the wrong frequency, and at once when you press the ATC push-to-talk there. It works with *FO works the radios* on or off. Switch: Settings → SayIntentions → *Offer to tune* (on).
+- Fixed: **the Radios tile and the FO read the wrong COM1 value.** They read the last frequency that software wrote, not the radio. They now read the radio itself, so a frequency you set with the knob is seen.
+- Fixed: **"Tune" could leave the radio where it was** when the app had written that same frequency before. The app now reads the radio after the tune and tries once more.
+- Fixed: **the first "check the box" of a session answered "ProSim isn't connected"** with ProSim connected. When the FO really cannot see the MCDU it now says "Unable — I can't see the M C D U. ProSim is not sending its display."
+- Changed: **the MCDU CHECK card moved** from Flight Status to Settings → Flight Deck → MCDU (it stays on EFB INIT). On Flight Status it had cut the top card short.
+- Changed: **SayIntentions has its own group in the Settings menu**, after Flight Deck. The settings are the same.
+- Changed: **API keys are hidden as you type** (the LLM API key and the SayIntentions key).
+- Changed: **the speech server types are named by what they speak**: "OpenAI-style (/v1/audio/transcriptions)" and the others, in all seven languages. Your setting is kept.
+- New: **an example speech server for faster-whisper** in `tools/asr-server`. It has not been run by the project yet.
+- New: **the manual has chapters 15 to 27** (LLM, speech recognition server, SayIntentions, Kokoro, MCDU, ground services, duty day, scenarios, Skalarki, cockpit switches, app pages, flight deck options, APIs), install steps for whisper.cpp, faster-whisper and Kokoro, corrected older chapters, and all pictures retaken on the flight.
+- Fixed, text: "ATC BREST CONTROL" has its space on the Flight Monitor; a station that SayIntentions names "Unknown" is not spoken; a station in small letters ("ground") is written "Ground"; Duty Day reads "with the next Advisory" with a space; the arrival-gate line reads "Assigned, not confirmed" where it showed the code word "AssignedUnconfirmed".
+- Probe `si-wrong-frequency-offer`. Not done: the rule that keeps the FO quiet on ATIS and Delivery at the gate is not checked live; the Radios tile can read WRONG FREQUENCY there while the FO stays quiet; `tools/asr-server` has never been run.
+
 ## 1.0.0-rc.9
 
 Feature build, 2026-11-15, over 1.0.0-rc.8. **Not flown yet**, and not yet run against ProSim: it is tested against the MCDU screens captured from the owner's rig the same day.
